@@ -14,8 +14,11 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
+from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe
 from .const import (
     CONF_CONNECTION_MODE,
     CONF_GW_PWD,
@@ -141,6 +144,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._energy_last: dict[str, float] = {}
         self.din: str | None = entry.unique_id
         self.firmware_version: str | None = None
+        self.alerts = AlertTracker()
+        # Alerts raised or cleared by the latest reading (for the event entity).
+        self.alert_changes: list[AlertChange] = []
+        self._issues: set[str] = set()
 
         scan = entry.options.get(CONF_SCAN_INTERVAL, data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
         super().__init__(
@@ -512,4 +519,49 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.din = data["din"]
         if data.get("firmware_version"):
             self.firmware_version = data["firmware_version"]
+        self._process_alerts(data)
         return data
+
+    # ------------------------------------------------------------------
+    # Alerts
+    # ------------------------------------------------------------------
+
+    def _process_alerts(self, data: dict[str, Any]) -> None:
+        now = dt_util.utcnow()
+        self.alert_changes = []
+        if data.get("local_ok") and data.get("alerts") is not None:
+            packs = {p["name"]: p["alerts"] for p in (data.get("packs") or {}).values() if p.get("alerts")}
+            self.alert_changes = self.alerts.update(data["alerts"], packs, now)
+            for change in self.alert_changes:
+                _LOGGER.info("Powerwall alert %s: %s (%s)", change.kind, change.name, change.description)
+        data["alert_details"] = self.alerts.details()
+        data["alert_problems"] = self.alerts.problems(now)
+        self._sync_issues(data["alert_problems"])
+
+    def _sync_issues(self, problems: list[str]) -> None:
+        """One repair issue per lasting warning or fault; removed when it clears."""
+        wanted = {f"alert_{self.din}_{name}": name for name in problems}
+        for issue_id, name in wanted.items():
+            if issue_id in self._issues:
+                continue
+            severity, description = describe(name)
+            ir.async_create_issue(
+                self.hass, DOMAIN, issue_id,
+                is_fixable=False,
+                is_persistent=False,
+                severity=ir.IssueSeverity.ERROR if severity == SEVERITY_FAULT else ir.IssueSeverity.WARNING,
+                translation_key="powerwall_alert",
+                translation_placeholders={
+                    "alert": name,
+                    "description": description,
+                    "since": self.alerts.since[name].isoformat(timespec="minutes"),
+                },
+            )
+        for issue_id in self._issues - wanted.keys():
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+        self._issues = set(wanted)
+
+    def async_clear_issues(self) -> None:
+        for issue_id in self._issues:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+        self._issues = set()

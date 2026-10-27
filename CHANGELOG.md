@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0
+
+- Powerwall alerts are now explained: each known code has a plain-language description and a severity (status, notice, warning, fault).
+- New **Problem** binary sensor: on when a warning or fault has lasted 10 minutes or more.
+- New **Alert** event entity: every alert raised or cleared appears in the device's activity log and the logbook, and can trigger automations.
+- Lasting warnings and faults appear under **Settings → Repairs** and disappear when they clear.
+- The **Alerts** sensor has a new `details` attribute listing each alert's severity, description, start time and source.
+
 ## 2.0.1
 
 - Firmware version sensor shows just the version (for example `26.34.1`); the gateway's build hash moves to the `build` attribute.

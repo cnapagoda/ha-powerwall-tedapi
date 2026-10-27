@@ -197,6 +197,8 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         attrs_fn=lambda d: {
             "alerts": d.get("alerts") or [],
             "pack_alerts": {p["name"]: p["alerts"] for p in (d.get("packs") or {}).values()},
+            # Each alert with severity, plain-language description and start time.
+            "details": d.get("alert_details") or [],
         },
     ),
     TedapiSensorEntityDescription(

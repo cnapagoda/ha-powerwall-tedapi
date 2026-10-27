@@ -114,7 +114,8 @@ All entities belong to one device, **Powerwall TEDAPI**.
 | Battery full capacity, energy remaining (kWh), health (%) | Health = full capacity ÷ (13.5 kWh × packs). |
 | Per-pack capacity and temperature | One pair per Powerwall / expansion pack. |
 | String *n* voltage | One per active PV string. |
-| Backup time remaining (h), inverter temperatures, alerts, gateway last started, firmware, connection | Diagnostics. |
+| Backup time remaining (h), inverter temperatures, gateway last started, firmware, connection | Diagnostics. |
+| Alerts (sensor), Problem (binary sensor), Alert (event) | See [Alerts](#alerts). |
 | **Operation mode**, **Grid export mode** (select) | Settings. These need a signed connection or a linked Tesla account. |
 | **Backup reserve** (number), **Grid charging** (switch) | Settings. The `source` attribute shows whether the value came from `local` or `cloud`. |
 | **Dispatch active** (binary sensor) | Signed connection only. Attributes: power, start, end, limits, last end reason. |
@@ -158,6 +159,58 @@ data:
 End a dispatch now and return to the Powerwall's normal mode. It also clears a dispatch left over from before a restart.
 
 More examples are in [`examples/automations.yaml`](examples/automations.yaml).
+
+---
+
+## Alerts
+
+The gateway reports status and fault codes such as `SystemConnectedToGrid`, `BackfeedLimited` or `BatteryFault`. Tesla doesn't document them, so the integration has a built-in list that gives each known code a plain-language description and a severity. Codes it doesn't know are shown by their raw name as `notice`.
+
+| Severity | Meaning |
+|---|---|
+| `status` | Normal operation, for example connected to grid, battery full, export limited. |
+| `notice` | Unusual but harmless, or a code not in the list yet. |
+| `warning` | Expected for a few minutes while the Powerwall restarts or its On/Off switch is used; a problem if it lasts. |
+| `fault` | The Powerwall reports a fault. |
+
+Where they appear:
+
+- **Problem** (binary sensor) turns on when a warning or fault has lasted **10 minutes or more**. Its `problems` attribute lists them.
+- **Alert** (event entity) records every alert raised or cleared, with its description. The changes appear in the device's activity log and the logbook, and automations can trigger on them.
+- **Settings → Repairs** shows each lasting warning or fault with an explanation. The entry disappears when the alert clears.
+- **Alerts** (sensor) shows the number of alerts. Its `details` attribute lists each alert's severity, description, start time and source (gateway or battery pack). The gateway doesn't report when an alert started, so the start time is when Home Assistant first saw it; it resets when Home Assistant restarts.
+
+Dashboard card:
+
+```yaml
+type: markdown
+title: Powerwall alerts
+content: >-
+  {% set icon = {'fault': '🔴', 'warning': '🟠', 'notice': '🔵', 'status': '⚪'} %}
+  {% for a in state_attr('sensor.powerwall_tedapi_alerts', 'details') or [] %}
+  {{ icon[a.severity] }} **{{ a.description }}** · `{{ a.alert }}` · since {{ as_timestamp(a.since) | timestamp_custom('%d %b %H:%M') }}
+  {% else %}
+  No alerts.
+  {% endfor %}
+```
+
+Notify on a lasting problem:
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.powerwall_tedapi_problem
+    to: "on"
+actions:
+  - action: notify.notify
+    data:
+      title: Powerwall problem
+      message: >-
+        {{ state_attr('binary_sensor.powerwall_tedapi_problem', 'problems')
+           | map(attribute='description') | join(', ') }}
+```
+
+If you see a code that the integration describes wrongly or doesn't know, please open an issue with the code and what the Powerwall was doing at the time.
 
 ---
 

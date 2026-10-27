@@ -1,13 +1,19 @@
 {
   "domain": "tesla_tedapi",
   "name": "Powerwall TEDAPI",
-  "codeowners": ["@cnapagoda"],
+  "codeowners": [
+    "@cnapagoda"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/cnapagoda/ha-powerwall-tedapi",
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/cnapagoda/ha-powerwall-tedapi/issues",
-  "loggers": ["pypowerwall"],
-  "requirements": ["pypowerwall>=0.22.1"],
-  "version": "2.0.1"
+  "loggers": [
+    "pypowerwall"
+  ],
+  "requirements": [
+    "pypowerwall>=0.22.1"
+  ],
+  "version": "2.1.0"
 }
