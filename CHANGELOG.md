@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.1
+
+- Firmware version sensor shows just the version (for example `26.34.1`); the gateway's build hash moves to the `build` attribute.
+- Tests wait for background timer tasks on current Home Assistant; CI actions updated to Node 24 releases.
+
 ## 2.0.0
 
 First public release.

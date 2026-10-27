@@ -53,7 +53,7 @@ class FakePowerwall:
         }
 
     def version(self):
-        return "26.26.4"
+        return "26.34.1 dcee474d"
 
     def din(self):
         return DIN
