@@ -1,0 +1,51 @@
+dispatch_battery_power:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    power_watts:
+      required: true
+      example: 2000
+      selector:
+        number:
+          min: -10000
+          max: 10000
+          step: 100
+          unit_of_measurement: W
+          mode: box
+    duration_seconds:
+      required: true
+      example: 1800
+      selector:
+        number:
+          min: 1
+          max: 86400
+          unit_of_measurement: s
+          mode: box
+    min_soc:
+      required: false
+      example: 20
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+          mode: box
+    max_soc:
+      required: false
+      example: 95
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+          mode: box
+resume_battery_operation:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi

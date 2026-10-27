@@ -1,0 +1,306 @@
+"""Sensors for the Powerwall TEDAPI integration."""
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
+from homeassistant.const import (
+    PERCENTAGE,
+    EntityCategory,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfFrequency,
+    UnitOfPower,
+    UnitOfTemperature,
+    UnitOfTime,
+)
+from homeassistant.core import HomeAssistant
+
+from .coordinator import TedapiConfigEntry, TedapiCoordinator
+from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
+
+# Usable energy per pack in Tesla's spec (Powerwall 2/3 and the expansion pack).
+NOMINAL_PACK_KWH = 13.5
+
+
+@dataclass(frozen=True, kw_only=True)
+class TedapiSensorEntityDescription(SensorEntityDescription):
+    value_fn: Callable[[dict[str, Any]], Any]
+    attrs_fn: Callable[[dict[str, Any]], dict[str, Any] | None] | None = None
+
+
+def _health(d: dict[str, Any]) -> float | None:
+    full = d.get("battery_full_kwh")
+    packs = d.get("packs") or {}
+    if not full or not packs:
+        return None
+    return round(full / (NOMINAL_PACK_KWH * len(packs)) * 100, 1)
+
+
+def _power(key: str) -> TedapiSensorEntityDescription:
+    return TedapiSensorEntityDescription(
+        key=key,
+        translation_key=key,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d, k=key: d.get(k),
+    )
+
+
+def _energy(key: str) -> TedapiSensorEntityDescription:
+    return TedapiSensorEntityDescription(
+        key=key,
+        translation_key=key,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=1,
+        value_fn=lambda d, k=key: (d.get("energy") or {}).get(k),
+    )
+
+
+SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
+    # Power: battery + = discharging; grid + = importing
+    _power("solar_power"),
+    _power("battery_power"),
+    _power("grid_power"),
+    _power("home_power"),
+    # Charge
+    TedapiSensorEntityDescription(
+        key="battery_level",
+        translation_key="battery_level",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.get("battery_level"),
+    ),
+    TedapiSensorEntityDescription(
+        key="battery_soe",
+        translation_key="battery_soe",
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=SensorDeviceClass.BATTERY,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.get("battery_soe"),
+    ),
+    # Grid
+    TedapiSensorEntityDescription(
+        key="grid_status",
+        translation_key="grid_status",
+        value_fn=lambda d: d.get("grid_status"),
+    ),
+    TedapiSensorEntityDescription(
+        key="grid_frequency",
+        translation_key="grid_frequency",
+        native_unit_of_measurement=UnitOfFrequency.HERTZ,
+        device_class=SensorDeviceClass.FREQUENCY,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.get("grid_frequency"),
+    ),
+    TedapiSensorEntityDescription(
+        key="grid_voltage",
+        translation_key="grid_voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.get("grid_voltage"),
+    ),
+    # Lifetime energy (gateway meters)
+    _energy("grid_energy_imported"),
+    _energy("grid_energy_exported"),
+    _energy("battery_energy_charged"),
+    _energy("battery_energy_discharged"),
+    _energy("solar_energy_produced"),
+    _energy("home_energy_consumed"),
+    # Capacity
+    TedapiSensorEntityDescription(
+        key="battery_full_capacity",
+        translation_key="battery_full_capacity",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY_STORAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.get("battery_full_kwh"),
+        attrs_fn=lambda d: {
+            p["name"]: {"serial": sn, "full_kwh": p["full_kwh"], "remaining_kwh": p["remaining_kwh"]}
+            for sn, p in (d.get("packs") or {}).items()
+        },
+    ),
+    TedapiSensorEntityDescription(
+        key="battery_energy_remaining",
+        translation_key="battery_energy_remaining",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY_STORAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d: d.get("battery_remaining_kwh"),
+    ),
+    TedapiSensorEntityDescription(
+        key="battery_health",
+        translation_key="battery_health",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_health,
+        attrs_fn=lambda d: {"nominal_kwh_per_pack": NOMINAL_PACK_KWH, "packs": len(d.get("packs") or {})},
+    ),
+    TedapiSensorEntityDescription(
+        key="backup_time_remaining",
+        translation_key="backup_time_remaining",
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=lambda d: d.get("backup_hours"),
+    ),
+    # Temperatures
+    TedapiSensorEntityDescription(
+        key="inverter_ambient_temperature",
+        translation_key="inverter_ambient_temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: d.get("inverter_ambient_temp"),
+    ),
+    TedapiSensorEntityDescription(
+        key="inverter_heatsink_temperature",
+        translation_key="inverter_heatsink_temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: d.get("inverter_heatsink_temp"),
+    ),
+    # Diagnostics
+    TedapiSensorEntityDescription(
+        key="alerts",
+        translation_key="alerts",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        # Number of alerts the gateway reports, including informational ones
+        # such as SystemConnectedToGrid; the list is in the attributes.
+        value_fn=lambda d: len(d["alerts"]) if d.get("alerts") is not None else None,
+        attrs_fn=lambda d: {
+            "alerts": d.get("alerts") or [],
+            "pack_alerts": {p["name"]: p["alerts"] for p in (d.get("packs") or {}).values()},
+        },
+    ),
+    TedapiSensorEntityDescription(
+        key="gateway_started",
+        translation_key="gateway_started",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: d.get("gateway_started"),
+    ),
+    TedapiSensorEntityDescription(
+        key="firmware_version",
+        translation_key="firmware_version",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: d.get("firmware_version"),
+    ),
+    TedapiSensorEntityDescription(
+        key="connection",
+        translation_key="connection",
+        device_class=SensorDeviceClass.ENUM,
+        options=["v1r", "wifi"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda d: "v1r" if d.get("tedapi_mode") == "v1r" else ("wifi" if d.get("tedapi_mode") else None),
+    ),
+)
+
+
+def _string_sensor(key: str) -> TedapiSensorEntityDescription:
+    # key is "string_<n>_voltage"
+    return TedapiSensorEntityDescription(
+        key=key,
+        translation_key="string_voltage",
+        translation_placeholders={"string": key.split("_")[1]},
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d, k=key: (d.get("strings") or {}).get(k),
+    )
+
+
+def _pack(d: dict[str, Any], serial: str) -> dict[str, Any]:
+    return (d.get("packs") or {}).get(serial) or {}
+
+
+def _pack_sensors(serial: str, name: str) -> list[TedapiSensorEntityDescription]:
+    return [
+        TedapiSensorEntityDescription(
+            key=f"pack_{serial}_capacity",
+            translation_key="pack_capacity",
+            translation_placeholders={"pack": name},
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY_STORAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda d, sn=serial: _pack(d, sn).get("full_kwh"),
+            attrs_fn=lambda d, sn=serial: {
+                "remaining_kwh": _pack(d, sn).get("remaining_kwh"),
+                "part_number": _pack(d, sn).get("part_number"),
+                "serial": sn,
+            },
+        ),
+        TedapiSensorEntityDescription(
+            key=f"pack_{serial}_temperature",
+            translation_key="pack_temperature",
+            translation_placeholders={"pack": name},
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            # Hottest cell reading; min and shunt in the attributes.
+            value_fn=lambda d, sn=serial: _pack(d, sn).get("temp_max"),
+            attrs_fn=lambda d, sn=serial: {
+                "temp_min": _pack(d, sn).get("temp_min"),
+                "shunt_temp": _pack(d, sn).get("shunt_temp"),
+                "serial": sn,
+            },
+        ),
+    ]
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: TedapiConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
+    coordinator = entry.runtime_data.coordinator
+    data = coordinator.data or {}
+    descriptions = list(SENSORS)
+    # Strings and packs are discovered from the first reading.
+    descriptions += [_string_sensor(k) for k in data.get("strings") or {}]
+    for serial, pack in (data.get("packs") or {}).items():
+        descriptions += _pack_sensors(serial, pack["name"])
+    async_add_entities(TedapiSensor(coordinator, d) for d in descriptions)
+
+
+class TedapiSensor(TedapiEntity, SensorEntity):
+    entity_description: TedapiSensorEntityDescription
+
+    def __init__(self, coordinator: TedapiCoordinator, description: TedapiSensorEntityDescription) -> None:
+        super().__init__(coordinator, description.key)
+        self.entity_description = description
+
+    @property
+    def available(self) -> bool:
+        """Unavailable while the gateway is unreachable, even though the
+        coordinator keeps running on cloud data for the settings."""
+        return super().available and bool(self.data.get("local_ok", False))
+
+    @property
+    def native_value(self) -> Any:
+        return self.entity_description.value_fn(self.data)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        if self.entity_description.attrs_fn and self.data:
+            return self.entity_description.attrs_fn(self.data)
+        return None

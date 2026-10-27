@@ -1,0 +1,138 @@
+"""Powerwall TEDAPI: local monitoring and control of a Tesla Powerwall."""
+from __future__ import annotations
+
+import logging
+
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.typing import ConfigType
+import voluptuous as vol
+
+from .const import (
+    ATTR_CONFIG_ENTRY_ID,
+    ATTR_DURATION_SECONDS,
+    ATTR_MAX_SOC,
+    ATTR_MIN_SOC,
+    ATTR_POWER_WATTS,
+    DISPATCH_MAX_SECONDS,
+    DISPATCH_MAX_WATTS,
+    DOMAIN,
+    SERVICE_DISPATCH,
+    SERVICE_RESUME,
+)
+from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
+from .dispatch import DispatchSession
+
+_LOGGER = logging.getLogger(__name__)
+
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+_SOC = vol.All(vol.Coerce(float), vol.Range(min=0, max=100))
+DISPATCH_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    # Positive discharges, negative charges. The gateway rejects > 10 kW.
+    vol.Required(ATTR_POWER_WATTS): vol.All(
+        vol.Coerce(float), vol.Range(min=-DISPATCH_MAX_WATTS, max=DISPATCH_MAX_WATTS)),
+    vol.Required(ATTR_DURATION_SECONDS): vol.All(
+        vol.Coerce(int), vol.Range(min=1, max=DISPATCH_MAX_SECONDS)),
+    vol.Optional(ATTR_MIN_SOC): _SOC,
+    vol.Optional(ATTR_MAX_SOC): _SOC,
+})
+RESUME_SCHEMA = vol.Schema({vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string})
+
+
+def _session(hass: HomeAssistant, call: ServiceCall) -> DispatchSession:
+    """The dispatch session of the targeted (or only) loaded entry."""
+    entry_id = call.data.get(ATTR_CONFIG_ENTRY_ID)
+    entries: list[TedapiConfigEntry] = [
+        e for e in hass.config_entries.async_entries(DOMAIN)
+        if e.state is ConfigEntryState.LOADED and (entry_id is None or e.entry_id == entry_id)
+    ]
+    if not entries:
+        raise ServiceValidationError(
+            "No loaded Powerwall TEDAPI entry found",
+            translation_domain=DOMAIN, translation_key="entry_not_found",
+        )
+    if len(entries) > 1:
+        raise ServiceValidationError(
+            "Several Powerwalls are set up: choose one with config_entry_id",
+            translation_domain=DOMAIN, translation_key="entry_ambiguous",
+        )
+    session = entries[0].runtime_data.dispatch
+    if session is None:
+        raise ServiceValidationError(
+            "Battery dispatch needs the signed (v1r) connection",
+            translation_domain=DOMAIN, translation_key="dispatch_needs_v1r",
+        )
+    return session
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register the actions once; they look up the entry per call."""
+
+    async def dispatch(call: ServiceCall) -> ServiceResponse:
+        return await _session(hass, call).async_start(
+            call.data[ATTR_POWER_WATTS],
+            call.data[ATTR_DURATION_SECONDS],
+            call.data.get(ATTR_MIN_SOC),
+            call.data.get(ATTR_MAX_SOC),
+        )
+
+    async def resume(call: ServiceCall) -> ServiceResponse:
+        result = await _session(hass, call).async_stop()
+        return {"response": result}
+
+    hass.services.async_register(DOMAIN, SERVICE_DISPATCH, dispatch, schema=DISPATCH_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_RESUME, resume, schema=RESUME_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
+    return True
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bool:
+    coordinator = TedapiCoordinator(hass, entry)
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryNotReady:
+        raise
+    except Exception as err:
+        raise ConfigEntryNotReady(f"Unable to reach the Powerwall: {err}") from err
+
+    if not coordinator.din:
+        # Entities are keyed by the DIN; without it they would be created under
+        # a placeholder identity and duplicated later. Retry instead.
+        raise ConfigEntryNotReady("Powerwall DIN not available yet")
+
+    entry.runtime_data = TedapiRuntimeData(
+        coordinator=coordinator,
+        dispatch=DispatchSession(hass, coordinator) if coordinator.dispatch_supported else None,
+    )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+    _LOGGER.debug("Powerwall %s loaded (firmware %s, %s, settings %s)",
+                  coordinator.din, coordinator.firmware_version, coordinator.connection_mode,
+                  "enabled" if coordinator.control_enabled else "read-only")
+    return True
+
+
+async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) -> None:
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bool:
+    if entry.runtime_data.dispatch is not None:
+        await entry.runtime_data.dispatch.async_shutdown()
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: TedapiConfigEntry, device_entry: DeviceEntry
+) -> bool:
+    """Allow removing devices other than the live gateway (stale leftovers)."""
+    coordinator = entry.runtime_data.coordinator
+    return (DOMAIN, coordinator.din) not in device_entry.identifiers

@@ -1,0 +1,205 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Powerwall TEDAPI",
+        "description": "How should Home Assistant connect to your Powerwall? Signed (v1r) access gives local readings, local control and battery dispatch. It needs a key registered with your Powerwall once, which this wizard can do.",
+        "menu_options": {
+          "register": "Register a new key (recommended)",
+          "existing_key": "Use a key that is already registered",
+          "wifi": "Wi-Fi password only (monitoring)"
+        }
+      },
+      "login": {
+        "title": "Sign in to Tesla",
+        "description": "Your Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
+        "data": {
+          "callback": "Callback address (or just the code)"
+        }
+      },
+      "site": {
+        "title": "Choose the Powerwall",
+        "data": {
+          "site": "Energy site"
+        }
+      },
+      "verify": {
+        "title": "Confirm at the Powerwall",
+        "description": "The key (fingerprint `{fingerprint}…`) is registered and waiting for physical confirmation. Within about 10 minutes:\n\n- **Powerwall 3:** switch the On/Off switch (left side, under the red rapid-shutdown flap) OFF for about 15 seconds, then back ON. A short flick is ignored; leaving it off until the unit powers down closes the window.\n- **Other models:** toggling the Powerwall's AC breaker off for about 15 seconds is reported to work on some units.\n\nThen select **Submit**. Checking takes up to a minute.",
+        "data": {}
+      },
+      "connect_v1r": {
+        "title": "Connect to the Powerwall (signed)",
+        "description": "**Gateway address:** the Powerwall's address on your home network (find it in your router, and reserve it), or the Powerwall's own Wi-Fi hotspot `192.168.91.1` if Home Assistant is connected to that network.\n\n**Wi-Fi fallback:** the hotspot address, used over the same signed connection when the home-network address stops answering. Leave it empty if Home Assistant cannot reach the hotspot.",
+        "data": {
+          "host": "Gateway address",
+          "wifi_host": "Wi-Fi fallback address",
+          "gw_pwd": "Gateway password (optional)",
+          "rsa_key_path": "RSA private key file",
+          "cloud_backup": "Link a Tesla account as a backup for settings"
+        },
+        "data_description": {
+          "gw_pwd": "The password printed on the QR sticker inside the Powerwall's cover. Not needed for signed access.",
+          "rsa_key_path": "PEM file of a key registered with `python -m pypowerwall register` (state VERIFIED)."
+        }
+      },
+      "connect_wifi": {
+        "title": "Connect over the Powerwall's Wi-Fi",
+        "description": "Home Assistant must be connected to the Powerwall's own Wi-Fi network (TeslaPW_…). This connection can read everything but cannot change settings or dispatch the battery; link a Tesla account to change settings through the cloud.",
+        "data": {
+          "host": "Gateway address",
+          "gw_pwd": "Gateway password",
+          "cloud_backup": "Link a Tesla account to change settings"
+        },
+        "data_description": {
+          "gw_pwd": "The password printed on the QR sticker inside the Powerwall's cover."
+        }
+      },
+      "reconfigure": {
+        "title": "Change the connection",
+        "description": "Give an RSA key file to use the signed (v1r) connection; leave it empty for the Wi-Fi password connection.",
+        "data": {
+          "host": "Gateway address",
+          "rsa_key_path": "RSA private key file",
+          "wifi_host": "Wi-Fi fallback address (signed only)",
+          "gw_pwd": "Gateway password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the Powerwall at that address.",
+      "invalid_rsa_key": "No key file at that path.",
+      "key_not_accepted": "The Powerwall did not accept the key. Check that it is registered and VERIFIED for this Powerwall.",
+      "invalid_auth": "Tesla did not accept that code. A new sign-in link has been made; sign in again and paste the new address.",
+      "cloud_error": "The Tesla service returned an error. Try again in a minute.",
+      "not_verified": "The Powerwall has not confirmed the key yet. Do the switch step, wait a few seconds, then submit again.",
+      "verify_timeout": "The 10-minute window closed. Submit to register the key again, then do the switch step."
+    },
+    "abort": {
+      "already_configured": "This Powerwall is already set up.",
+      "no_sites": "No Powerwall was found on this Tesla account.",
+      "register_failed": "The Powerwall did not accept the key registration. Check the log for details.",
+      "wrong_powerwall": "The gateway at that address is a different Powerwall from the one chosen on the Tesla account.",
+      "reconfigure_successful": "The connection was changed.",
+      "unique_id_mismatch": "The gateway at that address is a different Powerwall."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "scan_interval": "Polling interval (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "dispatch_active": { "name": "Dispatch active" }
+    },
+    "number": {
+      "backup_reserve": { "name": "Backup reserve" }
+    },
+    "select": {
+      "operation_mode": {
+        "name": "Operation mode",
+        "state": {
+          "self_consumption": "Self-Powered",
+          "backup": "Backup only",
+          "autonomous": "Time-Based Control"
+        }
+      },
+      "grid_export": {
+        "name": "Grid export mode",
+        "state": {
+          "battery_ok": "Battery & Solar",
+          "pv_only": "Solar only",
+          "never": "Disabled"
+        }
+      }
+    },
+    "sensor": {
+      "solar_power": { "name": "Solar power" },
+      "battery_power": { "name": "Battery power" },
+      "grid_power": { "name": "Grid power" },
+      "home_power": { "name": "Home power" },
+      "battery_level": { "name": "Battery level" },
+      "battery_soe": { "name": "Battery state of energy" },
+      "grid_status": { "name": "Grid status" },
+      "grid_frequency": { "name": "Grid frequency" },
+      "grid_voltage": { "name": "Grid voltage" },
+      "grid_energy_imported": { "name": "Grid energy imported" },
+      "grid_energy_exported": { "name": "Grid energy exported" },
+      "battery_energy_charged": { "name": "Battery energy charged" },
+      "battery_energy_discharged": { "name": "Battery energy discharged" },
+      "solar_energy_produced": { "name": "Solar energy produced" },
+      "home_energy_consumed": { "name": "Home energy consumed" },
+      "battery_full_capacity": { "name": "Battery full capacity" },
+      "battery_energy_remaining": { "name": "Battery energy remaining" },
+      "battery_health": { "name": "Battery health" },
+      "backup_time_remaining": { "name": "Backup time remaining" },
+      "inverter_ambient_temperature": { "name": "Inverter ambient temperature" },
+      "inverter_heatsink_temperature": { "name": "Inverter heatsink temperature" },
+      "alerts": { "name": "Alerts" },
+      "gateway_started": { "name": "Gateway last started" },
+      "firmware_version": { "name": "Firmware version" },
+      "connection": {
+        "name": "Connection",
+        "state": {
+          "v1r": "Signed (v1r)",
+          "wifi": "Wi-Fi password"
+        }
+      },
+      "string_voltage": { "name": "String {string} voltage" },
+      "pack_capacity": { "name": "{pack} capacity" },
+      "pack_temperature": { "name": "{pack} temperature" }
+    },
+    "switch": {
+      "grid_charging": { "name": "Grid charging" }
+    }
+  },
+  "exceptions": {
+    "entry_not_found": { "message": "No loaded Powerwall TEDAPI entry found." },
+    "entry_ambiguous": { "message": "Several Powerwalls are set up: choose one with config_entry_id." },
+    "dispatch_needs_v1r": { "message": "Battery dispatch needs the signed (v1r) connection." },
+    "dispatch_soc_limit": { "message": "The battery level ({soc}%) is already past the {limit} limit." }
+  },
+  "services": {
+    "dispatch_battery_power": {
+      "name": "Dispatch battery power",
+      "description": "Run the battery at a fixed power for a set time over the signed local connection. Positive watts discharge, negative watts charge, 0 holds the battery idle. Overrides the backup reserve and export setting. The integration renews the command every minute in short steps, so the Powerwall returns to normal within 5 minutes if Home Assistant stops. A new call replaces a running dispatch.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "power_watts": {
+          "name": "Power",
+          "description": "Battery power in watts: positive discharges, negative charges (up to 10,000)."
+        },
+        "duration_seconds": {
+          "name": "Duration",
+          "description": "How long to hold this power, in seconds (up to 24 hours)."
+        },
+        "min_soc": {
+          "name": "Stop discharging at",
+          "description": "End a discharge when the battery level (Tesla app scale) falls to this percentage."
+        },
+        "max_soc": {
+          "name": "Stop charging at",
+          "description": "End a charge when the battery level (Tesla app scale) reaches this percentage."
+        }
+      }
+    },
+    "resume_battery_operation": {
+      "name": "Resume battery operation",
+      "description": "End a dispatch now and hand the battery back to the Powerwall's normal mode.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        }
+      }
+    }
+  }
+}

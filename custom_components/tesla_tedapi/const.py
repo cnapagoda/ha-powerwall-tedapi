@@ -1,0 +1,67 @@
+"""Constants for the Powerwall TEDAPI integration."""
+
+DOMAIN = "tesla_tedapi"
+
+# Config entry data
+CONF_CONNECTION_MODE = "connection_mode"
+CONF_GW_PWD = "gw_pwd"
+CONF_HOST = "host"
+CONF_RSA_KEY_PATH = "rsa_key_path"
+CONF_WIFI_HOST = "wifi_host"
+CONF_SCAN_INTERVAL = "scan_interval"
+CONF_OWNERS_EMAIL = "owners_email"
+CONF_OWNERS_AUTHPATH = "owners_authpath"
+CONF_SITE_ID = "site_id"
+
+# Connection modes
+MODE_WIFI = "wifi"
+MODE_V1R = "v1r"
+
+# Defaults
+DEFAULT_HOST_WIFI = "192.168.91.1"
+DEFAULT_SCAN_INTERVAL = 30
+MIN_SCAN_INTERVAL = 10
+MAX_SCAN_INTERVAL = 300
+# Folder under the HA config dir that holds the RSA key and the Tesla login
+# cache written by the setup wizard.
+STORAGE_FOLDER = "tesla_tedapi"
+RSA_KEY_FILE = "tedapi_rsa_private.pem"
+RSA_PUBLIC_KEY_FILE = "tedapi_rsa_public.der"
+AUTH_FILE = ".pypowerwall.auth"
+
+# Operation modes: API value -> option key (translated in strings.json)
+OPERATION_MODES = ("self_consumption", "backup", "autonomous")
+
+# Grid export modes: API value -> option key
+GRID_EXPORT_MODES = ("battery_ok", "pv_only", "never")
+
+# Battery dispatch
+DISPATCH_MAX_WATTS = 10000
+DISPATCH_MAX_SECONDS = 86400
+# Each command to the Powerwall covers at most this long and is renewed while a
+# session runs, so the battery returns to normal within this time if Home
+# Assistant stops.
+DISPATCH_CHUNK_SECONDS = 300
+DISPATCH_RENEW_SECONDS = 60
+DISPATCH_MAX_FAILURES = 3
+
+EVENT_DISPATCH_ENDED = f"{DOMAIN}_dispatch_ended"
+
+SERVICE_DISPATCH = "dispatch_battery_power"
+SERVICE_RESUME = "resume_battery_operation"
+
+ATTR_CONFIG_ENTRY_ID = "config_entry_id"
+ATTR_POWER_WATTS = "power_watts"
+ATTR_DURATION_SECONDS = "duration_seconds"
+ATTR_MIN_SOC = "min_soc"
+ATTR_MAX_SOC = "max_soc"
+
+
+def app_soc(raw: float | None) -> float | None:
+    """Convert the gateway's state of energy to the Tesla app scale.
+
+    The app hides the bottom 5 %: app = (raw - 5) / 0.95.
+    """
+    if raw is None:
+        return None
+    return round(max(0.0, min(100.0, (raw - 5) / 0.95)), 1)

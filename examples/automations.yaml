@@ -1,0 +1,64 @@
+# Example automations for Powerwall TEDAPI. Replace the entity ids with yours.
+
+# 1. Charge from the grid while the price is low, up to 90 %.
+- alias: Powerwall - charge when power is cheap
+  triggers:
+    - trigger: numeric_state
+      entity_id: sensor.electricity_price          # your price sensor
+      below: 0.10
+  conditions:
+    - condition: numeric_state
+      entity_id: sensor.powerwall_tedapi_battery_level
+      below: 90
+  actions:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.powerwall_tedapi_grid_charging
+    - action: tesla_tedapi.dispatch_battery_power
+      data:
+        power_watts: -5000
+        duration_seconds: 3600
+        max_soc: 90
+  mode: single
+
+# 2. Export during a price spike, never below 30 %.
+- alias: Powerwall - export on price spike
+  triggers:
+    - trigger: numeric_state
+      entity_id: sensor.electricity_feed_in_price  # your feed-in price sensor
+      above: 1.00
+  actions:
+    - action: tesla_tedapi.dispatch_battery_power
+      data:
+        power_watts: 5000
+        duration_seconds: 1800
+        min_soc: 30
+  mode: single
+
+# 3. Stop as soon as the price drops again.
+- alias: Powerwall - end export when the spike is over
+  triggers:
+    - trigger: numeric_state
+      entity_id: sensor.electricity_feed_in_price
+      below: 0.50
+  conditions:
+    - condition: state
+      entity_id: binary_sensor.powerwall_tedapi_dispatch_active
+      state: "on"
+  actions:
+    - action: tesla_tedapi.resume_battery_operation
+  mode: single
+
+# 4. Tell me when a dispatch ends and why.
+- alias: Powerwall - dispatch ended
+  triggers:
+    - trigger: event
+      event_type: tesla_tedapi_dispatch_ended
+  actions:
+    - action: persistent_notification.create
+      data:
+        title: Powerwall dispatch ended
+        message: >-
+          Reason: {{ trigger.event.data.reason }},
+          battery {{ trigger.event.data.battery_level }} %.
+  mode: queued

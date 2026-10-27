@@ -1,0 +1,36 @@
+name: Bug report
+description: Something is not working
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please attach the integration's diagnostics (Settings → Devices & services → Powerwall TEDAPI → ⋮ → Download diagnostics). It hides passwords, email and serial numbers.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Integration version, Home Assistant version, Powerwall model and firmware
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection
+      options:
+        - Signed (v1r), home network address
+        - Signed (v1r), Powerwall Wi-Fi hotspot
+        - Wi-Fi password
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug log
+      description: "Add `logger: logs: custom_components.tesla_tedapi: debug` and `pypowerwall: debug`, reproduce, and paste the relevant lines."
+      render: text
