@@ -115,7 +115,7 @@ All entities belong to one device, **Powerwall TEDAPI**.
 | Per-pack capacity and temperature | One pair per Powerwall / expansion pack. |
 | String *n* voltage | One per active PV string. |
 | Backup time remaining (h), inverter temperatures, gateway last started, firmware, connection | Diagnostics. |
-| Alerts (sensor), Problem (binary sensor), Alert (event) | See [Alerts](#alerts). |
+| Alert level, Active alerts, Alerts (sensors), Problem (binary sensor), Alert (event) | See [Alerts](#alerts). |
 | **Operation mode**, **Grid export mode** (select) | Settings. These need a signed connection or a linked Tesla account. |
 | **Backup reserve** (number), **Grid charging** (switch) | Settings. The `source` attribute shows whether the value came from `local` or `cloud`. |
 | **Dispatch active** (binary sensor) | Signed connection only. Attributes: power, start, end, limits, last end reason. |
@@ -175,6 +175,8 @@ The gateway reports status and fault codes such as `SystemConnectedToGrid`, `Bac
 
 Where they appear:
 
+- **Alert level** (sensor) shows the most serious active alert: `OK` (status alerts only), `Notice`, `Warning` or `Fault`.
+- **Active alerts** (sensor) lists the active alerts as short text, most serious first, for example "Built-in solar inputs off · Connected to the grid · Firmware update succeeded".
 - **Problem** (binary sensor) turns on when a warning or fault has lasted **10 minutes or more**. Its `problems` attribute lists them.
 - **Alert** (event entity) records every alert raised or cleared, with its description. The changes appear in the device's activity log and the logbook, and automations can trigger on them.
 - **Settings → Repairs** shows each lasting warning or fault with an explanation. The entry disappears when the alert clears.

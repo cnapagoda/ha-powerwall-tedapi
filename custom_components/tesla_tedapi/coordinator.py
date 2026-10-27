@@ -18,7 +18,7 @@ from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe
+from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, summary
 from .const import (
     CONF_CONNECTION_MODE,
     CONF_GW_PWD,
@@ -534,6 +534,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.alert_changes = self.alerts.update(data["alerts"], packs, now)
             for change in self.alert_changes:
                 _LOGGER.info("Powerwall alert %s: %s (%s)", change.kind, change.name, change.description)
+        active = list(self.alerts.since)
+        data["alert_level"] = level(active)
+        data["alert_summary"] = summary(active)
         data["alert_details"] = self.alerts.details()
         data["alert_problems"] = self.alerts.problems(now)
         self._sync_issues(data["alert_problems"])

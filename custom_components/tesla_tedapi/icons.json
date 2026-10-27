@@ -93,6 +93,17 @@
       },
       "pack_capacity": {
         "default": "mdi:battery-high"
+      },
+      "alert_level": {
+        "default": "mdi:shield-check-outline",
+        "state": {
+          "notice": "mdi:information-outline",
+          "warning": "mdi:alert-outline",
+          "fault": "mdi:alert-octagon"
+        }
+      },
+      "active_alerts": {
+        "default": "mdi:format-list-bulleted"
       }
     },
     "switch": {

@@ -23,6 +23,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 
+from .alerts import LEVELS
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
 
@@ -200,6 +201,21 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
             # Each alert with severity, plain-language description and start time.
             "details": d.get("alert_details") or [],
         },
+    ),
+    TedapiSensorEntityDescription(
+        key="alert_level",
+        translation_key="alert_level",
+        device_class=SensorDeviceClass.ENUM,
+        options=list(LEVELS),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: d.get("alert_level"),
+    ),
+    TedapiSensorEntityDescription(
+        key="active_alerts",
+        translation_key="active_alerts",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: d.get("alert_summary"),
+        attrs_fn=lambda d: {"details": d.get("alert_details") or []},
     ),
     TedapiSensorEntityDescription(
         key="gateway_started",

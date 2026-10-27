@@ -58,6 +58,62 @@ CATALOGUE: dict[str, tuple[str, str]] = {
 }
 
 
+# Short labels for the "Active alerts" sensor; codes not listed use their
+# description (or raw name).
+SHORT: dict[str, str] = {
+    "FWUpdateSucceeded": "Firmware update succeeded",
+    "BackfeedLimited": "Export limited",
+    "ChargeOnlyFromSolarOverride": "Solar-only charging",
+    "SelfConsumptionReservedLimit": "At backup reserve",
+    "PCH_a054_pwsDisabledMpptEnableLine": "Built-in solar inputs off",
+    "BMS_a045_SW_SOC_Change": "Charge level recalibrated",
+    "BMS_a089_LifeModel_StoDcrGrowth_Change": "Ageing estimate updated",
+    "EnergyAccumulatorIrrational": "Energy counter jump",
+    "IslandChecksFailed": "Backup check failed",
+    "PVInverterComms": "Solar inverter comms lost",
+    "IEEE1547Trip": "Grid protection trip",
+    "DisallowService": "Gateway not ready",
+    "PCH_a053_pwsDisabledInvEnableLine": "Inverter disabled",
+    "PCH_a055_pwsDisabledDcdcEnableLine": "DC-DC converter disabled",
+    "PWS_a014_HvpNotActive": "Battery controller inactive",
+    "PWS_a021_HvpMia": "Battery controller not responding",
+    "BAGGR_a005_NumBatteriesExpectedMismatch": "Battery packs missing",
+    "BMS_a037_SW_NVRAM_Config_Error": "Battery settings error",
+    "PWS_a009_Rsd": "Rapid shutdown active",
+    "PWS_a014_HvpFault": "Battery controller fault",
+    "PWS_a044_HvpRsdFault": "Rapid-shutdown fault",
+    "PWS_a045_BattVRationality": "Battery voltage implausible",
+}
+
+# Alert level sensor states: the most serious active alert ("ok" when only
+# status alerts are active).
+LEVELS = ("ok", SEVERITY_NOTICE, SEVERITY_WARNING, SEVERITY_FAULT)
+MAX_STATE_LENGTH = 255
+
+
+def short(name: str) -> str:
+    return SHORT.get(name) or describe(name)[1]
+
+
+def level(names: list[str]) -> str:
+    worst = "ok"
+    for name in names:
+        severity = describe(name)[0]
+        if severity != SEVERITY_STATUS and LEVELS.index(severity) > LEVELS.index(worst):
+            worst = severity
+    return worst
+
+
+def summary(names: list[str]) -> str:
+    """Short labels, most serious first, within a state's 255 characters."""
+    order = {s: i for i, s in enumerate(reversed(SEVERITIES))}
+    labels = [short(n) for n in sorted(names, key=lambda n: (order[describe(n)[0]], short(n)))]
+    text = " · ".join(labels) if labels else "None"
+    if len(text) > MAX_STATE_LENGTH:
+        text = text[: MAX_STATE_LENGTH - 1].rstrip(" ·") + "…"
+    return text
+
+
 def describe(name: str) -> tuple[str, str]:
     """(severity, description) for an alert code."""
     return CATALOGUE.get(name, (SEVERITY_NOTICE, name))

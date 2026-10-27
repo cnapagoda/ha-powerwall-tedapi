@@ -14,6 +14,8 @@ from custom_components.tesla_tedapi.alerts import (
     SEVERITY_STATUS,
     AlertTracker,
     describe,
+    level,
+    summary,
 )
 from custom_components.tesla_tedapi.const import DOMAIN
 
@@ -26,6 +28,16 @@ def test_describe() -> None:
     assert describe("SystemConnectedToGrid")[0] == SEVERITY_STATUS
     assert describe("BatteryFault")[0] == SEVERITY_FAULT
     assert describe("SomethingNew") == (SEVERITY_NOTICE, "SomethingNew")
+
+
+def test_level_and_summary() -> None:
+    assert level(["SystemConnectedToGrid", "BackfeedLimited"]) == "ok"
+    assert level(["SystemConnectedToGrid", "EnergyAccumulatorIrrational"]) == "notice"
+    assert level(["IslandChecksFailed", "BatteryFault"]) == "fault"
+    assert summary([]) == "None"
+    assert summary(["SystemConnectedToGrid", "PWS_a009_Rsd"]) == "Rapid shutdown active · Connected to the grid"
+    long_text = summary([f"Unknown{i:03d}LongAlertName" for i in range(20)])
+    assert len(long_text) <= 255 and long_text.endswith("…")
 
 
 def test_tracker() -> None:
@@ -55,6 +67,8 @@ async def test_alert_entities_and_repairs(hass: HomeAssistant, fake_powerwall, f
     problem = _eid(hass, "binary_sensor", "alert_problem")
     event = _eid(hass, "event", "alert_event")
     assert hass.states.get(problem).state == "off"
+    assert hass.states.get(_eid(hass, "sensor", "alert_level")).state == "ok"
+    assert hass.states.get(_eid(hass, "sensor", "active_alerts")).state == "Connected to the grid"
 
     # A fault appears: an event, but not yet a problem
     fake_powerwall.alert_list = ["SystemConnectedToGrid", "BatteryFault"]
@@ -65,6 +79,8 @@ async def test_alert_entities_and_repairs(hass: HomeAssistant, fake_powerwall, f
     assert ev.attributes["alert"] == "BatteryFault"
     assert ev.attributes["severity"] == SEVERITY_FAULT
     assert hass.states.get(problem).state == "off"
+    assert hass.states.get(_eid(hass, "sensor", "alert_level")).state == "fault"
+    assert hass.states.get(_eid(hass, "sensor", "active_alerts")).state == "Battery fault · Connected to the grid"
     details = hass.states.get(_eid(hass, "sensor", "alerts")).attributes["details"]
     assert details[0]["description"] == "Battery fault"
 

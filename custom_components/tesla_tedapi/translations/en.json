@@ -213,6 +213,18 @@
       },
       "pack_temperature": {
         "name": "{pack} temperature"
+      },
+      "alert_level": {
+        "name": "Alert level",
+        "state": {
+          "ok": "OK",
+          "notice": "Notice",
+          "warning": "Warning",
+          "fault": "Fault"
+        }
+      },
+      "active_alerts": {
+        "name": "Active alerts"
       }
     },
     "switch": {

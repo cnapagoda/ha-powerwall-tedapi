@@ -3,6 +3,7 @@
 ## 2.1.0
 
 - Powerwall alerts are now explained: each known code has a plain-language description and a severity (status, notice, warning, fault).
+- New **Alert level** sensor (OK / Notice / Warning / Fault) and **Active alerts** sensor (short readable list), so the device page shows what is active without opening attributes.
 - New **Problem** binary sensor: on when a warning or fault has lasted 10 minutes or more.
 - New **Alert** event entity: every alert raised or cleared appears in the device's activity log and the logbook, and can trigger automations.
 - Lasting warnings and faults appear under **Settings → Repairs** and disappear when they clear.
