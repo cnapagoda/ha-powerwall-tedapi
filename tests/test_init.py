@@ -131,14 +131,14 @@ async def test_dispatch_session(hass: HomeAssistant, fake_powerwall) -> None:
     assert hass.states.get(active).state == "on"
 
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=61))
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert len(pw.dispatches) == 2
 
     # SOC falls to the limit -> stop and resume
     fake_powerwall.soe = 23.0  # app scale 19.0
     await hass.config_entries.async_entries(DOMAIN)[0].runtime_data.coordinator.async_refresh()
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=122))
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert pw.resumes == 1
     assert hass.states.get(active).state == "off"
     assert ended[-1].data["reason"] == "min_soc"
@@ -160,7 +160,7 @@ async def test_dispatch_completes(hass: HomeAssistant, fake_powerwall) -> None:
                                    {"power_watts": 0, "duration_seconds": 90}, blocking=True)
     assert local(fake_powerwall).dispatches == [(0.0, 90)]
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=91))
-    await hass.async_block_till_done()
+    await hass.async_block_till_done(wait_background_tasks=True)
     assert local(fake_powerwall).resumes == 1
     assert ended[-1].data["reason"] == "completed"
 
