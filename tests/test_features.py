@@ -151,8 +151,10 @@ async def test_cloud_check_failure_degrades_health(hass: HomeAssistant, fake_pow
     # Three failed checks: ask to sign in again.
     assert ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}") is not None
 
-    # With the repair up, no more than hourly.
+    # With the repair up, no more than hourly, even when a value is needed.
     coordinator._cloud_check_at -= 601
+    coordinator._cloud_cache = None
+    local(fake_powerwall).get_mode = lambda: None
     reads = len([p for p in fake_powerwall.instances if p.mode == "cloud"])
     await _refresh(hass, entry)
     assert len([p for p in fake_powerwall.instances if p.mode == "cloud"]) == reads

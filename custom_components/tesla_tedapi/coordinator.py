@@ -387,11 +387,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         values["source"] = source if any(values.get(k) is not None for k in CONTROL_KEYS) else None
         return values
 
-    def _cloud_settings(self) -> dict[str, Any]:
-        """Settings from the Tesla cloud, cached for CLOUD_CACHE_SECONDS."""
+    def _cloud_settings(self, check: bool = False) -> dict[str, Any]:
+        """Settings from the Tesla cloud, cached for CLOUD_CACHE_SECONDS.
+        Once the sign-in repair is up, only the hourly check (check=True)
+        tries again."""
         now = time.monotonic()
         if self._cloud_cache and now - self._cloud_cache[0] < CLOUD_CACHE_SECONDS:
             return self._cloud_cache[1]
+        if self.cloud_failures >= CLOUD_AUTH_FAILURES and not check:
+            return {}
         try:
             values = self._read_control_from(self._get_cloud())
         except Exception as err:  # noqa: BLE001
@@ -418,7 +422,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """A fresh cloud read (not the cache): proves the backup still works
         and lets pypowerwall refresh the Tesla token while it is idle."""
         self._cloud_cache = None
-        self._cloud_settings()
+        self._cloud_settings(check=True)
         self._token_expiry = None  # re-read: the refresh rewrites the file
 
     def _check_dropped(self, pw, control: dict[str, Any]) -> dict[str, bool]:
