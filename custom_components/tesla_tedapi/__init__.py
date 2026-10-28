@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, Supp
 from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 import voluptuous as vol
 
@@ -96,6 +97,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bool:
     coordinator = TedapiCoordinator(hass, entry)
+    await coordinator.async_load_state()
     try:
         await coordinator.async_config_entry_first_refresh()
     except ConfigEntryNotReady:
@@ -129,6 +131,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> b
         await entry.runtime_data.dispatch.async_shutdown()
     entry.runtime_data.coordinator.async_clear_issues()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> None:
+    """Forget the saved alert times and export rule. The key and the Tesla
+    sign-in stay in the tesla_tedapi folder (another entry may use them)."""
+    await Store(hass, 1, f"{DOMAIN}.{entry.entry_id}").async_remove()
 
 
 async def async_remove_config_entry_device(

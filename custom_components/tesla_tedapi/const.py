@@ -13,6 +13,13 @@ CONF_OWNERS_EMAIL = "owners_email"
 CONF_OWNERS_AUTHPATH = "owners_authpath"
 CONF_SITE_ID = "site_id"
 
+# Options
+CONF_RESTORE_EXPORT = "restore_export"
+CONF_STATUS_EVENTS = "status_alert_events"
+CONF_PROBLEM_MINUTES = "problem_minutes"
+CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
+CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
+
 # Connection modes
 MODE_WIFI = "wifi"
 MODE_V1R = "v1r"
@@ -20,6 +27,7 @@ MODE_V1R = "v1r"
 # Defaults
 DEFAULT_HOST_WIFI = "192.168.91.1"
 DEFAULT_SCAN_INTERVAL = 30
+DEFAULT_PROBLEM_MINUTES = 10
 MIN_SCAN_INTERVAL = 10
 MAX_SCAN_INTERVAL = 300
 # Folder under the HA config dir that holds the RSA key and the Tesla login
@@ -34,6 +42,17 @@ OPERATION_MODES = ("self_consumption", "backup", "autonomous")
 
 # Grid export modes: API value -> option key
 GRID_EXPORT_MODES = ("battery_ok", "pv_only", "never")
+# The gateway sometimes drops its export rule from its own config (seen hourly
+# on Powerwall 3 firmware 26.x while the Tesla cloud keeps the value). A
+# restore is written at most this often.
+EXPORT_RESTORE_MIN_SECONDS = 120
+
+# Cloud reads of settings are cached this long (Owner API rate limits).
+CLOUD_CACHE_SECONDS = 300
+# Consecutive failures before asking the user to sign in or re-register.
+CLOUD_AUTH_FAILURES = 3
+KEY_REFUSED_POLLS = 10
+PASSWORD_REFUSED_POLLS = 3
 
 # Battery dispatch
 DISPATCH_MAX_WATTS = 10000

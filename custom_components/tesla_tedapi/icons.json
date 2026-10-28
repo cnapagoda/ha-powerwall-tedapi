@@ -88,9 +88,6 @@
       "connection": {
         "default": "mdi:lan-connect"
       },
-      "string_voltage": {
-        "default": "mdi:solar-panel"
-      },
       "pack_capacity": {
         "default": "mdi:battery-high"
       },
@@ -104,6 +101,21 @@
       },
       "active_alerts": {
         "default": "mdi:format-list-bulleted"
+      },
+      "string_power": {
+        "default": "mdi:solar-panel"
+      },
+      "string_voltage": {
+        "default": "mdi:solar-panel"
+      },
+      "string_current": {
+        "default": "mdi:solar-panel"
+      },
+      "setup_health": {
+        "default": "mdi:check-network-outline",
+        "state": {
+          "degraded": "mdi:alert-outline"
+        }
       }
     },
     "switch": {

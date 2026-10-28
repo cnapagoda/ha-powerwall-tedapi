@@ -21,7 +21,8 @@ from custom_components.tesla_tedapi.const import DOMAIN
 
 from .conftest import DIN
 
-V1R = {"connection_mode": "v1r", "host": "192.168.1.50", "rsa_key_path": "/tmp/key.pem", "scan_interval": 30}
+V1R = {"connection_mode": "v1r", "host": "192.168.1.50", "rsa_key_path": "/tmp/key.pem", "gw_pwd": "ABCDE12345",
+       "scan_interval": 30}
 
 
 def test_describe() -> None:

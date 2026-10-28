@@ -159,6 +159,25 @@ class AlertTracker:
         self.sources = current
         return changes
 
+    def as_dict(self) -> dict[str, Any]:
+        """Saved between restarts (alert -> first seen, and where)."""
+        return {name: {"since": since.isoformat(), "sources": self.sources.get(name, [])}
+                for name, since in self.since.items()}
+
+    def restore(self, saved: dict[str, Any]) -> None:
+        """Start from saved alerts: the first reading after a restart then
+        reports what changed while Home Assistant was down, and alerts keep
+        their original start time."""
+        since: dict[str, datetime] = {}
+        for name, item in saved.items():
+            try:
+                since[name] = datetime.fromisoformat(item["since"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            self.sources[name] = list(item.get("sources") or [])
+        self.since = since
+        self._initialised = bool(since)
+
     def details(self) -> list[dict[str, Any]]:
         order = {s: i for i, s in enumerate(reversed(SEVERITIES))}
         rows = []
@@ -173,9 +192,9 @@ class AlertTracker:
             })
         return sorted(rows, key=lambda r: (order[r["severity"]], r["alert"]))
 
-    def problems(self, now: datetime) -> list[str]:
-        """Warnings and faults that have lasted at least PROBLEM_AFTER."""
+    def problems(self, now: datetime, after: timedelta = PROBLEM_AFTER) -> list[str]:
+        """Warnings and faults that have lasted at least `after`."""
         return sorted(
             name for name, since in self.since.items()
-            if describe(name)[0] in PROBLEM_SEVERITIES and now - since >= PROBLEM_AFTER
+            if describe(name)[0] in PROBLEM_SEVERITIES and now - since >= after
         )

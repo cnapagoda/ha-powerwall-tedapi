@@ -20,7 +20,7 @@ from custom_components.tesla_tedapi.diagnostics import async_get_config_entry_di
 from .conftest import DIN, cloud, local
 
 V1R = {"connection_mode": "v1r", "host": "192.168.1.50", "wifi_host": "192.168.91.1",
-       "rsa_key_path": "/tmp/key.pem", "gw_pwd": "", "scan_interval": 30}
+       "rsa_key_path": "/tmp/key.pem", "gw_pwd": "ABCDE12345", "scan_interval": 30}
 WIFI = {"connection_mode": "wifi", "host": "192.168.91.1", "gw_pwd": "pw", "scan_interval": 30}
 
 
@@ -42,7 +42,10 @@ async def test_sensors(hass: HomeAssistant, fake_powerwall) -> None:
     assert hass.states.get(_eid(hass, "sensor", "battery_soe")).state == "52.5"
     assert hass.states.get(_eid(hass, "sensor", "battery_level")).state == "50.0"
     assert hass.states.get(_eid(hass, "sensor", "grid_energy_imported")).state == "1000.0"
-    assert hass.states.get(_eid(hass, "sensor", "string_1_voltage")).state == "380.0"
+    # Solar inputs by MPPT letter; an unused input (B, 0 V) gets no sensors.
+    assert hass.states.get(_eid(hass, "sensor", "string_A_power")).state == "1982.0"
+    assert _eid(hass, "sensor", "string_A_voltage") is not None
+    assert _eid(hass, "sensor", "string_B_power") is None
     assert hass.states.get(_eid(hass, "sensor", "battery_health")).state == "103.0"
     assert _eid(hass, "sensor", "pack_TG0123456789AB_capacity")
     firmware = hass.states.get(_eid(hass, "sensor", "firmware_version"))
