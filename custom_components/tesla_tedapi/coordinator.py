@@ -190,7 +190,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.export_wanted: str | None = None
         self.export_restores = 0
         self.export_last_restored: datetime | None = None
-        self._export_restore_at = 0.0
+        self._export_restore_at: float | None = None
         # Consecutive polls where the gateway refused the password or the key.
         self._password_refused = 0
         self._key_refused = 0
@@ -420,7 +420,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return False  # nothing set, or the same as the default
         control["grid_export"] = self.export_wanted
         if (self.restore_export and self._conn_mode == MODE_V1R
-                and time.monotonic() - self._export_restore_at >= EXPORT_RESTORE_MIN_SECONDS):
+                and (self._export_restore_at is None
+                     or time.monotonic() - self._export_restore_at >= EXPORT_RESTORE_MIN_SECONDS)):
             self._export_restore_at = time.monotonic()
             try:
                 ok = self._write_ok(pw.set_grid_export(self.export_wanted))
