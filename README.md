@@ -10,7 +10,7 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 - **Battery dispatch**: charge or discharge at a set power for a set time, with state-of-charge limits. Use it for price-based charging, peak export and similar jobs.
 - **Tesla cloud as a backup** (optional): if the gateway can't be reached, the settings entities keep working through your Tesla account.
 - **Setup wizard**: finds the Powerwall on your network, checks the gateway password, registers the key with your Powerwall and notices the confirmation by itself. No command line needed.
-- **Keeps the export setting**: the Powerwall sometimes drops its grid export rule from its own settings; the integration writes it back.
+- **Keeps your export and grid charging settings**: the Powerwall sometimes drops them from its own settings; the integration writes them back.
 
 > **Not affiliated with Tesla.** This uses undocumented interfaces that Tesla can change at any time. A dispatch overrides your export setting (and, if you ask it to, the backup reserve), so use it with care. See [Safety](#safety).
 
@@ -152,7 +152,7 @@ Home Assistant must be connected to the Powerwall's `TeslaPW_…` Wi-Fi (address
   | Option | Default | |
   |---|---|---|
   | Polling interval | 30 s | 10–300 s. |
-  | Restore the grid export setting | on | See [Grid export setting](#grid-export-setting). |
+  | Restore settings when the Powerwall drops them | on | See [Dropped settings](#dropped-settings). |
   | Alert events for status alerts too | off | See [Alerts](#alerts). |
   | Problem delay | 10 min | How long a warning or fault lasts before **Problem** turns on. |
   | Discharges stop at the backup reserve | on | Applies to dispatches without `min_soc`. |
@@ -194,10 +194,10 @@ All entities belong to one device, **Powerwall TEDAPI**.
 | Per-pack capacity and temperature | One pair per Powerwall / expansion pack. |
 | Solar input *A–F* power (W), voltage, current | Powerwall 3 built-in inverter, one set per input in use (voltage and current are disabled by default). Not created when your solar has its own inverter. Packs and inputs added later appear by themselves. |
 | Backup time remaining (h), inverter temperatures, gateway last started, firmware, connection | Diagnostics. |
-| **Setup health** | `OK` or `Needs attention`. Attributes list the checks (password set, signed connection, gateway reachable, energy counters, cloud backup working) and when the Tesla sign-in token expires. |
+| **Setup health** | `OK` or `Needs attention`. Attributes list the checks (password set, signed connection, gateway reachable, energy counters, cloud backup working) and when the Tesla sign-in token expires. The cloud backup is checked with a real read about once an hour (`cloud_last_ok`). |
 | Alert level, Active alerts, Alerts (sensors), Problem (binary sensor), Alert (event) | See [Alerts](#alerts). |
-| **Operation mode**, **Grid export mode** (select) | Settings. These need a signed connection or a linked Tesla account. Grid export mode also shows `missing_on_powerwall`, `restored_count` and `last_restored`. |
-| **Backup reserve** (number), **Grid charging** (switch) | Settings. The `source` attribute shows whether the value came from `local` or `cloud`. |
+| **Operation mode**, **Grid export mode** (select) | Settings. These need a signed connection or a linked Tesla account. Grid export mode also shows `missing_on_powerwall`, `restored_count` and `last_restored` (see [Dropped settings](#dropped-settings)). |
+| **Backup reserve** (number), **Grid charging** (switch) | Settings. The `source` attribute shows whether the value came from `local` or `cloud`. Grid charging also has the [dropped settings](#dropped-settings) attributes. |
 | **Dispatch active** (binary sensor) | Signed connection only. Attributes: power, start, end, limits, last end reason. |
 
 If the gateway can't be reached, the sensors show *unavailable* instead of stale values. The settings stay usable through the cloud if an account is linked.
@@ -296,16 +296,16 @@ If you see a code that the integration describes wrongly or doesn't know, please
 
 ---
 
-## Grid export setting
+## Dropped settings
 
-The Powerwall sometimes drops its grid export rule from its own settings, while the Tesla app and the cloud still show the rule you chose. On one Powerwall 3 (firmware 26.x) this happened about once an hour. Until the rule is written again, the gateway falls back to Tesla's default.
+The Powerwall sometimes drops two settings from its own configuration: the grid export rule and grid charging. The Tesla app and the cloud still show the value you chose. On one Powerwall 3 (firmware 26.x) this happened about once an hour. Until the setting is written again, the gateway falls back to Tesla's default: export *battery_ok*, and grid charging **on**.
 
-The integration reads the gateway's own settings on every poll. When the rule you set (or the one the cloud has) is missing:
+The integration reads the gateway's own settings on every poll. When a value you set (or the one the cloud has) is missing:
 
-- **Grid export mode** keeps showing your rule, with `missing_on_powerwall: true`.
-- Over a signed connection the rule is written back (at most every 2 minutes) and logged as a warning; `restored_count` and `last_restored` record it.
+- **Grid export mode** or **Grid charging** keeps showing your value, with `missing_on_powerwall: true`.
+- Over a signed connection the value is written back (at most every 2 minutes) and logged as a warning; `restored_count` and `last_restored` record it.
 
-Turn this off with **Restore the grid export setting** if another app is meant to manage export. A site that never set a rule is left on Tesla's default.
+Turn this off with **Restore settings when the Powerwall drops them** if another app is meant to manage these settings. A value that is the same as Tesla's default is left alone.
 
 ## Safety
 
@@ -328,7 +328,7 @@ Turn this off with **Restore the grid export setting** if another app is meant t
 | *The Powerwall did not accept the key* | The key isn't VERIFIED, or it belongs to another Powerwall. Run the **Register a new key** path again and do the switch step within 10 minutes. |
 | *Could not reach the Powerwall* | Check the address. `ping` it from the HA host. Reserve the IP in your router. |
 | Readings stop now and then | Add the hotspot as **Wi-Fi fallback** if HA can reach it, or improve the network path. Download diagnostics and look at the `tedapi_mode` field. |
-| Settings change back by themselves | Usually a retailer, VPP or third-party app with access to your Tesla account. For the export rule, see [Grid export setting](#grid-export-setting). |
+| Settings change back by themselves | Usually a retailer, VPP or third-party app with access to your Tesla account. For the export rule and grid charging, see [Dropped settings](#dropped-settings). |
 | **Setup health** says *Needs attention* | Its `problems` attribute names the failing check. |
 | Sign-in code rejected | Codes are single-use and expire quickly. Use the fresh link and copy the callback address straight away. |
 

@@ -25,6 +25,11 @@ class FakePowerwall:
     alert_list = ["SystemConnectedToGrid"]
     # The export rule in the gateway's own config (None = not set).
     export_rule: str | None = "pv_only"
+    # site_info.disallow_charge_from_grid_with_solar_installed (None = not set,
+    # which pypowerwall reports as grid charging allowed).
+    grid_charging_disallow: bool | None = True
+    # Cloud reads that log in but return nothing (a rejected token).
+    cloud_reads_fail = False
     extra_packs: dict[str, dict] = {}
 
     def __init__(self, host: str = "", cloudmode: bool = False, **kwargs: Any) -> None:
@@ -59,6 +64,8 @@ class FakePowerwall:
         site_info = {"backup_reserve_percent": 24.0}
         if FakePowerwall.export_rule is not None:
             site_info["customer_preferred_export_rule"] = FakePowerwall.export_rule
+        if FakePowerwall.grid_charging_disallow is not None:
+            site_info["disallow_charge_from_grid_with_solar_installed"] = FakePowerwall.grid_charging_disallow
         return {"site_info": site_info, "default_real_mode": "self_consumption"}
 
     def vitals(self):
@@ -105,18 +112,24 @@ class FakePowerwall:
     def get_time_remaining(self):
         return 12.5
 
+    def _cloud_down(self):
+        return self.mode == "cloud" and FakePowerwall.cloud_reads_fail
+
     def get_mode(self):
-        return self.settings["mode"]
+        return None if self._cloud_down() else self.settings["mode"]
 
     def get_reserve(self):
-        return self.settings["reserve"]
+        return None if self._cloud_down() else self.settings["reserve"]
 
     def get_grid_charging(self):
-        return self.settings["grid_charging"]
+        if self.mode == "cloud":
+            return None if self._cloud_down() else self.settings["grid_charging"]
+        disallow = FakePowerwall.grid_charging_disallow
+        return True if disallow is None else not disallow  # as pypowerwall
 
     def get_grid_export(self):
         if self.mode == "cloud":
-            return self.settings["grid_export"]
+            return None if self._cloud_down() else self.settings["grid_export"]
         return FakePowerwall.export_rule or "battery_ok"
 
     # writes
@@ -133,6 +146,8 @@ class FakePowerwall:
     def set_grid_charging(self, mode):
         self.writes.append(("grid_charging", mode))
         self.settings["grid_charging"] = mode
+        if self.mode == "local":
+            FakePowerwall.grid_charging_disallow = not mode
         return {"ok": True}
 
     def set_grid_export(self, mode):
@@ -163,6 +178,8 @@ def fake_powerwall():
     FakePowerwall.soe = 52.5
     FakePowerwall.alert_list = ["SystemConnectedToGrid"]
     FakePowerwall.export_rule = "pv_only"
+    FakePowerwall.grid_charging_disallow = True
+    FakePowerwall.cloud_reads_fail = False
     FakePowerwall.extra_packs = {}
     with patch("pypowerwall.Powerwall", FakePowerwall):
         yield FakePowerwall

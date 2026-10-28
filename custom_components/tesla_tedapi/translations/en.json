@@ -140,14 +140,14 @@
         "title": "Settings",
         "data": {
           "scan_interval": "Polling interval",
-          "restore_export": "Restore the grid export setting when the Powerwall drops it",
+          "restore_export": "Restore settings when the Powerwall drops them",
           "status_alert_events": "Alert events for status alerts too",
           "problem_minutes": "Problem delay",
           "dispatch_floor_reserve": "Discharges stop at the backup reserve",
           "dispatch_max_watts": "Largest dispatch power"
         },
         "data_description": {
-          "restore_export": "The Powerwall sometimes loses its export rule from its own settings while the Tesla app still shows it. When on, the rule is written back within a minute or two (signed connection only).",
+          "restore_export": "The Powerwall sometimes loses its grid export rule and its grid charging setting from its own settings (seen hourly on a Powerwall 3); grid charging then turns on. When on, the setting you chose is written back within a minute or two (signed connection only).",
           "status_alert_events": "Status alerts such as \"Export limited\" describe normal operation and some come and go every few minutes; by default only notices, warnings and faults create Alert events.",
           "problem_minutes": "How long a warning or fault must last before the Problem sensor turns on and a repair is raised.",
           "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",

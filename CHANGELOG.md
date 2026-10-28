@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.1
+
+- The Powerwall also drops its **grid charging** setting about once an hour, and grid charging then turns on by itself (seen on a Powerwall 3 right after it was switched off). Like the export rule, the setting you chose is now shown and written back over a signed connection. The Grid charging switch has the same `missing_on_powerwall`, `restored_count` and `last_restored` attributes as the export select. The existing restore option covers both.
+- The Tesla cloud backup is checked with a real read about once an hour (sooner after a failure) instead of only when it is needed. This keeps the sign-in refreshed, and **Setup health** shows `degraded` as soon as the backup stops working rather than when the local connection is already down. New `cloud_last_ok` attribute.
+- A cloud read that logs in but returns nothing (for example a refreshed token the Tesla API rejects) now counts as a failure, so the sign-in repair appears after three failed checks.
+
 ## 2.2.0
 
 Fixes

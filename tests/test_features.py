@@ -2,6 +2,7 @@
 events, dynamic packs, reauth, setup health, dispatch guards, saved alerts."""
 from __future__ import annotations
 
+from datetime import timedelta
 from unittest.mock import patch
 
 from homeassistant.config_entries import SOURCE_REAUTH
@@ -79,6 +80,82 @@ async def test_export_rule_seeded_from_cloud(hass: HomeAssistant, fake_powerwall
     await _setup(hass, {**V1R, **ACCOUNT})
     assert hass.states.get(_eid(hass, "select", "grid_export")).state == "never"
     assert ("grid_export", "never") in local(fake_powerwall).writes
+
+
+async def test_grid_charging_dropped_and_restored(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, V1R)
+    switch = _eid(hass, "switch", "grid_charging")
+    assert hass.states.get(switch).state == "off"
+
+    # The gateway loses the field: pypowerwall would say charging is allowed.
+    fake_powerwall.grid_charging_disallow = None
+    await _refresh(hass, entry)
+    state = hass.states.get(switch)
+    assert state.state == "off"  # the setting that was chosen, not the default
+    assert ("grid_charging", False) in local(fake_powerwall).writes  # written back
+    assert fake_powerwall.grid_charging_disallow is True
+    assert state.attributes["restored_count"] == 1
+    assert state.attributes["missing_on_powerwall"] is False
+
+
+async def test_grid_charging_on_is_not_restored(hass: HomeAssistant, fake_powerwall) -> None:
+    # Chosen "on" is the same as the default: nothing to write back.
+    entry = await _setup(hass, V1R)
+    await hass.services.async_call("switch", "turn_on", {"entity_id": _eid(hass, "switch", "grid_charging")},
+                                   blocking=True)
+    fake_powerwall.grid_charging_disallow = None
+    local(fake_powerwall).writes.clear()
+    await _refresh(hass, entry)
+    assert local(fake_powerwall).writes == []
+    assert hass.states.get(_eid(hass, "switch", "grid_charging")).state == "on"
+
+
+async def test_grid_charging_not_restored_when_off(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, V1R, {"restore_export": False})
+    fake_powerwall.grid_charging_disallow = None
+    await _refresh(hass, entry)
+    state = hass.states.get(_eid(hass, "switch", "grid_charging"))
+    assert state.state == "off"
+    assert state.attributes["missing_on_powerwall"] is True
+    assert ("grid_charging", False) not in local(fake_powerwall).writes
+
+
+async def test_cloud_checked_hourly(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, {**V1R, **ACCOUNT})
+    coordinator = entry.runtime_data.coordinator
+    health = _eid(hass, "sensor", "setup_health")
+    # Checked on the first poll, although the gateway answers everything.
+    assert hass.states.get(health).attributes["cloud_last_ok"] is not None
+    assert hass.states.get(health).state == "ok"
+    calls = []
+    cloud(fake_powerwall).get_mode = lambda: calls.append(1) or "self_consumption"
+    await _refresh(hass, entry)
+    assert calls == []  # not again within the hour
+
+    coordinator._cloud_check_at -= 3601
+    coordinator.cloud_last_ok -= timedelta(hours=2)
+    await _refresh(hass, entry)
+    assert calls == [1]
+
+
+async def test_cloud_check_failure_degrades_health(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, {**V1R, **ACCOUNT})
+    coordinator = entry.runtime_data.coordinator
+    fake_powerwall.cloud_reads_fail = True
+    for _ in range(3):
+        coordinator._cloud_check_at -= 3601
+        coordinator.cloud_last_ok = None
+        await _refresh(hass, entry)
+        health = hass.states.get(_eid(hass, "sensor", "setup_health"))
+        assert health.state == "degraded" and "cloud_backup" in health.attributes["problems"]
+    # Three failed checks: ask to sign in again.
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}") is not None
+
+    fake_powerwall.cloud_reads_fail = False
+    coordinator._cloud_check_at -= 601
+    await _refresh(hass, entry)
+    assert hass.states.get(_eid(hass, "sensor", "setup_health")).state == "ok"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}") is None
 
 
 async def test_cloud_pinned_to_site_and_cached(hass: HomeAssistant, fake_powerwall) -> None:
