@@ -14,6 +14,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     PERCENTAGE,
     EntityCategory,
+    UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
     UnitOfFrequency,
@@ -21,7 +22,7 @@ from homeassistant.const import (
     UnitOfTemperature,
     UnitOfTime,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 
 from .alerts import LEVELS
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
@@ -35,6 +36,7 @@ NOMINAL_PACK_KWH = 13.5
 class TedapiSensorEntityDescription(SensorEntityDescription):
     value_fn: Callable[[dict[str, Any]], Any]
     attrs_fn: Callable[[dict[str, Any]], dict[str, Any] | None] | None = None
+    always_available: bool = False
 
 
 def _health(d: dict[str, Any]) -> float | None:
@@ -233,6 +235,17 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         attrs_fn=lambda d: {"build": _firmware(d)[1]},
     ),
     TedapiSensorEntityDescription(
+        key="setup_health",
+        translation_key="setup_health",
+        device_class=SensorDeviceClass.ENUM,
+        options=["ok", "degraded"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+        # Settings and cloud checks still mean something while the gateway is down.
+        always_available=True,
+        value_fn=lambda d: (d.get("health") or {}).get("state"),
+        attrs_fn=lambda d: {k: v for k, v in (d.get("health") or {}).items() if k != "state"},
+    ),
+    TedapiSensorEntityDescription(
         key="connection",
         translation_key="connection",
         device_class=SensorDeviceClass.ENUM,
@@ -244,17 +257,55 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
 )
 
 
-def _string_sensor(key: str) -> TedapiSensorEntityDescription:
-    # key is "string_<n>_voltage"
-    return TedapiSensorEntityDescription(
-        key=key,
-        translation_key="string_voltage",
-        translation_placeholders={"string": key.split("_")[1]},
-        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
-        device_class=SensorDeviceClass.VOLTAGE,
-        state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda d, k=key: (d.get("strings") or {}).get(k),
-    )
+def _string(d: dict[str, Any], name: str) -> dict[str, Any]:
+    return (d.get("strings") or {}).get(name) or {}
+
+
+# An unused input reports a small standing voltage (15 V on a Powerwall 3) in
+# Pv_Standby; a connected string reads far more in daylight.
+IN_USE_VOLTS = 60
+
+
+def _input_in_use(values: dict[str, Any]) -> bool:
+    return bool((values.get("power") or 0) > 0 or (values.get("voltage") or 0) >= IN_USE_VOLTS
+                or values.get("state") not in (None, "Pv_Standby", "PV_Standby"))
+
+
+def _string_sensors(name: str) -> list[TedapiSensorEntityDescription]:
+    """Solar input (MPPT) `name` of the Powerwall 3's built-in inverter."""
+    placeholders = {"string": name}
+    return [
+        TedapiSensorEntityDescription(
+            key=f"string_{name}_power",
+            translation_key="string_power",
+            translation_placeholders=placeholders,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda d, n=name: _string(d, n).get("power"),
+            attrs_fn=lambda d, n=name: {"state": _string(d, n).get("state")},
+        ),
+        TedapiSensorEntityDescription(
+            key=f"string_{name}_voltage",
+            translation_key="string_voltage",
+            translation_placeholders=placeholders,
+            native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+            device_class=SensorDeviceClass.VOLTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_registry_enabled_default=False,
+            value_fn=lambda d, n=name: _string(d, n).get("voltage"),
+        ),
+        TedapiSensorEntityDescription(
+            key=f"string_{name}_current",
+            translation_key="string_current",
+            translation_placeholders=placeholders,
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            device_class=SensorDeviceClass.CURRENT,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_registry_enabled_default=False,
+            value_fn=lambda d, n=name: _string(d, n).get("current"),
+        ),
+    ]
 
 
 def _pack(d: dict[str, Any], serial: str) -> dict[str, Any]:
@@ -301,13 +352,32 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data.coordinator
-    data = coordinator.data or {}
-    descriptions = list(SENSORS)
-    # Strings and packs are discovered from the first reading.
-    descriptions += [_string_sensor(k) for k in data.get("strings") or {}]
-    for serial, pack in (data.get("packs") or {}).items():
-        descriptions += _pack_sensors(serial, pack["name"])
-    async_add_entities(TedapiSensor(coordinator, d) for d in descriptions)
+    async_add_entities(TedapiSensor(coordinator, d) for d in SENSORS)
+
+    # Solar inputs and battery packs come from the readings: add them when they
+    # first appear (also after a start with the gateway unreachable, or when an
+    # expansion pack is installed later).
+    known: set[str] = set()
+
+    @callback
+    def add_new() -> None:
+        data = coordinator.data or {}
+        if not data.get("local_ok"):
+            return
+        new: list[TedapiSensorEntityDescription] = []
+        for name, values in (data.get("strings") or {}).items():
+            if f"string_{name}" not in known and _input_in_use(values):
+                known.add(f"string_{name}")
+                new += _string_sensors(name)
+        for serial, pack in (data.get("packs") or {}).items():
+            if f"pack_{serial}" not in known:
+                known.add(f"pack_{serial}")
+                new += _pack_sensors(serial, pack["name"])
+        if new:
+            async_add_entities(TedapiSensor(coordinator, d) for d in new)
+
+    add_new()
+    entry.async_on_unload(coordinator.async_add_listener(add_new))
 
 
 class TedapiSensor(TedapiEntity, SensorEntity):
@@ -321,6 +391,8 @@ class TedapiSensor(TedapiEntity, SensorEntity):
     def available(self) -> bool:
         """Unavailable while the gateway is unreachable, even though the
         coordinator keeps running on cloud data for the settings."""
+        if self.entity_description.always_available:
+            return super().available
         return super().available and bool(self.data.get("local_ok", False))
 
     @property

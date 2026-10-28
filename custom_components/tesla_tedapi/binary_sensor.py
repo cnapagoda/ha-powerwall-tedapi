@@ -6,7 +6,7 @@ from typing import Any
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.core import HomeAssistant
 
-from .alerts import PROBLEM_AFTER, describe
+from .alerts import describe
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .dispatch import DispatchSession
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
@@ -26,7 +26,8 @@ async def async_setup_entry(
 
 
 class AlertProblemSensor(TedapiEntity, BinarySensorEntity):
-    """On while a Powerwall warning or fault has lasted PROBLEM_AFTER or longer."""
+    """On while a Powerwall warning or fault has lasted the problem delay
+    (10 minutes unless changed in the options)."""
 
     _attr_translation_key = "alert_problem"
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
@@ -45,7 +46,7 @@ class AlertProblemSensor(TedapiEntity, BinarySensorEntity):
                 {"alert": name, "description": describe(name)[1], "severity": describe(name)[0]}
                 for name in self.data.get("alert_problems") or []
             ],
-            "minutes_before_problem": int(PROBLEM_AFTER.total_seconds() // 60),
+            "minutes_before_problem": int(self.coordinator.problem_after.total_seconds() // 60),
         }
 
 

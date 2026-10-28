@@ -1,13 +1,56 @@
 {
   "config": {
+    "flow_title": "Powerwall ({host})",
     "step": {
       "user": {
         "title": "Powerwall TEDAPI",
-        "description": "How should Home Assistant connect to your Powerwall? Signed (v1r) access gives local readings, local control and battery dispatch. It needs a key registered with your Powerwall once, which this wizard can do.",
+        "description": "Find the Powerwall on your network. Signed (v1r) access gives local readings, local control and battery dispatch; this wizard can register the key it needs.",
+        "menu_options": {
+          "gateway": "Enter the gateway address",
+          "scan": "Search my network (takes about 20 seconds)"
+        }
+      },
+      "scan": {
+        "title": "Powerwalls found",
+        "data": {
+          "found": "Gateway"
+        }
+      },
+      "gateway": {
+        "title": "Gateway",
+        "description": "**Gateway address:** the Powerwall's address on your home network (the router lists it as `teslapw_…`; reserving the address helps, but Home Assistant also follows the gateway when the router reports a new address). Use `192.168.91.1` only if Home Assistant is on the Powerwall's own Wi-Fi network.\n\n**Gateway password:** printed on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Home Assistant uses its last 5 characters to log in to the gateway; it is checked now.",
+        "data": {
+          "host": "Gateway address",
+          "gw_pwd": "Gateway password",
+          "wifi_host": "Wi-Fi fallback address"
+        },
+        "data_description": {
+          "wifi_host": "The Powerwall's Wi-Fi hotspot, used over the same signed connection when the home-network address stops answering. Leave empty if Home Assistant cannot reach the hotspot."
+        }
+      },
+      "access": {
+        "title": "Choose how to connect",
+        "description": "Signed (v1r) access needs a key that this Powerwall trusts.",
         "menu_options": {
           "register": "Register a new key (recommended)",
-          "existing_key": "Use a key that is already registered",
-          "wifi": "Wi-Fi password only (monitoring)"
+          "key_upload": "Upload a key that is already registered",
+          "wifi": "No key: Wi-Fi password only (monitoring)"
+        }
+      },
+      "key_upload": {
+        "title": "Upload the key",
+        "description": "Upload the PEM private key of a key registered with this Powerwall (for example with `python -m pypowerwall register`, state VERIFIED). It is copied into the `tesla_tedapi` folder of your configuration and readable only by Home Assistant.",
+        "data": {
+          "key_file": "Private key (.pem)",
+          "cloud_backup": "Link a Tesla account as a backup for settings"
+        }
+      },
+      "wifi": {
+        "title": "Connect over the Powerwall's Wi-Fi",
+        "description": "Home Assistant must be connected to the Powerwall's own Wi-Fi network (TeslaPW_…). This connection can read everything but cannot change settings or dispatch the battery; link a Tesla account to change settings through the cloud.",
+        "data": {
+          "host": "Hotspot address",
+          "cloud_backup": "Link a Tesla account to change settings"
         }
       },
       "login": {
@@ -24,35 +67,29 @@
         }
       },
       "verify": {
-        "title": "Confirm at the Powerwall",
-        "description": "The key (fingerprint `{fingerprint}…`) is registered and waiting for physical confirmation. Within about 10 minutes:\n\n- **Powerwall 3:** switch the On/Off switch (left side, under the red rapid-shutdown flap) OFF for about 15 seconds, then back ON. A short flick is ignored; leaving it off until the unit powers down closes the window.\n- **Other models:** toggling the Powerwall's AC breaker off for about 15 seconds is reported to work on some units.\n\nThen select **Submit**. Checking takes up to a minute.",
-        "data": {}
+        "title": "Confirm at the Powerwall"
       },
-      "connect_v1r": {
-        "title": "Connect to the Powerwall (signed)",
-        "description": "**Gateway address:** the Powerwall's address on your home network (find it in your router, and reserve it), or the Powerwall's own Wi-Fi hotspot `192.168.91.1` if Home Assistant is connected to that network.\n\n**Wi-Fi fallback:** the hotspot address, used over the same signed connection when the home-network address stops answering. Leave it empty if Home Assistant cannot reach the hotspot.",
-        "data": {
-          "host": "Gateway address",
-          "wifi_host": "Wi-Fi fallback address",
-          "gw_pwd": "Gateway password (optional)",
-          "rsa_key_path": "RSA private key file",
-          "cloud_backup": "Link a Tesla account as a backup for settings"
-        },
-        "data_description": {
-          "gw_pwd": "The password printed on the QR sticker inside the Powerwall's cover. Not needed for signed access.",
-          "rsa_key_path": "PEM file of a key registered with `python -m pypowerwall register` (state VERIFIED)."
+      "verify_failed": {
+        "title": "The Powerwall did not confirm the key",
+        "description": "No confirmation arrived in time (or the key was removed). Select **Submit** to register the key again and open a new 10-minute window, then do the switch step."
+      },
+      "connect_failed": {
+        "title": "Could not connect",
+        "description": "Select **Submit** to check the gateway address and password."
+      },
+      "reauth_confirm": {
+        "title": "The Powerwall no longer accepts Home Assistant",
+        "description": "The gateway keeps refusing the password or the key. Readings stop until this is fixed; settings still work through the Tesla cloud if an account is linked.",
+        "menu_options": {
+          "reauth_password": "Enter the gateway password again",
+          "register": "Register the key again",
+          "key_upload": "Upload a different key"
         }
       },
-      "connect_wifi": {
-        "title": "Connect over the Powerwall's Wi-Fi",
-        "description": "Home Assistant must be connected to the Powerwall's own Wi-Fi network (TeslaPW_…). This connection can read everything but cannot change settings or dispatch the battery; link a Tesla account to change settings through the cloud.",
+      "reauth_password": {
+        "title": "Gateway password",
         "data": {
-          "host": "Gateway address",
-          "gw_pwd": "Gateway password",
-          "cloud_backup": "Link a Tesla account to change settings"
-        },
-        "data_description": {
-          "gw_pwd": "The password printed on the QR sticker inside the Powerwall's cover."
+          "gw_pwd": "Gateway password"
         }
       },
       "reconfigure": {
@@ -60,37 +97,88 @@
         "description": "Give an RSA key file to use the signed (v1r) connection; leave it empty for the Wi-Fi password connection.",
         "data": {
           "host": "Gateway address",
+          "gw_pwd": "Gateway password",
           "rsa_key_path": "RSA private key file",
-          "wifi_host": "Wi-Fi fallback address (signed only)",
-          "gw_pwd": "Gateway password"
+          "wifi_host": "Wi-Fi fallback address (signed only)"
         }
       }
     },
+    "progress": {
+      "confirm_key": "The key (fingerprint `{fingerprint}…`) is registered and waiting for physical confirmation. Within about 10 minutes:\n\n- **Powerwall 3:** switch the On/Off switch (left side, under the red rapid-shutdown flap) OFF for about 15 seconds, then back ON. A short flick is ignored; leaving it off until the unit powers down closes the window.\n- **Other models:** toggling the Powerwall's AC breaker off for about 15 seconds is reported to work on some units.\n\nThis page checks every 10 seconds and continues on its own once the Powerwall confirms. If the window closes, the key is registered again once automatically."
+    },
     "error": {
       "cannot_connect": "Could not reach the Powerwall at that address.",
-      "invalid_rsa_key": "No key file at that path.",
+      "invalid_gw_pwd": "The gateway refused this password. Check the QR sticker (letters are upper case).",
+      "password_required": "Signed access needs the gateway password.",
+      "invalid_rsa_key": "That is not an RSA private key in PEM format.",
       "key_not_accepted": "The Powerwall did not accept the key. Check that it is registered and VERIFIED for this Powerwall.",
       "invalid_auth": "Tesla did not accept that code. A new sign-in link has been made; sign in again and paste the new address.",
       "cloud_error": "The Tesla service returned an error. Try again in a minute.",
-      "not_verified": "The Powerwall has not confirmed the key yet. Do the switch step, wait a few seconds, then submit again.",
-      "verify_timeout": "The 10-minute window closed. Submit to register the key again, then do the switch step."
+      "none_found": "No Powerwall answered on this network. Enter the address instead."
     },
     "abort": {
       "already_configured": "This Powerwall is already set up.",
       "no_sites": "No Powerwall was found on this Tesla account.",
       "register_failed": "The Powerwall did not accept the key registration. Check the log for details.",
-      "wrong_powerwall": "The gateway at that address is a different Powerwall from the one chosen on the Tesla account.",
+      "wrong_powerwall": "That is a different Powerwall from the one being set up.",
       "reconfigure_successful": "The connection was changed.",
+      "reauth_successful": "Access restored.",
       "unique_id_mismatch": "The gateway at that address is a different Powerwall."
     }
   },
   "options": {
     "step": {
       "init": {
-        "data": {
-          "scan_interval": "Polling interval (seconds)"
+        "title": "Powerwall TEDAPI options",
+        "menu_options": {
+          "settings": "Settings",
+          "link_account": "Link a Tesla account (cloud backup)",
+          "unlink_account": "Unlink the Tesla account"
         }
+      },
+      "settings": {
+        "title": "Settings",
+        "data": {
+          "scan_interval": "Polling interval",
+          "restore_export": "Restore the grid export setting when the Powerwall drops it",
+          "status_alert_events": "Alert events for status alerts too",
+          "problem_minutes": "Problem delay",
+          "dispatch_floor_reserve": "Discharges stop at the backup reserve",
+          "dispatch_max_watts": "Largest dispatch power"
+        },
+        "data_description": {
+          "restore_export": "The Powerwall sometimes loses its export rule from its own settings while the Tesla app still shows it. When on, the rule is written back within a minute or two (signed connection only).",
+          "status_alert_events": "Status alerts such as \"Export limited\" describe normal operation and some come and go every few minutes; by default only notices, warnings and faults create Alert events.",
+          "problem_minutes": "How long a warning or fault must last before the Problem sensor turns on and a repair is raised.",
+          "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",
+          "dispatch_max_watts": "Dispatch calls above this power are refused."
+        }
+      },
+      "login": {
+        "title": "Sign in to Tesla",
+        "description": "Your Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
+        "data": {
+          "callback": "Callback address (or just the code)"
+        }
+      },
+      "site": {
+        "title": "Choose the Powerwall",
+        "data": {
+          "site": "Energy site"
+        }
+      },
+      "unlink_account": {
+        "title": "Unlink the Tesla account",
+        "description": "Settings will then only be changed over the local connection. The saved sign-in stays on disk until you remove the `tesla_tedapi` folder."
       }
+    },
+    "error": {
+      "invalid_auth": "Tesla did not accept that code. A new sign-in link has been made; sign in again and paste the new address.",
+      "cloud_error": "The Tesla service returned an error. Try again in a minute."
+    },
+    "abort": {
+      "no_sites": "No Powerwall was found on this Tesla account.",
+      "wrong_powerwall": "That Tesla account has no site with this Powerwall."
     }
   },
   "entity": {
@@ -205,9 +293,6 @@
           "wifi": "Wi-Fi password"
         }
       },
-      "string_voltage": {
-        "name": "String {string} voltage"
-      },
       "pack_capacity": {
         "name": "{pack} capacity"
       },
@@ -225,6 +310,22 @@
       },
       "active_alerts": {
         "name": "Active alerts"
+      },
+      "string_power": {
+        "name": "Solar input {string} power"
+      },
+      "string_voltage": {
+        "name": "Solar input {string} voltage"
+      },
+      "string_current": {
+        "name": "Solar input {string} current"
+      },
+      "setup_health": {
+        "name": "Setup health",
+        "state": {
+          "ok": "OK",
+          "degraded": "Needs attention"
+        }
       }
     },
     "switch": {
@@ -258,12 +359,15 @@
     },
     "dispatch_soc_limit": {
       "message": "The battery level ({soc}%) is already past the {limit} limit."
+    },
+    "dispatch_power_cap": {
+      "message": "{power} W is above the {cap} W limit set in the integration options."
     }
   },
   "services": {
     "dispatch_battery_power": {
       "name": "Dispatch battery power",
-      "description": "Run the battery at a fixed power for a set time over the signed local connection. Positive watts discharge, negative watts charge, 0 holds the battery idle. Overrides the backup reserve and export setting. The integration renews the command every minute in short steps, so the Powerwall returns to normal within 5 minutes if Home Assistant stops. A new call replaces a running dispatch.",
+      "description": "Run the battery at a fixed power for a set time over the signed local connection. Positive watts discharge, negative watts charge, 0 holds the battery idle. Overrides the export setting; a discharge stops at the backup reserve unless `min_soc` is given (option). The integration renews the command every minute in short steps, so the Powerwall returns to normal within 5 minutes if Home Assistant stops. A new call replaces a running dispatch.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -279,7 +383,7 @@
         },
         "min_soc": {
           "name": "Stop discharging at",
-          "description": "End a discharge when the battery level (Tesla app scale) falls to this percentage."
+          "description": "End a discharge when the battery level (Tesla app scale) falls to this percentage. Default: the backup reserve."
         },
         "max_soc": {
           "name": "Stop charging at",
@@ -301,7 +405,43 @@
   "issues": {
     "powerwall_alert": {
       "title": "Powerwall alert: {description}",
-      "description": "The Powerwall has reported **{alert}** ({description}) since {since} UTC.\n\nShort alerts like this are normal while the Powerwall restarts or after its On/Off switch is used; this one has lasted more than 10 minutes. Check the Tesla app. If it does not clear, contact your installer or Tesla. This notice disappears when the alert clears."
+      "description": "The Powerwall has reported **{alert}** ({description}) since {since} UTC.\n\nShort alerts like this are normal while the Powerwall restarts or after its On/Off switch is used; this one has lasted more than {minutes} minutes. Check the Tesla app. If it does not clear, contact your installer or Tesla. This notice disappears when the alert clears."
+    },
+    "cloud_login": {
+      "title": "Sign in to Tesla again",
+      "fix_flow": {
+        "step": {
+          "login": {
+            "title": "Sign in to Tesla",
+            "description": "The Tesla cloud backup for settings has stopped working, usually because the saved sign-in expired or was revoked. Local readings and control are not affected.\n\nYour Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
+            "data": {
+              "callback": "Callback address (or just the code)"
+            }
+          },
+          "site": {
+            "title": "Choose the Powerwall",
+            "data": {
+              "site": "Energy site"
+            }
+          }
+        },
+        "error": {
+          "invalid_auth": "Tesla did not accept that code. A new sign-in link has been made; sign in again and paste the new address.",
+          "cloud_error": "The Tesla service returned an error. Try again in a minute."
+        },
+        "abort": {
+          "no_sites": "No Powerwall was found on this Tesla account.",
+          "wrong_powerwall": "That Tesla account has no site with this Powerwall.",
+          "entry_gone": "The Powerwall entry was removed."
+        }
+      }
+    }
+  },
+  "selector": {
+    "found": {
+      "options": {
+        "manual": "Enter the address myself"
+      }
     }
   }
 }

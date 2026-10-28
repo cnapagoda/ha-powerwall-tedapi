@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.2.0
+
+Fixes
+- Signed (v1r) setup no longer fails with a misleading "key not accepted" when the gateway password is left empty: the password is now required (pypowerwall logs in with its last 5 characters) and checked first, with its own error.
+- Solar input sensors read the field names pypowerwall actually produces (`PVAC_PVMeasured*_A..F`), so they now appear on Powerwall 3 with DC solar. They are named **Solar input A–F** power / voltage / current.
+- The cloud backup uses this entry's energy site instead of the shared `.pypowerwall.site` file (several Powerwalls on one account).
+- The **Alert** event entity follows the integration's availability.
+- Battery packs and solar inputs are added when they first appear (also after starting with the gateway unreachable, or after adding an expansion pack).
+
+Grid export setting
+- The Powerwall sometimes drops its export rule from its own settings while the cloud keeps it (seen hourly on a Powerwall 3). The select now shows the rule you set instead of pypowerwall's "battery_ok" guess, and over a signed connection the rule is written back. New attributes `missing_on_powerwall`, `restored_count`, `last_restored`; option to turn it off.
+
+Alerts
+- Status alerts (such as *Export limited*) no longer create Alert events by default; an option brings them back.
+- Alert start times are kept across restarts.
+- The Problem delay is an option (default 10 minutes).
+
+Setup
+- The wizard finds the gateway: network scan, or DHCP discovery (`teslapw_*` and Tesla gateway part numbers).
+- When the router gives a known gateway a new address, the entry follows it (the gateway is identified by logging in and reading its DIN).
+- Gateway address and password come first and are checked straight away.
+- Key confirmation is detected automatically (checked every 10 seconds, re-registered once if the window closes).
+- An existing key is uploaded instead of typing a path, checked and stored with owner-only permissions.
+- Reauthentication when the gateway keeps refusing the password or the key; settings keep working through the cloud meanwhile.
+- A fixable repair to sign in to Tesla again when the cloud backup stops working.
+- Options: link or unlink a Tesla account after setup; export restore; status alert events; Problem delay; dispatch floor and power cap.
+- New **Setup health** sensor.
+
+Other
+- Cloud reads of settings are cached for 5 minutes (Owner API rate limits).
+- A discharge dispatch without `min_soc` now stops at the backup reserve (option, on by default). Pass `min_soc` to go lower.
+- pypowerwall is capped below 0.23 (tested with 0.22.x).
+
 ## 2.1.0
 
 - Powerwall alerts are now explained: each known code has a plain-language description and a severity (status, notice, warning, fault).

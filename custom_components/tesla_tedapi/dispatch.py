@@ -20,8 +20,11 @@ from homeassistant.helpers.event import async_track_point_in_utc_time, async_tra
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CONF_DISPATCH_FLOOR_RESERVE,
+    CONF_DISPATCH_MAX_WATTS,
     DISPATCH_CHUNK_SECONDS,
     DISPATCH_MAX_FAILURES,
+    DISPATCH_MAX_WATTS,
     DISPATCH_RENEW_SECONDS,
     DOMAIN,
     EVENT_DISPATCH_ENDED,
@@ -117,6 +120,20 @@ class DispatchSession:
                 "Battery dispatch needs the signed (v1r) connection",
                 translation_domain=DOMAIN, translation_key="dispatch_needs_v1r",
             )
+        options = self.coordinator.config_entry.options
+        cap = options.get(CONF_DISPATCH_MAX_WATTS, DISPATCH_MAX_WATTS)
+        if abs(power_watts) > cap:
+            raise ServiceValidationError(
+                f"{power_watts} W is above the {cap} W limit set in the integration options",
+                translation_domain=DOMAIN, translation_key="dispatch_power_cap",
+                translation_placeholders={"power": str(power_watts), "cap": str(cap)},
+            )
+        if power_watts > 0 and min_soc is None and options.get(CONF_DISPATCH_FLOOR_RESERVE, True):
+            # Without a floor a discharge would run the battery below the backup
+            # reserve; stop there unless the caller gives min_soc.
+            reserve = (self.coordinator.data or {}).get("reserve")
+            if isinstance(reserve, (int, float)):
+                min_soc = float(reserve)
         now = dt_util.utcnow()
         state = DispatchState(power_watts, now, now + timedelta(seconds=duration_seconds),
                               min_soc, max_soc)

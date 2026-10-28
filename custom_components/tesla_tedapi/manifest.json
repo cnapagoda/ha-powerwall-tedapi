@@ -5,6 +5,24 @@
     "@cnapagoda"
   ],
   "config_flow": true,
+  "dependencies": [
+    "file_upload",
+    "repairs"
+  ],
+  "dhcp": [
+    {
+      "hostname": "teslapw*"
+    },
+    {
+      "hostname": "1118431-*"
+    },
+    {
+      "hostname": "1232100-*"
+    },
+    {
+      "hostname": "1707000-*"
+    }
+  ],
   "documentation": "https://github.com/cnapagoda/ha-powerwall-tedapi",
   "integration_type": "device",
   "iot_class": "local_polling",
@@ -13,7 +31,7 @@
     "pypowerwall"
   ],
   "requirements": [
-    "pypowerwall>=0.22.1"
+    "pypowerwall>=0.22.1,<0.23"
   ],
-  "version": "2.1.0"
+  "version": "2.2.0"
 }
