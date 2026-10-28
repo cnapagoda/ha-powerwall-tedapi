@@ -101,7 +101,7 @@ You don't need to reserve the gateway's IP: when your router gives it a new addr
 > | | Owner API | Fleet API |
 > |---|---|---|
 > | Who it's for | Everyone | Developers |
-> | You need | A Tesla account and a refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | A developer app at [developer.tesla.com](https://developer.tesla.com), with its partner key hosted on a public domain you own |
+> | You need | A Tesla account and a refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | A developer app at [developer.tesla.com](https://developer.tesla.com), with its public key hosted on a domain you own, set up as for Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration ([steps](#b-upload-a-key-that-is-already-registered)) |
 > | Where | This wizard, path **A** | `python -m pypowerwall register` (option 2) on a computer, then path **B** |
 >
 > Neither one exposes Home Assistant to the internet: after the key is verified, everything is local. A key can't be registered over the local network alone. The Powerwall accepts it there, but never verifies it.
