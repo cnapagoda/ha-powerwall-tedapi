@@ -395,9 +395,11 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             values = self._read_control_from(self._get_cloud())
         except Exception as err:  # noqa: BLE001
-            # Login failed (counted in _get_cloud).
+            # Login failed (counted in _get_cloud). Cached like a good read:
+            # retrying every poll would hammer the Tesla API.
             _LOGGER.debug("Cloud settings read failed: %s", err)
             self._cloud = None
+            self._cloud_cache = (now, {})
             return {}
         if any(v is not None for v in values.values()):
             self._cloud_cache = (now, values)
@@ -409,6 +411,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.debug("Cloud settings read returned nothing")
             self.cloud_failures += 1
             self._cloud = None
+            self._cloud_cache = (now, {})
         return values
 
     def _check_cloud(self) -> None:
@@ -699,8 +702,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._cloud_check_at is None:
             return True
         since_check = time.monotonic() - self._cloud_check_at
-        if self.cloud_failures:
+        if 0 < self.cloud_failures < CLOUD_AUTH_FAILURES:
             return since_check >= CLOUD_RETRY_SECONDS
+        # Working, or the sign-in repair is up: hourly is enough.
         # Any successful cloud read counts as a check.
         last_ok = self.cloud_last_ok
         if last_ok and (dt_util.utcnow() - last_ok).total_seconds() < CLOUD_CHECK_SECONDS:

@@ -151,11 +151,29 @@ async def test_cloud_check_failure_degrades_health(hass: HomeAssistant, fake_pow
     # Three failed checks: ask to sign in again.
     assert ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}") is not None
 
-    fake_powerwall.cloud_reads_fail = False
+    # With the repair up, no more than hourly.
     coordinator._cloud_check_at -= 601
+    reads = len([p for p in fake_powerwall.instances if p.mode == "cloud"])
+    await _refresh(hass, entry)
+    assert len([p for p in fake_powerwall.instances if p.mode == "cloud"]) == reads
+
+    fake_powerwall.cloud_reads_fail = False
+    coordinator._cloud_check_at -= 3601
     await _refresh(hass, entry)
     assert hass.states.get(_eid(hass, "sensor", "setup_health")).state == "ok"
     assert ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}") is None
+
+
+async def test_failed_cloud_read_is_cached(hass: HomeAssistant, fake_powerwall) -> None:
+    # Setting missing and not known yet: the cloud is asked, but a failure is
+    # not retried on every poll.
+    fake_powerwall.cloud_reads_fail = True
+    fake_powerwall.grid_charging_disallow = None
+    entry = await _setup(hass, {**V1R, **ACCOUNT})
+    logins = len([p for p in fake_powerwall.instances if p.mode == "cloud"])
+    for _ in range(3):
+        await _refresh(hass, entry)
+    assert len([p for p in fake_powerwall.instances if p.mode == "cloud"]) == logins
 
 
 async def test_cloud_pinned_to_site_and_cached(hass: HomeAssistant, fake_powerwall) -> None:
