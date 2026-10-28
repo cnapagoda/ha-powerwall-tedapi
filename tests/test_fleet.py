@@ -114,6 +114,21 @@ async def test_fleet_backup_failing(hass: HomeAssistant, fake_powerwall, fleet) 
     assert health.state == "degraded" and "cloud_backup" in health.attributes["problems"]
 
 
+async def test_fleet_backup_waits_for_fleet_to_load(hass: HomeAssistant, fake_powerwall) -> None:
+    site = FakeFleetSite()
+    entry = SimpleNamespace(state=ConfigEntryState.SETUP_IN_PROGRESS,
+                            runtime_data=SimpleNamespace(energysites=[SimpleNamespace(api=site)]))
+    with patch("custom_components.tesla_tedapi.fleet.fleet_entries", return_value=[entry]):
+        tedapi = await _setup(hass)
+        coordinator = tedapi.runtime_data.coordinator
+        assert site.calls == [] and coordinator.cloud_failures == 0
+        entry.state = ConfigEntryState.LOADED
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+    assert ("site_info", {}) in site.calls
+    assert hass.states.get(_eid(hass, "sensor", "setup_health")).state == "ok"
+
+
 async def test_fleet_backup_without_fleet(hass: HomeAssistant, fake_powerwall) -> None:
     await _setup(hass)
     health = hass.states.get(_eid(hass, "sensor", "setup_health"))

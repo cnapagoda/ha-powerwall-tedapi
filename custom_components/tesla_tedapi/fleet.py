@@ -28,6 +28,12 @@ def fleet_entries(hass: HomeAssistant) -> list:
     return hass.config_entries.async_entries(FLEET_DOMAIN)
 
 
+def fleet_ready(hass: HomeAssistant) -> bool:
+    """Tesla Fleet has finished loading (after a restart it may start later
+    than this integration)."""
+    return any(entry.state is ConfigEntryState.LOADED for entry in fleet_entries(hass))
+
+
 class FleetBackup:
     """pypowerwall-like settings client over the Tesla Fleet integration.
     Called from executor threads; the calls run on the event loop."""
