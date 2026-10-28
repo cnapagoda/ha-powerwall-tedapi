@@ -3,9 +3,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
 from homeassistant.core import HomeAssistant
 
+from .alerts import PROBLEM_AFTER, describe
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .dispatch import DispatchSession
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
@@ -16,9 +17,36 @@ async def async_setup_entry(
     entry: TedapiConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
+    coordinator = entry.runtime_data.coordinator
+    entities: list[BinarySensorEntity] = [AlertProblemSensor(coordinator)]
     dispatch = entry.runtime_data.dispatch
     if dispatch is not None:
-        async_add_entities([DispatchActiveSensor(entry.runtime_data.coordinator, dispatch)])
+        entities.append(DispatchActiveSensor(coordinator, dispatch))
+    async_add_entities(entities)
+
+
+class AlertProblemSensor(TedapiEntity, BinarySensorEntity):
+    """On while a Powerwall warning or fault has lasted PROBLEM_AFTER or longer."""
+
+    _attr_translation_key = "alert_problem"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    def __init__(self, coordinator: TedapiCoordinator) -> None:
+        super().__init__(coordinator, "alert_problem")
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self.data.get("alert_problems"))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "problems": [
+                {"alert": name, "description": describe(name)[1], "severity": describe(name)[0]}
+                for name in self.data.get("alert_problems") or []
+            ],
+            "minutes_before_problem": int(PROBLEM_AFTER.total_seconds() // 60),
+        }
 
 
 class DispatchActiveSensor(TedapiEntity, BinarySensorEntity):

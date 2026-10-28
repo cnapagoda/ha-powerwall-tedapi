@@ -45,6 +45,9 @@ async def test_sensors(hass: HomeAssistant, fake_powerwall) -> None:
     assert hass.states.get(_eid(hass, "sensor", "string_1_voltage")).state == "380.0"
     assert hass.states.get(_eid(hass, "sensor", "battery_health")).state == "103.0"
     assert _eid(hass, "sensor", "pack_TG0123456789AB_capacity")
+    firmware = hass.states.get(_eid(hass, "sensor", "firmware_version"))
+    assert firmware.state == "26.34.1"
+    assert firmware.attributes["build"] == "dcee474d"
     # Local client: hotspot fallback configured, never cloud mode.
     kw = local(fake_powerwall).kwargs
     assert kw["wifi_host"] == "192.168.91.1" and kw["failover"] and kw["wifi_v1r_fallback"]

@@ -29,7 +29,7 @@ from .dispatch import DispatchSession
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.EVENT, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _SOC = vol.All(vol.Coerce(float), vol.Range(min=0, max=100))
@@ -127,6 +127,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) 
 async def async_unload_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bool:
     if entry.runtime_data.dispatch is not None:
         await entry.runtime_data.dispatch.async_shutdown()
+    entry.runtime_data.coordinator.async_clear_issues()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 

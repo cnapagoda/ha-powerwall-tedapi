@@ -23,6 +23,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 
+from .alerts import LEVELS
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
 
@@ -42,6 +43,14 @@ def _health(d: dict[str, Any]) -> float | None:
     if not full or not packs:
         return None
     return round(full / (NOMINAL_PACK_KWH * len(packs)) * 100, 1)
+
+
+def _firmware(d: dict[str, Any]) -> tuple[str | None, str | None]:
+    """Split the gateway version string into (version, build hash)."""
+    parts = str(d.get("firmware_version") or "").split()
+    if not parts:
+        return None, None
+    return parts[0], parts[1] if len(parts) > 1 else None
 
 
 def _power(key: str) -> TedapiSensorEntityDescription:
@@ -189,7 +198,24 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         attrs_fn=lambda d: {
             "alerts": d.get("alerts") or [],
             "pack_alerts": {p["name"]: p["alerts"] for p in (d.get("packs") or {}).values()},
+            # Each alert with severity, plain-language description and start time.
+            "details": d.get("alert_details") or [],
         },
+    ),
+    TedapiSensorEntityDescription(
+        key="alert_level",
+        translation_key="alert_level",
+        device_class=SensorDeviceClass.ENUM,
+        options=list(LEVELS),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: d.get("alert_level"),
+    ),
+    TedapiSensorEntityDescription(
+        key="active_alerts",
+        translation_key="active_alerts",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: d.get("alert_summary"),
+        attrs_fn=lambda d: {"details": d.get("alert_details") or []},
     ),
     TedapiSensorEntityDescription(
         key="gateway_started",
@@ -202,7 +228,9 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         key="firmware_version",
         translation_key="firmware_version",
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda d: d.get("firmware_version"),
+        # The gateway reports "26.34.1 dcee474d": version, then build hash.
+        value_fn=lambda d: _firmware(d)[0],
+        attrs_fn=lambda d: {"build": _firmware(d)[1]},
     ),
     TedapiSensorEntityDescription(
         key="connection",

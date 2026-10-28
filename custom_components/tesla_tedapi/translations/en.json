@@ -95,10 +95,17 @@
   },
   "entity": {
     "binary_sensor": {
-      "dispatch_active": { "name": "Dispatch active" }
+      "dispatch_active": {
+        "name": "Dispatch active"
+      },
+      "alert_problem": {
+        "name": "Problem"
+      }
     },
     "number": {
-      "backup_reserve": { "name": "Backup reserve" }
+      "backup_reserve": {
+        "name": "Backup reserve"
+      }
     },
     "select": {
       "operation_mode": {
@@ -119,30 +126,78 @@
       }
     },
     "sensor": {
-      "solar_power": { "name": "Solar power" },
-      "battery_power": { "name": "Battery power" },
-      "grid_power": { "name": "Grid power" },
-      "home_power": { "name": "Home power" },
-      "battery_level": { "name": "Battery level" },
-      "battery_soe": { "name": "Battery state of energy" },
-      "grid_status": { "name": "Grid status" },
-      "grid_frequency": { "name": "Grid frequency" },
-      "grid_voltage": { "name": "Grid voltage" },
-      "grid_energy_imported": { "name": "Grid energy imported" },
-      "grid_energy_exported": { "name": "Grid energy exported" },
-      "battery_energy_charged": { "name": "Battery energy charged" },
-      "battery_energy_discharged": { "name": "Battery energy discharged" },
-      "solar_energy_produced": { "name": "Solar energy produced" },
-      "home_energy_consumed": { "name": "Home energy consumed" },
-      "battery_full_capacity": { "name": "Battery full capacity" },
-      "battery_energy_remaining": { "name": "Battery energy remaining" },
-      "battery_health": { "name": "Battery health" },
-      "backup_time_remaining": { "name": "Backup time remaining" },
-      "inverter_ambient_temperature": { "name": "Inverter ambient temperature" },
-      "inverter_heatsink_temperature": { "name": "Inverter heatsink temperature" },
-      "alerts": { "name": "Alerts" },
-      "gateway_started": { "name": "Gateway last started" },
-      "firmware_version": { "name": "Firmware version" },
+      "solar_power": {
+        "name": "Solar power"
+      },
+      "battery_power": {
+        "name": "Battery power"
+      },
+      "grid_power": {
+        "name": "Grid power"
+      },
+      "home_power": {
+        "name": "Home power"
+      },
+      "battery_level": {
+        "name": "Battery level"
+      },
+      "battery_soe": {
+        "name": "Battery state of energy"
+      },
+      "grid_status": {
+        "name": "Grid status"
+      },
+      "grid_frequency": {
+        "name": "Grid frequency"
+      },
+      "grid_voltage": {
+        "name": "Grid voltage"
+      },
+      "grid_energy_imported": {
+        "name": "Grid energy imported"
+      },
+      "grid_energy_exported": {
+        "name": "Grid energy exported"
+      },
+      "battery_energy_charged": {
+        "name": "Battery energy charged"
+      },
+      "battery_energy_discharged": {
+        "name": "Battery energy discharged"
+      },
+      "solar_energy_produced": {
+        "name": "Solar energy produced"
+      },
+      "home_energy_consumed": {
+        "name": "Home energy consumed"
+      },
+      "battery_full_capacity": {
+        "name": "Battery full capacity"
+      },
+      "battery_energy_remaining": {
+        "name": "Battery energy remaining"
+      },
+      "battery_health": {
+        "name": "Battery health"
+      },
+      "backup_time_remaining": {
+        "name": "Backup time remaining"
+      },
+      "inverter_ambient_temperature": {
+        "name": "Inverter ambient temperature"
+      },
+      "inverter_heatsink_temperature": {
+        "name": "Inverter heatsink temperature"
+      },
+      "alerts": {
+        "name": "Alerts"
+      },
+      "gateway_started": {
+        "name": "Gateway last started"
+      },
+      "firmware_version": {
+        "name": "Firmware version"
+      },
       "connection": {
         "name": "Connection",
         "state": {
@@ -150,19 +205,60 @@
           "wifi": "Wi-Fi password"
         }
       },
-      "string_voltage": { "name": "String {string} voltage" },
-      "pack_capacity": { "name": "{pack} capacity" },
-      "pack_temperature": { "name": "{pack} temperature" }
+      "string_voltage": {
+        "name": "String {string} voltage"
+      },
+      "pack_capacity": {
+        "name": "{pack} capacity"
+      },
+      "pack_temperature": {
+        "name": "{pack} temperature"
+      },
+      "alert_level": {
+        "name": "Alert level",
+        "state": {
+          "ok": "OK",
+          "notice": "Notice",
+          "warning": "Warning",
+          "fault": "Fault"
+        }
+      },
+      "active_alerts": {
+        "name": "Active alerts"
+      }
     },
     "switch": {
-      "grid_charging": { "name": "Grid charging" }
+      "grid_charging": {
+        "name": "Grid charging"
+      }
+    },
+    "event": {
+      "alert": {
+        "name": "Alert",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "raised": "Raised",
+              "cleared": "Cleared"
+            }
+          }
+        }
+      }
     }
   },
   "exceptions": {
-    "entry_not_found": { "message": "No loaded Powerwall TEDAPI entry found." },
-    "entry_ambiguous": { "message": "Several Powerwalls are set up: choose one with config_entry_id." },
-    "dispatch_needs_v1r": { "message": "Battery dispatch needs the signed (v1r) connection." },
-    "dispatch_soc_limit": { "message": "The battery level ({soc}%) is already past the {limit} limit." }
+    "entry_not_found": {
+      "message": "No loaded Powerwall TEDAPI entry found."
+    },
+    "entry_ambiguous": {
+      "message": "Several Powerwalls are set up: choose one with config_entry_id."
+    },
+    "dispatch_needs_v1r": {
+      "message": "Battery dispatch needs the signed (v1r) connection."
+    },
+    "dispatch_soc_limit": {
+      "message": "The battery level ({soc}%) is already past the {limit} limit."
+    }
   },
   "services": {
     "dispatch_battery_power": {
@@ -200,6 +296,12 @@
           "description": "Only needed when more than one Powerwall is set up."
         }
       }
+    }
+  },
+  "issues": {
+    "powerwall_alert": {
+      "title": "Powerwall alert: {description}",
+      "description": "The Powerwall has reported **{alert}** ({description}) since {since} UTC.\n\nShort alerts like this are normal while the Powerwall restarts or after its On/Off switch is used; this one has lasted more than 10 minutes. Check the Tesla app. If it does not clear, contact your installer or Tesla. This notice disappears when the alert clears."
     }
   }
 }

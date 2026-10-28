@@ -1,45 +1,128 @@
 {
   "entity": {
     "binary_sensor": {
-      "dispatch_active": { "default": "mdi:battery-sync", "state": { "off": "mdi:battery-sync-outline" } }
+      "dispatch_active": {
+        "default": "mdi:battery-sync",
+        "state": {
+          "off": "mdi:battery-sync-outline"
+        }
+      },
+      "alert_problem": {
+        "default": "mdi:alert-circle-outline",
+        "state": {
+          "on": "mdi:alert-circle"
+        }
+      }
     },
     "number": {
-      "backup_reserve": { "default": "mdi:battery-lock" }
+      "backup_reserve": {
+        "default": "mdi:battery-lock"
+      }
     },
     "select": {
-      "operation_mode": { "default": "mdi:battery-charging-medium" },
-      "grid_export": { "default": "mdi:transmission-tower-export" }
+      "operation_mode": {
+        "default": "mdi:battery-charging-medium"
+      },
+      "grid_export": {
+        "default": "mdi:transmission-tower-export"
+      }
     },
     "sensor": {
-      "solar_power": { "default": "mdi:solar-power" },
-      "battery_power": { "default": "mdi:battery-charging" },
-      "grid_power": { "default": "mdi:transmission-tower" },
-      "home_power": { "default": "mdi:home-lightning-bolt" },
-      "grid_status": { "default": "mdi:transmission-tower" },
-      "grid_frequency": { "default": "mdi:sine-wave" },
-      "grid_energy_imported": { "default": "mdi:transmission-tower-import" },
-      "grid_energy_exported": { "default": "mdi:transmission-tower-export" },
-      "battery_energy_charged": { "default": "mdi:battery-arrow-up" },
-      "battery_energy_discharged": { "default": "mdi:battery-arrow-down" },
-      "solar_energy_produced": { "default": "mdi:solar-power-variant" },
-      "home_energy_consumed": { "default": "mdi:home-lightning-bolt-outline" },
-      "battery_full_capacity": { "default": "mdi:battery-high" },
-      "battery_energy_remaining": { "default": "mdi:battery-50" },
-      "battery_health": { "default": "mdi:battery-heart-variant" },
-      "backup_time_remaining": { "default": "mdi:timer-sand" },
-      "alerts": { "default": "mdi:alert-circle-outline" },
-      "gateway_started": { "default": "mdi:restart" },
-      "firmware_version": { "default": "mdi:chip" },
-      "connection": { "default": "mdi:lan-connect" },
-      "string_voltage": { "default": "mdi:solar-panel" },
-      "pack_capacity": { "default": "mdi:battery-high" }
+      "solar_power": {
+        "default": "mdi:solar-power"
+      },
+      "battery_power": {
+        "default": "mdi:battery-charging"
+      },
+      "grid_power": {
+        "default": "mdi:transmission-tower"
+      },
+      "home_power": {
+        "default": "mdi:home-lightning-bolt"
+      },
+      "grid_status": {
+        "default": "mdi:transmission-tower"
+      },
+      "grid_frequency": {
+        "default": "mdi:sine-wave"
+      },
+      "grid_energy_imported": {
+        "default": "mdi:transmission-tower-import"
+      },
+      "grid_energy_exported": {
+        "default": "mdi:transmission-tower-export"
+      },
+      "battery_energy_charged": {
+        "default": "mdi:battery-arrow-up"
+      },
+      "battery_energy_discharged": {
+        "default": "mdi:battery-arrow-down"
+      },
+      "solar_energy_produced": {
+        "default": "mdi:solar-power-variant"
+      },
+      "home_energy_consumed": {
+        "default": "mdi:home-lightning-bolt-outline"
+      },
+      "battery_full_capacity": {
+        "default": "mdi:battery-high"
+      },
+      "battery_energy_remaining": {
+        "default": "mdi:battery-50"
+      },
+      "battery_health": {
+        "default": "mdi:battery-heart-variant"
+      },
+      "backup_time_remaining": {
+        "default": "mdi:timer-sand"
+      },
+      "alerts": {
+        "default": "mdi:alert-circle-outline"
+      },
+      "gateway_started": {
+        "default": "mdi:restart"
+      },
+      "firmware_version": {
+        "default": "mdi:chip"
+      },
+      "connection": {
+        "default": "mdi:lan-connect"
+      },
+      "string_voltage": {
+        "default": "mdi:solar-panel"
+      },
+      "pack_capacity": {
+        "default": "mdi:battery-high"
+      },
+      "alert_level": {
+        "default": "mdi:shield-check-outline",
+        "state": {
+          "notice": "mdi:information-outline",
+          "warning": "mdi:alert-outline",
+          "fault": "mdi:alert-octagon"
+        }
+      },
+      "active_alerts": {
+        "default": "mdi:format-list-bulleted"
+      }
     },
     "switch": {
-      "grid_charging": { "default": "mdi:transmission-tower-import" }
+      "grid_charging": {
+        "default": "mdi:transmission-tower-import"
+      }
+    },
+    "event": {
+      "alert": {
+        "default": "mdi:alert-decagram-outline"
+      }
     }
   },
   "services": {
-    "dispatch_battery_power": { "service": "mdi:battery-sync" },
-    "resume_battery_operation": { "service": "mdi:battery-check" }
+    "dispatch_battery_power": {
+      "service": "mdi:battery-sync"
+    },
+    "resume_battery_operation": {
+      "service": "mdi:battery-check"
+    }
   }
 }

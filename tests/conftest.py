@@ -16,6 +16,7 @@ class FakePowerwall:
     fail_local = False
     soe = 52.5  # raw gateway scale -> 50.0 on the app scale
     tedapi_mode = "v1r"
+    alert_list = ["SystemConnectedToGrid"]
 
     def __init__(self, host: str = "", cloudmode: bool = False, **kwargs: Any) -> None:
         self.kwargs = {"host": host, "cloudmode": cloudmode, **kwargs}
@@ -53,7 +54,7 @@ class FakePowerwall:
         }
 
     def version(self):
-        return "26.26.4"
+        return "26.34.1 dcee474d"
 
     def din(self):
         return DIN
@@ -70,7 +71,7 @@ class FakePowerwall:
         return {"start_time": "2026-10-22 07:26:37 +1030"}
 
     def alerts(self):
-        return ["SystemConnectedToGrid"]
+        return list(FakePowerwall.alert_list)
 
     def get_time_remaining(self):
         return 12.5
@@ -127,6 +128,7 @@ def fake_powerwall():
     FakePowerwall.instances = []
     FakePowerwall.fail_local = False
     FakePowerwall.soe = 52.5
+    FakePowerwall.alert_list = ["SystemConnectedToGrid"]
     with patch("pypowerwall.Powerwall", FakePowerwall):
         yield FakePowerwall
 
