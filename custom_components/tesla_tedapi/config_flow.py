@@ -49,7 +49,6 @@ from .const import (
     CONF_CONNECTION_MODE,
     CONF_DISPATCH_FLOOR_RESERVE,
     CONF_DISPATCH_MAX_WATTS,
-    CONF_FLEET_BACKUP,
     CONF_GW_PWD,
     CONF_HOST,
     CONF_OWNERS_AUTHPATH,
@@ -73,7 +72,6 @@ from .const import (
     RSA_KEY_FILE,
     STORAGE_FOLDER,
 )
-from .fleet import fleet_entries
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -681,9 +679,6 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                 vol.Required(CONF_DISPATCH_MAX_WATTS, default=opts.get(
                     CONF_DISPATCH_MAX_WATTS, DISPATCH_MAX_WATTS)): vol.All(
                         box(100, DISPATCH_MAX_WATTS, 100, "W"), vol.Coerce(int)),
-                # Offered when the core Tesla Fleet integration is set up.
-                **({vol.Required(CONF_FLEET_BACKUP, default=opts.get(CONF_FLEET_BACKUP, False)): bool}
-                   if fleet_entries(self.hass) or opts.get(CONF_FLEET_BACKUP) else {}),
             }),
         )
 
