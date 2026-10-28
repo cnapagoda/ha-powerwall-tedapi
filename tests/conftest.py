@@ -73,8 +73,11 @@ class FakePowerwall:
             "PVAC--1707000-11-J--TG0123456789AB": {
                 "PVAC_PvState_A": "PV_Active", "PVAC_PVMeasuredVoltage_A": 380.4,
                 "PVAC_PVCurrent_A": 5.21, "PVAC_PVMeasuredPower_A": 1982.0,
-                "PVAC_PvState_B": "PV_Active", "PVAC_PVMeasuredVoltage_B": 0.0,
+                "PVAC_PvState_B": "Pv_Standby", "PVAC_PVMeasuredVoltage_B": 0.0,
                 "PVAC_PVCurrent_B": 0.0, "PVAC_PVMeasuredPower_B": 0.0,
+                # Unused input: standing voltage, standby.
+                "PVAC_PvState_C": "Pv_Standby", "PVAC_PVMeasuredVoltage_C": 15,
+                "PVAC_PVCurrent_C": 0, "PVAC_PVMeasuredPower_C": 0,
                 "PVAC_Fout": 50.0, "PVAC_Pout": 1982.0,
             },
         }

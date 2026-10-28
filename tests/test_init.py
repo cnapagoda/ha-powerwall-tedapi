@@ -42,10 +42,11 @@ async def test_sensors(hass: HomeAssistant, fake_powerwall) -> None:
     assert hass.states.get(_eid(hass, "sensor", "battery_soe")).state == "52.5"
     assert hass.states.get(_eid(hass, "sensor", "battery_level")).state == "50.0"
     assert hass.states.get(_eid(hass, "sensor", "grid_energy_imported")).state == "1000.0"
-    # Solar inputs by MPPT letter; an unused input (B, 0 V) gets no sensors.
+    # Solar inputs by MPPT letter; unused inputs (B at 0 V, C at a standby 15 V) get no sensors.
     assert hass.states.get(_eid(hass, "sensor", "string_A_power")).state == "1982.0"
     assert _eid(hass, "sensor", "string_A_voltage") is not None
     assert _eid(hass, "sensor", "string_B_power") is None
+    assert _eid(hass, "sensor", "string_C_power") is None
     assert hass.states.get(_eid(hass, "sensor", "battery_health")).state == "103.0"
     assert _eid(hass, "sensor", "pack_TG0123456789AB_capacity")
     firmware = hass.states.get(_eid(hass, "sensor", "firmware_version"))

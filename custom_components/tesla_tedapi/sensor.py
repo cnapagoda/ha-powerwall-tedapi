@@ -261,6 +261,16 @@ def _string(d: dict[str, Any], name: str) -> dict[str, Any]:
     return (d.get("strings") or {}).get(name) or {}
 
 
+# An unused input reports a small standing voltage (15 V on a Powerwall 3) in
+# Pv_Standby; a connected string reads far more in daylight.
+IN_USE_VOLTS = 60
+
+
+def _input_in_use(values: dict[str, Any]) -> bool:
+    return bool((values.get("power") or 0) > 0 or (values.get("voltage") or 0) >= IN_USE_VOLTS
+                or values.get("state") not in (None, "Pv_Standby", "PV_Standby"))
+
+
 def _string_sensors(name: str) -> list[TedapiSensorEntityDescription]:
     """Solar input (MPPT) `name` of the Powerwall 3's built-in inverter."""
     placeholders = {"string": name}
@@ -356,8 +366,7 @@ async def async_setup_entry(
             return
         new: list[TedapiSensorEntityDescription] = []
         for name, values in (data.get("strings") or {}).items():
-            # Only inputs that are in use (an unused MPPT reports nothing or 0 V).
-            if f"string_{name}" not in known and (values.get("voltage") or values.get("power")):
+            if f"string_{name}" not in known and _input_in_use(values):
                 known.add(f"string_{name}")
                 new += _string_sensors(name)
         for serial, pack in (data.get("packs") or {}).items():
