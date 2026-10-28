@@ -6,7 +6,7 @@
 - The Tesla cloud backup is checked with a real read about once an hour (sooner after a failure) instead of only when it is needed. This keeps the sign-in refreshed, and **Setup health** shows `degraded` as soon as the backup stops working rather than when the local connection is already down. New `cloud_last_ok` attribute.
 - **Tesla sign-in with a refresh token.** The Tesla Owner API now answers *403 Forbidden* to tokens from a sign-in in a normal browser (the pasted callback address), while tokens from app-style sign-ins keep working. Every sign-in screen (setup, *Link a Tesla account*, the sign-in repair) also accepts a refresh token from an app-style sign-in such as *Auth app for Tesla*, which the Owner API still accepts. A sign-in that Tesla refuses (HTTP 403) now says so and points to this, instead of "Tesla did not accept that code".
 - Failed cloud reads are cached for 5 minutes, and once the sign-in repair is up only the hourly check tries again (each failed attempt was retried every poll).
-- README: new section *Getting a Tesla refresh token* (token apps for iOS, Android and desktop, how to paste the token, why each integration needs its own), and why registering a key still needs a Tesla account.
+- README: new section *Getting a Tesla refresh token* (token apps for iOS, Android and desktop, how to paste the token, why each integration needs its own), why registering a key still needs a Tesla account, and how to register through the Fleet API with `pypowerwall register` when you have a developer app.
 - A cloud read that logs in but returns nothing (for example a refreshed token the Tesla API rejects) now counts as a failure, so the sign-in repair appears after three failed checks.
 
 ## 2.2.0

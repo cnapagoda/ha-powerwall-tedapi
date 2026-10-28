@@ -96,6 +96,16 @@ You don't need to reserve the gateway's IP: when your router gives it a new addr
 
 <img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-04-access.png" alt="Choose how to connect" width="640">
 
+> **Which Tesla API registers the key?** A new key is registered by one command sent through Tesla's cloud. The Powerwall then waits for the switch toggle at the unit. Either Tesla API can send that command:
+>
+> | | Owner API | Fleet API |
+> |---|---|---|
+> | Who it's for | Everyone | Developers |
+> | You need | A Tesla account and a refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | A developer app at [developer.tesla.com](https://developer.tesla.com), with its partner key hosted on a public domain you own |
+> | Where | This wizard, path **A** | `python -m pypowerwall register` (option 2) on a computer, then path **B** |
+>
+> Neither one exposes Home Assistant to the internet: after the key is verified, everything is local. A key can't be registered over the local network alone. The Powerwall accepts it there, but never verifies it.
+
 #### A. Register a new key (recommended)
 
 1. **Sign in to Tesla.** Paste a **refresh token** from a token app (see [Getting a Tesla refresh token](#getting-a-tesla-refresh-token)). This is the way that works today.
@@ -133,6 +143,23 @@ Your Tesla login is saved in `config/tesla_tedapi/.pypowerwall.auth` and used as
 #### B. Upload a key that is already registered
 
 If you registered a key with `python -m pypowerwall register`, upload its `tedapi_rsa_private.pem`. It is checked (it must be an RSA private key) and copied into `config/tesla_tedapi/` with owner-only permissions. You can also link a Tesla account here for the cloud backup.
+
+**Registering with the Fleet API** (if you have a Tesla developer app):
+
+1. On a computer with Python, run `pip install pypowerwall`.
+2. Set your app's details. The redirect URI must match the one in your developer app:
+   ```bash
+   export TESLA_CLIENT_ID="your-client-id"
+   export TESLA_CLIENT_SECRET="your-client-secret"
+   export TESLA_REDIRECT_URI="https://your-domain.com/callback"
+   # optional, otherwise it asks: NA, EU or CN region
+   export TESLA_FLEET_API_BASE="https://fleet-api.prd.na.vn.cloud.tesla.com"
+   ```
+3. Run `python -m pypowerwall register`, choose **[2] Fleet API**, sign in, and grant the energy scopes (`energy_device_data`, `energy_cmds`).
+4. Do the switch toggle at the Powerwall within about 10 minutes (as in path A, step 3). The command waits until the key is `VERIFIED`.
+5. Upload the `tedapi_rsa_private.pem` it wrote, here in path B.
+
+The cloud backup in this integration uses the Owner API only. If you register with the Fleet API, local control works fully, and you can link a Tesla account (refresh token) separately if you want the backup.
 
 <details>
 <summary>Screenshot: key upload</summary>
@@ -172,7 +199,7 @@ The integration swaps the token for a fresh pair straight away and keeps refresh
 
 - **Make a new token for this integration.** Each refresh replaces the token. If two integrations share one, the one that refreshes second is logged out. Don't reuse the token from Tesla Custom, Tesla Fleet or another app.
 - **Treat it like a password.** A refresh token gives full access to your Tesla account until you change your password. Get it only from an app you trust; changing your Tesla password revokes it.
-- **Why a Tesla account at all?** Only to register the key. The Powerwall does accept a new key over its own Wi-Fi with just the gateway password, but in a test (Powerwall 3, firmware 26.34.1) a key added that way never verified with the switch toggle. Keys only verify when they are registered through Tesla's cloud. After the key is verified, local control never uses the Tesla account; the account then only serves as the cloud backup.
+- **Why a Tesla account at all?** Only to register the key. The Powerwall does accept a new key over its own Wi-Fi with just the gateway password, but in a test (Powerwall 3, firmware 26.34.1) a key added that way never verified with the switch toggle. Keys only verify when they are registered through Tesla's cloud, via the Owner API (this integration) or the Fleet API (see path B). After the key is verified, local control never uses the Tesla account; the account then only serves as the cloud backup.
 
 ### Changing things later
 
