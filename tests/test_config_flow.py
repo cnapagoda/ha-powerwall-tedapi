@@ -198,7 +198,7 @@ async def test_dhcp_follows_new_address(hass: HomeAssistant) -> None:
     with patch(SETUP, return_value=True):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_DHCP},
-            data=DhcpServiceInfo(ip="192.168.1.60", hostname="teslapw_abcdef", macaddress="aa:bb:cc:dd:ee:ff"))
+            data=DhcpServiceInfo(ip="192.168.1.60", hostname="teslapw_abcdef", macaddress="aabbccddeeff"))
     assert result["reason"] == "already_configured"
     assert entry.data["host"] == "192.168.1.60"
 
@@ -206,7 +206,7 @@ async def test_dhcp_follows_new_address(hass: HomeAssistant) -> None:
 async def test_dhcp_new_gateway(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_DHCP},
-        data=DhcpServiceInfo(ip="192.168.1.61", hostname="teslapw_abcdef", macaddress="aa:bb:cc:dd:ee:01"))
+        data=DhcpServiceInfo(ip="192.168.1.61", hostname="teslapw_abcdef", macaddress="aabbccddee01"))
     assert result["step_id"] == "gateway"
 
 

@@ -413,7 +413,7 @@
         "step": {
           "login": {
             "title": "Sign in to Tesla",
-            "description": "Your Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
+            "description": "The Tesla cloud backup for settings has stopped working, usually because the saved sign-in expired or was revoked. Local readings and control are not affected.\n\nYour Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
             "data": {
               "callback": "Callback address (or just the code)"
             }
@@ -434,8 +434,7 @@
           "wrong_powerwall": "That Tesla account has no site with this Powerwall.",
           "entry_gone": "The Powerwall entry was removed."
         }
-      },
-      "description": "The Tesla cloud backup for settings has stopped working, usually because the saved sign-in expired or was revoked. Local readings and control are not affected. Select **Fix** to sign in again."
+      }
     }
   },
   "selector": {
