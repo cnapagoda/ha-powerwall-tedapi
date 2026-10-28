@@ -144,20 +144,37 @@ Your Tesla login is saved in `config/tesla_tedapi/.pypowerwall.auth` and used as
 
 If you registered a key with `python -m pypowerwall register`, upload its `tedapi_rsa_private.pem`. It is checked (it must be an RSA private key) and copied into `config/tesla_tedapi/` with owner-only permissions. You can also link a Tesla account here for the cloud backup.
 
-**Registering with the Fleet API** (if you have a Tesla developer app):
+**Registering with the Fleet API**
 
-1. On a computer with Python, run `pip install pypowerwall`.
-2. Set your app's details. The redirect URI must match the one in your developer app:
+The Fleet API needs a Tesla developer app whose public key is hosted on a domain you own. If you already use Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration, you have both and can reuse the same developer app. Otherwise, set them up the way that integration's documentation describes:
+
+1. **Developer app.** At [developer.tesla.com/request](https://developer.tesla.com/request), create an app with:
+   - OAuth grant type: *Authorization Code and Machine-to-Machine*.
+   - Allowed origin: your domain, for example `https://yourdomain.com/`.
+   - Allowed redirect URIs: `https://my.home-assistant.io/redirect/oauth` (for Tesla Fleet), and also one for this command, for example `https://yourdomain.com/callback`. That page doesn't need to exist, because you only copy its address.
+   - Scopes: **Energy Product Information** and **Energy Product Settings**. The energy APIs are free; no billing is needed.
+
+   Note the **Client ID** and **Client Secret** under *View Details → Credentials & APIs*.
+2. **Host the public key** at `https://yourdomain.com/.well-known/appspecific/com.tesla.3p.public-key.pem`, with a valid certificate. Options listed in the Tesla Fleet documentation:
+   - The [NGINX Home Assistant SSL proxy](https://github.com/home-assistant/addons/blob/master/nginx_proxy/DOCS.md) app (recommended there), with a custom `location` for the `.well-known` path.
+   - A hosting service: [FleetKey.net](https://fleetkey.net) or [MyTeslamate](https://app.myteslamate.com/fleet).
+
+   Tesla may silently reject some domains (for example `ddns.net` hostnames). China isn't supported.
+
+   The Tesla Fleet integration's setup registers this domain with Tesla (the partner registration). Without that integration, pypowerwall's Fleet path expects the partner registration to be done already; see [Tesla's Fleet API guide](https://developer.tesla.com/docs/fleet-api/getting-started/what-is-fleet-api).
+3. **Register the Powerwall key** on a computer with Python:
    ```bash
+   pip install pypowerwall
    export TESLA_CLIENT_ID="your-client-id"
    export TESLA_CLIENT_SECRET="your-client-secret"
-   export TESLA_REDIRECT_URI="https://your-domain.com/callback"
+   export TESLA_REDIRECT_URI="https://yourdomain.com/callback"
    # optional, otherwise it asks: NA, EU or CN region
    export TESLA_FLEET_API_BASE="https://fleet-api.prd.na.vn.cloud.tesla.com"
+   python -m pypowerwall register      # choose [2] Fleet API
    ```
-3. Run `python -m pypowerwall register`, choose **[2] Fleet API**, sign in, and grant the energy scopes (`energy_device_data`, `energy_cmds`).
-4. Do the switch toggle at the Powerwall within about 10 minutes (as in path A, step 3). The command waits until the key is `VERIFIED`.
-5. Upload the `tedapi_rsa_private.pem` it wrote, here in path B.
+   Sign in, allow the energy scopes, then paste the address the browser ends on. This sign-in is separate from the Tesla Fleet integration's, so it doesn't log that integration out.
+4. **Switch toggle** at the Powerwall within about 10 minutes (as in path A, step 3). The command waits until the key is `VERIFIED`.
+5. **Upload** the `tedapi_rsa_private.pem` it wrote, here in path B. This is the Powerwall key, not the Fleet app's key.
 
 The cloud backup in this integration uses the Owner API only. If you register with the Fleet API, local control works fully, and you can link a Tesla account (refresh token) separately if you want the backup.
 
