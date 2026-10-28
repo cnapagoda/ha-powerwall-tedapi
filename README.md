@@ -61,6 +61,8 @@ Or use this button:
 
 ## Setup
 
+_Screenshots below come from a test Home Assistant with example data (no real Powerwall or account)._
+
 Go to **Settings → Devices & services → Add integration → Powerwall TEDAPI**. If Home Assistant has already spotted the gateway on your network, it is listed under **Discovered**; select **Add** there instead.
 
 You need the **gateway password** for every path: it is printed on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Home Assistant logs in to the gateway with its last 5 characters, also for signed access.
@@ -74,9 +76,22 @@ Then enter the **gateway password**. It is checked straight away, before anythin
 
 **Wi-Fi fallback** (optional): `192.168.91.1` if Home Assistant can also reach the Powerwall's own hotspot; leave it empty otherwise.
 
+<details>
+<summary>Screenshots: finding the gateway</summary>
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-01-find-gateway.png" alt="Start: enter the address or search the network" width="640">
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-02-scan-results.png" alt="Network search results" width="640">
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-03-gateway.png" alt="Gateway address and password" width="640">
+
+</details>
+
 You don't need to reserve the gateway's IP: when your router gives it a new address, Home Assistant notices the gateway (DHCP discovery), checks it is the same Powerwall and updates the address.
 
 ### 2. Choose how to connect
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-04-access.png" alt="Choose how to connect" width="640">
 
 #### A. Register a new key (recommended)
 
@@ -92,17 +107,42 @@ You don't need to reserve the gateway's IP: when your router gives it a new addr
 
    The wizard checks every 10 seconds and continues on its own once the Powerwall confirms. If the window closes, it registers the key again once by itself; after that it asks you to try again.
 
+<details>
+<summary>Screenshots: Tesla sign-in, confirmation, done</summary>
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-05-tesla-sign-in.png" alt="Tesla sign-in step" width="640">
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-06-confirm-key.png" alt="Waiting for the switch toggle at the Powerwall" width="640">
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-07-done.png" alt="Setup complete" width="640">
+
+</details>
+
 Your Tesla login is saved in `config/tesla_tedapi/.pypowerwall.auth` and used as the cloud backup.
 
 #### B. Upload a key that is already registered
 
 If you registered a key with `python -m pypowerwall register`, upload its `tedapi_rsa_private.pem`. It is checked (it must be an RSA private key) and copied into `config/tesla_tedapi/` with owner-only permissions. You can also link a Tesla account here for the cloud backup.
 
+<details>
+<summary>Screenshot: key upload</summary>
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-08-key-upload.png" alt="Upload an existing key" width="640">
+
+</details>
+
 > The sign-in step doesn't work for you? Run `pip install pypowerwall && python -m pypowerwall register` on any computer with a screen. It opens a proper login window. Then use this path.
 
 #### C. Wi-Fi password only
 
 Home Assistant must be connected to the Powerwall's `TeslaPW_…` Wi-Fi (address `192.168.91.1`). You get local readings. Link a Tesla account to change settings through the cloud.
+
+<details>
+<summary>Screenshot: Wi-Fi only</summary>
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-09-wifi-only.png" alt="Wi-Fi password only" width="640">
+
+</details>
 
 ### Changing things later
 
@@ -118,6 +158,15 @@ Home Assistant must be connected to the Powerwall's `TeslaPW_…` Wi-Fi (address
   | Discharges stop at the backup reserve | on | Applies to dispatches without `min_soc`. |
   | Largest dispatch power | 10,000 W | Dispatch calls above this are refused. |
 
+<details>
+<summary>Screenshots: options</summary>
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-11-options-menu.png" alt="Options menu" width="640">
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-12-options-settings.png" alt="Settings" width="640">
+
+</details>
+
 - **Configure → Link / Unlink a Tesla account:** add or remove the cloud backup without setting the Powerwall up again.
 - If the Powerwall starts refusing the password or the key (for example the key was removed in the Tesla app), Home Assistant asks you to fix it (**Reauthenticate**): enter the password again, register the key again or upload another key. If the Tesla sign-in stops working, **Settings → Repairs** offers to sign in again.
 
@@ -126,6 +175,13 @@ Home Assistant must be connected to the Powerwall's `TeslaPW_…` Wi-Fi (address
 ## Entities
 
 All entities belong to one device, **Powerwall TEDAPI**.
+
+<details>
+<summary>Screenshot: device page</summary>
+
+<img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-10-device.png" alt="Device page with controls and sensors" width="640">
+
+</details>
 
 | Entity | Notes |
 |---|---|

@@ -29,7 +29,7 @@
         }
       },
       "access": {
-        "title": "How should Home Assistant connect?",
+        "title": "Choose how to connect",
         "description": "Signed (v1r) access needs a key that this Powerwall trusts.",
         "menu_options": {
           "register": "Register a new key (recommended)",
