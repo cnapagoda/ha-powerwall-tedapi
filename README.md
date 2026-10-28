@@ -11,6 +11,8 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 - **Tesla cloud as a backup** (optional): if the gateway can't be reached, the settings entities keep working through the core **Tesla Fleet** integration's sign-in, or a Tesla account linked here.
 
 > **Tesla account sign-in (Owner API):** since late October 2026 the Tesla Owner API answers *403 Forbidden* to tokens that come from a sign-in in a normal browser (the pasted callback address), including a fresh one. Tokens from an app-style sign-in (for example the one the Tesla Custom integration uses) still work, so Tesla appears to check how the first sign-in was made. Registering a new key and the Owner API cloud backup are affected. A key that is already registered keeps working, and the cloud backup can use the Tesla Fleet integration instead (option below).
+>
+> **Sign in with an app instead:** every Tesla sign-in screen in this integration (setup, *Link a Tesla account*, and the sign-in repair) also accepts a **refresh token**. Get one from an app that shows Tesla's login in its own window, such as *Auth app for Tesla* (iOS, Android), and paste it where the callback address goes. Make a new token for this integration; don't copy one another integration (such as Tesla Custom) already uses.
 - **Setup wizard**: finds the Powerwall on your network, checks the gateway password, registers the key with your Powerwall and notices the confirmation by itself. No command line needed.
 - **Keeps your export and grid charging settings**: the Powerwall sometimes drops them from its own settings; the integration writes them back.
 
