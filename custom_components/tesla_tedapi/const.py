@@ -19,6 +19,8 @@ CONF_STATUS_EVENTS = "status_alert_events"
 CONF_PROBLEM_MINUTES = "problem_minutes"
 CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
 CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
+# Use the core Tesla Fleet integration's sign-in as the cloud backup.
+CONF_FLEET_BACKUP = "fleet_backup"
 
 # Connection modes
 MODE_WIFI = "wifi"

@@ -29,6 +29,7 @@ from .const import (
     CLOUD_CHECK_SECONDS,
     CLOUD_RETRY_SECONDS,
     CONF_CONNECTION_MODE,
+    CONF_FLEET_BACKUP,
     CONF_GW_PWD,
     CONF_HOST,
     CONF_OWNERS_AUTHPATH,
@@ -50,6 +51,7 @@ from .const import (
     RESTORE_MIN_SECONDS,
     app_soc,
 )
+from .fleet import FleetBackup
 
 if TYPE_CHECKING:
     from .dispatch import DispatchSession
@@ -168,7 +170,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.restore_settings: bool = options.get(CONF_RESTORE_EXPORT, True)
         self.problem_after = timedelta(minutes=options.get(CONF_PROBLEM_MINUTES, DEFAULT_PROBLEM_MINUTES))
 
-        self.cloud_enabled: bool = bool(self._owners_email)
+        # Cloud backup: the core Tesla Fleet integration's sign-in (option), or
+        # a Tesla account signed in here (Owner API).
+        self.fleet_backup: bool = options.get(CONF_FLEET_BACKUP, False)
+        self.cloud_enabled: bool = bool(self._owners_email) or self.fleet_backup
         # Settings can be changed over a signed connection, or through the cloud.
         self.control_enabled: bool = self._conn_mode == MODE_V1R or self.cloud_enabled
 
@@ -263,6 +268,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return pw
 
     def _init_cloud(self):
+        if self.fleet_backup:
+            return FleetBackup(self.hass, self.din)
         import pypowerwall  # noqa: PLC0415
 
         kwargs: dict[str, Any] = {
@@ -786,6 +793,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self.cloud_enabled:
             # Checked by a real read at least hourly, not just "no failures yet".
             checks["cloud_backup"] = self.cloud_failures == 0 and self.cloud_last_ok is not None
+        if self.cloud_enabled and not self.fleet_backup:
+            # The Tesla Fleet integration keeps its own token; only an Owner
+            # API sign-in here has a token file to read.
             now = time.monotonic()
             if self._token_expiry is None or now - self._token_expiry[0] > 600:
                 self._token_expiry = (now, await self.hass.async_add_executor_job(self._read_token_expiry))
@@ -798,6 +808,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "problems": problems,
             "wifi_fallback": bool(self._wifi_host) if self._conn_mode == MODE_V1R else None,
             "cloud_linked": self.cloud_enabled,
+            "cloud_source": ("tesla_fleet" if self.fleet_backup else "tesla_account") if self.cloud_enabled else None,
             "cloud_token_expires": token_expires,
             "cloud_last_ok": self.cloud_last_ok.isoformat() if self.cloud_last_ok else None,
         }

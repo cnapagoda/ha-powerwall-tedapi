@@ -8,7 +8,9 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 - **Local readings** every 30 seconds: power flows, battery level, lifetime energy counters, capacity and health, temperatures, grid voltage and frequency, per-input solar power (Powerwall 3), alerts.
 - **Local control** with a signed (v1r) key: operation mode, backup reserve, grid charging and grid export.
 - **Battery dispatch**: charge or discharge at a set power for a set time, with state-of-charge limits. Use it for price-based charging, peak export and similar jobs.
-- **Tesla cloud as a backup** (optional): if the gateway can't be reached, the settings entities keep working through your Tesla account.
+- **Tesla cloud as a backup** (optional): if the gateway can't be reached, the settings entities keep working through the core **Tesla Fleet** integration's sign-in, or a Tesla account linked here.
+
+> **Tesla account sign-in (Owner API):** since late October 2026 the Tesla Owner API answers *403 Forbidden* for Powerwall requests with a token from a browser sign-in, including a fresh one. Registering a new key and the Owner API cloud backup are affected. A key that is already registered keeps working, and the cloud backup can use the Tesla Fleet integration instead (option below).
 - **Setup wizard**: finds the Powerwall on your network, checks the gateway password, registers the key with your Powerwall and notices the confirmation by itself. No command line needed.
 - **Keeps your export and grid charging settings**: the Powerwall sometimes drops them from its own settings; the integration writes them back.
 
@@ -157,6 +159,7 @@ Home Assistant must be connected to the Powerwall's `TeslaPW_…` Wi-Fi (address
   | Problem delay | 10 min | How long a warning or fault lasts before **Problem** turns on. |
   | Discharges stop at the backup reserve | on | Applies to dispatches without `min_soc`. |
   | Largest dispatch power | 10,000 W | Dispatch calls above this are refused. |
+  | Use the Tesla Fleet integration as the cloud backup | off | Shown when the core [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet/) integration is set up (it needs the energy scopes). Uses its sign-in; the token is refreshed only by Tesla Fleet. |
 
 <details>
 <summary>Screenshots: options</summary>
