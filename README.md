@@ -10,7 +10,7 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 - **Battery dispatch**: charge or discharge at a set power for a set time, with state-of-charge limits. Use it for price-based charging, peak export and similar jobs.
 - **Tesla cloud as a backup** (optional): if the gateway can't be reached, the settings entities keep working through the core **Tesla Fleet** integration's sign-in, or a Tesla account linked here.
 
-> **Tesla account sign-in (Owner API):** since late October 2026 the Tesla Owner API answers *403 Forbidden* for Powerwall requests with a token from a browser sign-in, including a fresh one. Registering a new key and the Owner API cloud backup are affected. A key that is already registered keeps working, and the cloud backup can use the Tesla Fleet integration instead (option below).
+> **Tesla account sign-in (Owner API):** since late October 2026 the Tesla Owner API answers *403 Forbidden* to tokens that come from a sign-in in a normal browser (the pasted callback address), including a fresh one. Tokens from an app-style sign-in (for example the one the Tesla Custom integration uses) still work, so Tesla appears to check how the first sign-in was made. Registering a new key and the Owner API cloud backup are affected. A key that is already registered keeps working, and the cloud backup can use the Tesla Fleet integration instead (option below).
 - **Setup wizard**: finds the Powerwall on your network, checks the gateway password, registers the key with your Powerwall and notices the confirmation by itself. No command line needed.
 - **Keeps your export and grid charging settings**: the Powerwall sometimes drops them from its own settings; the integration writes them back.
 
