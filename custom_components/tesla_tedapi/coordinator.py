@@ -51,7 +51,7 @@ from .const import (
     RESTORE_MIN_SECONDS,
     app_soc,
 )
-from .fleet import FleetBackup, fleet_ready
+from .fleet import FleetBackup
 
 if TYPE_CHECKING:
     from .dispatch import DispatchSession
@@ -403,8 +403,6 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return self._cloud_cache[1]
         if self.cloud_failures >= CLOUD_AUTH_FAILURES and not check:
             return {}
-        if self.fleet_backup and not fleet_ready(self.hass):
-            return {}  # still starting: not a failure, asked again next poll
         try:
             values = self._read_control_from(self._get_cloud())
         except Exception as err:  # noqa: BLE001
@@ -712,8 +710,6 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _cloud_check_due(self) -> bool:
         if not self.cloud_enabled:
             return False
-        if self.fleet_backup and not fleet_ready(self.hass):
-            return False  # checked once Tesla Fleet has loaded
         if self._cloud_check_at is None:
             return True
         since_check = time.monotonic() - self._cloud_check_at
