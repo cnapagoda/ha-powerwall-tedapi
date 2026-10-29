@@ -216,13 +216,21 @@ class TeslaLoginMixin:
             self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
 
         if user_input is not None:
+            pasted = user_input[CONF_CALLBACK]
             try:
-                code = tesla_cloud.parse_callback(user_input[CONF_CALLBACK], self._login.state)
-                self._token = await self.hass.async_add_executor_job(
-                    tesla_cloud.exchange_code, code, self._login.code_verifier)
+                if tesla_cloud.is_refresh_token(pasted):
+                    self._token = await self.hass.async_add_executor_job(tesla_cloud.refresh_login, pasted)
+                else:
+                    code = tesla_cloud.parse_callback(pasted, self._login.state)
+                    self._token = await self.hass.async_add_executor_job(
+                        tesla_cloud.exchange_code, code, self._login.code_verifier)
                 self._email = tesla_cloud.token_email(self._token) or "tesla"
                 self._sites = await self.hass.async_add_executor_job(
                     tesla_cloud.energy_sites, self._token["access_token"])
+            except tesla_cloud.TeslaRefused as err:
+                _LOGGER.warning("Tesla sign-in worked but the Owner API refused the token: %s", err)
+                errors["base"] = "owner_api_refused"
+                self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
             except tesla_cloud.TeslaAuthError as err:
                 _LOGGER.debug("Tesla login failed: %s", err)
                 errors["base"] = "invalid_auth"

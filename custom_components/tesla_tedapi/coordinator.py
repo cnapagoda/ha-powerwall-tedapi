@@ -26,6 +26,8 @@ from .const import (
     AUTH_FILE,
     CLOUD_AUTH_FAILURES,
     CLOUD_CACHE_SECONDS,
+    CLOUD_CHECK_SECONDS,
+    CLOUD_RETRY_SECONDS,
     CONF_CONNECTION_MODE,
     CONF_GW_PWD,
     CONF_HOST,
@@ -41,10 +43,11 @@ from .const import (
     DEFAULT_PROBLEM_MINUTES,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
-    EXPORT_RESTORE_MIN_SECONDS,
+    DROPPABLE_SETTINGS,
     KEY_REFUSED_POLLS,
     MODE_V1R,
     PASSWORD_REFUSED_POLLS,
+    RESTORE_MIN_SECONDS,
     app_soc,
 )
 
@@ -162,7 +165,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._owners_authpath: str = data.get(CONF_OWNERS_AUTHPATH, "") or hass.config.config_dir
         self._site_id: int | None = data.get(CONF_SITE_ID)
         options = entry.options
-        self.restore_export: bool = options.get(CONF_RESTORE_EXPORT, True)
+        self.restore_settings: bool = options.get(CONF_RESTORE_EXPORT, True)
         self.problem_after = timedelta(minutes=options.get(CONF_PROBLEM_MINUTES, DEFAULT_PROBLEM_MINUTES))
 
         self.cloud_enabled: bool = bool(self._owners_email)
@@ -185,12 +188,14 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._cloud_cache: tuple[float, dict[str, Any]] | None = None
         self.cloud_failures = 0
         self._cloud_issue = False
-        # Grid export rule: the last value set or seen, restored when the
-        # gateway drops it from its config.
-        self.export_wanted: str | None = None
-        self.export_restores = 0
-        self.export_last_restored: datetime | None = None
-        self._export_restore_at: float | None = None
+        self.cloud_last_ok: datetime | None = None
+        self._cloud_check_at: float | None = None
+        # Settings the gateway drops from its config now and then (export rule,
+        # grid charging): the last value set or seen, written back when missing.
+        self.wanted: dict[str, Any] = dict.fromkeys(DROPPABLE_SETTINGS)
+        self.restores: dict[str, int] = dict.fromkeys(DROPPABLE_SETTINGS, 0)
+        self.last_restored: dict[str, datetime | None] = dict.fromkeys(DROPPABLE_SETTINGS)
+        self._restore_at: dict[str, float] = {}
         # Consecutive polls where the gateway refused the password or the key.
         self._password_refused = 0
         self._key_refused = 0
@@ -288,7 +293,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except Exception:
                 self.cloud_failures += 1
                 raise
-            self.cloud_failures = 0
+            # A login alone doesn't reset cloud_failures: only a read that
+            # returns data does (the Owner API can log in, then reject reads).
         return self._cloud
 
     # ------------------------------------------------------------------
@@ -325,7 +331,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise RuntimeError("no DIN from the gateway, reconnecting")
 
         control = self._read_control(pw) if self.control_enabled else {}
-        export_missing = self._check_export(pw, control) if self.control_enabled else False
+        missing = self._check_dropped(pw, control) if self.control_enabled else {}
         soe_value = round(soe, 1) if isinstance(soe, (int, float)) else None
 
         return {
@@ -346,7 +352,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "local_ok": True,
             **{key: control.get(key) for key in CONTROL_KEYS},
             "control_source": control.get("source"),
-            "grid_export_missing": export_missing,
+            **{f"{key}_missing": missing.get(key, False) for key in DROPPABLE_SETTINGS},
         }
 
     @staticmethod
@@ -381,61 +387,90 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         values["source"] = source if any(values.get(k) is not None for k in CONTROL_KEYS) else None
         return values
 
-    def _cloud_settings(self) -> dict[str, Any]:
-        """Settings from the Tesla cloud, cached for CLOUD_CACHE_SECONDS."""
+    def _cloud_settings(self, check: bool = False) -> dict[str, Any]:
+        """Settings from the Tesla cloud, cached for CLOUD_CACHE_SECONDS.
+        Once the sign-in repair is up, only the hourly check (check=True)
+        tries again."""
         now = time.monotonic()
         if self._cloud_cache and now - self._cloud_cache[0] < CLOUD_CACHE_SECONDS:
             return self._cloud_cache[1]
+        if self.cloud_failures >= CLOUD_AUTH_FAILURES and not check:
+            return {}
         try:
             values = self._read_control_from(self._get_cloud())
         except Exception as err:  # noqa: BLE001
+            # Login failed (counted in _get_cloud). Cached like a good read:
+            # retrying every poll would hammer the Tesla API.
             _LOGGER.debug("Cloud settings read failed: %s", err)
             self._cloud = None
+            self._cloud_cache = (now, {})
             return {}
         if any(v is not None for v in values.values()):
             self._cloud_cache = (now, values)
+            self.cloud_failures = 0
+            self.cloud_last_ok = dt_util.utcnow()
+        else:
+            # Logged in but every read failed, e.g. a refreshed token the
+            # Owner API rejects: log in again next time.
+            _LOGGER.debug("Cloud settings read returned nothing")
+            self.cloud_failures += 1
+            self._cloud = None
+            self._cloud_cache = (now, {})
         return values
 
-    def _check_export(self, pw, control: dict[str, Any]) -> bool:
-        """True while the gateway's own config is missing an export rule that
-        was set.
+    def _check_cloud(self) -> None:
+        """A fresh cloud read (not the cache): proves the backup still works
+        and lets pypowerwall refresh the Tesla token while it is idle."""
+        self._cloud_cache = None
+        self._cloud_settings(check=True)
+        self._token_expiry = None  # re-read: the refresh rewrites the file
 
-        An unset rule means Tesla's default ("battery_ok"), which pypowerwall
-        reports. But the Powerwall also drops a rule that was set, now and then,
-        while the Tesla cloud keeps it. Then the select shows the rule that was
-        set and, over a signed connection, it is written back."""
+    def _check_dropped(self, pw, control: dict[str, Any]) -> dict[str, bool]:
+        """Which settings in DROPPABLE_SETTINGS are missing from the gateway's
+        own config, after writing them back where possible."""
         try:
-            config = pw.client.tedapi.get_config() or {}
-            missing = (config.get("site_info") or {}).get("customer_preferred_export_rule") is None
+            site_info = (pw.client.tedapi.get_config() or {}).get("site_info") or {}
         except Exception:  # noqa: BLE001
+            return {}
+        return {key: self._check_setting(pw, control, key, site_info) for key in DROPPABLE_SETTINGS}
+
+    def _check_setting(self, pw, control: dict[str, Any], key: str, site_info: dict) -> bool:
+        """True while a setting that was set is missing from the gateway's config.
+
+        A missing field normally means Tesla's default, which pypowerwall
+        reports ("battery_ok" export, grid charging allowed). But the Powerwall
+        also drops a field that was set, now and then, while the Tesla cloud
+        keeps it. Then the entity shows the value that was set and, over a
+        signed connection, it is written back."""
+        field, default = DROPPABLE_SETTINGS[key]
+        if site_info.get(field) is not None:
+            if control.get(key) is not None:
+                self.wanted[key] = control[key]
             return False
-        if not missing:
-            if control.get("grid_export") is not None:
-                self.export_wanted = control["grid_export"]
-            return False
-        if self.export_wanted is None and self.cloud_enabled:
-            # Never seen locally since setup: the cloud keeps the rule.
-            self.export_wanted = self._cloud_settings().get("grid_export")
-        if self.export_wanted in (None, "battery_ok"):
+        if self.wanted[key] is None and self.cloud_enabled:
+            # Never seen locally since setup: the cloud keeps the value.
+            self.wanted[key] = self._cloud_settings().get(key)
+        wanted = self.wanted[key]
+        if wanted is None or wanted == default:
             return False  # nothing set, or the same as the default
-        control["grid_export"] = self.export_wanted
-        if (self.restore_export and self._conn_mode == MODE_V1R
-                and (self._export_restore_at is None
-                     or time.monotonic() - self._export_restore_at >= EXPORT_RESTORE_MIN_SECONDS)):
-            self._export_restore_at = time.monotonic()
+        control[key] = wanted
+        name = key.replace("_", " ")
+        last = self._restore_at.get(key)
+        if (self.restore_settings and self._conn_mode == MODE_V1R
+                and (last is None or time.monotonic() - last >= RESTORE_MIN_SECONDS)):
+            self._restore_at[key] = time.monotonic()
+            setter = pw.set_grid_export if key == "grid_export" else pw.set_grid_charging
             try:
-                ok = self._write_ok(pw.set_grid_export(self.export_wanted))
+                ok = self._write_ok(setter(wanted))
             except Exception as err:  # noqa: BLE001
                 ok = False
-                _LOGGER.debug("Export rule restore error: %s", err)
+                _LOGGER.debug("Restoring %s failed: %s", name, err)
             if ok:
-                self.export_restores += 1
-                self.export_last_restored = dt_util.utcnow()
-                _LOGGER.warning("The Powerwall dropped its grid export setting; restored it to %s",
-                                self.export_wanted)
+                self.restores[key] += 1
+                self.last_restored[key] = dt_util.utcnow()
+                _LOGGER.warning("The Powerwall dropped its %s setting; restored it to %s", name, wanted)
                 return False
-            _LOGGER.warning("The Powerwall dropped its grid export setting; restoring %s failed",
-                            self.export_wanted)
+            _LOGGER.warning("The Powerwall dropped its %s setting; restoring %s failed", name, wanted)
         return True
 
     def _fetch_cloud_only(self) -> dict[str, Any]:
@@ -548,6 +583,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise HomeAssistantError(f"{what}: local and cloud writes failed ({err})") from err
         if not ok:
             raise HomeAssistantError(f"{what}: local and cloud writes failed")
+        self.cloud_failures = 0
+        self.cloud_last_ok = dt_util.utcnow()
         _LOGGER.info("%s (cloud)", what)
 
     def _set_mode(self, mode: str) -> None:
@@ -561,10 +598,11 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # A real bool: the local path does bool(mode), so "off" would enable.
         self._write(f"Grid charging set to {'on' if enabled else 'off'}",
                     lambda pw: pw.set_grid_charging(bool(enabled)))
+        self.wanted["grid_charging"] = bool(enabled)
 
     def _set_grid_export(self, mode: str) -> None:
         self._write(f"Grid export set to {mode}", lambda pw: pw.set_grid_export(mode))
-        self.export_wanted = mode
+        self.wanted["grid_export"] = mode
 
     def _send_dispatch(self, power_watts: float, duration_seconds: int) -> dict:
         """One timed battery setpoint over signed v1r (no cloud equivalent)."""
@@ -613,13 +651,16 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # ------------------------------------------------------------------
 
     async def async_load_state(self) -> None:
-        """Alert start times and the wanted export rule survive restarts."""
+        """Alert start times and the wanted settings survive restarts."""
         stored = await self._store.async_load() or {}
-        self.export_wanted = stored.get("export_wanted")
+        self.wanted["grid_export"] = stored.get("export_wanted")
+        self.wanted["grid_charging"] = stored.get("grid_charging_wanted")
         self.alerts.restore(stored.get("alerts") or {})
 
     def _state_to_save(self) -> dict[str, Any]:
-        return {"export_wanted": self.export_wanted, "alerts": self.alerts.as_dict()}
+        return {"export_wanted": self.wanted["grid_export"],
+                "grid_charging_wanted": self.wanted["grid_charging"],
+                "alerts": self.alerts.as_dict()}
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -647,13 +688,32 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.din = data["din"]
         if data.get("firmware_version"):
             self.firmware_version = data["firmware_version"]
+        if self._cloud_check_due():
+            self._cloud_check_at = time.monotonic()
+            await self.hass.async_add_executor_job(self._check_cloud)
         self._process_alerts(data)
         self._sync_cloud_issue()
-        data["export_restores"] = self.export_restores
-        data["export_last_restored"] = self.export_last_restored
+        for key in DROPPABLE_SETTINGS:
+            data[f"{key}_restores"] = self.restores[key]
+            data[f"{key}_last_restored"] = self.last_restored[key]
         data["health"] = await self._async_health(data)
         self._store.async_delay_save(self._state_to_save, 10)
         return data
+
+    def _cloud_check_due(self) -> bool:
+        if not self.cloud_enabled:
+            return False
+        if self._cloud_check_at is None:
+            return True
+        since_check = time.monotonic() - self._cloud_check_at
+        if 0 < self.cloud_failures < CLOUD_AUTH_FAILURES:
+            return since_check >= CLOUD_RETRY_SECONDS
+        # Working, or the sign-in repair is up: hourly is enough.
+        # Any successful cloud read counts as a check.
+        last_ok = self.cloud_last_ok
+        if last_ok and (dt_util.utcnow() - last_ok).total_seconds() < CLOUD_CHECK_SECONDS:
+            return False
+        return since_check >= CLOUD_CHECK_SECONDS
 
     # ------------------------------------------------------------------
     # Password / key problems -> reauth; cloud sign-in -> repair
@@ -724,7 +784,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             or not data.get("local_ok")
         token_expires = None
         if self.cloud_enabled:
-            checks["cloud_backup"] = self.cloud_failures < CLOUD_AUTH_FAILURES
+            # Checked by a real read at least hourly, not just "no failures yet".
+            checks["cloud_backup"] = self.cloud_failures == 0 and self.cloud_last_ok is not None
             now = time.monotonic()
             if self._token_expiry is None or now - self._token_expiry[0] > 600:
                 self._token_expiry = (now, await self.hass.async_add_executor_job(self._read_token_expiry))
@@ -738,6 +799,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "wifi_fallback": bool(self._wifi_host) if self._conn_mode == MODE_V1R else None,
             "cloud_linked": self.cloud_enabled,
             "cloud_token_expires": token_expires,
+            "cloud_last_ok": self.cloud_last_ok.isoformat() if self.cloud_last_ok else None,
         }
 
     # ------------------------------------------------------------------

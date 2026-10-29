@@ -58,16 +58,5 @@ class TedapiSelect(TedapiControlEntity, SelectEntity):
         value = self.data.get(self.entity_description.data_key)
         return value if value in self.options else None
 
-    @property
-    def extra_state_attributes(self) -> dict | None:
-        attrs = super().extra_state_attributes or {}
-        if self.entity_description.key == "grid_export":
-            # The Powerwall sometimes drops its export rule; see the coordinator.
-            attrs["missing_on_powerwall"] = bool(self.data.get("grid_export_missing"))
-            attrs["restored_count"] = self.data.get("export_restores", 0)
-            last = self.data.get("export_last_restored")
-            attrs["last_restored"] = last.isoformat() if last else None
-        return attrs
-
     async def async_select_option(self, option: str) -> None:
         await self.entity_description.set_fn(self.coordinator, option)

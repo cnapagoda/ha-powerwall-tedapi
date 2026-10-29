@@ -30,6 +30,11 @@ class TeslaAuthError(TeslaCloudError):
     """The login code or token was rejected."""
 
 
+class TeslaRefused(TeslaAuthError):
+    """Signed in, but the Owner API refuses the token (HTTP 403). Tesla does
+    this for tokens whose sign-in was made in a normal browser."""
+
+
 @dataclass
 class LoginStart:
     url: str
@@ -70,6 +75,28 @@ def parse_callback(text: str, expected_state: str | None) -> str:
     return code
 
 
+def is_refresh_token(text: str) -> bool:
+    """A pasted Tesla refresh token (a long JWT) rather than a callback URL
+    or an authorization code."""
+    text = text.strip()
+    return text.startswith("eyJ") and len(text) > 200 and "code=" not in text
+
+
+def refresh_login(refresh_token: str) -> dict[str, Any]:
+    """Tokens from a refresh token made by an app-style sign-in (for example
+    the Auth app for Tesla). The Owner API keeps accepting tokens refreshed
+    from such a sign-in, unlike one made in a normal browser."""
+    from pypowerwall.tesla_auth import _refresh_access_token  # noqa: PLC0415
+
+    refresh_token = refresh_token.strip()
+    try:
+        data = _refresh_access_token(refresh_token)
+    except RuntimeError as err:
+        raise TeslaAuthError(str(err)) from err
+    data.setdefault("refresh_token", refresh_token)
+    return data
+
+
 def exchange_code(code: str, code_verifier: str) -> dict[str, Any]:
     """Swap the authorization code for tokens."""
     from pypowerwall.tesla_auth import _exchange_code  # noqa: PLC0415
@@ -105,7 +132,9 @@ def _call(method: str, path: str, token: str, data: dict | None = None) -> dict[
     from pypowerwall.v1r_register import api_call  # noqa: PLC0415
 
     code, resp = api_call(f"{OWNER_API}{path}", method=method, data=data, token=token)
-    if code in (401, 403):
+    if code == 403:
+        raise TeslaRefused("Owner API refused the token (HTTP 403)")
+    if code == 401:
         raise TeslaAuthError(f"Owner API rejected the token (HTTP {code})")
     if code != 200 or not isinstance(resp, dict):
         raise TeslaCloudError(f"Owner API HTTP {code}: {str(resp)[:200]}")

@@ -55,9 +55,9 @@
       },
       "login": {
         "title": "Sign in to Tesla",
-        "description": "Your Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
+        "description": "Your Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n**Recommended: an app sign-in.** Since October 2026 Tesla refuses sign-ins made in a normal browser for the Powerwall. Sign in with an app that shows Tesla's login in its own window, such as *Auth app for Tesla* (iOS, Android), and copy the **refresh token** it shows. Paste it below. Use a token made for this, not one another integration already uses: signing in elsewhere with the same token can log that integration out.\n\n**Or, browser sign-in** (may be refused by Tesla):\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
         "data": {
-          "callback": "Callback address (or just the code)"
+          "callback": "Refresh token, or callback address"
         }
       },
       "site": {
@@ -112,9 +112,10 @@
       "password_required": "Signed access needs the gateway password.",
       "invalid_rsa_key": "That is not an RSA private key in PEM format.",
       "key_not_accepted": "The Powerwall did not accept the key. Check that it is registered and VERIFIED for this Powerwall.",
-      "invalid_auth": "Tesla did not accept that code. A new sign-in link has been made; sign in again and paste the new address.",
+      "invalid_auth": "Tesla did not accept that token or code. A new sign-in link has been made; sign in again and paste the new token or address.",
       "cloud_error": "The Tesla service returned an error. Try again in a minute.",
-      "none_found": "No Powerwall answered on this network. Enter the address instead."
+      "none_found": "No Powerwall answered on this network. Enter the address instead.",
+      "owner_api_refused": "You signed in, but Tesla refuses this kind of sign-in for the Powerwall (HTTP 403). Browser sign-ins are blocked; paste a refresh token from an app sign-in such as Auth app for Tesla instead."
     },
     "abort": {
       "already_configured": "This Powerwall is already set up.",
@@ -140,14 +141,14 @@
         "title": "Settings",
         "data": {
           "scan_interval": "Polling interval",
-          "restore_export": "Restore the grid export setting when the Powerwall drops it",
+          "restore_export": "Restore settings when the Powerwall drops them",
           "status_alert_events": "Alert events for status alerts too",
           "problem_minutes": "Problem delay",
           "dispatch_floor_reserve": "Discharges stop at the backup reserve",
           "dispatch_max_watts": "Largest dispatch power"
         },
         "data_description": {
-          "restore_export": "The Powerwall sometimes loses its export rule from its own settings while the Tesla app still shows it. When on, the rule is written back within a minute or two (signed connection only).",
+          "restore_export": "The Powerwall sometimes loses its grid export rule and its grid charging setting from its own settings (seen hourly on a Powerwall 3); grid charging then turns on. When on, the setting you chose is written back within a minute or two (signed connection only).",
           "status_alert_events": "Status alerts such as \"Export limited\" describe normal operation and some come and go every few minutes; by default only notices, warnings and faults create Alert events.",
           "problem_minutes": "How long a warning or fault must last before the Problem sensor turns on and a repair is raised.",
           "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",
@@ -156,9 +157,9 @@
       },
       "login": {
         "title": "Sign in to Tesla",
-        "description": "Your Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
+        "description": "Your Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n**Recommended: an app sign-in.** Since October 2026 Tesla refuses sign-ins made in a normal browser for the Powerwall. Sign in with an app that shows Tesla's login in its own window, such as *Auth app for Tesla* (iOS, Android), and copy the **refresh token** it shows. Paste it below. Use a token made for this, not one another integration already uses: signing in elsewhere with the same token can log that integration out.\n\n**Or, browser sign-in** (may be refused by Tesla):\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
         "data": {
-          "callback": "Callback address (or just the code)"
+          "callback": "Refresh token, or callback address"
         }
       },
       "site": {
@@ -173,8 +174,9 @@
       }
     },
     "error": {
-      "invalid_auth": "Tesla did not accept that code. A new sign-in link has been made; sign in again and paste the new address.",
-      "cloud_error": "The Tesla service returned an error. Try again in a minute."
+      "invalid_auth": "Tesla did not accept that token or code. A new sign-in link has been made; sign in again and paste the new token or address.",
+      "cloud_error": "The Tesla service returned an error. Try again in a minute.",
+      "owner_api_refused": "You signed in, but Tesla refuses this kind of sign-in for the Powerwall (HTTP 403). Browser sign-ins are blocked; paste a refresh token from an app sign-in such as Auth app for Tesla instead."
     },
     "abort": {
       "no_sites": "No Powerwall was found on this Tesla account.",
@@ -413,9 +415,9 @@
         "step": {
           "login": {
             "title": "Sign in to Tesla",
-            "description": "The Tesla cloud backup for settings has stopped working, usually because the saved sign-in expired or was revoked. Local readings and control are not affected.\n\nYour Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
+            "description": "The Tesla cloud backup for settings has stopped working, usually because the saved sign-in expired or was revoked. Local readings and control are not affected.\n\nYour Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n**Recommended: an app sign-in.** Since October 2026 Tesla refuses sign-ins made in a normal browser for the Powerwall. Sign in with an app that shows Tesla's login in its own window, such as *Auth app for Tesla* (iOS, Android), and copy the **refresh token** it shows. Paste it below. Use a token made for this, not one another integration already uses: signing in elsewhere with the same token can log that integration out.\n\n**Or, browser sign-in** (may be refused by Tesla):\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
             "data": {
-              "callback": "Callback address (or just the code)"
+              "callback": "Refresh token, or callback address"
             }
           },
           "site": {
@@ -426,8 +428,9 @@
           }
         },
         "error": {
-          "invalid_auth": "Tesla did not accept that code. A new sign-in link has been made; sign in again and paste the new address.",
-          "cloud_error": "The Tesla service returned an error. Try again in a minute."
+          "invalid_auth": "Tesla did not accept that token or code. A new sign-in link has been made; sign in again and paste the new token or address.",
+          "cloud_error": "The Tesla service returned an error. Try again in a minute.",
+          "owner_api_refused": "You signed in, but Tesla refuses this kind of sign-in for the Powerwall (HTTP 403). Browser sign-ins are blocked; paste a refresh token from an app sign-in such as Auth app for Tesla instead."
         },
         "abort": {
           "no_sites": "No Powerwall was found on this Tesla account.",

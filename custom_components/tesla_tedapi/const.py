@@ -42,13 +42,23 @@ OPERATION_MODES = ("self_consumption", "backup", "autonomous")
 
 # Grid export modes: API value -> option key
 GRID_EXPORT_MODES = ("battery_ok", "pv_only", "never")
-# The gateway sometimes drops its export rule from its own config (seen hourly
-# on Powerwall 3 firmware 26.x while the Tesla cloud keeps the value). A
-# restore is written at most this often.
-EXPORT_RESTORE_MIN_SECONDS = 120
+# The gateway sometimes drops settings from its own config (seen hourly on
+# Powerwall 3 firmware 26.x while the Tesla cloud keeps them). Setting key ->
+# (site_info field, the value pypowerwall reports while the field is missing).
+DROPPABLE_SETTINGS = {
+    "grid_export": ("customer_preferred_export_rule", "battery_ok"),
+    "grid_charging": ("disallow_charge_from_grid_with_solar_installed", True),
+}
+# A restore of each setting is written at most this often.
+RESTORE_MIN_SECONDS = 120
 
 # Cloud reads of settings are cached this long (Owner API rate limits).
 CLOUD_CACHE_SECONDS = 300
+# The cloud backup is otherwise idle while the gateway answers. It is read this
+# often so a sign-in that stopped working shows up (and the token is refreshed)
+# before the backup is needed; a failed check is retried sooner.
+CLOUD_CHECK_SECONDS = 3600
+CLOUD_RETRY_SECONDS = 600
 # Consecutive failures before asking the user to sign in or re-register.
 CLOUD_AUTH_FAILURES = 3
 KEY_REFUSED_POLLS = 10

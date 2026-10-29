@@ -288,6 +288,63 @@ async def test_options_link_account(hass: HomeAssistant) -> None:
     assert entry.data["site_id"] == 42
 
 
+RT = "eyJ" + "a" * 600  # shape of a Tesla refresh token
+
+
+async def test_options_link_account_with_refresh_token(hass: HomeAssistant) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={
+        "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/k"})
+    entry.add_to_hass(hass)
+    login = tesla_cloud.LoginStart("https://auth.tesla.com/x", "verifier", "s")
+    with (
+        patch(f"{CLOUD}.start_login", return_value=login),
+        patch(f"{CLOUD}.exchange_code") as exchange,
+        patch("pypowerwall.tesla_auth._refresh_access_token",
+              return_value={"access_token": "at", "id_token": ""}) as refresh,
+        patch(f"{CLOUD}.token_email", return_value="owner@example.com"),
+        patch(f"{CLOUD}.energy_sites", return_value=[tesla_cloud.EnergySite(42, DIN, "Home")]),
+        patch(f"{CLOUD}.save_token") as save,
+        patch(f"{CLOUD}.save_site"),
+        patch(SETUP, return_value=True),
+    ):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "link_account"})
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"callback": f"  {RT}\n"})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    refresh.assert_called_once_with(RT)
+    exchange.assert_not_called()
+    # The pasted refresh token is kept when Tesla doesn't send a new one.
+    assert save.call_args.args[0]["refresh_token"] == RT
+    assert entry.data["site_id"] == 42
+
+
+async def test_login_refused_by_owner_api(hass: HomeAssistant) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={
+        "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/k"})
+    entry.add_to_hass(hass)
+    login = tesla_cloud.LoginStart("https://auth.tesla.com/x", "verifier", "s")
+    with (
+        patch(f"{CLOUD}.start_login", return_value=login),
+        patch(f"{CLOUD}.exchange_code", return_value={"access_token": "at"}),
+        patch(f"{CLOUD}.token_email", return_value="owner@example.com"),
+        patch(f"{CLOUD}.energy_sites", side_effect=tesla_cloud.TeslaRefused("HTTP 403")),
+    ):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "link_account"})
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"callback": "tesla://auth/callback?code=NA_x&state=s"})
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "owner_api_refused"}
+
+
+def test_is_refresh_token() -> None:
+    assert tesla_cloud.is_refresh_token(RT)
+    assert not tesla_cloud.is_refresh_token("tesla://auth/callback?code=NA_abc&state=x")
+    assert not tesla_cloud.is_refresh_token("NA_abcdef")
+
+
 def DhcpServiceInfo(ip: str, hostname: str, macaddress: str):  # noqa: N802
     """The discovery object (its module needs aiodhcpwatcher on older HA)."""
     try:
