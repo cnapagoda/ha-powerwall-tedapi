@@ -252,6 +252,15 @@ The integration swaps the token for a fresh pair straight away and keeps refresh
 
 All entities belong to one device, **Powerwall TEDAPI**.
 
+**Entity IDs** follow the format set in **Settings → System → Entity ID format** (Home Assistant 2026.8 and newer). By default it is *area + device + entity name*, so with the device in an area called *Garage*:
+
+| Device area | Example entity ID |
+|---|---|
+| Garage | `sensor.garage_powerwall_tedapi_battery_level` |
+| No area (or area left out of the format) | `sensor.powerwall_tedapi_battery_level` |
+
+The examples on this page use the *Garage* form; replace `garage_` with your area, or drop it. The format applies when an entity is created; existing entity IDs keep their names (reconfiguring the integration doesn't change them). To apply a new format, use **Recreate entity IDs** on the device page, and update automations and dashboards that use the old IDs.
+
 <details>
 <summary>Screenshot: device page</summary>
 
@@ -371,7 +380,7 @@ type: markdown
 title: Powerwall alerts
 content: >-
   {% set icon = {'fault': '🔴', 'warning': '🟠', 'notice': '🔵', 'status': '⚪'} %}
-  {% for a in state_attr('sensor.powerwall_tedapi_alerts', 'details') or [] %}
+  {% for a in state_attr('sensor.garage_powerwall_tedapi_alerts', 'details') or [] %}
   {{ icon[a.severity] }} **{{ a.description }}** · `{{ a.alert }}` · since {{ as_timestamp(a.since) | timestamp_custom('%d %b %H:%M') }}
   {% else %}
   No alerts.
@@ -383,14 +392,14 @@ Notify on a lasting problem:
 ```yaml
 triggers:
   - trigger: state
-    entity_id: binary_sensor.powerwall_tedapi_problem
+    entity_id: binary_sensor.garage_powerwall_tedapi_problem
     to: "on"
 actions:
   - action: notify.notify
     data:
       title: Powerwall problem
       message: >-
-        {{ state_attr('binary_sensor.powerwall_tedapi_problem', 'problems')
+        {{ state_attr('binary_sensor.garage_powerwall_tedapi_problem', 'problems')
            | map(attribute='description') | join(', ') }}
 ```
 
