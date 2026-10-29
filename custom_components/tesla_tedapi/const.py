@@ -1,4 +1,8 @@
 """Constants for the Powerwall TEDAPI integration."""
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
 
 DOMAIN = "tesla_tedapi"
 
@@ -19,6 +23,35 @@ CONF_STATUS_EVENTS = "status_alert_events"
 CONF_PROBLEM_MINUTES = "problem_minutes"
 CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
 CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
+# Which cloud backup to use and in what order (one of CLOUD_CHOICES).
+CONF_CLOUD_BACKENDS = "cloud_backends"
+
+# Cloud backups: a Tesla account signed in here (Owner API), or the core Tesla
+# Fleet integration's sign-in (Fleet API).
+BACKEND_OWNER = "owner_api"
+BACKEND_FLEET = "tesla_fleet"
+CLOUD_NONE = "none"
+CLOUD_FLEET_FIRST = "fleet_then_owner"
+CLOUD_OWNER_FIRST = "owner_then_fleet"
+CLOUD_CHOICES: dict[str, tuple[str, ...]] = {
+    CLOUD_NONE: (),
+    BACKEND_OWNER: (BACKEND_OWNER,),
+    BACKEND_FLEET: (BACKEND_FLEET,),
+    CLOUD_FLEET_FIRST: (BACKEND_FLEET, BACKEND_OWNER),
+    CLOUD_OWNER_FIRST: (BACKEND_OWNER, BACKEND_FLEET),
+}
+# After linking or unlinking a Tesla account here: the choice that keeps the
+# other backup and adds or drops the Owner API.
+CLOUD_WITH_OWNER = {CLOUD_NONE: BACKEND_OWNER, BACKEND_FLEET: CLOUD_FLEET_FIRST}
+CLOUD_WITHOUT_OWNER = {BACKEND_OWNER: CLOUD_NONE, CLOUD_FLEET_FIRST: BACKEND_FLEET,
+                       CLOUD_OWNER_FIRST: BACKEND_FLEET}
+
+
+def cloud_choice(data: Mapping[str, Any], options: Mapping[str, Any]) -> str:
+    """The cloud backup choice. Without one, a Tesla account linked here is
+    the backup (as before 2.3)."""
+    return options.get(CONF_CLOUD_BACKENDS) or (BACKEND_OWNER if data.get(CONF_OWNERS_EMAIL) else CLOUD_NONE)
+
 
 # Connection modes
 MODE_WIFI = "wifi"

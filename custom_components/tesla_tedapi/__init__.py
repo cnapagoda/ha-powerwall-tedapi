@@ -95,6 +95,17 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bool:
+    """1.1 -> 1.2 (2.3.0): drop the "fleet_backup" option left by a test build
+    of 2.2.1. The Tesla Fleet backup is now chosen under Cloud backup."""
+    if entry.version > 1:
+        return False
+    if entry.minor_version < 2:
+        options = {k: v for k, v in entry.options.items() if k != "fleet_backup"}
+        hass.config_entries.async_update_entry(entry, options=options, minor_version=2)
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bool:
     coordinator = TedapiCoordinator(hass, entry)
     await coordinator.async_load_state()

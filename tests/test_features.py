@@ -132,19 +132,20 @@ async def test_cloud_checked_hourly(hass: HomeAssistant, fake_powerwall) -> None
     await _refresh(hass, entry)
     assert calls == []  # not again within the hour
 
-    coordinator._cloud_check_at -= 3601
-    coordinator.cloud_last_ok -= timedelta(hours=2)
+    owner = coordinator.backends[0]
+    owner.check_at -= 3601
+    owner.last_ok -= timedelta(hours=2)
     await _refresh(hass, entry)
     assert calls == [1]
 
 
 async def test_cloud_check_failure_degrades_health(hass: HomeAssistant, fake_powerwall) -> None:
     entry = await _setup(hass, {**V1R, **ACCOUNT})
-    coordinator = entry.runtime_data.coordinator
+    owner = entry.runtime_data.coordinator.backends[0]
     fake_powerwall.cloud_reads_fail = True
     for _ in range(3):
-        coordinator._cloud_check_at -= 3601
-        coordinator.cloud_last_ok = None
+        owner.check_at -= 3601
+        owner.last_ok = None
         await _refresh(hass, entry)
         health = hass.states.get(_eid(hass, "sensor", "setup_health"))
         assert health.state == "degraded" and "cloud_backup" in health.attributes["problems"]
@@ -152,15 +153,15 @@ async def test_cloud_check_failure_degrades_health(hass: HomeAssistant, fake_pow
     assert ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}") is not None
 
     # With the repair up, no more than hourly, even when a value is needed.
-    coordinator._cloud_check_at -= 601
-    coordinator._cloud_cache = None
+    owner.check_at -= 601
+    owner.cache = None
     local(fake_powerwall).get_mode = lambda: None
     reads = len([p for p in fake_powerwall.instances if p.mode == "cloud"])
     await _refresh(hass, entry)
     assert len([p for p in fake_powerwall.instances if p.mode == "cloud"]) == reads
 
     fake_powerwall.cloud_reads_fail = False
-    coordinator._cloud_check_at -= 3601
+    owner.check_at -= 3601
     await _refresh(hass, entry)
     assert hass.states.get(_eid(hass, "sensor", "setup_health")).state == "ok"
     assert ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}") is None
@@ -258,11 +259,11 @@ async def test_unreachable_does_not_start_reauth(hass: HomeAssistant, fake_power
 async def test_cloud_login_repair(hass: HomeAssistant, fake_powerwall) -> None:
     entry = await _setup(hass, {**V1R, **ACCOUNT})
     local(fake_powerwall).get_mode = lambda: None
-    coordinator = entry.runtime_data.coordinator
-    with patch.object(coordinator, "_init_cloud", side_effect=RuntimeError("Tesla cloud login failed")):
+    owner = entry.runtime_data.coordinator.backends[0]
+    with patch.object(owner, "factory", side_effect=RuntimeError("Tesla cloud login failed")):
         for _ in range(3):
-            coordinator._cloud = None
-            coordinator._cloud_cache = None
+            owner.client = None
+            owner.cache = None
             await _refresh(hass, entry)
     issue = ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}")
     assert issue is not None and issue.is_fixable

@@ -56,10 +56,12 @@ class TedapiControlEntity(TedapiEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Where the value came from (local, cloud or mixed), and for settings
-        the Powerwall drops now and then, whether it is missing and how often
-        it was restored (see the coordinator)."""
-        attrs: dict[str, Any] = {"source": self.data.get("control_source")}
+        """Where the value came from (local, cloud or mixed) and which cloud
+        backup answered, and for settings the Powerwall drops now and then,
+        whether it is missing and how often it was restored (see the
+        coordinator)."""
+        attrs: dict[str, Any] = {"source": self.data.get("control_source"),
+                                 "cloud_backend": self.data.get("control_backend")}
         key = self._setting_key
         if key in DROPPABLE_SETTINGS:
             attrs["missing_on_powerwall"] = bool(self.data.get(f"{key}_missing"))

@@ -28,6 +28,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: TedapiC
         "connection_mode": coordinator.connection_mode,
         "control_enabled": coordinator.control_enabled,
         "cloud_enabled": coordinator.cloud_enabled,
+        "cloud_backends": [backend.name for backend in coordinator.backends],
         "token_cache": token,
         "dispatch": runtime.dispatch.as_dict() if runtime.dispatch else None,
         "data": async_redact_data(data, TO_REDACT),

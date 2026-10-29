@@ -35,6 +35,7 @@ from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -46,6 +47,12 @@ if TYPE_CHECKING:
 
 from . import gateway, tesla_cloud
 from .const import (
+    BACKEND_FLEET,
+    BACKEND_OWNER,
+    CLOUD_CHOICES,
+    CLOUD_WITH_OWNER,
+    CLOUD_WITHOUT_OWNER,
+    CONF_CLOUD_BACKENDS,
     CONF_CONNECTION_MODE,
     CONF_DISPATCH_FLOOR_RESERVE,
     CONF_DISPATCH_MAX_WATTS,
@@ -71,7 +78,9 @@ from .const import (
     MODE_WIFI,
     RSA_KEY_FILE,
     STORAGE_FOLDER,
+    cloud_choice,
 )
+from .fleet import fleet_entries
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -283,6 +292,7 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
     """Set up a Powerwall."""
 
     VERSION = 1
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         self._init_login()
@@ -653,7 +663,7 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         account = "unlink_account" if self.config_entry.data.get(CONF_OWNERS_EMAIL) else "link_account"
-        return self.async_show_menu(step_id="init", menu_options=["settings", account])
+        return self.async_show_menu(step_id="init", menu_options=["settings", "cloud_backup", account])
 
     async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
@@ -682,6 +692,41 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             }),
         )
 
+    async def async_step_cloud_backup(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Which cloud backup to use, and in what order when there are two:
+        the Tesla account linked here (Owner API) and the Tesla Fleet
+        integration's sign-in (Fleet API)."""
+        if user_input is not None:
+            return self.async_create_entry(
+                data={**self.config_entry.options, CONF_CLOUD_BACKENDS: user_input[CONF_CLOUD_BACKENDS]})
+        owner = bool(self.config_entry.data.get(CONF_OWNERS_EMAIL))
+        fleet = bool(fleet_entries(self.hass))
+        current = cloud_choice(self.config_entry.data, self.config_entry.options)
+        choices = [choice for choice, names in CLOUD_CHOICES.items()
+                   if (owner or BACKEND_OWNER not in names) and (fleet or BACKEND_FLEET not in names)]
+        if current not in choices:
+            # E.g. Tesla Fleet was removed: keep showing what is set.
+            choices.append(current)
+        return self.async_show_form(
+            step_id="cloud_backup",
+            data_schema=vol.Schema({vol.Required(CONF_CLOUD_BACKENDS, default=current): SelectSelector(
+                SelectSelectorConfig(options=choices, translation_key="cloud_backends",
+                                     mode=SelectSelectorMode.LIST))}),
+            description_placeholders={
+                "owner": "linked" if owner else "not linked",
+                "fleet": "set up" if fleet else "not set up",
+            },
+        )
+
+    def _options_with(self, table: dict[str, str]) -> dict[str, Any]:
+        """The options after the account changed: a cloud backup choice that
+        was set is adjusted to add or drop the Owner API."""
+        options = dict(self.config_entry.options)
+        choice = options.get(CONF_CLOUD_BACKENDS)
+        if choice in table:
+            options[CONF_CLOUD_BACKENDS] = table[choice]
+        return options
+
     async def async_step_link_account(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         self._din = self.config_entry.unique_id
         return await self.async_step_login()
@@ -689,13 +734,13 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
     async def _async_logged_in(self, site: tesla_cloud.EnergySite) -> ConfigFlowResult:
         self.hass.config_entries.async_update_entry(
             self.config_entry, data={**self.config_entry.data, **self._account_data(site)})
-        # Saving the (unchanged) options reloads the entry with the account.
-        return self.async_create_entry(data=dict(self.config_entry.options))
+        # Saving the options reloads the entry with the account.
+        return self.async_create_entry(data=self._options_with(CLOUD_WITH_OWNER))
 
     async def async_step_unlink_account(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             data = {k: v for k, v in self.config_entry.data.items()
                     if k not in (CONF_OWNERS_EMAIL, CONF_OWNERS_AUTHPATH, CONF_SITE_ID)}
             self.hass.config_entries.async_update_entry(self.config_entry, data=data)
-            return self.async_create_entry(data=dict(self.config_entry.options))
+            return self.async_create_entry(data=self._options_with(CLOUD_WITHOUT_OWNER))
         return self.async_show_form(step_id="unlink_account", data_schema=vol.Schema({}))

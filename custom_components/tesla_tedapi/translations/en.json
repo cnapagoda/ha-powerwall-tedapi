@@ -133,7 +133,8 @@
         "title": "Powerwall TEDAPI options",
         "menu_options": {
           "settings": "Settings",
-          "link_account": "Link a Tesla account (cloud backup)",
+          "cloud_backup": "Cloud backup (Owner API, Tesla Fleet)",
+          "link_account": "Link a Tesla account (Owner API)",
           "unlink_account": "Unlink the Tesla account"
         }
       },
@@ -153,6 +154,16 @@
           "problem_minutes": "How long a warning or fault must last before the Problem sensor turns on and a repair is raised.",
           "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",
           "dispatch_max_watts": "Dispatch calls above this power are refused."
+        }
+      },
+      "cloud_backup": {
+        "title": "Cloud backup",
+        "description": "When the local connection can't read or change a setting, it goes through the Tesla cloud instead. Two backups can be used, alone or one after the other:\n\n- **Owner API**: a Tesla account linked here (*Link a Tesla account*). Currently {owner}.\n- **Tesla Fleet**: the sign-in of Home Assistant's own Tesla Fleet integration, which uses Tesla's official Fleet API. Currently {fleet}. Its token is used, never refreshed here, so Tesla Fleet stays signed in.\n\nWith both, settings are read from the first one that answers, and a change goes to the first one that accepts it. Each backup is checked about once an hour; one that stops working gets its own repair while the other keeps going.",
+        "data": {
+          "cloud_backends": "Cloud backup"
+        },
+        "data_description": {
+          "cloud_backends": "Only the backups that are set up are offered. Tesla Fleet calls count towards your Tesla developer account's usage (about 24 reads a day here)."
         }
       },
       "login": {
@@ -438,12 +449,25 @@
           "entry_gone": "The Powerwall entry was removed."
         }
       }
+    },
+    "fleet_backup": {
+      "title": "Tesla Fleet cloud backup is not working",
+      "description": "The Powerwall TEDAPI integration uses the Tesla Fleet integration's sign-in as a cloud backup for settings, and the last checks failed. Local readings and control are not affected.\n\nCheck that the Tesla Fleet integration is loaded and signed in (re-authenticate it if it asks), that its sign-in includes the energy scopes, and that this Powerwall is on that Tesla account. This notice disappears after the next successful check (about hourly). To stop using it, choose another cloud backup in this integration's options."
     }
   },
   "selector": {
     "found": {
       "options": {
         "manual": "Enter the address myself"
+      }
+    },
+    "cloud_backends": {
+      "options": {
+        "none": "None (local only)",
+        "owner_api": "Owner API (Tesla account linked here)",
+        "tesla_fleet": "Tesla Fleet integration",
+        "fleet_then_owner": "Tesla Fleet, then Owner API",
+        "owner_then_fleet": "Owner API, then Tesla Fleet"
       }
     }
   }

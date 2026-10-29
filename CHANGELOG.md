@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.3.0
+
+- **Two cloud backups.** Besides a Tesla account linked here (Owner API), the cloud backup can now use the sign-in of Home Assistant's **Tesla Fleet** integration (official Fleet API). **Configure → Cloud backup** chooses *None*, *Owner API*, *Tesla Fleet integration*, or both in either order. Without a choice, a linked account stays the backup, as before. Tesla Fleet's token is only used, never refreshed here, so that integration stays signed in.
+- With two backups, settings are read from the first that answers and a change goes to the first that accepts it. The setting entities have a new `cloud_backend` attribute.
+- Each backup has its own hourly check, cache and failure count. **Setup health** lists them under `cloud_backends` and shows *Needs attention* only when none works. A failing Tesla Fleet backup raises its own repair; the Owner API keeps its *Sign in to Tesla again* repair.
+- Tesla Fleet loading after this integration (after a restart) counts as *starting*, not as a failure. The integration now loads after Tesla Fleet when both are set up.
+- The Tesla Fleet energy site is matched to this Powerwall by its gateway serial; a site with another Powerwall is never used.
+- Linking or unlinking a Tesla account keeps a Tesla Fleet backup that was chosen.
+- The `fleet_backup` option left by a 2.2.1 test build is removed when the entry is updated.
+
 ## 2.2.1
 
 - The Powerwall also drops its **grid charging** setting about once an hour, and grid charging then turns on by itself (seen on a Powerwall 3 right after it was switched off). Like the export rule, the setting you chose is now shown and written back over a signed connection. The Grid charging switch has the same `missing_on_powerwall`, `restored_count` and `last_restored` attributes as the export select. The existing restore option covers both.
