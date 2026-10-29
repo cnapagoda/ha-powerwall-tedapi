@@ -26,7 +26,7 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 | Home Assistant | 2025.1 or newer. 2026.3 or newer shows the integration icon. |
 | Powerwall | A Powerwall 3 is tested. Powerwall 2 / Powerwall+ work for signed access if the firmware supports it, and for Wi-Fi password monitoring. |
 | Network | Home Assistant must reach the Powerwall, either at its **home-network address** (signed connection) or on its **own Wi-Fi hotspot** `192.168.91.1`. |
-| Tesla account | Needed once, to register the key. Optional afterwards, as the [cloud backup](#cloud-backup) (Owner API, or the Tesla Fleet integration's sign-in). |
+| Tesla account | Needed once, to register the key. Optional afterwards, as the [cloud backup](#cloud-backup) (Owner API, or the Tesla Fleet / Teslemetry integration). |
 
 ### Which connection?
 
@@ -176,7 +176,7 @@ The Fleet API needs a Tesla developer app whose public key is hosted on a domain
 4. **Switch toggle** at the Powerwall within about 10 minutes (as in path A, step 3). The command waits until the key is `VERIFIED`.
 5. **Upload** the `tedapi_rsa_private.pem` it wrote, here in path B. This is the Powerwall key, not the Fleet app's key.
 
-If you register with the Fleet API, local control works fully. For the cloud backup you can then use the Tesla Fleet integration's sign-in (see [Cloud backup](#cloud-backup)), link a Tesla account (refresh token), or both.
+If you register with the Fleet API, local control works fully. For the cloud backup you can then use the Tesla Fleet integration (see [Cloud backup](#cloud-backup)), link a Tesla account (refresh token), or both.
 
 <details>
 <summary>Screenshot: key upload</summary>
@@ -395,20 +395,21 @@ When the local connection can't read or change a setting (the gateway is unreach
 
 | | Owner API | Tesla Fleet |
 |---|---|---|
-| What it uses | A Tesla account linked here (**Link a Tesla account**, refresh token) | The sign-in of Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration (official Fleet API) |
-| You need | A refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | Tesla Fleet set up and loaded, with the energy scopes, on the account with this Powerwall |
-| Token | Kept and refreshed here (`config/tesla_tedapi/.pypowerwall.auth`) | Tesla Fleet's own; used, never refreshed here, so Tesla Fleet stays signed in |
-| Cost | None | Counts towards your Tesla developer account's usage (about 24 reads a day for the hourly check) |
-| Risk | Tesla may refuse Owner API tokens altogether one day | Needs the developer app and key hosting described in path B |
+| What it uses | A Tesla account linked here (**Link a Tesla account**, refresh token) | Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) or [Teslemetry](https://www.home-assistant.io/integrations/teslemetry) integration (official Fleet API) |
+| You need | A refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | That integration enabled and loaded, on the Tesla account with this Powerwall, with the energy permissions (`energy_device_data` to read, `energy_cmds` to change settings) |
+| Reads | Tesla's site settings, every 5 minutes at most while needed | The site data that integration already reads every minute: no extra Tesla calls |
+| Token | Kept and refreshed here (`config/tesla_tedapi/.pypowerwall.auth`) | That integration's own; used, never refreshed here, so it stays signed in |
+| Cost | None | A change of setting is a command on your Tesla developer account (Tesla Fleet) or Teslemetry subscription |
+| Risk | Tesla may refuse Owner API tokens altogether one day | Tesla Fleet needs the developer app and key hosting described in path B |
 
-**Configure → Cloud backup** offers the choices that are set up: *None*, *Owner API*, *Tesla Fleet integration*, *Tesla Fleet, then Owner API* and *Owner API, then Tesla Fleet*. Without a choice, a linked Tesla account is the backup, as in 2.2.
+**Configure → Cloud backup** offers the choices that are set up: *None*, *Owner API*, *Tesla Fleet (or Teslemetry)*, *Tesla Fleet, then Owner API* and *Owner API, then Tesla Fleet*. Tesla Fleet is offered only when a loaded Tesla Fleet or Teslemetry entry has this Powerwall's site (matched by the gateway serial; a single site with no serials listed is used as well). Without a choice, a linked Tesla account is the backup, as in 2.2.
 
 With two backups:
 
 - Settings are read from the first one that answers. The setting entities' `cloud_backend` attribute says which one did.
-- A change the gateway doesn't take goes to the first backup that accepts it, never to both.
-- Each backup is checked with a real read about once an hour. **Setup health** lists each one under `cloud_backends` (`ok`, `failures`, `last_ok`) and only shows *Needs attention* when none works. A failing backup gets its own repair: *Sign in to Tesla again* (Owner API) or *Tesla Fleet cloud backup is not working*.
-- After a restart, Tesla Fleet can load after this integration. Until it has loaded it counts as *starting*, not as failing.
+- A change the gateway doesn't take goes to the first backup that accepts it. If Tesla doesn't answer in time, it isn't sent to the other backup as well, because it may still have been applied; the action reports an error instead.
+- Each backup is checked about once an hour. **Setup health** lists each one under `cloud_backends` (`ok`, `starting`, `can_change_settings`, `failures`, `last_ok`) and only shows *Needs attention* when none can change settings. A backup that needs attention gets its own repair: *Sign in to Tesla again* (Owner API), *Tesla Fleet cloud backup is not working*, or *Tesla Fleet cloud backup can't change settings* (no `energy_cmds` permission).
+- After a restart, Tesla Fleet can load after this integration. For up to 10 minutes it counts as *starting*, not as failing. A disabled entry, or one that keeps failing to load, counts as not working.
 
 Registering a new key still uses the Owner API (path A) or `pypowerwall register` (path B). Registering through the Tesla Fleet integration's sign-in is planned.
 
@@ -428,7 +429,8 @@ Registering a new key still uses the Owner API (path A) or `pypowerwall register
 | Readings stop now and then | Add the hotspot as **Wi-Fi fallback** if HA can reach it, or improve the network path. Download diagnostics and look at the `tedapi_mode` field. |
 | Settings change back by themselves | Usually a retailer, VPP or third-party app with access to your Tesla account. For the export rule and grid charging, see [Dropped settings](#dropped-settings). |
 | **Setup health** says *Needs attention* | Its `problems` attribute names the failing check. For the cloud backup, `cloud_backends` shows which backup fails. |
-| *Tesla Fleet cloud backup is not working* | Check that the Tesla Fleet integration is loaded and signed in (re-authenticate it if it asks), has the energy scopes, and has this Powerwall on its account. |
+| *Tesla Fleet cloud backup is not working* | Check that the Tesla Fleet or Teslemetry integration is enabled, loaded and signed in (re-authenticate it if it asks), and has this Powerwall on its account. |
+| *Tesla Fleet cloud backup can't change settings* | Sign in to that integration again and allow the energy commands (`energy_cmds`) permission. |
 | Sign-in code rejected | Codes are single-use and expire quickly. Use the fresh link and copy the callback address straight away. |
 | *Tesla refuses this kind of sign-in (HTTP 403)* | Browser sign-ins are blocked for the Powerwall. Paste a refresh token instead: [Getting a Tesla refresh token](#getting-a-tesla-refresh-token). |
 

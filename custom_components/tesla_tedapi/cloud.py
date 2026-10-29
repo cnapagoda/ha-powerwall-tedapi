@@ -18,18 +18,21 @@ LABELS = {BACKEND_OWNER: "Owner API", BACKEND_FLEET: "Tesla Fleet"}
 @dataclass(eq=False)
 class CloudBackend:
     """One cloud backup. factory builds a pypowerwall-like client (executor);
-    starting() is true while it can't be used yet but is no failure either."""
+    starting() is true while it can't be used yet but is no failure either;
+    writable() is false when it can read but not change settings."""
 
     name: str
     factory: Callable[[], Any]
     starting: Callable[[], bool] = lambda: False
+    writable: Callable[[], bool] = lambda: True
     client: Any = None
     failures: int = 0
     last_ok: datetime | None = None
     # (monotonic time, settings) of the last read, good or failed.
     cache: tuple[float, dict[str, Any]] | None = None
     check_at: float | None = None
-    issue: bool = False
+    # The repair currently shown for it (its translation key), if any.
+    issue: str | None = None
 
     @property
     def label(self) -> str:
@@ -59,3 +62,23 @@ class CloudBackend:
     def drop(self) -> None:
         """Make a new client next time (e.g. log in again)."""
         self.client = None
+
+
+class OwnerSettings:
+    """The pypowerwall Owner API client, with the export rule read from the
+    site's own setting. pypowerwall reports "never" whenever the site has
+    non_export_configured, which stays true on sites that do export with
+    "battery_ok"; the gateway and Tesla Fleet report the rule itself."""
+
+    def __init__(self, pw: Any) -> None:
+        self._pw = pw
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._pw, name)
+
+    def get_grid_export(self) -> str | None:
+        config = self._pw.client.get_site_config() or {}
+        components = (config.get("response") or {}).get("components") or {}
+        if not components:
+            return None
+        return components.get("customer_preferred_export_rule") or "battery_ok"

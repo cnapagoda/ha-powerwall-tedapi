@@ -158,12 +158,12 @@
       },
       "cloud_backup": {
         "title": "Cloud backup",
-        "description": "When the local connection can't read or change a setting, it goes through the Tesla cloud instead. Two backups can be used, alone or one after the other:\n\n- **Owner API**: a Tesla account linked here (*Link a Tesla account*). Currently {owner}.\n- **Tesla Fleet**: the sign-in of Home Assistant's own Tesla Fleet integration, which uses Tesla's official Fleet API. Currently {fleet}. Its token is used, never refreshed here, so Tesla Fleet stays signed in.\n\nWith both, settings are read from the first one that answers, and a change goes to the first one that accepts it. Each backup is checked about once an hour; one that stops working gets its own repair while the other keeps going.",
+        "description": "When the local connection can't read or change a setting, it goes through the Tesla cloud instead. Two backups can be used, alone or one after the other:\n\n- **Owner API**: a Tesla account linked here (*Link a Tesla account*). Currently {owner}.\n- **Tesla Fleet**: the sign-in of Home Assistant's Tesla Fleet or Teslemetry integration, which use Tesla's official Fleet API. A loaded entry with this Powerwall is currently {fleet}. Its site data is read without extra Tesla calls, and its token is never refreshed here, so it stays signed in.\n\nWith both, settings are read from the first one that answers, and a change goes to the first one that accepts it. Each backup is checked about once an hour; one that stops working gets its own repair while the other keeps going.",
         "data": {
           "cloud_backends": "Cloud backup"
         },
         "data_description": {
-          "cloud_backends": "Only the backups that are set up are offered. Tesla Fleet calls count towards your Tesla developer account's usage (about 24 reads a day here)."
+          "cloud_backends": "Only the backups that are set up are offered. Changing a setting through Tesla Fleet counts as a command on that Tesla developer account (or Teslemetry subscription); reading costs nothing extra."
         }
       },
       "login": {
@@ -452,7 +452,11 @@
     },
     "fleet_backup": {
       "title": "Tesla Fleet cloud backup is not working",
-      "description": "The Powerwall TEDAPI integration uses the Tesla Fleet integration's sign-in as a cloud backup for settings, and the last checks failed. Local readings and control are not affected.\n\nCheck that the Tesla Fleet integration is loaded and signed in (re-authenticate it if it asks), that its sign-in includes the energy scopes, and that this Powerwall is on that Tesla account. This notice disappears after the next successful check (about hourly). To stop using it, choose another cloud backup in this integration's options."
+      "description": "The Powerwall TEDAPI integration uses the Tesla Fleet (or Teslemetry) integration as a cloud backup for settings, and the last checks failed. Local readings and control are not affected.\n\nCheck that the Tesla Fleet or Teslemetry integration is enabled, loaded and signed in (re-authenticate it if it asks), and that this Powerwall is on its Tesla account. This notice disappears after the next successful check (about hourly). To stop using it, choose another cloud backup in this integration's options."
+    },
+    "fleet_read_only": {
+      "title": "Tesla Fleet cloud backup can't change settings",
+      "description": "The Tesla Fleet (or Teslemetry) sign-in used as the cloud backup can read the Powerwall's settings but not change them: it lacks the **energy_cmds** (energy commands) scope. Settings changes fall back to the next cloud backup, if any.\n\nSign in to that integration again (re-configure or re-authenticate it) and allow the energy commands permission. This notice disappears at the next check after that."
     }
   },
   "selector": {
@@ -465,7 +469,7 @@
       "options": {
         "none": "None (local only)",
         "owner_api": "Owner API (Tesla account linked here)",
-        "tesla_fleet": "Tesla Fleet integration",
+        "tesla_fleet": "Tesla Fleet (or Teslemetry)",
         "fleet_then_owner": "Tesla Fleet, then Owner API",
         "owner_then_fleet": "Owner API, then Tesla Fleet"
       }

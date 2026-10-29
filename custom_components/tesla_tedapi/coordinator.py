@@ -23,7 +23,7 @@ from homeassistant.util import dt as dt_util
 
 from . import gateway
 from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, summary
-from .cloud import CloudBackend
+from .cloud import CloudBackend, OwnerSettings
 from .const import (
     AUTH_FILE,
     BACKEND_FLEET,
@@ -56,7 +56,7 @@ from .const import (
     app_soc,
     cloud_choice,
 )
-from .fleet import FleetBackup, fleet_starting
+from .fleet import FleetBackup, FleetTimeout, fleet_starting
 
 if TYPE_CHECKING:
     from .dispatch import DispatchSession
@@ -216,12 +216,16 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _make_backends(self, hass: HomeAssistant, data: Any, options: Any) -> list[CloudBackend]:
         """The cloud backups in the order chosen in the options."""
         backends: list[CloudBackend] = []
+        started = time.monotonic()
         for name in CLOUD_CHOICES.get(cloud_choice(data, options), ()):
             if name == BACKEND_OWNER and self._owners_email:
                 backends.append(CloudBackend(name, self._init_cloud))
             elif name == BACKEND_FLEET:
-                backends.append(CloudBackend(name, lambda: FleetBackup(hass, self.din),
-                                             lambda: fleet_starting(hass)))
+                fleet = FleetBackup(hass, lambda: self.din)
+                backends.append(CloudBackend(
+                    name, lambda fleet=fleet: fleet,
+                    starting=lambda: fleet_starting(hass, self.din, started),
+                    writable=lambda fleet=fleet: fleet.can_write))
         return backends
 
     def backend(self, name: str) -> CloudBackend | None:
@@ -297,7 +301,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         cloud = pypowerwall.Powerwall(**kwargs)
         if cloud.mode != "cloud" or cloud.client is None:
             raise RuntimeError("Tesla cloud login failed")
-        return cloud
+        return OwnerSettings(cloud)
 
     # ------------------------------------------------------------------
     # Reads (executor)
@@ -601,6 +605,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 continue
             try:
                 ok = self._write_ok(write(backend.get_client()))
+            except FleetTimeout as err:
+                # It may still have been applied: don't send it elsewhere too.
+                raise HomeAssistantError(f"{what}: {backend.label} did not answer in time; "
+                                         "it may or may not have been applied") from err
             except Exception as err:  # noqa: BLE001
                 backend.drop()
                 errors.append(f"{backend.label}: {err}")
@@ -780,24 +788,36 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         prefix = "cloud_login" if backend.name == BACKEND_OWNER else "fleet_backup"
         return f"{prefix}_{self.config_entry.entry_id}"
 
+    @staticmethod
+    def _cloud_issue_key(backend: CloudBackend) -> str | None:
+        """The repair a backup needs: sign in again (Owner API), check Tesla
+        Fleet, or give Tesla Fleet the energy_cmds scope."""
+        if backend.failing:
+            return "cloud_login" if backend.name == BACKEND_OWNER else "fleet_backup"
+        if backend.ok and not backend.writable():
+            return "fleet_read_only"
+        return None
+
     def _sync_cloud_issue(self) -> None:
-        """One repair per failing backup: sign in again (Owner API, fixable),
-        or check the Tesla Fleet integration."""
+        """One repair per backup that needs one; replaced when the reason
+        changes, removed when it is fixed."""
         for backend in self.backends:
             issue_id = self._cloud_issue_id(backend)
-            if backend.failing and not backend.issue:
-                owner = backend.name == BACKEND_OWNER
+            key = self._cloud_issue_key(backend)
+            if key == backend.issue:
+                continue
+            if backend.issue:
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            if key:
                 ir.async_create_issue(
                     self.hass, DOMAIN, issue_id,
-                    is_fixable=owner,
+                    is_fixable=key == "cloud_login",
                     is_persistent=False,
                     severity=ir.IssueSeverity.WARNING,
-                    translation_key="cloud_login" if owner else "fleet_backup",
+                    translation_key=key,
                     data={"entry_id": self.config_entry.entry_id},
                 )
-            elif not backend.failing and backend.issue:
-                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
-            backend.issue = backend.failing
+            backend.issue = key
 
     # ------------------------------------------------------------------
     # Setup health
@@ -823,7 +843,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # Checked by a real read at least hourly, not just "no failures yet".
             # One working backup is enough; a failing one has its own repair.
             # Tesla Fleet still loading after a restart is not a problem yet.
-            checks["cloud_backup"] = any(backend.ok or backend.starting() for backend in self.backends)
+            checks["cloud_backup"] = any((backend.ok and backend.writable()) or backend.starting()
+                                         for backend in self.backends)
         if self.backend(BACKEND_OWNER):
             # Only an Owner API sign-in here has a token file; Tesla Fleet
             # keeps its own.
@@ -844,6 +865,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 backend.name: {
                     "ok": backend.ok,
                     "starting": backend.starting(),
+                    "can_change_settings": backend.writable(),
                     "failures": backend.failures,
                     "last_ok": backend.last_ok.isoformat() if backend.last_ok else None,
                 }
@@ -903,4 +925,4 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for backend in self.backends:
             if backend.issue:
                 ir.async_delete_issue(self.hass, DOMAIN, self._cloud_issue_id(backend))
-                backend.issue = False
+                backend.issue = None

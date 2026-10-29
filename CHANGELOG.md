@@ -2,11 +2,13 @@
 
 ## 2.3.0
 
-- **Two cloud backups.** Besides a Tesla account linked here (Owner API), the cloud backup can now use the sign-in of Home Assistant's **Tesla Fleet** integration (official Fleet API). **Configure → Cloud backup** chooses *None*, *Owner API*, *Tesla Fleet integration*, or both in either order. Without a choice, a linked account stays the backup, as before. Tesla Fleet's token is only used, never refreshed here, so that integration stays signed in.
-- With two backups, settings are read from the first that answers and a change goes to the first that accepts it. The setting entities have a new `cloud_backend` attribute.
-- Each backup has its own hourly check, cache and failure count. **Setup health** lists them under `cloud_backends` and shows *Needs attention* only when none works. A failing Tesla Fleet backup raises its own repair; the Owner API keeps its *Sign in to Tesla again* repair.
-- Tesla Fleet loading after this integration (after a restart) counts as *starting*, not as a failure. The integration now loads after Tesla Fleet when both are set up.
-- The Tesla Fleet energy site is matched to this Powerwall by its gateway serial; a site with another Powerwall is never used.
+- **Two cloud backups.** Besides a Tesla account linked here (Owner API), the cloud backup can now use Home Assistant's **Tesla Fleet** or **Teslemetry** integration (official Fleet API). **Configure → Cloud backup** chooses *None*, *Owner API*, *Tesla Fleet (or Teslemetry)*, or both in either order. Without a choice, a linked account stays the backup, as before.
+- The Tesla Fleet backup reads the site data that integration already fetches every minute, so it adds no Tesla calls and never holds up local readings. Changes go through its API object, which then refreshes. Its token is never refreshed here, so it stays signed in.
+- With two backups, settings are read from the first that answers and a change goes to the first that accepts it. A change Tesla doesn't answer in time is not sent to the other backup too. The setting entities have a new `cloud_backend` attribute.
+- Each backup has its own check, cache, failure count and repair. **Setup health** lists them under `cloud_backends` and shows *Needs attention* only when none can change settings. New repairs: *Tesla Fleet cloud backup is not working* and *Tesla Fleet cloud backup can't change settings* (sign-in without `energy_cmds`).
+- Tesla Fleet still loading after a restart counts as *starting* for up to 10 minutes. A disabled Tesla Fleet entry, or one that keeps failing, counts as not working.
+- The Tesla Fleet site is matched to this Powerwall by the site id, gateway and battery serials; a site with another Powerwall is never used, and Tesla Fleet is only offered when a site matches.
+- The Owner API export rule is read from the site's own setting. pypowerwall reported "never" whenever the site has `non_export_configured`, which stays set on sites that do export with "battery_ok".
 - Linking or unlinking a Tesla account keeps a Tesla Fleet backup that was chosen.
 - The `fleet_backup` option left by a 2.2.1 test build is removed when the entry is updated.
 

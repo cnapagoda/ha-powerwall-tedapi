@@ -1,9 +1,6 @@
 {
   "domain": "tesla_tedapi",
   "name": "Powerwall TEDAPI",
-  "after_dependencies": [
-    "tesla_fleet"
-  ],
   "codeowners": [
     "@cnapagoda"
   ],

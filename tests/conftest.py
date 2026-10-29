@@ -30,6 +30,9 @@ class FakePowerwall:
     grid_charging_disallow: bool | None = True
     # Cloud reads that log in but return nothing (a rejected token).
     cloud_reads_fail = False
+    # site_info components.non_export_configured (Owner API): pypowerwall then
+    # reports "never" whatever the export rule is.
+    non_export_configured = False
     extra_packs: dict[str, dict] = {}
 
     def __init__(self, host: str = "", cloudmode: bool = False, **kwargs: Any) -> None:
@@ -38,7 +41,8 @@ class FakePowerwall:
         if not cloudmode and kwargs.get("rsa_key_path") and not (kwargs.get("password") or kwargs.get("gw_pwd")):
             # pypowerwall: connect() logs this and leaves no client.
             raise ValueError("v1r mode requires password or gw_pwd")
-        self.client = SimpleNamespace(tedapi=SimpleNamespace(get_config=self._config))
+        self.client = SimpleNamespace(tedapi=SimpleNamespace(get_config=self._config),
+                                      get_site_config=self._site_config)
         self.tedapi_mode = None if cloudmode else (
             "v1r" if kwargs.get("rsa_key_path") else "wifi")
         if not cloudmode and FakePowerwall.fail_local:
@@ -67,6 +71,14 @@ class FakePowerwall:
         if FakePowerwall.grid_charging_disallow is not None:
             site_info["disallow_charge_from_grid_with_solar_installed"] = FakePowerwall.grid_charging_disallow
         return {"site_info": site_info, "default_real_mode": "self_consumption"}
+
+    def _site_config(self, force=False):
+        """pypowerwall cloud client: the Owner API site_info."""
+        if FakePowerwall.cloud_reads_fail:
+            return None
+        return {"response": {"components": {
+            "customer_preferred_export_rule": self.settings["grid_export"],
+            "non_export_configured": FakePowerwall.non_export_configured}}}
 
     def vitals(self):
         # Shape of pypowerwall's TEDAPI vitals for a Powerwall 3 (get_pw3_vitals).
@@ -129,6 +141,8 @@ class FakePowerwall:
 
     def get_grid_export(self):
         if self.mode == "cloud":
+            if FakePowerwall.non_export_configured:
+                return "never"  # as pypowerwall's cloud client
             return None if self._cloud_down() else self.settings["grid_export"]
         return FakePowerwall.export_rule or "battery_ok"
 
@@ -180,6 +194,7 @@ def fake_powerwall():
     FakePowerwall.export_rule = "pv_only"
     FakePowerwall.grid_charging_disallow = True
     FakePowerwall.cloud_reads_fail = False
+    FakePowerwall.non_export_configured = False
     FakePowerwall.extra_packs = {}
     with patch("pypowerwall.Powerwall", FakePowerwall):
         yield FakePowerwall

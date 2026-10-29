@@ -80,7 +80,7 @@ from .const import (
     STORAGE_FOLDER,
     cloud_choice,
 )
-from .fleet import fleet_entries
+from .fleet import fleet_available
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -700,7 +700,7 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             return self.async_create_entry(
                 data={**self.config_entry.options, CONF_CLOUD_BACKENDS: user_input[CONF_CLOUD_BACKENDS]})
         owner = bool(self.config_entry.data.get(CONF_OWNERS_EMAIL))
-        fleet = bool(fleet_entries(self.hass))
+        fleet = fleet_available(self.hass, self.config_entry.unique_id)
         current = cloud_choice(self.config_entry.data, self.config_entry.options)
         choices = [choice for choice, names in CLOUD_CHOICES.items()
                    if (owner or BACKEND_OWNER not in names) and (fleet or BACKEND_FLEET not in names)]
