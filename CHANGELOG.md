@@ -11,6 +11,10 @@
 - The Owner API export rule is read from the site's own setting. pypowerwall reported "never" whenever the site has `non_export_configured`, which stays set on sites that do export with "battery_ok".
 - Linking or unlinking a Tesla account keeps a Tesla Fleet backup that was chosen.
 - The `fleet_backup` option left by a 2.2.1 test build is removed when the entry is updated.
+- **Backup event** binary sensor (signed connection): on while the Powerwall runs a backup event, whether a max backup or one Tesla's Storm Watch scheduled, with its kind, start and end. Read locally from the gateway.
+- **`tesla_tedapi.start_max_backup` / `cancel_max_backup`** actions (signed connection): charge to full and hold for a set time, locally, the same command Storm Watch uses.
+- **Storm Watch** switch and **Storm Watch active** binary sensor, through the cloud backup (Tesla Fleet data, or the Owner API every 30 minutes), on sites Tesla reports as Storm Watch capable.
+- **Grid services active** binary sensor and **Off-grid vehicle charging reserve** number, through the cloud backup, only on sites that use them.
 
 ## 2.2.1
 

@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from .alerts import describe
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .dispatch import DispatchSession
-from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
+from .entity import AddConfigEntryEntitiesCallback, TedapiCloudEntity, TedapiEntity, add_when_reported
 
 
 async def async_setup_entry(
@@ -22,7 +22,15 @@ async def async_setup_entry(
     dispatch = entry.runtime_data.dispatch
     if dispatch is not None:
         entities.append(DispatchActiveSensor(coordinator, dispatch))
+    if coordinator.dispatch_supported:
+        entities.append(BackupEventSensor(coordinator))
     async_add_entities(entities)
+    if coordinator.cloud_enabled:
+        add_when_reported(entry, coordinator, async_add_entities, [
+            ("storm_watch_capable", lambda: CloudStateSensor(coordinator, "storm_watch_active", "storm_active")),
+            ("grid_services_enabled",
+             lambda: CloudStateSensor(coordinator, "grid_services_active", "grid_services_active")),
+        ])
 
 
 class AlertProblemSensor(TedapiEntity, BinarySensorEntity):
@@ -76,3 +84,48 @@ class DispatchActiveSensor(TedapiEntity, BinarySensorEntity):
         attrs = self._dispatch.as_dict()
         attrs.pop("active", None)
         return attrs
+
+
+class BackupEventSensor(TedapiEntity, BinarySensorEntity):
+    """On while a backup event runs on the gateway: a max backup started
+    here or in the Tesla app, or one Storm Watch scheduled. The Powerwall
+    then charges to full and holds it. Read locally over signed v1r."""
+
+    _attr_translation_key = "backup_event"
+
+    def __init__(self, coordinator: TedapiCoordinator) -> None:
+        super().__init__(coordinator, "backup_event")
+
+    @property
+    def event(self) -> dict[str, Any] | None:
+        return self.data.get("backup_event")
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.data.get("local_ok")) and self.event is not None
+
+    @property
+    def is_on(self) -> bool | None:
+        return bool(self.event["active"]) if self.event else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        event = self.event or {}
+        return {
+            "kind": event.get("kind"),
+            "start": event["start"].isoformat() if event.get("start") else None,
+            "end": event["end"].isoformat() if event.get("end") else None,
+        }
+
+
+class CloudStateSensor(TedapiCloudEntity, BinarySensorEntity):
+    """Storm Watch or grid services active, as the Tesla cloud reports it."""
+
+    def __init__(self, coordinator: TedapiCoordinator, key: str, value_key: str) -> None:
+        super().__init__(coordinator, key, value_key)
+        self._attr_translation_key = key
+
+    @property
+    def is_on(self) -> bool | None:
+        value = self.extras.get(self._value_key)
+        return bool(value) if value is not None else None

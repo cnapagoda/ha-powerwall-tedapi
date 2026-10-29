@@ -33,6 +33,9 @@ class FakePowerwall:
     # site_info components.non_export_configured (Owner API): pypowerwall then
     # reports "never" whatever the export rule is.
     non_export_configured = False
+    # Owner API site values (cloud) and gateway backup events (local).
+    storm_capable = True
+    backup_events: dict | None = None
     extra_packs: dict[str, dict] = {}
 
     def __init__(self, host: str = "", cloudmode: bool = False, **kwargs: Any) -> None:
@@ -42,7 +45,10 @@ class FakePowerwall:
             # pypowerwall: connect() logs this and leaves no client.
             raise ValueError("v1r mode requires password or gw_pwd")
         self.client = SimpleNamespace(tedapi=SimpleNamespace(get_config=self._config),
-                                      get_site_config=self._site_config)
+                                      get_site_config=self._site_config,
+                                      get_site_power=self._site_power,
+                                      site=SimpleNamespace(api=self._site_api),
+                                      pwcachetime={})
         self.tedapi_mode = None if cloudmode else (
             "v1r" if kwargs.get("rsa_key_path") else "wifi")
         if not cloudmode and FakePowerwall.fail_local:
@@ -76,9 +82,42 @@ class FakePowerwall:
         """pypowerwall cloud client: the Owner API site_info."""
         if FakePowerwall.cloud_reads_fail:
             return None
-        return {"response": {"components": {
-            "customer_preferred_export_rule": self.settings["grid_export"],
-            "non_export_configured": FakePowerwall.non_export_configured}}}
+        return {"response": {
+            "user_settings": {"storm_mode_enabled": self.settings.get("storm", False)},
+            "components": {
+                "customer_preferred_export_rule": self.settings["grid_export"],
+                "non_export_configured": FakePowerwall.non_export_configured,
+                "storm_mode_capable": FakePowerwall.storm_capable,
+                "grid_services_enabled": False,
+                "off_grid_vehicle_charging_reserve_supported": False}}}
+
+    def _site_power(self, force=False):
+        if FakePowerwall.cloud_reads_fail:
+            return None
+        return {"response": {"storm_mode_active": False, "grid_services_active": False}}
+
+    def _site_api(self, name, **kwargs):
+        """TeslaPy Battery.api (Owner API commands)."""
+        self.writes.append((name, kwargs))
+        if name == "STORM_MODE_SETTINGS":
+            self.settings["storm"] = kwargs["enabled"]
+        return {"response": {"code": 201, "message": "Updated"}}
+
+    # local backup events (signed v1r)
+    def get_backup_events(self):
+        return FakePowerwall.backup_events
+
+    def schedule_max_backup(self, duration_seconds=7200):
+        import time  # noqa: PLC0415
+        self.writes.append(("max_backup", duration_seconds))
+        FakePowerwall.backup_events = {"manual_backup": {
+            "start_time": int(time.time()) - 1, "duration_seconds": duration_seconds}, "backup_events": []}
+        return True
+
+    def cancel_max_backup(self):
+        self.writes.append(("max_backup", None))
+        FakePowerwall.backup_events = {"manual_backup": None, "backup_events": []}
+        return True
 
     def vitals(self):
         # Shape of pypowerwall's TEDAPI vitals for a Powerwall 3 (get_pw3_vitals).
@@ -195,6 +234,8 @@ def fake_powerwall():
     FakePowerwall.grid_charging_disallow = True
     FakePowerwall.cloud_reads_fail = False
     FakePowerwall.non_export_configured = False
+    FakePowerwall.storm_capable = True
+    FakePowerwall.backup_events = {"manual_backup": None, "backup_events": []}
     FakePowerwall.extra_packs = {}
     with patch("pypowerwall.Powerwall", FakePowerwall):
         yield FakePowerwall

@@ -12,11 +12,29 @@
         "state": {
           "on": "mdi:alert-circle"
         }
+      },
+      "backup_event": {
+        "default": "mdi:shield-home-outline",
+        "state": {
+          "on": "mdi:shield-home"
+        }
+      },
+      "storm_watch_active": {
+        "default": "mdi:weather-lightning",
+        "state": {
+          "off": "mdi:weather-cloudy"
+        }
+      },
+      "grid_services_active": {
+        "default": "mdi:transmission-tower"
       }
     },
     "number": {
       "backup_reserve": {
         "default": "mdi:battery-lock"
+      },
+      "off_grid_reserve": {
+        "default": "mdi:car-electric-outline"
       }
     },
     "select": {
@@ -121,6 +139,12 @@
     "switch": {
       "grid_charging": {
         "default": "mdi:transmission-tower-import"
+      },
+      "storm_watch": {
+        "default": "mdi:weather-lightning-rainy",
+        "state": {
+          "off": "mdi:weather-cloudy"
+        }
       }
     },
     "event": {
@@ -135,6 +159,12 @@
     },
     "resume_battery_operation": {
       "service": "mdi:battery-check"
+    },
+    "start_max_backup": {
+      "service": "mdi:shield-home"
+    },
+    "cancel_max_backup": {
+      "service": "mdi:shield-off-outline"
     }
   }
 }

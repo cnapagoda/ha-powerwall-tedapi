@@ -20,6 +20,8 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
+from .cloud import site_extras
+
 FLEET_DOMAINS = ("tesla_fleet", "teslemetry")
 CALL_TIMEOUT = 30
 # Tesla Fleet entries in these states may still load: waiting, not failing,
@@ -114,7 +116,7 @@ class FleetBackup:
         found = find_site(self._hass, self._din())
         return found is not None and _can_command(found[0])
 
-    def _data(self) -> dict[str, Any]:
+    def _site_and_data(self) -> tuple[Any, dict[str, Any]]:
         _, site = self._site()
         coordinator = site.info_coordinator
         if not coordinator.last_update_success:
@@ -122,7 +124,24 @@ class FleetBackup:
         data = coordinator.data or {}
         # Before its first site_info read the coordinator holds the product
         # summary, which has no settings.
-        return data if "default_real_mode" in data else {}
+        return site, (data if "default_real_mode" in data else {})
+
+    def _data(self) -> dict[str, Any]:
+        return self._site_and_data()[1]
+
+    def get_extras(self) -> dict[str, Any]:
+        """Storm Watch and other cloud-only values from their site data
+        (flattened site_info) and live status."""
+        site, data = self._site_and_data()
+        if not data:
+            return {}
+        live_coordinator = getattr(site, "live_coordinator", None)
+        live = (live_coordinator.data or {}) if live_coordinator and live_coordinator.last_update_success else {}
+
+        def section(prefix: str) -> dict[str, Any]:
+            return {k[len(prefix):]: v for k, v in data.items() if k.startswith(prefix)}
+
+        return site_extras(data, section("user_settings_"), section("components_"), live)
 
     # -- reads (pypowerwall names) ---------------------------------------
 
@@ -180,3 +199,9 @@ class FleetBackup:
 
     def set_grid_export(self, mode: str) -> dict[str, Any]:
         return self._command(lambda api: api.grid_import_export(customer_preferred_export_rule=mode))
+
+    def set_storm_watch(self, enabled: bool) -> dict[str, Any]:
+        return self._command(lambda api: api.storm_mode(bool(enabled)))
+
+    def set_off_grid_reserve(self, percent: int) -> dict[str, Any]:
+        return self._command(lambda api: api.off_grid_vehicle_charging_reserve(int(percent)))

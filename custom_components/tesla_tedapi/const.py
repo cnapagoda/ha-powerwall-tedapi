@@ -92,6 +92,13 @@ CLOUD_CACHE_SECONDS = 300
 # before the backup is needed; a failed check is retried sooner.
 CLOUD_CHECK_SECONDS = 3600
 CLOUD_RETRY_SECONDS = 600
+# Storm Watch and other cloud-only values from the Owner API are read this
+# often (two Tesla calls); Tesla Fleet's are read from its data every poll.
+OWNER_EXTRAS_SECONDS = 1800
+# Backup events (Storm Watch, manual backup) are read from the gateway this
+# often, and right after one is started or cancelled here.
+BACKUP_EVENTS_SECONDS = 300
+MAX_BACKUP_MAX_MINUTES = 2880
 # Consecutive failures before asking the user to sign in or re-register.
 CLOUD_AUTH_FAILURES = 3
 KEY_REFUSED_POLLS = 10
@@ -111,12 +118,15 @@ EVENT_DISPATCH_ENDED = f"{DOMAIN}_dispatch_ended"
 
 SERVICE_DISPATCH = "dispatch_battery_power"
 SERVICE_RESUME = "resume_battery_operation"
+SERVICE_START_MAX_BACKUP = "start_max_backup"
+SERVICE_CANCEL_MAX_BACKUP = "cancel_max_backup"
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 ATTR_POWER_WATTS = "power_watts"
 ATTR_DURATION_SECONDS = "duration_seconds"
 ATTR_MIN_SOC = "min_soc"
 ATTR_MAX_SOC = "max_soc"
+ATTR_DURATION_MINUTES = "duration_minutes"
 
 
 def app_soc(raw: float | None) -> float | None:

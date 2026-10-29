@@ -15,6 +15,7 @@ import voluptuous as vol
 
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
+    ATTR_DURATION_MINUTES,
     ATTR_DURATION_SECONDS,
     ATTR_MAX_SOC,
     ATTR_MIN_SOC,
@@ -22,8 +23,11 @@ from .const import (
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
     DOMAIN,
+    MAX_BACKUP_MAX_MINUTES,
+    SERVICE_CANCEL_MAX_BACKUP,
     SERVICE_DISPATCH,
     SERVICE_RESUME,
+    SERVICE_START_MAX_BACKUP,
 )
 from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
 from .dispatch import DispatchSession
@@ -45,10 +49,15 @@ DISPATCH_SCHEMA = vol.Schema({
     vol.Optional(ATTR_MAX_SOC): _SOC,
 })
 RESUME_SCHEMA = vol.Schema({vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string})
+START_MAX_BACKUP_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    vol.Required(ATTR_DURATION_MINUTES): vol.All(
+        vol.Coerce(int), vol.Range(min=1, max=MAX_BACKUP_MAX_MINUTES)),
+})
 
 
-def _session(hass: HomeAssistant, call: ServiceCall) -> DispatchSession:
-    """The dispatch session of the targeted (or only) loaded entry."""
+def _entry(hass: HomeAssistant, call: ServiceCall) -> TedapiConfigEntry:
+    """The targeted (or only) loaded entry."""
     entry_id = call.data.get(ATTR_CONFIG_ENTRY_ID)
     entries: list[TedapiConfigEntry] = [
         e for e in hass.config_entries.async_entries(DOMAIN)
@@ -64,13 +73,28 @@ def _session(hass: HomeAssistant, call: ServiceCall) -> DispatchSession:
             "Several Powerwalls are set up: choose one with config_entry_id",
             translation_domain=DOMAIN, translation_key="entry_ambiguous",
         )
-    session = entries[0].runtime_data.dispatch
+    return entries[0]
+
+
+def _session(hass: HomeAssistant, call: ServiceCall) -> DispatchSession:
+    """The dispatch session of the targeted (or only) loaded entry."""
+    session = _entry(hass, call).runtime_data.dispatch
     if session is None:
         raise ServiceValidationError(
             "Battery dispatch needs the signed (v1r) connection",
             translation_domain=DOMAIN, translation_key="dispatch_needs_v1r",
         )
     return session
+
+
+def _max_backup_coordinator(hass: HomeAssistant, call: ServiceCall) -> TedapiCoordinator:
+    coordinator = _entry(hass, call).runtime_data.coordinator
+    if not coordinator.dispatch_supported:
+        raise ServiceValidationError(
+            "A max backup needs the signed (v1r) connection",
+            translation_domain=DOMAIN, translation_key="max_backup_needs_v1r",
+        )
+    return coordinator
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -88,6 +112,15 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         result = await _session(hass, call).async_stop()
         return {"response": result}
 
+    async def start_max_backup(call: ServiceCall) -> None:
+        await _max_backup_coordinator(hass, call).async_max_backup(call.data[ATTR_DURATION_MINUTES])
+
+    async def cancel_max_backup(call: ServiceCall) -> None:
+        await _max_backup_coordinator(hass, call).async_max_backup(None)
+
+    hass.services.async_register(DOMAIN, SERVICE_START_MAX_BACKUP, start_max_backup,
+                                 schema=START_MAX_BACKUP_SCHEMA)
+    hass.services.async_register(DOMAIN, SERVICE_CANCEL_MAX_BACKUP, cancel_max_backup, schema=RESUME_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_DISPATCH, dispatch, schema=DISPATCH_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_RESUME, resume, schema=RESUME_SCHEMA,

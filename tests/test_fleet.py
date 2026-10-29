@@ -38,6 +38,10 @@ SITE_INFO = {
     "components_customer_preferred_export_rule": "never",
     "components_disallow_charge_from_grid_with_solar_installed": True,
     "components_non_export_configured": True,
+    "components_storm_mode_capable": True,
+    "components_grid_services_enabled": False,
+    "components_off_grid_vehicle_charging_reserve_supported": False,
+    "user_settings_storm_mode_enabled": False,
     "components_gateways": [{"din": DIN, "part_number": "1707000-11-J", "part_type": 4,
                              "part_name": "Powerwall 3", "is_active": True}],
     "components_batteries": [{"din": "1807000-20-B--TG0000000000EX", "part_number": "1807000-20-B",
@@ -71,6 +75,13 @@ class FakeFleetApi:
     async def grid_import_export(self, **kwargs):
         return await self._call("grid_import_export", **kwargs)
 
+    async def storm_mode(self, enabled):
+        return await self._call("storm_mode", enabled=enabled)
+
+    async def off_grid_vehicle_charging_reserve(self, off_grid_vehicle_charging_reserve_percent):
+        return await self._call("off_grid_vehicle_charging_reserve",
+                                off_grid_vehicle_charging_reserve_percent=off_grid_vehicle_charging_reserve_percent)
+
 
 class FakeInfoCoordinator:
     def __init__(self, data: dict) -> None:
@@ -84,7 +95,9 @@ class FakeInfoCoordinator:
 
 def _site(data: dict | None = None) -> SimpleNamespace:
     return SimpleNamespace(api=FakeFleetApi(),
-                           info_coordinator=FakeInfoCoordinator(copy.deepcopy(SITE_INFO if data is None else data)))
+                           info_coordinator=FakeInfoCoordinator(copy.deepcopy(SITE_INFO if data is None else data)),
+                           live_coordinator=FakeInfoCoordinator({"island_status": "on_grid",
+                                                                 "storm_mode_active": False}))
 
 
 def _fleet_entry(*sites, state=ConfigEntryState.LOADED, scopes=SCOPES) -> SimpleNamespace:

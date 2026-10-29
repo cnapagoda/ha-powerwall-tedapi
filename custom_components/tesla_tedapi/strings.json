@@ -201,11 +201,23 @@
       },
       "alert_problem": {
         "name": "Problem"
+      },
+      "backup_event": {
+        "name": "Backup event"
+      },
+      "storm_watch_active": {
+        "name": "Storm Watch active"
+      },
+      "grid_services_active": {
+        "name": "Grid services active"
       }
     },
     "number": {
       "backup_reserve": {
         "name": "Backup reserve"
+      },
+      "off_grid_reserve": {
+        "name": "Off-grid vehicle charging reserve"
       }
     },
     "select": {
@@ -344,6 +356,9 @@
     "switch": {
       "grid_charging": {
         "name": "Grid charging"
+      },
+      "storm_watch": {
+        "name": "Storm Watch"
       }
     },
     "event": {
@@ -375,6 +390,9 @@
     },
     "dispatch_power_cap": {
       "message": "{power} W is above the {cap} W limit set in the integration options."
+    },
+    "max_backup_needs_v1r": {
+      "message": "A max backup needs the signed (v1r) connection."
     }
   },
   "services": {
@@ -407,6 +425,30 @@
     "resume_battery_operation": {
       "name": "Resume battery operation",
       "description": "End a dispatch now and hand the battery back to the Powerwall's normal mode.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        }
+      }
+    },
+    "start_max_backup": {
+      "name": "Start max backup",
+      "description": "Start a backup event over the signed local connection: the Powerwall charges to full (from the grid too) and keeps the battery full for the duration, as Storm Watch does. A new call replaces a running max backup.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "duration_minutes": {
+          "name": "Duration",
+          "description": "How long to keep the battery full, in minutes (up to 48 hours)."
+        }
+      }
+    },
+    "cancel_max_backup": {
+      "name": "Cancel max backup",
+      "description": "End a max backup started here or in the Tesla app. Storm Watch events scheduled by Tesla are not affected.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

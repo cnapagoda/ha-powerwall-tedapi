@@ -274,8 +274,11 @@ All entities belong to one device, **Powerwall TEDAPI**.
 | **Operation mode**, **Grid export mode** (select) | Settings. These need a signed connection or a linked Tesla account. Grid export mode also shows `missing_on_powerwall`, `restored_count` and `last_restored` (see [Dropped settings](#dropped-settings)). |
 | **Backup reserve** (number), **Grid charging** (switch) | Settings. The `source` attribute shows whether the value came from `local` or `cloud`. Grid charging also has the [dropped settings](#dropped-settings) attributes. |
 | **Dispatch active** (binary sensor) | Signed connection only. Attributes: power, start, end, limits, last end reason. |
+| **Backup event** (binary sensor) | Signed connection only, read from the gateway about every 5 minutes. On while a backup event runs: a [max backup](#tesla_tedapistart_max_backup) started here or in the Tesla app, or one that Tesla's Storm Watch scheduled. The Powerwall then charges to full and holds it. Attributes: `kind` (`manual` or the event name, such as Storm Watch), `start`, `end`; when none is running, the next scheduled one. |
+| **Storm Watch** (switch), **Storm Watch active** (binary sensor) | Tesla's Storm Watch service, a Tesla cloud setting: needs a [cloud backup](#cloud-backup), and only appears on sites Tesla reports as capable. `cloud_backend` says which backup answered. With Tesla Fleet the values come from its data; with the Owner API they are read every 30 minutes. |
+| Grid services active (binary sensor), **Off-grid vehicle charging reserve** (number) | Tesla cloud values, through the cloud backup. Each appears only when Tesla reports the site uses it (grid services enrolled, off-grid vehicle charging supported). |
 
-If the gateway can't be reached, the sensors show *unavailable* instead of stale values. The settings stay usable through the cloud if an account is linked.
+If the gateway can't be reached, the sensors show *unavailable* instead of stale values. The settings stay usable through the cloud if a [cloud backup](#cloud-backup) is set up.
 
 ---
 
@@ -312,6 +315,26 @@ data:
 ### `tesla_tedapi.resume_battery_operation`
 
 End a dispatch now and return to the Powerwall's normal mode. It also clears a dispatch left over from before a restart.
+
+### `tesla_tedapi.start_max_backup`
+
+Signed connection only. Starts a backup event, the same command Storm Watch uses: the Powerwall charges to full (from the grid if solar isn't enough) and keeps the battery full for the duration, then returns to normal. It works without Storm Watch turned on, for example from a weather warning or before a planned outage. A new call replaces a running max backup. **Backup event** shows it.
+
+| Field | |
+|---|---|
+| `duration_minutes` | 1–2880 (48 hours). |
+| `config_entry_id` | Only needed with more than one Powerwall. |
+
+```yaml
+# Keep the battery full for 6 hours when a severe weather warning arrives
+action: tesla_tedapi.start_max_backup
+data:
+  duration_minutes: 360
+```
+
+### `tesla_tedapi.cancel_max_backup`
+
+Ends a max backup started here or in the Tesla app. Events Tesla scheduled (Storm Watch) are not affected; turn the **Storm Watch** switch off to stop those.
 
 More examples are in [`examples/automations.yaml`](examples/automations.yaml).
 

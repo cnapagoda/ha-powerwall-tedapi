@@ -28,6 +28,7 @@ from .const import (
     AUTH_FILE,
     BACKEND_FLEET,
     BACKEND_OWNER,
+    BACKUP_EVENTS_SECONDS,
     CLOUD_AUTH_FAILURES,
     CLOUD_CACHE_SECONDS,
     CLOUD_CHECK_SECONDS,
@@ -51,6 +52,7 @@ from .const import (
     DROPPABLE_SETTINGS,
     KEY_REFUSED_POLLS,
     MODE_V1R,
+    OWNER_EXTRAS_SECONDS,
     PASSWORD_REFUSED_POLLS,
     RESTORE_MIN_SECONDS,
     app_soc,
@@ -145,6 +147,32 @@ def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
     return packs
 
 
+def _current_backup_event(events: dict[str, Any], now: float) -> dict[str, Any]:
+    """{"active", "kind", "start", "end"} for the backup event running at
+    now (epoch seconds): the manual one, or a scheduled one such as Storm
+    Watch. Not active: the next scheduled one, if any."""
+    candidates = []
+    manual = events.get("manual_backup")
+    if manual:
+        candidates.append(("manual", manual.get("start_time"), manual.get("duration_seconds")))
+    for event in events.get("backup_events") or []:
+        candidates.append((event.get("name") or "scheduled", event.get("start_time"), event.get("duration_seconds")))
+    found: dict[str, Any] = {"active": False, "kind": None, "start": None, "end": None}
+    for kind, start, duration in sorted(candidates, key=lambda c: c[1] or 0):
+        if not isinstance(start, (int, float)) or not isinstance(duration, (int, float)):
+            continue
+        end = start + duration
+        if end <= now:
+            continue
+        active = start <= now
+        if active or found["kind"] is None:
+            found = {"active": active, "kind": kind,
+                     "start": dt_util.utc_from_timestamp(start), "end": dt_util.utc_from_timestamp(end)}
+        if active:
+            break
+    return found
+
+
 @dataclass
 class TedapiRuntimeData:
     """Stored on the config entry while it is loaded."""
@@ -202,6 +230,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._key_refused = 0
         self._reauth_started = False
         self._token_expiry: tuple[float, float | None] | None = None
+        # Backup events from the gateway: (monotonic time read, raw result).
+        self._backup_events: tuple[float, dict[str, Any]] | None = None
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
 
         scan = entry.options.get(CONF_SCAN_INTERVAL, data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
@@ -219,7 +249,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         started = time.monotonic()
         for name in CLOUD_CHOICES.get(cloud_choice(data, options), ()):
             if name == BACKEND_OWNER and self._owners_email:
-                backends.append(CloudBackend(name, self._init_cloud))
+                backends.append(CloudBackend(name, self._init_cloud, extras_seconds=OWNER_EXTRAS_SECONDS))
             elif name == BACKEND_FLEET:
                 fleet = FleetBackup(hass, lambda: self.din)
                 backends.append(CloudBackend(
@@ -354,6 +384,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "firmware_version": version,
             "strings": _extract_strings(vitals),
             "tedapi_mode": getattr(pw, "tedapi_mode", None),
+            "backup_event": self._read_backup_event(pw),
             **self._fetch_extras(pw, vitals),
             "local_ok": True,
             **{key: control.get(key) for key in CONTROL_KEYS},
@@ -493,6 +524,26 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.warning("The Powerwall dropped its %s setting; restoring %s failed", name, wanted)
         return True
 
+    def _read_backup_event(self, pw) -> dict[str, Any] | None:
+        """The backup event running now (manual "max backup" or one the Tesla
+        cloud scheduled, such as Storm Watch), from the gateway over signed
+        v1r. None when it can't be read."""
+        if getattr(pw, "tedapi_mode", None) != "v1r":
+            return None
+        now = time.monotonic()
+        if self._backup_events is None or now - self._backup_events[0] >= BACKUP_EVENTS_SECONDS:
+            try:
+                events = pw.get_backup_events()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Reading backup events failed: %s", err)
+                events = None
+            if events is None:
+                if self._backup_events is None:
+                    return None
+            else:
+                self._backup_events = (now, events)
+        return _current_backup_event(self._backup_events[1], time.time())
+
     def _fetch_cloud_only(self) -> dict[str, Any]:
         """Gateway unreachable: keep the settings entities alive from the cloud.
         Sensors read local_ok and show unavailable."""
@@ -576,16 +627,17 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         {"error": ...} instead."""
         return bool(result) and not (isinstance(result, dict) and "error" in result)
 
-    def _write(self, what: str, write) -> None:
-        """Run write(pw) on the gateway (signed connection only), then on each
-        cloud backup in order until one accepts it."""
+    def _write(self, what: str, write, local: bool = True) -> None:
+        """Run write(pw) on the gateway (signed connection only; local=False
+        for cloud-only settings), then on each cloud backup in order until one
+        accepts it."""
         for backend in self.backends:
-            backend.cache = None
-        if not self.control_enabled:
-            raise HomeAssistantError("Changing settings needs a signed (v1r) connection or a Tesla account")
+            backend.cache = backend.extras = None
+        if not (self.control_enabled if local else self.cloud_enabled):
+            raise HomeAssistantError("Changing settings needs a signed (v1r) connection or a cloud backup")
         # The Wi-Fi password session cannot change settings; the gateway accepts
         # the call and ignores it, so it is not tried.
-        if self._conn_mode == MODE_V1R:
+        if local and self._conn_mode == MODE_V1R:
             if self._pw is not None:
                 try:
                     if self._write_ok(write(self._pw)):
@@ -637,6 +689,61 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _set_grid_export(self, mode: str) -> None:
         self._write(f"Grid export set to {mode}", lambda pw: pw.set_grid_export(mode))
         self.wanted["grid_export"] = mode
+
+    def _set_storm_watch(self, enabled: bool) -> None:
+        # Tesla's Storm Watch service is a cloud setting: no local write.
+        self._write(f"Storm Watch set to {'on' if enabled else 'off'}",
+                    lambda pw: pw.set_storm_watch(bool(enabled)), local=False)
+
+    def _set_off_grid_reserve(self, percent: float) -> None:
+        self._write(f"Off-grid vehicle charging reserve set to {int(percent)}%",
+                    lambda pw: pw.set_off_grid_reserve(int(percent)), local=False)
+
+    def _cloud_extras(self) -> dict[str, Any]:
+        """Storm Watch and other cloud-only values from the first backup (in
+        order) that gives them; "backend" names it."""
+        for backend in self.backends:
+            if backend.failing or backend.starting():
+                continue
+            now = time.monotonic()
+            if backend.extras is not None and now - backend.extras[0] < backend.extras_seconds:
+                values = backend.extras[1]
+            else:
+                try:
+                    values = backend.get_client().get_extras() or {}
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.debug("%s Storm Watch read failed: %s", backend.label, err)
+                    values = {}
+                backend.extras = (now, values)
+            if any(v is not None for v in values.values()):
+                return {**values, "backend": backend.name}
+        return {}
+
+    def _max_backup(self, minutes: int | None) -> None:
+        """Start (minutes) or cancel (None) a manual backup event over signed
+        v1r: the Powerwall charges to full and holds it, as in Storm Watch."""
+        if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
+            raise HomeAssistantError("A max backup needs the signed (v1r) local connection")
+        if minutes is None:
+            ok = self._pw.cancel_max_backup()
+        else:
+            ok = self._pw.schedule_max_backup(duration_seconds=int(minutes) * 60)
+        if not ok:
+            raise HomeAssistantError("The Powerwall did not accept the backup event (see log)")
+        _LOGGER.info("Max backup %s", f"started for {minutes} min" if minutes else "cancelled")
+        self._backup_events = None  # read it back on the next poll
+
+    async def async_set_storm_watch(self, enabled: bool) -> None:
+        await self.hass.async_add_executor_job(self._set_storm_watch, enabled)
+        await self.async_request_refresh()
+
+    async def async_set_off_grid_reserve(self, percent: float) -> None:
+        await self.hass.async_add_executor_job(self._set_off_grid_reserve, percent)
+        await self.async_request_refresh()
+
+    async def async_max_backup(self, minutes: int | None) -> None:
+        await self.hass.async_add_executor_job(self._max_backup, minutes)
+        await self.async_refresh()
 
     def _send_dispatch(self, power_watts: float, duration_seconds: int) -> dict:
         """One timed battery setpoint over signed v1r (no cloud equivalent)."""
@@ -727,6 +834,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             for backend in due:
                 backend.check_at = time.monotonic()
             await self.hass.async_add_executor_job(self._check_cloud, due)
+        data["cloud_extras"] = await self.hass.async_add_executor_job(self._cloud_extras) if self.backends else {}
         self._process_alerts(data)
         self._sync_cloud_issue()
         for key in DROPPABLE_SETTINGS:

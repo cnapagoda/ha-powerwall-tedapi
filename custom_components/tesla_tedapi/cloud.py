@@ -33,6 +33,10 @@ class CloudBackend:
     check_at: float | None = None
     # The repair currently shown for it (its translation key), if any.
     issue: str | None = None
+    # Storm Watch and other cloud-only values: (monotonic time, values), read
+    # at most every extras_seconds (Tesla Fleet's stored data: every poll).
+    extras: tuple[float, dict[str, Any]] | None = None
+    extras_seconds: float = 0
 
     @property
     def label(self) -> str:
@@ -64,6 +68,21 @@ class CloudBackend:
         self.client = None
 
 
+def site_extras(info: dict[str, Any], user_settings: dict[str, Any], components: dict[str, Any],
+                live: dict[str, Any]) -> dict[str, Any]:
+    """Cloud-only site values: Storm Watch, grid services and the off-grid
+    vehicle charging reserve (None when Tesla doesn't report them)."""
+    return {
+        "storm_watch_capable": components.get("storm_mode_capable"),
+        "storm_watch": user_settings.get("storm_mode_enabled"),
+        "storm_active": live.get("storm_mode_active"),
+        "grid_services_enabled": components.get("grid_services_enabled"),
+        "grid_services_active": live.get("grid_services_active"),
+        "off_grid_reserve_supported": components.get("off_grid_vehicle_charging_reserve_supported"),
+        "off_grid_reserve": info.get("off_grid_vehicle_charging_reserve_percent"),
+    }
+
+
 class OwnerSettings:
     """The pypowerwall Owner API client, with the export rule read from the
     site's own setting. pypowerwall reports "never" whenever the site has
@@ -82,3 +101,27 @@ class OwnerSettings:
         if not components:
             return None
         return components.get("customer_preferred_export_rule") or "battery_ok"
+
+    def get_extras(self) -> dict[str, Any]:
+        client = self._pw.client
+        info = (client.get_site_config() or {}).get("response") or {}
+        if not info:
+            return {}
+        live = (client.get_site_power() or {}).get("response") or {}
+        return site_extras(info, info.get("user_settings") or {}, info.get("components") or {}, live)
+
+    def _site_command(self, name: str, **kwargs: Any) -> Any:
+        client = self._pw.client
+        result = client.site.api(name, **kwargs)
+        try:
+            client.pwcachetime["SITE_CONFIG"] = 0  # read the change next time
+        except (AttributeError, TypeError):
+            pass
+        return result
+
+    def set_storm_watch(self, enabled: bool) -> Any:
+        return self._site_command("STORM_MODE_SETTINGS", enabled=bool(enabled))
+
+    def set_off_grid_reserve(self, percent: int) -> Any:
+        return self._site_command("OFF_GRID_VEHICLE_CHARGING_RESERVE",
+                                  off_grid_vehicle_charging_reserve_percent=int(percent))
