@@ -243,7 +243,7 @@
         "name": "Evento de backup"
       },
       "storm_watch_active": {
-        "name": "Storm Watch ativo"
+        "name": "Alerta de tempestade ativo"
       },
       "grid_services_active": {
         "name": "Serviços de rede ativos"
@@ -270,7 +270,7 @@
         "name": "Modo de exportação para a rede",
         "state": {
           "battery_ok": "Bateria e solar",
-          "pv_only": "Só solar",
+          "pv_only": "Apenas solar",
           "never": "Desativado"
         }
       }
@@ -307,7 +307,7 @@
         "name": "Estado de energia da bateria"
       },
       "grid_status": {
-        "name": "Estado da rede"
+        "name": "Status da rede"
       },
       "grid_frequency": {
         "name": "Frequência da rede"
@@ -410,7 +410,7 @@
         "name": "Carga pela rede"
       },
       "storm_watch": {
-        "name": "Storm Watch"
+        "name": "Alerta de tempestade"
       }
     },
     "event": {
@@ -486,7 +486,7 @@
     },
     "start_max_backup": {
       "name": "Iniciar backup máximo",
-      "description": "Inicia um evento de backup pela conexão local assinada: a Powerwall carrega até o máximo (também pela rede) e mantém a bateria cheia pelo tempo definido, como faz o Storm Watch. Uma nova chamada substitui um backup máximo em andamento.",
+      "description": "Inicia um evento de backup pela conexão local assinada: a Powerwall carrega até o máximo (também pela rede) e mantém a bateria cheia pelo tempo definido, como faz o Alerta de tempestade. Uma nova chamada substitui um backup máximo em andamento.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -500,7 +500,7 @@
     },
     "cancel_max_backup": {
       "name": "Cancelar backup máximo",
-      "description": "Encerra um backup máximo iniciado aqui ou no app da Tesla. Eventos do Storm Watch agendados pela Tesla não são afetados.",
+      "description": "Encerra um backup máximo iniciado aqui ou no app da Tesla. Eventos do Alerta de tempestade agendados pela Tesla não são afetados.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

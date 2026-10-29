@@ -76,10 +76,10 @@
       "site": {
         "title": "Powerwall wählen",
         "data": {
-          "site": "Energiestandort"
+          "site": "Energieanlage"
         },
         "data_description": {
-          "site": "Der Energiestandort (Name in der Tesla-App) mit dieser Powerwall. Wählst du die Powerwall eines anderen Standorts, wird die Einrichtung abgebrochen."
+          "site": "Die Energieanlage (Name in der Tesla-App) mit dieser Powerwall. Wählst du die Powerwall einer anderen Energieanlage, wird die Einrichtung abgebrochen."
         }
       },
       "verify": {
@@ -145,13 +145,13 @@
     "abort": {
       "already_configured": "Diese Powerwall ist bereits eingerichtet.",
       "no_sites": "In diesem Tesla-Konto wurde keine Powerwall gefunden. Melde dich mit dem Tesla-Konto an, dem die Powerwall gehört (dem, das sie in der Tesla-App anzeigt).",
-      "register_failed": "Tesla hat den Schlüssel nicht registriert. Mögliche Ursachen: Tesla hat den Anmelde-Token abgelehnt (mit einer neuen App-Anmeldung erneut anmelden), der falsche Energiestandort wurde gewählt, oder Tesla erreicht die Powerwall gerade nicht (prüfe, ob sie in der Tesla-App online ist). Starte die Einrichtung neu; im Log steht die genaue Antwort von Tesla.",
-      "wrong_powerwall": "Das ist eine andere Powerwall als die, die eingerichtet wird. Wähle den Energiestandort mit dieser Powerwall oder prüfe die Gateway-Adresse.",
+      "register_failed": "Tesla hat den Schlüssel nicht registriert. Mögliche Ursachen: Tesla hat den Anmelde-Token abgelehnt (mit einer neuen App-Anmeldung erneut anmelden), die falsche Energieanlage wurde gewählt, oder Tesla erreicht die Powerwall gerade nicht (prüfe, ob sie in der Tesla-App online ist). Starte die Einrichtung neu; im Log steht die genaue Antwort von Tesla.",
+      "wrong_powerwall": "Das ist eine andere Powerwall als die, die eingerichtet wird. Wähle die Energieanlage mit dieser Powerwall oder prüfe die Gateway-Adresse.",
       "reconfigure_successful": "Die Verbindung wurde geändert.",
       "reauth_successful": "Zugriff wiederhergestellt.",
       "unique_id_mismatch": "Das Gateway unter dieser Adresse ist eine andere Powerwall. Gib die Adresse dieser Powerwall ein oder füge die andere als neuen Eintrag hinzu.",
       "register_token_refused": "Tesla hat den Anmelde-Token beim Registrieren des Schlüssels abgelehnt. Starte die Einrichtung neu und füge einen neuen Refresh-Token aus einer App-Anmeldung wie Auth app for Tesla ein (Browser-Anmeldungen werden abgelehnt).",
-      "register_wrong_site": "Tesla kennt diesen Energiestandort in diesem Konto nicht. Starte die Einrichtung neu und wähle den Standort mit dieser Powerwall, angemeldet mit dem Tesla-Konto, dem sie gehört.",
+      "register_wrong_site": "Tesla kennt diese Energieanlage in diesem Konto nicht. Starte die Einrichtung neu und wähle die Energieanlage mit dieser Powerwall, angemeldet mit dem Tesla-Konto, dem sie gehört.",
       "register_unreachable": "Tesla konnte die Powerwall zum Registrieren des Schlüssels nicht erreichen. Prüfe, ob sie in der Tesla-App online ist (ihre Internetverbindung), warte ein paar Minuten und starte die Einrichtung neu."
     }
   },
@@ -207,10 +207,10 @@
       "site": {
         "title": "Powerwall wählen",
         "data": {
-          "site": "Energiestandort"
+          "site": "Energieanlage"
         },
         "data_description": {
-          "site": "Der Energiestandort (Name in der Tesla-App) mit dieser Powerwall."
+          "site": "Die Energieanlage (Name in der Tesla-App) mit dieser Powerwall."
         }
       },
       "unlink_account": {
@@ -243,7 +243,7 @@
         "name": "Backup-Ereignis"
       },
       "storm_watch_active": {
-        "name": "Storm Watch aktiv"
+        "name": "Sturmwarnung aktiv"
       },
       "grid_services_active": {
         "name": "Netzdienste aktiv"
@@ -254,7 +254,7 @@
         "name": "Backup-Reserve"
       },
       "off_grid_reserve": {
-        "name": "Off-Grid-Reserve für Fahrzeugladen"
+        "name": "Netzunabhängige Reserve für Fahrzeugladen"
       }
     },
     "select": {
@@ -267,7 +267,7 @@
         }
       },
       "grid_export": {
-        "name": "Netzeinspeisung",
+        "name": "Einspeisemodus",
         "state": {
           "battery_ok": "Batterie & Solar",
           "pv_only": "Nur Solar",
@@ -277,7 +277,7 @@
     },
     "sensor": {
       "solar_power": {
-        "name": "Solarleistung"
+        "name": "PV-Leistung"
       },
       "battery_power": {
         "name": "Batterieleistung"
@@ -319,7 +319,7 @@
         "name": "Netzbezug"
       },
       "grid_energy_exported": {
-        "name": "Netzeinspeisung (Energie)"
+        "name": "Netzeinspeisung"
       },
       "battery_energy_charged": {
         "name": "Batterie geladen"
@@ -379,20 +379,20 @@
           "ok": "OK",
           "notice": "Hinweis",
           "warning": "Warnung",
-          "fault": "Fehler"
+          "fault": "Störung"
         }
       },
       "active_alerts": {
         "name": "Aktive Alarme"
       },
       "string_power": {
-        "name": "Solareingang {string} Leistung"
+        "name": "PV-Eingang {string} Leistung"
       },
       "string_voltage": {
-        "name": "Solareingang {string} Spannung"
+        "name": "PV-Eingang {string} Spannung"
       },
       "string_current": {
-        "name": "Solareingang {string} Strom"
+        "name": "PV-Eingang {string} Strom"
       },
       "setup_health": {
         "name": "Einrichtungsstatus",
@@ -410,7 +410,7 @@
         "name": "Laden aus dem Netz"
       },
       "storm_watch": {
-        "name": "Storm Watch"
+        "name": "Sturmwarnung"
       }
     },
     "event": {
@@ -486,7 +486,7 @@
     },
     "start_max_backup": {
       "name": "Max-Backup starten",
-      "description": "Startet ein Backup-Ereignis über die signierte lokale Verbindung: Die Powerwall lädt voll (auch aus dem Netz) und hält die Batterie für die Dauer voll, wie bei Storm Watch. Ein neuer Aufruf ersetzt ein laufendes Max-Backup.",
+      "description": "Startet ein Backup-Ereignis über die signierte lokale Verbindung: Die Powerwall lädt voll (auch aus dem Netz) und hält die Batterie für die Dauer voll, wie bei der Sturmwarnung. Ein neuer Aufruf ersetzt ein laufendes Max-Backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -500,7 +500,7 @@
     },
     "cancel_max_backup": {
       "name": "Max-Backup abbrechen",
-      "description": "Beendet ein hier oder in der Tesla-App gestartetes Max-Backup. Von Tesla geplante Storm-Watch-Ereignisse sind nicht betroffen.",
+      "description": "Beendet ein hier oder in der Tesla-App gestartetes Max-Backup. Von Tesla geplante Sturmwarnungs-Ereignisse sind nicht betroffen.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -531,7 +531,7 @@
           "site": {
             "title": "Powerwall wählen",
             "data": {
-              "site": "Energiestandort"
+              "site": "Energieanlage"
             }
           }
         },

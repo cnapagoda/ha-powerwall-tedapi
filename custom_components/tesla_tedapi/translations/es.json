@@ -243,7 +243,7 @@
         "name": "Evento de respaldo"
       },
       "storm_watch_active": {
-        "name": "Storm Watch activo"
+        "name": "Alerta de tormenta activa"
       },
       "grid_services_active": {
         "name": "Servicios de red activos"
@@ -259,7 +259,7 @@
     },
     "select": {
       "operation_mode": {
-        "name": "Modo de funcionamiento",
+        "name": "Modo de operación",
         "state": {
           "self_consumption": "Autoconsumo",
           "backup": "Solo respaldo",
@@ -301,7 +301,7 @@
         "name": "Potencia de carga de la batería"
       },
       "battery_level": {
-        "name": "Nivel de la batería"
+        "name": "Nivel de batería"
       },
       "battery_soe": {
         "name": "Estado de energía de la batería"
@@ -410,7 +410,7 @@
         "name": "Carga desde la red"
       },
       "storm_watch": {
-        "name": "Storm Watch"
+        "name": "Alerta de tormenta"
       }
     },
     "event": {
@@ -486,7 +486,7 @@
     },
     "start_max_backup": {
       "name": "Iniciar respaldo máximo",
-      "description": "Inicia un evento de respaldo por la conexión local firmada: la Powerwall se carga por completo (también desde la red) y mantiene la batería llena durante el tiempo indicado, como hace Storm Watch. Una nueva llamada sustituye a un respaldo máximo en curso.",
+      "description": "Inicia un evento de respaldo por la conexión local firmada: la Powerwall se carga por completo (también desde la red) y mantiene la batería llena durante el tiempo indicado, como hace la Alerta de tormenta. Una nueva llamada sustituye a un respaldo máximo en curso.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -500,7 +500,7 @@
     },
     "cancel_max_backup": {
       "name": "Cancelar respaldo máximo",
-      "description": "Termina un respaldo máximo iniciado aquí o en la app de Tesla. Los eventos de Storm Watch programados por Tesla no se ven afectados.",
+      "description": "Termina un respaldo máximo iniciado aquí o en la app de Tesla. Los eventos de Alerta de tormenta programados por Tesla no se ven afectados.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

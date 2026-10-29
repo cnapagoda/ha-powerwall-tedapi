@@ -243,7 +243,7 @@
         "name": "Evento di backup"
       },
       "storm_watch_active": {
-        "name": "Storm Watch attivo"
+        "name": "Allerta tempesta attiva"
       },
       "grid_services_active": {
         "name": "Servizi di rete attivi"
@@ -410,7 +410,7 @@
         "name": "Carica dalla rete"
       },
       "storm_watch": {
-        "name": "Storm Watch"
+        "name": "Allerta tempesta"
       }
     },
     "event": {
@@ -486,7 +486,7 @@
     },
     "start_max_backup": {
       "name": "Avvia backup massimo",
-      "description": "Avvia un evento di backup tramite la connessione locale firmata: la Powerwall si carica completamente (anche dalla rete) e mantiene la batteria piena per la durata indicata, come fa Storm Watch. Una nuova chiamata sostituisce un backup massimo in corso.",
+      "description": "Avvia un evento di backup tramite la connessione locale firmata: la Powerwall si carica completamente (anche dalla rete) e mantiene la batteria piena per la durata indicata, come fa Allerta tempesta. Una nuova chiamata sostituisce un backup massimo in corso.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -500,7 +500,7 @@
     },
     "cancel_max_backup": {
       "name": "Annulla backup massimo",
-      "description": "Termina un backup massimo avviato qui o nell'app Tesla. Gli eventi Storm Watch programmati da Tesla non sono interessati.",
+      "description": "Termina un backup massimo avviato qui o nell'app Tesla. Gli eventi Allerta tempesta programmati da Tesla non sono interessati.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
