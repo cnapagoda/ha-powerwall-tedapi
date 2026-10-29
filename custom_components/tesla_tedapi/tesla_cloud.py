@@ -23,7 +23,12 @@ KEY_REMOVED = 4
 
 
 class TeslaCloudError(Exception):
-    """A Tesla account or Owner API call failed."""
+    """A Tesla account or Owner API call failed. status: the HTTP status,
+    if Tesla answered."""
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
 
 
 class TeslaAuthError(TeslaCloudError):
@@ -133,11 +138,11 @@ def _call(method: str, path: str, token: str, data: dict | None = None) -> dict[
 
     code, resp = api_call(f"{OWNER_API}{path}", method=method, data=data, token=token)
     if code == 403:
-        raise TeslaRefused("Owner API refused the token (HTTP 403)")
+        raise TeslaRefused("Owner API refused the token (HTTP 403)", code)
     if code == 401:
-        raise TeslaAuthError(f"Owner API rejected the token (HTTP {code})")
+        raise TeslaAuthError(f"Owner API rejected the token (HTTP {code})", code)
     if code != 200 or not isinstance(resp, dict):
-        raise TeslaCloudError(f"Owner API HTTP {code}: {str(resp)[:200]}")
+        raise TeslaCloudError(f"Owner API HTTP {code}: {str(resp)[:200]}", code)
     return resp
 
 

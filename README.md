@@ -27,6 +27,7 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 | Powerwall | A Powerwall 3 is tested. Powerwall 2 / Powerwall+ work for signed access if the firmware supports it, and for Wi-Fi password monitoring. |
 | Network | Home Assistant must reach the Powerwall, either at its **home-network address** (signed connection) or on its **own Wi-Fi hotspot** `192.168.91.1`. |
 | Tesla account | Needed once, to register the key. Optional afterwards, as the [cloud backup](#cloud-backup) (Owner API, or the Tesla Fleet / Teslemetry integration). |
+| Languages | English, German, French, Dutch, Spanish, Italian, Polish, Brazilian Portuguese (follows your Home Assistant language). |
 
 ### Which connection?
 

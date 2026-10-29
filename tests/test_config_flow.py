@@ -7,6 +7,7 @@ from unittest.mock import patch
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.tesla_tedapi import config_flow, tesla_cloud
@@ -357,3 +358,30 @@ def DhcpServiceInfo(ip: str, hostname: str, macaddress: str):  # noqa: N802
 def test_parse_callback() -> None:
     assert tesla_cloud.parse_callback("tesla://auth/callback?code=C1&state=S", "S") == "C1"
     assert tesla_cloud.parse_callback("  C2  ", "S") == "C2"
+
+
+@pytest.mark.parametrize(("error", "reason"), [
+    (tesla_cloud.TeslaRefused("refused", 403), "register_token_refused"),
+    (tesla_cloud.TeslaAuthError("rejected", 401), "register_token_refused"),
+    (tesla_cloud.TeslaCloudError("not found", 404), "register_wrong_site"),
+    (tesla_cloud.TeslaCloudError("Owner API HTTP 408: device offline", 408), "register_unreachable"),
+    (tesla_cloud.TeslaCloudError("Owner API HTTP 500", 500), "register_failed"),
+])
+async def test_register_failure_reasons(hass: HomeAssistant, tmp_path, error, reason) -> None:
+    login = tesla_cloud.LoginStart("https://auth.tesla.com/x", "verifier", "state1")
+    with (
+        patch(f"{CLOUD}.start_login", return_value=login),
+        patch(f"{CLOUD}.exchange_code", return_value={"access_token": "at", "refresh_token": "rt"}),
+        patch(f"{CLOUD}.token_email", return_value="owner@example.com"),
+        patch(f"{CLOUD}.energy_sites", return_value=[tesla_cloud.EnergySite(42, DIN, "Home")]),
+        patch(f"{CLOUD}.save_token"),
+        patch(f"{CLOUD}.save_site"),
+        patch(f"{CLOUD}.ensure_rsa_key", return_value=(str(tmp_path / "k.pem"), b"pub")),
+        patch(f"{CLOUD}.register_key", side_effect=error),
+    ):
+        result = await _gateway(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "register"})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"callback": "tesla://auth/callback?code=abc&state=state1"})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == reason

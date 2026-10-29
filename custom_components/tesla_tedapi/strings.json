@@ -25,6 +25,8 @@
           "wifi_host": "Wi-Fi fallback address"
         },
         "data_description": {
+          "host": "The gateway's address on your home network, for example `192.168.1.50`. Your router lists it as `teslapw_…`.",
+          "gw_pwd": "The last 5 characters of the password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left), or the whole password. Letters are upper case.",
           "wifi_host": "The Powerwall's Wi-Fi hotspot, used over the same signed connection when the home-network address stops answering. Leave empty if Home Assistant cannot reach the hotspot."
         }
       },
@@ -43,6 +45,10 @@
         "data": {
           "key_file": "Private key (.pem)",
           "cloud_backup": "Link a Tesla account as a backup for settings"
+        },
+        "data_description": {
+          "key_file": "The private key file (`.pem`, starts with `-----BEGIN PRIVATE KEY-----` or `-----BEGIN RSA PRIVATE KEY-----`) whose public key is registered and VERIFIED on this Powerwall. Not the public key.",
+          "cloud_backup": "Also sign in to a Tesla account, so settings can still be changed through the Tesla cloud when the local connection is down."
         }
       },
       "wifi": {
@@ -51,6 +57,10 @@
         "data": {
           "host": "Hotspot address",
           "cloud_backup": "Link a Tesla account to change settings"
+        },
+        "data_description": {
+          "host": "Usually `192.168.91.1`, the address of the Powerwall's own Wi-Fi network (TeslaPW_…).",
+          "cloud_backup": "Without a Tesla account, this connection can only read. Sign in to change settings through the Tesla cloud."
         }
       },
       "login": {
@@ -58,12 +68,18 @@
         "description": "Your Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n**Recommended: an app sign-in.** Since October 2026 Tesla refuses sign-ins made in a normal browser for the Powerwall. Sign in with an app that shows Tesla's login in its own window, such as *Auth app for Tesla* (iOS, Android), and copy the **refresh token** it shows. Paste it below. Use a token made for this, not one another integration already uses: signing in elsewhere with the same token can log that integration out.\n\n**Or, browser sign-in** (may be refused by Tesla):\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
         "data": {
           "callback": "Refresh token, or callback address"
+        },
+        "data_description": {
+          "callback": "Paste the **refresh token** from an app sign-in (a long text, usually starting with `eyJ`), or the full `tesla://auth/callback?code=…` address from a browser sign-in. Each code works once and expires within minutes."
         }
       },
       "site": {
         "title": "Choose the Powerwall",
         "data": {
           "site": "Energy site"
+        },
+        "data_description": {
+          "site": "The energy site (Tesla app name) with this Powerwall. Choosing another site's Powerwall stops the setup."
         }
       },
       "verify": {
@@ -75,7 +91,7 @@
       },
       "connect_failed": {
         "title": "Could not connect",
-        "description": "Select **Submit** to check the gateway address and password."
+        "description": "The last connection check failed (see the message below). Select **Submit** to go back and check the gateway address and password."
       },
       "reauth_confirm": {
         "title": "The Powerwall no longer accepts Home Assistant",
@@ -90,6 +106,9 @@
         "title": "Gateway password",
         "data": {
           "gw_pwd": "Gateway password"
+        },
+        "data_description": {
+          "gw_pwd": "The last 5 characters of the password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left), or the whole password. Letters are upper case."
         }
       },
       "reconfigure": {
@@ -100,6 +119,12 @@
           "gw_pwd": "Gateway password",
           "rsa_key_path": "RSA private key file",
           "wifi_host": "Wi-Fi fallback address (signed only)"
+        },
+        "data_description": {
+          "host": "The gateway's address on your home network, for example `192.168.1.50`. Your router lists it as `teslapw_…`.",
+          "gw_pwd": "The last 5 characters of the password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left), or the whole password. Letters are upper case.",
+          "rsa_key_path": "Full path to the private key file on the Home Assistant host, for example `/config/tesla_tedapi/tedapi_rsa_private.pem`. Leave empty to use the Wi-Fi password connection (read only).",
+          "wifi_host": "The Powerwall's Wi-Fi hotspot address (usually `192.168.91.1`), used when the home-network address stops answering. Leave empty if Home Assistant can't reach the hotspot."
         }
       }
     },
@@ -107,24 +132,27 @@
       "confirm_key": "The key (fingerprint `{fingerprint}…`) is registered and waiting for physical confirmation. Within about 10 minutes:\n\n- **Powerwall 3:** switch the On/Off switch (left side, under the red rapid-shutdown flap) OFF for about 15 seconds, then back ON. A short flick is ignored; leaving it off until the unit powers down closes the window.\n- **Other models:** toggling the Powerwall's AC breaker off for about 15 seconds is reported to work on some units.\n\nThis page checks every 10 seconds and continues on its own once the Powerwall confirms. If the window closes, the key is registered again once automatically."
     },
     "error": {
-      "cannot_connect": "Could not reach the Powerwall at that address.",
+      "cannot_connect": "Could not reach the Powerwall at that address. Check the address (your router lists the gateway as `teslapw_…`), that the Powerwall is on and on the same network as Home Assistant, and try again.",
       "invalid_gw_pwd": "The gateway refused this password. Check the QR sticker (letters are upper case).",
       "password_required": "Signed access needs the gateway password.",
-      "invalid_rsa_key": "That is not an RSA private key in PEM format.",
-      "key_not_accepted": "The Powerwall did not accept the key. Check that it is registered and VERIFIED for this Powerwall.",
+      "invalid_rsa_key": "That is not an RSA private key in PEM format. Upload the private key file (it starts with `-----BEGIN`), not the public key.",
+      "key_not_accepted": "The Powerwall did not accept the key. Check that it is the private key (not the public one), that it was registered for this Powerwall, and that the registration is VERIFIED (the On/Off switch step was done). Or choose **Register a new key**.",
       "invalid_auth": "Tesla did not accept that token or code. A new sign-in link has been made; sign in again and paste the new token or address.",
       "cloud_error": "The Tesla service returned an error. Try again in a minute.",
-      "none_found": "No Powerwall answered on this network. Enter the address instead.",
+      "none_found": "No Powerwall answered on this network. Enter the address instead (your router lists the gateway as `teslapw_…`).",
       "owner_api_refused": "You signed in, but Tesla refuses this kind of sign-in for the Powerwall (HTTP 403). Browser sign-ins are blocked; paste a refresh token from an app sign-in such as Auth app for Tesla instead."
     },
     "abort": {
       "already_configured": "This Powerwall is already set up.",
-      "no_sites": "No Powerwall was found on this Tesla account.",
-      "register_failed": "The Powerwall did not accept the key registration. Check the log for details.",
-      "wrong_powerwall": "That is a different Powerwall from the one being set up.",
+      "no_sites": "No Powerwall was found on this Tesla account. Sign in with the Tesla account that owns the Powerwall (the one that shows it in the Tesla app).",
+      "register_failed": "Tesla did not register the key. The likely causes: Tesla refused the sign-in token (sign in again with a fresh app sign-in), the wrong energy site was chosen, or Tesla can't reach the Powerwall right now (check it shows as online in the Tesla app). Start the setup again; the log has Tesla's exact answer.",
+      "wrong_powerwall": "That is a different Powerwall from the one being set up. Choose the energy site with this Powerwall, or check the gateway address.",
       "reconfigure_successful": "The connection was changed.",
       "reauth_successful": "Access restored.",
-      "unique_id_mismatch": "The gateway at that address is a different Powerwall."
+      "unique_id_mismatch": "The gateway at that address is a different Powerwall. Enter this Powerwall's address, or add the other one as a new entry.",
+      "register_token_refused": "Tesla refused the sign-in token when registering the key. Start the setup again and paste a fresh refresh token from an app sign-in such as Auth app for Tesla (browser sign-ins are refused).",
+      "register_wrong_site": "Tesla doesn't know that energy site on this account. Start the setup again and choose the site with this Powerwall, signed in with the Tesla account that owns it.",
+      "register_unreachable": "Tesla could not reach the Powerwall to register the key. Check that it shows as online in the Tesla app (its internet connection), wait a few minutes and start the setup again."
     }
   },
   "options": {
@@ -171,12 +199,18 @@
         "description": "Your Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n**Recommended: an app sign-in.** Since October 2026 Tesla refuses sign-ins made in a normal browser for the Powerwall. Sign in with an app that shows Tesla's login in its own window, such as *Auth app for Tesla* (iOS, Android), and copy the **refresh token** it shows. Paste it below. Use a token made for this, not one another integration already uses: signing in elsewhere with the same token can log that integration out.\n\n**Or, browser sign-in** (may be refused by Tesla):\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
         "data": {
           "callback": "Refresh token, or callback address"
+        },
+        "data_description": {
+          "callback": "Paste the **refresh token** from an app sign-in (a long text, usually starting with `eyJ`), or the full `tesla://auth/callback?code=…` address from a browser sign-in. Each code works once and expires within minutes."
         }
       },
       "site": {
         "title": "Choose the Powerwall",
         "data": {
           "site": "Energy site"
+        },
+        "data_description": {
+          "site": "The energy site (Tesla app name) with this Powerwall."
         }
       },
       "unlink_account": {
@@ -190,8 +224,8 @@
       "owner_api_refused": "You signed in, but Tesla refuses this kind of sign-in for the Powerwall (HTTP 403). Browser sign-ins are blocked; paste a refresh token from an app sign-in such as Auth app for Tesla instead."
     },
     "abort": {
-      "no_sites": "No Powerwall was found on this Tesla account.",
-      "wrong_powerwall": "That Tesla account has no site with this Powerwall."
+      "no_sites": "No Powerwall was found on this Tesla account. Sign in with the Tesla account that owns the Powerwall (the one that shows it in the Tesla app).",
+      "wrong_powerwall": "That Tesla account has no site with this Powerwall. Sign in with the Tesla account that owns it."
     }
   },
   "entity": {
@@ -395,13 +429,13 @@
   },
   "exceptions": {
     "entry_not_found": {
-      "message": "No loaded Powerwall TEDAPI entry found."
+      "message": "No loaded Powerwall TEDAPI entry found. Check that the integration is set up and not disabled, or pass its config_entry_id."
     },
     "entry_ambiguous": {
       "message": "Several Powerwalls are set up: choose one with config_entry_id."
     },
     "dispatch_needs_v1r": {
-      "message": "Battery dispatch needs the signed (v1r) connection."
+      "message": "Battery dispatch needs the signed (v1r) connection. Register a key in the integration's setup (Reconfigure, or set it up again)."
     },
     "dispatch_soc_limit": {
       "message": "The battery level ({soc}%) is already past the {limit} limit."
@@ -410,7 +444,7 @@
       "message": "{power} W is above the {cap} W limit set in the integration options."
     },
     "max_backup_needs_v1r": {
-      "message": "A max backup needs the signed (v1r) connection."
+      "message": "A max backup needs the signed (v1r) connection. Register a key in the integration's setup, or start it in the Tesla app."
     }
   },
   "services": {
@@ -489,6 +523,9 @@
             "description": "The Tesla cloud backup for settings has stopped working, usually because the saved sign-in expired or was revoked. Local readings and control are not affected.\n\nYour Tesla account is used to register the key with the Powerwall and as a backup for changing settings when the local connection is down.\n\n**Recommended: an app sign-in.** Since October 2026 Tesla refuses sign-ins made in a normal browser for the Powerwall. Sign in with an app that shows Tesla's login in its own window, such as *Auth app for Tesla* (iOS, Android), and copy the **refresh token** it shows. Paste it below. Use a token made for this, not one another integration already uses: signing in elsewhere with the same token can log that integration out.\n\n**Or, browser sign-in** (may be refused by Tesla):\n1. Open this link on a computer, with the browser's developer tools open on the **Network** tab (F12):\n   [Sign in to Tesla]({url})\n2. Sign in. The last page will not load, because Tesla sends the browser to a `tesla://auth/callback?code=…` address.\n3. In the Network tab, find the request starting with `callback?code=` (or the `Location` header of the last redirect) and copy that full address.\n4. Paste it below. Codes expire within minutes and work once.",
             "data": {
               "callback": "Refresh token, or callback address"
+            },
+            "data_description": {
+              "callback": "Paste the **refresh token** from an app sign-in (a long text, usually starting with `eyJ`), or the full `tesla://auth/callback?code=…` address from a browser sign-in. Each code works once and expires within minutes."
             }
           },
           "site": {
@@ -504,8 +541,8 @@
           "owner_api_refused": "You signed in, but Tesla refuses this kind of sign-in for the Powerwall (HTTP 403). Browser sign-ins are blocked; paste a refresh token from an app sign-in such as Auth app for Tesla instead."
         },
         "abort": {
-          "no_sites": "No Powerwall was found on this Tesla account.",
-          "wrong_powerwall": "That Tesla account has no site with this Powerwall.",
+          "no_sites": "No Powerwall was found on this Tesla account. Sign in with the Tesla account that owns the Powerwall (the one that shows it in the Tesla app).",
+          "wrong_powerwall": "That Tesla account has no site with this Powerwall. Sign in with the Tesla account that owns it.",
           "entry_gone": "The Powerwall entry was removed."
         }
       }

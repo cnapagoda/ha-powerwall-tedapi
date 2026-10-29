@@ -1,0 +1,575 @@
+{
+  "config": {
+    "flow_title": "Powerwall ({host})",
+    "step": {
+      "user": {
+        "title": "Powerwall TEDAPI",
+        "description": "Zoek de Powerwall op je netwerk. Ondertekende toegang (v1r) geeft lokale metingen, lokale bediening en batterijsturing (dispatch); deze wizard kan de benodigde sleutel registreren.",
+        "menu_options": {
+          "gateway": "Gateway-adres invoeren",
+          "scan": "Mijn netwerk doorzoeken (duurt ongeveer 20 seconden)"
+        }
+      },
+      "scan": {
+        "title": "Gevonden Powerwalls",
+        "data": {
+          "found": "Gateway"
+        }
+      },
+      "gateway": {
+        "title": "Gateway",
+        "description": "**Gateway-adres:** het adres van de Powerwall op je thuisnetwerk (de router toont het als `teslapw_…`; het adres reserveren helpt, maar Home Assistant volgt de gateway ook als de router een nieuw adres meldt). Gebruik `192.168.91.1` alleen als Home Assistant op het eigen wifi-netwerk van de Powerwall zit.\n\n**Gateway-wachtwoord:** staat op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Home Assistant gebruikt de laatste 5 tekens om in te loggen op de gateway; dit wordt nu gecontroleerd.",
+        "data": {
+          "host": "Gateway-adres",
+          "gw_pwd": "Gateway-wachtwoord",
+          "wifi_host": "Wifi-terugvaladres"
+        },
+        "data_description": {
+          "host": "Het adres van de gateway op je thuisnetwerk, bijvoorbeeld `192.168.1.50`. Je router toont het als `teslapw_…`.",
+          "gw_pwd": "De laatste 5 tekens van het wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder), of het hele wachtwoord. Letters zijn hoofdletters.",
+          "wifi_host": "De wifi-hotspot van de Powerwall, gebruikt via dezelfde ondertekende verbinding als het thuisnetwerkadres niet meer antwoordt. Leeg laten als Home Assistant de hotspot niet kan bereiken."
+        }
+      },
+      "access": {
+        "title": "Kies hoe je verbindt",
+        "description": "Ondertekende toegang (v1r) heeft een sleutel nodig die deze Powerwall vertrouwt.",
+        "menu_options": {
+          "register": "Een nieuwe sleutel registreren (aanbevolen)",
+          "key_upload": "Een al geregistreerde sleutel uploaden",
+          "wifi": "Geen sleutel: alleen wifi-wachtwoord (monitoring)"
+        }
+      },
+      "key_upload": {
+        "title": "Sleutel uploaden",
+        "description": "Upload de private PEM-sleutel van een sleutel die bij deze Powerwall geregistreerd is (bijvoorbeeld met `python -m pypowerwall register`, status VERIFIED). Hij wordt gekopieerd naar de map `tesla_tedapi` van je configuratie en is alleen leesbaar voor Home Assistant.",
+        "data": {
+          "key_file": "Private sleutel (.pem)",
+          "cloud_backup": "Een Tesla-account koppelen als back-up voor instellingen"
+        },
+        "data_description": {
+          "key_file": "Het bestand met de private sleutel (`.pem`, begint met `-----BEGIN PRIVATE KEY-----` of `-----BEGIN RSA PRIVATE KEY-----`) waarvan de publieke sleutel op deze Powerwall geregistreerd en VERIFIED is. Niet de publieke sleutel.",
+          "cloud_backup": "Ook inloggen bij een Tesla-account, zodat instellingen nog via de Tesla-cloud kunnen worden gewijzigd als de lokale verbinding wegvalt."
+        }
+      },
+      "wifi": {
+        "title": "Verbinden via de wifi van de Powerwall",
+        "description": "Home Assistant moet verbonden zijn met het eigen wifi-netwerk van de Powerwall (TeslaPW_…). Deze verbinding kan alles lezen, maar kan geen instellingen wijzigen of de batterij sturen; koppel een Tesla-account om instellingen via de cloud te wijzigen.",
+        "data": {
+          "host": "Hotspot-adres",
+          "cloud_backup": "Een Tesla-account koppelen om instellingen te wijzigen"
+        },
+        "data_description": {
+          "host": "Meestal `192.168.91.1`, het adres van het eigen wifi-netwerk van de Powerwall (TeslaPW_…).",
+          "cloud_backup": "Zonder Tesla-account kan deze verbinding alleen lezen. Log in om instellingen via de Tesla-cloud te wijzigen."
+        }
+      },
+      "login": {
+        "title": "Inloggen bij Tesla",
+        "description": "Je Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\n**Aanbevolen: inloggen via een app.** Sinds oktober 2026 weigert Tesla voor de Powerwall aanmeldingen in een gewone browser. Log in met een app die de Tesla-aanmelding in een eigen venster toont, zoals *Auth app for Tesla* (iOS, Android), en kopieer de getoonde **refresh token**. Plak hem hieronder. Gebruik een token die hiervoor is gemaakt, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie uitloggen.\n\n**Of inloggen via de browser** (kan door Tesla worden geweigerd):\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.",
+        "data": {
+          "callback": "Refresh token of callback-adres"
+        },
+        "data_description": {
+          "callback": "Plak de **refresh token** van een app-aanmelding (een lange tekst, meestal beginnend met `eyJ`), of het volledige adres `tesla://auth/callback?code=…` van een browseraanmelding. Elke code werkt één keer en verloopt binnen enkele minuten."
+        }
+      },
+      "site": {
+        "title": "Kies de Powerwall",
+        "data": {
+          "site": "Energielocatie"
+        },
+        "data_description": {
+          "site": "De energielocatie (naam in de Tesla-app) met deze Powerwall. Kies je de Powerwall van een andere locatie, dan stopt de installatie."
+        }
+      },
+      "verify": {
+        "title": "Bevestigen bij de Powerwall"
+      },
+      "verify_failed": {
+        "title": "De Powerwall heeft de sleutel niet bevestigd",
+        "description": "Er kwam niet op tijd een bevestiging (of de sleutel is verwijderd). Kies **Verzenden** om de sleutel opnieuw te registreren en een nieuw venster van 10 minuten te openen, en voer dan de schakelstap uit."
+      },
+      "connect_failed": {
+        "title": "Kan geen verbinding maken",
+        "description": "De laatste verbindingscontrole is mislukt (zie de melding hieronder). Kies **Verzenden** om terug te gaan en het gateway-adres en wachtwoord te controleren."
+      },
+      "reauth_confirm": {
+        "title": "De Powerwall accepteert Home Assistant niet meer",
+        "description": "De gateway blijft het wachtwoord of de sleutel weigeren. Metingen stoppen tot dit is opgelost; instellingen werken nog via de Tesla-cloud als een account is gekoppeld.",
+        "menu_options": {
+          "reauth_password": "Gateway-wachtwoord opnieuw invoeren",
+          "register": "De sleutel opnieuw registreren",
+          "key_upload": "Een andere sleutel uploaden"
+        }
+      },
+      "reauth_password": {
+        "title": "Gateway-wachtwoord",
+        "data": {
+          "gw_pwd": "Gateway-wachtwoord"
+        },
+        "data_description": {
+          "gw_pwd": "De laatste 5 tekens van het wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder), of het hele wachtwoord. Letters zijn hoofdletters."
+        }
+      },
+      "reconfigure": {
+        "title": "Verbinding wijzigen",
+        "description": "Geef een RSA-sleutelbestand op om de ondertekende verbinding (v1r) te gebruiken; laat leeg voor de verbinding met wifi-wachtwoord.",
+        "data": {
+          "host": "Gateway-adres",
+          "gw_pwd": "Gateway-wachtwoord",
+          "rsa_key_path": "Bestand met private RSA-sleutel",
+          "wifi_host": "Wifi-terugvaladres (alleen ondertekend)"
+        },
+        "data_description": {
+          "host": "Het adres van de gateway op je thuisnetwerk, bijvoorbeeld `192.168.1.50`. Je router toont het als `teslapw_…`.",
+          "gw_pwd": "De laatste 5 tekens van het wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder), of het hele wachtwoord. Letters zijn hoofdletters.",
+          "rsa_key_path": "Volledig pad naar het bestand met de private sleutel op de Home Assistant-host, bijvoorbeeld `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laat leeg om de verbinding met wifi-wachtwoord te gebruiken (alleen lezen).",
+          "wifi_host": "Het adres van de wifi-hotspot van de Powerwall (meestal `192.168.91.1`), gebruikt als het thuisnetwerkadres niet meer antwoordt. Laat leeg als Home Assistant de hotspot niet kan bereiken."
+        }
+      }
+    },
+    "progress": {
+      "confirm_key": "De sleutel (vingerafdruk `{fingerprint}…`) is geregistreerd en wacht op fysieke bevestiging. Binnen ongeveer 10 minuten:\n\n- **Powerwall 3:** zet de aan/uit-schakelaar (linkerkant, onder het rode klepje voor snelle uitschakeling) ongeveer 15 seconden UIT en daarna weer AAN. Een korte tik wordt genegeerd; als hij uit blijft tot het apparaat uitschakelt, sluit het venster.\n- **Andere modellen:** de AC-groepsschakelaar van de Powerwall ongeveer 15 seconden uitzetten werkt naar verluidt bij sommige apparaten.\n\nDeze pagina controleert elke 10 seconden en gaat vanzelf verder zodra de Powerwall bevestigt. Als het venster sluit, wordt de sleutel één keer automatisch opnieuw geregistreerd."
+    },
+    "error": {
+      "cannot_connect": "Kan de Powerwall op dat adres niet bereiken. Controleer het adres (je router toont de gateway als `teslapw_…`), of de Powerwall aan staat en op hetzelfde netwerk als Home Assistant zit, en probeer het opnieuw.",
+      "invalid_gw_pwd": "De gateway heeft dit wachtwoord geweigerd. Controleer de QR-sticker (letters zijn hoofdletters).",
+      "password_required": "Ondertekende toegang heeft het gateway-wachtwoord nodig.",
+      "invalid_rsa_key": "Dat is geen private RSA-sleutel in PEM-formaat. Upload het bestand met de private sleutel (het begint met `-----BEGIN`), niet de publieke sleutel.",
+      "key_not_accepted": "De Powerwall heeft de sleutel niet geaccepteerd. Controleer of het de private sleutel is (niet de publieke), of hij voor deze Powerwall is geregistreerd en of de registratie VERIFIED is (de stap met de aan/uit-schakelaar is gedaan). Of kies **Een nieuwe sleutel registreren**.",
+      "invalid_auth": "Tesla heeft die token of code niet geaccepteerd. Er is een nieuwe aanmeldlink gemaakt; log opnieuw in en plak de nieuwe token of het nieuwe adres.",
+      "cloud_error": "De Tesla-dienst gaf een fout. Probeer het over een minuut opnieuw.",
+      "none_found": "Geen Powerwall antwoordde op dit netwerk. Voer in plaats daarvan het adres in (je router toont de gateway als `teslapw_…`).",
+      "owner_api_refused": "Je bent ingelogd, maar Tesla weigert dit soort aanmelding voor de Powerwall (HTTP 403). Browseraanmeldingen worden geblokkeerd; plak in plaats daarvan een refresh token van een app-aanmelding zoals Auth app for Tesla."
+    },
+    "abort": {
+      "already_configured": "Deze Powerwall is al ingesteld.",
+      "no_sites": "Er is geen Powerwall gevonden op dit Tesla-account. Log in met het Tesla-account dat eigenaar is van de Powerwall (het account dat hem in de Tesla-app toont).",
+      "register_failed": "Tesla heeft de sleutel niet geregistreerd. Waarschijnlijke oorzaken: Tesla weigerde de aanmeldtoken (log opnieuw in met een nieuwe app-aanmelding), de verkeerde energielocatie is gekozen, of Tesla kan de Powerwall nu niet bereiken (controleer of hij online is in de Tesla-app). Start de installatie opnieuw; het logboek bevat het exacte antwoord van Tesla.",
+      "wrong_powerwall": "Dat is een andere Powerwall dan de Powerwall die wordt ingesteld. Kies de energielocatie met deze Powerwall, of controleer het gateway-adres.",
+      "reconfigure_successful": "De verbinding is gewijzigd.",
+      "reauth_successful": "Toegang hersteld.",
+      "unique_id_mismatch": "De gateway op dat adres is een andere Powerwall. Voer het adres van deze Powerwall in, of voeg de andere toe als nieuwe vermelding.",
+      "register_token_refused": "Tesla weigerde de aanmeldtoken bij het registreren van de sleutel. Start de installatie opnieuw en plak een nieuwe refresh token van een app-aanmelding zoals Auth app for Tesla (browseraanmeldingen worden geweigerd).",
+      "register_wrong_site": "Tesla kent die energielocatie niet op dit account. Start de installatie opnieuw en kies de locatie met deze Powerwall, ingelogd met het Tesla-account dat eigenaar is.",
+      "register_unreachable": "Tesla kon de Powerwall niet bereiken om de sleutel te registreren. Controleer of hij online is in de Tesla-app (zijn internetverbinding), wacht een paar minuten en start de installatie opnieuw."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opties voor Powerwall TEDAPI",
+        "menu_options": {
+          "settings": "Instellingen",
+          "cloud_backup": "Cloud-back-up (Owner API, Tesla Fleet)",
+          "link_account": "Een Tesla-account koppelen (Owner API)",
+          "unlink_account": "Het Tesla-account ontkoppelen"
+        }
+      },
+      "settings": {
+        "title": "Instellingen",
+        "data": {
+          "scan_interval": "Pollinginterval",
+          "restore_export": "Instellingen herstellen als de Powerwall ze kwijtraakt",
+          "status_alert_events": "Waarschuwingsgebeurtenissen ook voor statusmeldingen",
+          "problem_minutes": "Probleemvertraging",
+          "dispatch_floor_reserve": "Ontladen stopt bij de back-upreserve",
+          "dispatch_max_watts": "Grootste dispatch-vermogen"
+        },
+        "data_description": {
+          "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding).",
+          "status_alert_events": "Statusmeldingen zoals \"Export limited\" beschrijven normale werking en sommige komen en gaan om de paar minuten; standaard maken alleen mededelingen, waarschuwingen en storingen waarschuwingsgebeurtenissen aan.",
+          "problem_minutes": "Hoe lang een waarschuwing of storing moet duren voordat de probleemsensor aangaat en een reparatie wordt gemeld.",
+          "dispatch_floor_reserve": "Een ontlading die zonder `min_soc` is gestart, stopt als de batterij de back-upreserve bereikt.",
+          "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd."
+        }
+      },
+      "cloud_backup": {
+        "title": "Cloud-back-up",
+        "description": "Als de lokale verbinding een instelling niet kan lezen of wijzigen, gaat het via de Tesla-cloud. Twee back-ups kunnen worden gebruikt, apart of na elkaar:\n\n- **Owner API**: een hier gekoppeld Tesla-account (*Een Tesla-account koppelen*). Momenteel {owner}.\n- **Tesla Fleet**: de aanmelding van de Home Assistant-integratie Tesla Fleet of Teslemetry, die de officiële Fleet API van Tesla gebruiken. Een geladen vermelding met deze Powerwall is momenteel {fleet}. De locatiegegevens worden zonder extra Tesla-aanroepen gelezen, en de token wordt hier nooit vernieuwd, zodat hij ingelogd blijft.\n\nMet beide worden instellingen gelezen van de eerste die antwoordt, en gaat een wijziging naar de eerste die hem accepteert. Elke back-up wordt ongeveer elk uur gecontroleerd; een back-up die niet meer werkt, krijgt een eigen reparatie terwijl de andere doorgaat.",
+        "data": {
+          "cloud_backends": "Cloud-back-up"
+        },
+        "data_description": {
+          "cloud_backends": "Alleen ingestelde back-ups worden aangeboden. Een instelling wijzigen via Tesla Fleet telt als een opdracht op dat Tesla-ontwikkelaarsaccount (of Teslemetry-abonnement); lezen kost niets extra."
+        }
+      },
+      "login": {
+        "title": "Inloggen bij Tesla",
+        "description": "Je Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\n**Aanbevolen: inloggen via een app.** Sinds oktober 2026 weigert Tesla voor de Powerwall aanmeldingen in een gewone browser. Log in met een app die de Tesla-aanmelding in een eigen venster toont, zoals *Auth app for Tesla* (iOS, Android), en kopieer de getoonde **refresh token**. Plak hem hieronder. Gebruik een token die hiervoor is gemaakt, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie uitloggen.\n\n**Of inloggen via de browser** (kan door Tesla worden geweigerd):\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.",
+        "data": {
+          "callback": "Refresh token of callback-adres"
+        },
+        "data_description": {
+          "callback": "Plak de **refresh token** van een app-aanmelding (een lange tekst, meestal beginnend met `eyJ`), of het volledige adres `tesla://auth/callback?code=…` van een browseraanmelding. Elke code werkt één keer en verloopt binnen enkele minuten."
+        }
+      },
+      "site": {
+        "title": "Kies de Powerwall",
+        "data": {
+          "site": "Energielocatie"
+        },
+        "data_description": {
+          "site": "De energielocatie (naam in de Tesla-app) met deze Powerwall."
+        }
+      },
+      "unlink_account": {
+        "title": "Het Tesla-account ontkoppelen",
+        "description": "Instellingen worden dan alleen via de lokale verbinding gewijzigd. De opgeslagen aanmelding blijft op schijf staan tot je de map `tesla_tedapi` verwijdert."
+      }
+    },
+    "error": {
+      "invalid_auth": "Tesla heeft die token of code niet geaccepteerd. Er is een nieuwe aanmeldlink gemaakt; log opnieuw in en plak de nieuwe token of het nieuwe adres.",
+      "cloud_error": "De Tesla-dienst gaf een fout. Probeer het over een minuut opnieuw.",
+      "owner_api_refused": "Je bent ingelogd, maar Tesla weigert dit soort aanmelding voor de Powerwall (HTTP 403). Browseraanmeldingen worden geblokkeerd; plak in plaats daarvan een refresh token van een app-aanmelding zoals Auth app for Tesla."
+    },
+    "abort": {
+      "no_sites": "Er is geen Powerwall gevonden op dit Tesla-account. Log in met het Tesla-account dat eigenaar is van de Powerwall (het account dat hem in de Tesla-app toont).",
+      "wrong_powerwall": "Dat Tesla-account heeft geen locatie met deze Powerwall. Log in met het Tesla-account dat eigenaar is."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "grid_connected": {
+        "name": "Net verbonden"
+      },
+      "dispatch_active": {
+        "name": "Dispatch actief"
+      },
+      "alert_problem": {
+        "name": "Probleem"
+      },
+      "backup_event": {
+        "name": "Back-upgebeurtenis"
+      },
+      "storm_watch_active": {
+        "name": "Storm Watch actief"
+      },
+      "grid_services_active": {
+        "name": "Netdiensten actief"
+      }
+    },
+    "number": {
+      "backup_reserve": {
+        "name": "Back-upreserve"
+      },
+      "off_grid_reserve": {
+        "name": "Off-grid reserve voor laden van voertuig"
+      }
+    },
+    "select": {
+      "operation_mode": {
+        "name": "Bedrijfsmodus",
+        "state": {
+          "self_consumption": "Zelfvoorzienend",
+          "backup": "Alleen back-up",
+          "autonomous": "Tijdgestuurd"
+        }
+      },
+      "grid_export": {
+        "name": "Modus teruglevering",
+        "state": {
+          "battery_ok": "Batterij en zon",
+          "pv_only": "Alleen zon",
+          "never": "Uitgeschakeld"
+        }
+      }
+    },
+    "sensor": {
+      "solar_power": {
+        "name": "Zonnevermogen"
+      },
+      "battery_power": {
+        "name": "Batterijvermogen"
+      },
+      "grid_power": {
+        "name": "Netvermogen"
+      },
+      "home_power": {
+        "name": "Huisverbruik"
+      },
+      "grid_import_power": {
+        "name": "Afname van het net"
+      },
+      "grid_export_power": {
+        "name": "Teruglevering aan het net"
+      },
+      "battery_discharge_power": {
+        "name": "Ontlaadvermogen batterij"
+      },
+      "battery_charge_power": {
+        "name": "Laadvermogen batterij"
+      },
+      "battery_level": {
+        "name": "Batterijniveau"
+      },
+      "battery_soe": {
+        "name": "Energiestand batterij"
+      },
+      "grid_status": {
+        "name": "Netstatus"
+      },
+      "grid_frequency": {
+        "name": "Netfrequentie"
+      },
+      "grid_voltage": {
+        "name": "Netspanning"
+      },
+      "grid_energy_imported": {
+        "name": "Energie afgenomen van het net"
+      },
+      "grid_energy_exported": {
+        "name": "Energie teruggeleverd aan het net"
+      },
+      "battery_energy_charged": {
+        "name": "Batterij geladen"
+      },
+      "battery_energy_discharged": {
+        "name": "Batterij ontladen"
+      },
+      "solar_energy_produced": {
+        "name": "Zonne-energie opgewekt"
+      },
+      "home_energy_consumed": {
+        "name": "Energie verbruikt door huis"
+      },
+      "battery_full_capacity": {
+        "name": "Volledige batterijcapaciteit"
+      },
+      "battery_energy_remaining": {
+        "name": "Resterende batterij-energie"
+      },
+      "battery_health": {
+        "name": "Batterijgezondheid"
+      },
+      "backup_time_remaining": {
+        "name": "Resterende back-uptijd"
+      },
+      "inverter_ambient_temperature": {
+        "name": "Omgevingstemperatuur omvormer"
+      },
+      "inverter_heatsink_temperature": {
+        "name": "Koellichaamtemperatuur omvormer"
+      },
+      "alerts": {
+        "name": "Waarschuwingen"
+      },
+      "gateway_started": {
+        "name": "Gateway laatst gestart"
+      },
+      "firmware_version": {
+        "name": "Firmwareversie"
+      },
+      "connection": {
+        "name": "Verbinding",
+        "state": {
+          "v1r": "Ondertekend (v1r)",
+          "wifi": "Wifi-wachtwoord"
+        }
+      },
+      "pack_capacity": {
+        "name": "{pack} capaciteit"
+      },
+      "pack_temperature": {
+        "name": "{pack} temperatuur"
+      },
+      "alert_level": {
+        "name": "Waarschuwingsniveau",
+        "state": {
+          "ok": "OK",
+          "notice": "Mededeling",
+          "warning": "Waarschuwing",
+          "fault": "Storing"
+        }
+      },
+      "active_alerts": {
+        "name": "Actieve waarschuwingen"
+      },
+      "string_power": {
+        "name": "Zonne-ingang {string} vermogen"
+      },
+      "string_voltage": {
+        "name": "Zonne-ingang {string} spanning"
+      },
+      "string_current": {
+        "name": "Zonne-ingang {string} stroom"
+      },
+      "setup_health": {
+        "name": "Installatiestatus",
+        "state": {
+          "ok": "OK",
+          "degraded": "Actie nodig"
+        }
+      },
+      "fan_speed": {
+        "name": "Ventilator {fan} toerental"
+      }
+    },
+    "switch": {
+      "grid_charging": {
+        "name": "Laden van het net"
+      },
+      "storm_watch": {
+        "name": "Storm Watch"
+      }
+    },
+    "event": {
+      "alert": {
+        "name": "Waarschuwing",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "raised": "Gestart",
+              "cleared": "Opgeheven"
+            }
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "Geen geladen Powerwall TEDAPI-vermelding gevonden. Controleer of de integratie is ingesteld en niet is uitgeschakeld, of geef haar config_entry_id op."
+    },
+    "entry_ambiguous": {
+      "message": "Er zijn meerdere Powerwalls ingesteld: kies er een met config_entry_id."
+    },
+    "dispatch_needs_v1r": {
+      "message": "Batterijsturing heeft de ondertekende verbinding (v1r) nodig. Registreer een sleutel in de installatie van de integratie (Opnieuw configureren, of opnieuw instellen)."
+    },
+    "dispatch_soc_limit": {
+      "message": "Het batterijniveau ({soc}%) is al voorbij de grens {limit}."
+    },
+    "dispatch_power_cap": {
+      "message": "{power} W is hoger dan de grens van {cap} W in de opties van de integratie."
+    },
+    "max_backup_needs_v1r": {
+      "message": "Een max-back-up heeft de ondertekende verbinding (v1r) nodig. Registreer een sleutel in de installatie van de integratie, of start hem in de Tesla-app."
+    }
+  },
+  "services": {
+    "dispatch_battery_power": {
+      "name": "Batterijvermogen sturen",
+      "description": "Laat de batterij een vaste tijd op een vast vermogen draaien via de ondertekende lokale verbinding. Positieve watts ontladen, negatieve laden, 0 houdt de batterij stil. Gaat boven de terugleverinstelling; een ontlading stopt bij de back-upreserve, tenzij `min_soc` is opgegeven (optie). De integratie vernieuwt de opdracht elke minuut in korte stappen, zodat de Powerwall binnen 5 minuten normaal werkt als Home Assistant stopt. Een nieuwe aanroep vervangt een lopende dispatch.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "power_watts": {
+          "name": "Vermogen",
+          "description": "Batterijvermogen in watt: positief ontlaadt, negatief laadt (tot 10.000)."
+        },
+        "duration_seconds": {
+          "name": "Duur",
+          "description": "Hoe lang dit vermogen wordt aangehouden, in seconden (tot 24 uur)."
+        },
+        "min_soc": {
+          "name": "Stop ontladen bij",
+          "description": "Beëindig een ontlading als het batterijniveau (schaal van de Tesla-app) tot dit percentage daalt. Standaard: de back-upreserve."
+        },
+        "max_soc": {
+          "name": "Stop laden bij",
+          "description": "Beëindig het laden als het batterijniveau (schaal van de Tesla-app) dit percentage bereikt."
+        }
+      }
+    },
+    "resume_battery_operation": {
+      "name": "Batterijwerking hervatten",
+      "description": "Beëindig een dispatch nu en geef de batterij terug aan de normale modus van de Powerwall.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        }
+      }
+    },
+    "start_max_backup": {
+      "name": "Max-back-up starten",
+      "description": "Start een back-upgebeurtenis via de ondertekende lokale verbinding: de Powerwall laadt volledig op (ook van het net) en houdt de batterij vol gedurende de opgegeven tijd, zoals Storm Watch doet. Een nieuwe aanroep vervangt een lopende max-back-up.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "duration_minutes": {
+          "name": "Duur",
+          "description": "Hoe lang de batterij vol blijft, in minuten (tot 48 uur)."
+        }
+      }
+    },
+    "cancel_max_backup": {
+      "name": "Max-back-up annuleren",
+      "description": "Beëindig een max-back-up die hier of in de Tesla-app is gestart. Door Tesla geplande Storm Watch-gebeurtenissen worden niet beïnvloed.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        }
+      }
+    }
+  },
+  "issues": {
+    "powerwall_alert": {
+      "title": "Powerwall-waarschuwing: {description}",
+      "description": "De Powerwall meldt **{alert}** ({description}) sinds {since} UTC.\n\nKorte waarschuwingen zoals deze zijn normaal terwijl de Powerwall herstart of nadat de aan/uit-schakelaar is gebruikt; deze duurt al langer dan {minutes} minuten. Controleer de Tesla-app. Als hij niet verdwijnt, neem contact op met je installateur of Tesla. Deze melding verdwijnt als de waarschuwing voorbij is."
+    },
+    "cloud_login": {
+      "title": "Opnieuw inloggen bij Tesla",
+      "fix_flow": {
+        "step": {
+          "login": {
+            "title": "Inloggen bij Tesla",
+            "description": "De Tesla-cloud-back-up voor instellingen werkt niet meer, meestal omdat de opgeslagen aanmelding is verlopen of ingetrokken. Lokale metingen en bediening worden niet beïnvloed.\n\nJe Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\n**Aanbevolen: inloggen via een app.** Sinds oktober 2026 weigert Tesla voor de Powerwall aanmeldingen in een gewone browser. Log in met een app die de Tesla-aanmelding in een eigen venster toont, zoals *Auth app for Tesla* (iOS, Android), en kopieer de getoonde **refresh token**. Plak hem hieronder. Gebruik een token die hiervoor is gemaakt, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie uitloggen.\n\n**Of inloggen via de browser** (kan door Tesla worden geweigerd):\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.",
+            "data": {
+              "callback": "Refresh token of callback-adres"
+            },
+            "data_description": {
+              "callback": "Plak de **refresh token** van een app-aanmelding (een lange tekst, meestal beginnend met `eyJ`), of het volledige adres `tesla://auth/callback?code=…` van een browseraanmelding. Elke code werkt één keer en verloopt binnen enkele minuten."
+            }
+          },
+          "site": {
+            "title": "Kies de Powerwall",
+            "data": {
+              "site": "Energielocatie"
+            }
+          }
+        },
+        "error": {
+          "invalid_auth": "Tesla heeft die token of code niet geaccepteerd. Er is een nieuwe aanmeldlink gemaakt; log opnieuw in en plak de nieuwe token of het nieuwe adres.",
+          "cloud_error": "De Tesla-dienst gaf een fout. Probeer het over een minuut opnieuw.",
+          "owner_api_refused": "Je bent ingelogd, maar Tesla weigert dit soort aanmelding voor de Powerwall (HTTP 403). Browseraanmeldingen worden geblokkeerd; plak in plaats daarvan een refresh token van een app-aanmelding zoals Auth app for Tesla."
+        },
+        "abort": {
+          "no_sites": "Er is geen Powerwall gevonden op dit Tesla-account. Log in met het Tesla-account dat eigenaar is van de Powerwall (het account dat hem in de Tesla-app toont).",
+          "wrong_powerwall": "Dat Tesla-account heeft geen locatie met deze Powerwall. Log in met het Tesla-account dat eigenaar is.",
+          "entry_gone": "De Powerwall-vermelding is verwijderd."
+        }
+      }
+    },
+    "fleet_backup": {
+      "title": "Tesla Fleet-cloud-back-up werkt niet",
+      "description": "De integratie Powerwall TEDAPI gebruikt de integratie Tesla Fleet (of Teslemetry) als cloud-back-up voor instellingen, en de laatste controles zijn mislukt. Lokale metingen en bediening worden niet beïnvloed.\n\nControleer of de integratie Tesla Fleet of Teslemetry is ingeschakeld, geladen en ingelogd (authenticeer opnieuw als daarom wordt gevraagd), en of deze Powerwall op het bijbehorende Tesla-account staat. Deze melding verdwijnt na de volgende geslaagde controle (ongeveer elk uur). Om hem niet meer te gebruiken, kies je een andere cloud-back-up in de opties van deze integratie."
+    },
+    "fleet_read_only": {
+      "title": "Tesla Fleet-cloud-back-up kan geen instellingen wijzigen",
+      "description": "De Tesla Fleet- (of Teslemetry-)aanmelding die als cloud-back-up wordt gebruikt, kan de instellingen van de Powerwall lezen maar niet wijzigen: de machtiging **energy_cmds** (energieopdrachten) ontbreekt. Wijzigingen gaan naar de volgende cloud-back-up, als die er is.\n\nLog opnieuw in bij die integratie (opnieuw configureren of opnieuw authenticeren) en sta de machtiging voor energieopdrachten toe. Deze melding verdwijnt bij de volgende controle daarna."
+    }
+  },
+  "selector": {
+    "found": {
+      "options": {
+        "manual": "Zelf het adres invoeren"
+      }
+    },
+    "cloud_backends": {
+      "options": {
+        "none": "Geen (alleen lokaal)",
+        "owner_api": "Owner API (hier gekoppeld Tesla-account)",
+        "tesla_fleet": "Tesla Fleet (of Teslemetry)",
+        "fleet_then_owner": "Tesla Fleet, daarna Owner API",
+        "owner_then_fleet": "Owner API, daarna Tesla Fleet"
+      }
+    }
+  }
+}

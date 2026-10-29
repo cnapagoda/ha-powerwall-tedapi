@@ -18,6 +18,9 @@
 - **Grid connected** binary sensor: on while on the grid, off during an outage, *Go off-grid* or while syncing back. Read locally.
 - **Grid import / export power** and **Battery charge / discharge power** sensors: the signed power readings split by direction, never negative.
 - **Fan speed** sensors (diagnostic): the Powerwall 3 inverter's two fans (with drive duty), or each Powerwall 2's fan (with target speed), from the readings already fetched.
+- **Help text** under the setup fields: gateway address and password, key file, sign-in token or callback address, energy site, and the reconfigure fields.
+- **Clearer failures.** A failed key registration now says why: Tesla refused the sign-in token, the energy site is wrong, or Tesla can't reach the Powerwall, each with what to do (anything else lists all three). Connection, key, account and action errors also say what to check.
+- **Translations:** German, French, Dutch, Spanish, Italian, Polish and Brazilian Portuguese.
 
 ## 2.2.1
 

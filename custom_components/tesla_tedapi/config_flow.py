@@ -99,6 +99,18 @@ VERIFY_POLL_SECONDS = 10
 VERIFY_WINDOW_SECONDS = 600
 
 
+def _register_failure(err: Exception) -> str:
+    """Abort reason for a failed key registration, by its likely cause."""
+    status = getattr(err, "status", None)
+    if isinstance(err, tesla_cloud.TeslaAuthError):
+        return "register_token_refused"
+    if status == 404:
+        return "register_wrong_site"
+    if status in (408, 502, 503, 504) or "offline" in str(err).lower() or "timeout" in str(err).lower():
+        return "register_unreachable"
+    return "register_failed"
+
+
 class CannotConnect(Exception):
     """The gateway did not answer."""
 
@@ -463,7 +475,7 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
                 tesla_cloud.register_key, self._site.site_id, self._token["access_token"], self._public_der)
         except tesla_cloud.TeslaCloudError as err:
             _LOGGER.warning("Key registration failed: %s", err)
-            return self.async_abort(reason="register_failed")
+            return self.async_abort(reason=_register_failure(err))
         self._data[CONF_RSA_KEY_PATH] = key_path
         if self._key_state == tesla_cloud.KEY_VERIFIED:
             return await self._async_connect()
