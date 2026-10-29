@@ -324,3 +324,49 @@ async def test_cloud_login_repair_flow(hass: HomeAssistant) -> None:
     assert result["type"] == "create_entry"
     assert entry.data["owners_email"] == "new@example.com" and entry.data["site_id"] == 42
     reload.assert_called_once_with(entry.entry_id)
+
+
+async def test_split_power(hass: HomeAssistant, fake_powerwall) -> None:
+    # Fake readings: grid +100 W (importing), battery -500 W (charging).
+    await _setup(hass, V1R)
+    values = {key: hass.states.get(_eid(hass, "sensor", key)).state for key in (
+        "grid_import_power", "grid_export_power", "battery_discharge_power", "battery_charge_power")}
+    assert values == {"grid_import_power": "100.0", "grid_export_power": "0.0",
+                      "battery_discharge_power": "0.0", "battery_charge_power": "500.0"}
+
+
+async def test_grid_connected(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, V1R)
+    grid = _eid(hass, "binary_sensor", "grid_connected")
+    assert hass.states.get(grid).state == "on"
+    for status, state in (("DOWN", "off"), ("SYNCING", "off"), ("UP", "on")):
+        fake_powerwall.grid = status
+        await _refresh(hass, entry)
+        assert hass.states.get(grid).state == state
+        assert hass.states.get(grid).attributes["grid_status"] == status
+    fake_powerwall.fail_local = True
+    entry.runtime_data.coordinator._pw = None
+    await _refresh(hass, entry)
+    assert hass.states.get(grid).state == "unavailable"
+
+
+async def test_fan_speeds(hass: HomeAssistant, fake_powerwall) -> None:
+    await _setup(hass, V1R)
+    fan_a = hass.states.get(_eid(hass, "sensor", "fan_A_speed"))
+    assert fan_a.state == "1395.0"
+    assert fan_a.attributes["duty"] == 19.1
+    assert hass.states.get(_eid(hass, "sensor", "fan_B_speed")).state == "1397.0"
+
+
+def test_fan_extraction() -> None:
+    from custom_components.tesla_tedapi.coordinator import _extract_fans
+
+    pw3 = {"TEPINV--1707000-11-J--A": {"PCH_FanSpeed_A": 1395, "PCH_FanSpeed_B": None, "PCH_FanDuty_A": 19.1},
+           "TEPINV--1707000-11-J--B": {"PCH_FanSpeed_A": 1200, "PCH_FanDuty_A": 15.0},
+           "PVAC--x--y": {"PVAC_Fan_Speed_Actual_RPM": 999}}
+    assert _extract_fans(pw3) == {"A": {"rpm": 1395.0, "duty": 19.1}, "2A": {"rpm": 1200.0, "duty": 15.0}}
+    pw2 = {"PVAC--1--a": {"PVAC_Fan_Speed_Actual_RPM": 2000, "PVAC_Fan_Speed_Target_RPM": 2100},
+           "PVAC--1--b": {"PVAC_Fan_Speed_Target_RPM": 0},
+           "TEPINV--1--a": {"PINV_Fout": 50.0}}
+    assert _extract_fans(pw2) == {"1": {"rpm": 2000.0, "target_rpm": 2100.0}}
+    assert _extract_fans({}) == {}

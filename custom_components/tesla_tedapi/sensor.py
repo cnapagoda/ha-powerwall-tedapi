@@ -13,6 +13,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import (
     PERCENTAGE,
+    REVOLUTIONS_PER_MINUTE,
     EntityCategory,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
@@ -66,6 +67,19 @@ def _power(key: str) -> TedapiSensorEntityDescription:
     )
 
 
+def _split_power(key: str, source: str, sign: int) -> TedapiSensorEntityDescription:
+    """One direction of a signed power reading, never negative (0 when the
+    power flows the other way)."""
+    return TedapiSensorEntityDescription(
+        key=key,
+        translation_key=key,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda d, s=source: round(max(sign * d[s], 0.0), 1) if d.get(s) is not None else None,
+    )
+
+
 def _energy(key: str) -> TedapiSensorEntityDescription:
     return TedapiSensorEntityDescription(
         key=key,
@@ -84,6 +98,11 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
     _power("battery_power"),
     _power("grid_power"),
     _power("home_power"),
+    # The same, split by direction
+    _split_power("grid_import_power", "grid_power", 1),
+    _split_power("grid_export_power", "grid_power", -1),
+    _split_power("battery_discharge_power", "battery_power", 1),
+    _split_power("battery_charge_power", "battery_power", -1),
     # Charge
     TedapiSensorEntityDescription(
         key="battery_level",
@@ -308,6 +327,26 @@ def _string_sensors(name: str) -> list[TedapiSensorEntityDescription]:
     ]
 
 
+def _fan(d: dict[str, Any], name: str) -> dict[str, Any]:
+    return (d.get("fans") or {}).get(name) or {}
+
+
+def _fan_sensor(name: str) -> TedapiSensorEntityDescription:
+    """Inverter fan `name`: measured speed, with the drive duty (Powerwall 3)
+    or target speed (Powerwall 2) in the attributes."""
+    return TedapiSensorEntityDescription(
+        key=f"fan_{name}_speed",
+        translation_key="fan_speed",
+        translation_placeholders={"fan": name},
+        native_unit_of_measurement=REVOLUTIONS_PER_MINUTE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=0,
+        value_fn=lambda d, n=name: _fan(d, n).get("rpm"),
+        attrs_fn=lambda d, n=name: {k: v for k, v in _fan(d, n).items() if k != "rpm"},
+    )
+
+
 def _pack(d: dict[str, Any], serial: str) -> dict[str, Any]:
     return (d.get("packs") or {}).get(serial) or {}
 
@@ -354,9 +393,9 @@ async def async_setup_entry(
     coordinator = entry.runtime_data.coordinator
     async_add_entities(TedapiSensor(coordinator, d) for d in SENSORS)
 
-    # Solar inputs and battery packs come from the readings: add them when they
-    # first appear (also after a start with the gateway unreachable, or when an
-    # expansion pack is installed later).
+    # Solar inputs, inverter fans and battery packs come from the readings: add
+    # them when they first appear (also after a start with the gateway
+    # unreachable, or when an expansion pack is installed later).
     known: set[str] = set()
 
     @callback
@@ -369,6 +408,10 @@ async def async_setup_entry(
             if f"string_{name}" not in known and _input_in_use(values):
                 known.add(f"string_{name}")
                 new += _string_sensors(name)
+        for name in data.get("fans") or {}:
+            if f"fan_{name}" not in known:
+                known.add(f"fan_{name}")
+                new.append(_fan_sensor(name))
         for serial, pack in (data.get("packs") or {}).items():
             if f"pack_{serial}" not in known:
                 known.add(f"pack_{serial}")

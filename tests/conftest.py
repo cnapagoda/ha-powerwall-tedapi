@@ -37,6 +37,7 @@ class FakePowerwall:
     storm_capable = True
     backup_events: dict | None = None
     extra_packs: dict[str, dict] = {}
+    grid = "UP"
 
     def __init__(self, host: str = "", cloudmode: bool = False, **kwargs: Any) -> None:
         self.kwargs = {"host": host, "cloudmode": cloudmode, **kwargs}
@@ -68,7 +69,7 @@ class FakePowerwall:
         return FakePowerwall.soe
 
     def grid_status(self):
-        return "UP"
+        return FakePowerwall.grid
 
     def _config(self, force=False):
         site_info = {"backup_reserve_percent": 24.0}
@@ -123,7 +124,9 @@ class FakePowerwall:
         # Shape of pypowerwall's TEDAPI vitals for a Powerwall 3 (get_pw3_vitals).
         return {
             "TEPINV--1707000-11-J--TG0123456789AB": {"PINV_Fout": 50.01, "PINV_Vout": 241.2,
-                                                     "PCH_AmbientTemp": 25.0, "PCH_heatsinkTemp": 30.0},
+                                                     "PCH_AmbientTemp": 25.0, "PCH_heatsinkTemp": 30.0,
+                                                     "PCH_FanSpeed_A": 1395, "PCH_FanSpeed_B": 1397,
+                                                     "PCH_FanDuty_A": 19.1, "PCH_FanDuty_B": 19.1},
             "TEPOD--1707000-11-J--TG0123456789AB": {"POD_nom_full_pack_energy": 13900,
                                                     "POD_nom_energy_remaining": 7000,
                                                     "HVP_PackTempMax": 24.0, "HVP_PackTempMin": 22.0},
@@ -237,6 +240,7 @@ def fake_powerwall():
     FakePowerwall.storm_capable = True
     FakePowerwall.backup_events = {"manual_backup": None, "backup_events": []}
     FakePowerwall.extra_packs = {}
+    FakePowerwall.grid = "UP"
     with patch("pypowerwall.Powerwall", FakePowerwall):
         yield FakePowerwall
 

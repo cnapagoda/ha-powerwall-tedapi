@@ -1,6 +1,12 @@
 {
   "entity": {
     "binary_sensor": {
+      "grid_connected": {
+        "default": "mdi:transmission-tower",
+        "state": {
+          "off": "mdi:transmission-tower-off"
+        }
+      },
       "dispatch_active": {
         "default": "mdi:battery-sync",
         "state": {
@@ -134,6 +140,21 @@
         "state": {
           "degraded": "mdi:alert-outline"
         }
+      },
+      "grid_import_power": {
+        "default": "mdi:transmission-tower-import"
+      },
+      "grid_export_power": {
+        "default": "mdi:transmission-tower-export"
+      },
+      "battery_discharge_power": {
+        "default": "mdi:battery-arrow-down"
+      },
+      "battery_charge_power": {
+        "default": "mdi:battery-arrow-up"
+      },
+      "fan_speed": {
+        "default": "mdi:fan"
       }
     },
     "switch": {

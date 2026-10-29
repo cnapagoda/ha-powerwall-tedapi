@@ -196,6 +196,9 @@
   },
   "entity": {
     "binary_sensor": {
+      "grid_connected": {
+        "name": "Grid connected"
+      },
       "dispatch_active": {
         "name": "Dispatch active"
       },
@@ -250,6 +253,18 @@
       },
       "home_power": {
         "name": "Home power"
+      },
+      "grid_import_power": {
+        "name": "Grid import power"
+      },
+      "grid_export_power": {
+        "name": "Grid export power"
+      },
+      "battery_discharge_power": {
+        "name": "Battery discharge power"
+      },
+      "battery_charge_power": {
+        "name": "Battery charge power"
       },
       "battery_level": {
         "name": "Battery level"
@@ -351,6 +366,9 @@
           "ok": "OK",
           "degraded": "Needs attention"
         }
+      },
+      "fan_speed": {
+        "name": "Fan {fan} speed"
       }
     },
     "switch": {

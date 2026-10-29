@@ -261,14 +261,17 @@ All entities belong to one device, **Powerwall TEDAPI**.
 | Entity | Notes |
 |---|---|
 | Solar / Battery / Grid / Home power (W) | Battery: + discharging, − charging. Grid: + importing, − exporting. |
+| Grid import / export power, Battery charge / discharge power (W) | The same readings split by direction, never negative (0 while the power flows the other way). |
 | **Battery level** (%) | Same scale as the Tesla app. |
 | Battery state of energy (%) | The gateway's raw value, about 2–4 points higher than the app (the app hides the bottom 5 %). |
 | Grid status, frequency, voltage | |
+| **Grid connected** (binary sensor) | On while the Powerwall is on the grid. Off during an outage or *Go off-grid*, and while it syncs to reconnect. `grid_status` attribute: `UP`, `DOWN` or `SYNCING`. |
 | Lifetime energy: grid imported/exported, battery charged/discharged, solar produced, home consumed (kWh) | `total_increasing`, ready for the **Energy dashboard**. |
 | Battery full capacity, energy remaining (kWh), health (%) | Health = full capacity ÷ (13.5 kWh × packs). |
 | Per-pack capacity and temperature | One pair per Powerwall / expansion pack. |
 | Solar input *A–F* power (W), voltage, current | Powerwall 3 built-in inverter, one set per input in use (voltage and current are disabled by default). Not created when your solar has its own inverter. Packs and inputs added later appear by themselves. |
 | Backup time remaining (h), inverter temperatures, gateway last started, firmware, connection | Diagnostics. |
+| Fan *A*/*B* speed (rpm) | Diagnostics. Powerwall 3: the inverter's two fans, with the drive `duty` (%) as an attribute. Powerwall 2: one fan per Powerwall (*Fan 1*), with its `target_rpm`. Only created when the gateway reports fan speeds. |
 | **Setup health** | `OK` or `Needs attention`. Attributes list the checks (password set, signed connection, gateway reachable, energy counters, cloud backup working) and when the Owner API token expires. Each cloud backup is checked with a real read about once an hour (`cloud_backends`, `cloud_last_ok`). |
 | Alert level, Active alerts, Alerts (sensors), Problem (binary sensor), Alert (event) | See [Alerts](#alerts). |
 | **Operation mode**, **Grid export mode** (select) | Settings. These need a signed connection or a linked Tesla account. Grid export mode also shows `missing_on_powerwall`, `restored_count` and `last_restored` (see [Dropped settings](#dropped-settings)). |

@@ -15,6 +15,9 @@
 - **`tesla_tedapi.start_max_backup` / `cancel_max_backup`** actions (signed connection): charge to full and hold for a set time, locally, the same command Storm Watch uses.
 - **Storm Watch** switch and **Storm Watch active** binary sensor, through the cloud backup (Tesla Fleet data, or the Owner API every 30 minutes), on sites Tesla reports as Storm Watch capable.
 - **Grid services active** binary sensor and **Off-grid vehicle charging reserve** number, through the cloud backup, only on sites that use them.
+- **Grid connected** binary sensor: on while on the grid, off during an outage, *Go off-grid* or while syncing back. Read locally.
+- **Grid import / export power** and **Battery charge / discharge power** sensors: the signed power readings split by direction, never negative.
+- **Fan speed** sensors (diagnostic): the Powerwall 3 inverter's two fans (with drive duty), or each Powerwall 2's fan (with target speed), from the readings already fetched.
 
 ## 2.2.1
 

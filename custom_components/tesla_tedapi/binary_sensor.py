@@ -1,4 +1,4 @@
-"""Dispatch session state."""
+"""Grid connection, alerts, dispatch sessions, backup events and cloud states."""
 from __future__ import annotations
 
 from typing import Any
@@ -18,7 +18,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data.coordinator
-    entities: list[BinarySensorEntity] = [AlertProblemSensor(coordinator)]
+    entities: list[BinarySensorEntity] = [GridConnectedSensor(coordinator), AlertProblemSensor(coordinator)]
     dispatch = entry.runtime_data.dispatch
     if dispatch is not None:
         entities.append(DispatchActiveSensor(coordinator, dispatch))
@@ -31,6 +31,29 @@ async def async_setup_entry(
             ("grid_services_enabled",
              lambda: CloudStateSensor(coordinator, "grid_services_active", "grid_services_active")),
         ])
+
+
+class GridConnectedSensor(TedapiEntity, BinarySensorEntity):
+    """On while the Powerwall is connected to the grid; off while it runs off
+    grid (an outage, or "Go off-grid") and while it syncs to reconnect."""
+
+    _attr_translation_key = "grid_connected"
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+
+    def __init__(self, coordinator: TedapiCoordinator) -> None:
+        super().__init__(coordinator, "grid_connected")
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.data.get("local_ok")) and self.data.get("grid_status") is not None
+
+    @property
+    def is_on(self) -> bool:
+        return self.data.get("grid_status") == "UP"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"grid_status": self.data.get("grid_status")}
 
 
 class AlertProblemSensor(TedapiEntity, BinarySensorEntity):

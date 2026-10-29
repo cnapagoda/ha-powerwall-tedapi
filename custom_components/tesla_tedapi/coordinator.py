@@ -119,6 +119,34 @@ def _extract_strings(vitals: dict) -> dict[str, dict[str, Any]]:
     return strings
 
 
+def _extract_fans(vitals: dict) -> dict[str, dict[str, Any]]:
+    """Inverter fan speeds (RPM): fans A and B of each Powerwall 3 inverter
+    (TEPINV blocks, with the drive duty in %), or one fan per Powerwall 2
+    inverter (PVAC blocks, with the target speed). Fans of later inverters
+    are numbered like the solar inputs ("2A", "2")."""
+
+    def num(v):
+        return round(float(v), 1) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
+    def blocks(prefix: str) -> list[dict]:
+        return [vitals[k] for k in sorted(vitals or {}) if k.split("--")[0] == prefix and isinstance(vitals[k], dict)]
+
+    fans: dict[str, dict[str, Any]] = {}
+    for index, d in enumerate(blocks("TEPINV"), start=1):
+        for letter in "AB":
+            rpm = num(d.get(f"PCH_FanSpeed_{letter}"))
+            if rpm is not None:
+                fans[letter if index == 1 else f"{index}{letter}"] = {
+                    "rpm": rpm, "duty": num(d.get(f"PCH_FanDuty_{letter}"))}
+    if fans:
+        return fans
+    for index, d in enumerate(blocks("PVAC"), start=1):
+        rpm = num(d.get("PVAC_Fan_Speed_Actual_RPM"))
+        if rpm is not None:
+            fans[str(index)] = {"rpm": rpm, "target_rpm": num(d.get("PVAC_Fan_Speed_Target_RPM"))}
+    return fans
+
+
 def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
     """Per-pack capacity, charge and temperatures from TEPOD vitals blocks."""
 
@@ -383,6 +411,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "din": din,
             "firmware_version": version,
             "strings": _extract_strings(vitals),
+            "fans": _extract_fans(vitals),
             "tedapi_mode": getattr(pw, "tedapi_mode", None),
             "backup_event": self._read_backup_event(pw),
             **self._fetch_extras(pw, vitals),
