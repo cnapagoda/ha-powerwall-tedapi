@@ -54,12 +54,22 @@ class EnergySite:
     name: str
 
 
+# Added to pypowerwall's login URL, as the Tesla app's own sign-in does:
+# prompt=login always shows Tesla's sign-in form instead of reusing a browser
+# session. Codes from links without it got 403 from the Owner API in testing
+# (2026-10-30), while the same steps with it got 200.
+LOGIN_URL_EXTRA = {"locale": "en", "prompt": "login"}
+
+
 def start_login() -> LoginStart:
     """Build the Tesla login URL (OAuth PKCE, same client as the Tesla app)."""
     from pypowerwall.tesla_auth import _build_auth_url  # noqa: PLC0415
 
     url, verifier, state = _build_auth_url()
-    return LoginStart(url, verifier, state)
+    parts = urllib.parse.urlsplit(url)
+    query = [(k, v) for k, v in urllib.parse.parse_qsl(parts.query) if k not in LOGIN_URL_EXTRA]
+    query += list(LOGIN_URL_EXTRA.items())
+    return LoginStart(urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query))), verifier, state)
 
 
 def parse_callback(text: str, expected_state: str | None) -> str:

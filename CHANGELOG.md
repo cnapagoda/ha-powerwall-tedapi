@@ -25,6 +25,7 @@
 - Setting, dispatch and max backup errors are translated, and say what to check. A change that the Powerwall and the cloud backup both refuse logs each reason.
 - `PARALLEL_UPDATES` is set on every platform: setting changes go one at a time.
 - **Tesla sign-in link stays put** unless a code from it reached Tesla. A paste from an older link, a mistyped address or a refused refresh token no longer replaces the link, so a sign-in tab that is still open keeps working. New messages say which case it was: a callback that isn't from the current link, or a refresh token Tesla rejected.
+- **Tesla sign-in link** now includes `locale=en` and `prompt=login`, like the Tesla app's own sign-in. With `prompt=login` Tesla always shows its sign-in form instead of reusing a browser session; codes from links without it were refused by the Owner API (HTTP 403) in testing, while the same steps with it worked.
 - `quality_scale.yaml` records each rule of Home Assistant's integration quality scale: Bronze to Gold done, except dependency transparency (pypowerwall's PyPI releases), and Platinum still to do.
 - README: new sections *Data updates*, *Use cases*, *Known limitations* and *Removing*, and a troubleshooting row for the backup reserve that Tesla's cloud caps at 80 %.
 - Tests: the config flow, the gateway login and the Tesla account helpers are fully covered (96 % overall), including the Tesla Fleet fallback for every setting.

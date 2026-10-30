@@ -82,8 +82,26 @@ def test_gateway_ignores_its_certificate() -> None:
 
 
 def test_start_login() -> None:
-    with patch("pypowerwall.tesla_auth._build_auth_url", return_value=("https://auth", "verifier", "state")):
-        assert tesla_cloud.start_login() == tesla_cloud.LoginStart("https://auth", "verifier", "state")
+    url = ("https://auth.tesla.com/oauth2/v3/authorize?client_id=ownerapi&code_challenge=abc"
+           "&code_challenge_method=S256&redirect_uri=tesla%3A%2F%2Fauth%2Fcallback&response_type=code"
+           "&scope=openid+email+offline_access&state=st")
+    with patch("pypowerwall.tesla_auth._build_auth_url", return_value=(url, "verifier", "st")):
+        login = tesla_cloud.start_login()
+    assert (login.code_verifier, login.state) == ("verifier", "st")
+    # pypowerwall's link, unchanged, with locale and prompt=login added (as the Tesla app signs in).
+    assert login.url == url + "&locale=en&prompt=login"
+
+
+def test_start_login_with_real_pypowerwall() -> None:
+    from urllib.parse import parse_qs, urlsplit
+
+    login = tesla_cloud.start_login()
+    params = {k: v[0] for k, v in parse_qs(urlsplit(login.url).query).items()}
+    assert params["client_id"] == "ownerapi"
+    assert params["redirect_uri"] == "tesla://auth/callback"
+    assert params["scope"] == "openid email offline_access"
+    assert params["state"] == login.state
+    assert params["locale"] == "en" and params["prompt"] == "login"
 
 
 def test_parse_callback() -> None:
