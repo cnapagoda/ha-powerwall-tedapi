@@ -51,6 +51,7 @@ from .const import (
     BACKEND_OWNER,
     CLOUD_CHOICES,
     CLOUD_WITH_OWNER,
+    CLOUD_WITHOUT_FLEET,
     CLOUD_WITHOUT_OWNER,
     CONF_CLOUD_BACKENDS,
     CONF_CONNECTION_MODE,
@@ -89,6 +90,7 @@ CONF_CLOUD = "cloud_backup"
 CONF_SITE = "site"
 CONF_KEY_FILE = "key_file"
 CONF_FOUND = "found"
+CONF_BACKUP = "backup"
 MANUAL = "manual"
 
 PASSWORD = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
@@ -693,9 +695,19 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         self._init_login()
         self._din: str | None = None
 
+    def _backups_in_use(self) -> list[str]:
+        """Cloud backups this entry uses, in order: what Unlink offers."""
+        names = CLOUD_CHOICES.get(cloud_choice(self.config_entry.data, self.config_entry.options), ())
+        return [name for name in names
+                if name != BACKEND_OWNER or self.config_entry.data.get(CONF_OWNERS_EMAIL)]
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        account = "unlink_account" if self.config_entry.data.get(CONF_OWNERS_EMAIL) else "link_account"
-        return self.async_show_menu(step_id="init", menu_options=["settings", "cloud_backup", account])
+        menu = ["settings", "cloud_backup"]
+        if not self.config_entry.data.get(CONF_OWNERS_EMAIL):
+            menu.append("link_account")
+        if self._backups_in_use():
+            menu.append("unlink_account")
+        return self.async_show_menu(step_id="init", menu_options=menu)
 
     async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
@@ -774,8 +786,19 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         return self.async_create_entry(data=options)
 
     async def async_step_unlink_account(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Stop using one cloud backup: the Owner API (the Tesla account linked
+        here is removed) or Tesla Fleet (its integration is left as it is)."""
+        in_use = self._backups_in_use()
         if user_input is not None:
+            if user_input[CONF_BACKUP] == BACKEND_FLEET:
+                return self._save(data=dict(self.config_entry.data),
+                                  options=self._options_with(CLOUD_WITHOUT_FLEET))
             data = {k: v for k, v in self.config_entry.data.items()
                     if k not in (CONF_OWNERS_EMAIL, CONF_OWNERS_AUTHPATH, CONF_SITE_ID)}
             return self._save(data=data, options=self._options_with(CLOUD_WITHOUT_OWNER))
-        return self.async_show_form(step_id="unlink_account", data_schema=vol.Schema({}))
+        return self.async_show_form(
+            step_id="unlink_account",
+            data_schema=vol.Schema({vol.Required(CONF_BACKUP, default=in_use[0]): SelectSelector(
+                SelectSelectorConfig(options=in_use, translation_key="cloud_backends",
+                                     mode=SelectSelectorMode.LIST))}),
+        )

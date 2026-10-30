@@ -261,7 +261,7 @@ async def test_options_settings_and_unlink(hass: HomeAssistant) -> None:
         result = await hass.config_entries.options.async_init(entry.entry_id)
         result = await hass.config_entries.options.async_configure(
             result["flow_id"], {"next_step_id": "unlink_account"})
-        result = await hass.config_entries.options.async_configure(result["flow_id"], {})
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"backup": "owner_api"})
     assert "owners_email" not in entry.data
     assert entry.options["scan_interval"] == 45
 

@@ -65,12 +65,12 @@
       },
       "login": {
         "title": "Entrar na Tesla",
-        "description": "Sua conta Tesla é usada para registrar a chave na Powerwall e como reserva para alterar configurações quando a conexão local cai.\n\n**Recomendado: entrar por um app.** Desde outubro de 2026, a Tesla recusa para a Powerwall logins feitos em um navegador comum. Entre com um app que mostre o login da Tesla em uma janela própria, como o *Auth app for Tesla* (iOS, Android), e copie o **token de atualização** (refresh token) mostrado. Cole-o abaixo. Use um token criado para isso, não um que outra integração já use: entrar em outro lugar com o mesmo token pode desconectar essa integração.\n\n**Ou login pelo navegador** (pode ser recusado pela Tesla):\n1. Abra este link em um computador, com as ferramentas de desenvolvedor do navegador abertas na aba **Rede** (F12):\n   [Entrar na Tesla]({url})\n2. Entre. A última página não carrega, porque a Tesla envia o navegador para um endereço `tesla://auth/callback?code=…`.\n3. Na aba Rede, encontre a requisição que começa com `callback?code=` (ou o cabeçalho `Location` do último redirecionamento) e copie esse endereço completo.\n4. Cole-o abaixo. Os códigos expiram em minutos e funcionam uma vez.",
+        "description": "Sua conta Tesla é usada para registrar a chave na Powerwall e como reserva para alterar configurações quando a conexão local cai.\n\n**Login pelo navegador:**\n1. Abra este link em um computador, com as ferramentas de desenvolvedor do navegador abertas na aba **Rede** (F12):\n   [Entrar na Tesla]({url})\n2. Entre. A última página não carrega, porque a Tesla envia o navegador para um endereço `tesla://auth/callback?code=…`.\n3. Na aba Rede, encontre a requisição que começa com `callback?code=` (ou o cabeçalho `Location` do último redirecionamento) e copie esse endereço completo.\n4. Cole-o abaixo. Os códigos expiram em minutos e funcionam uma vez.\n\n**Ou um refresh token:** cole o refresh token de um login por app, como o *Auth app for Tesla* (iOS, Android). Use um token criado para isso, não um que outra integração já usa: entrar em outro lugar com o mesmo token pode desconectar essa integração.",
         "data": {
           "callback": "Token de atualização ou endereço de retorno"
         },
         "data_description": {
-          "callback": "Cole o **token de atualização** de um login por app (um texto longo, geralmente começando com `eyJ`), ou o endereço completo `tesla://auth/callback?code=…` de um login pelo navegador. Cada código funciona uma vez e expira em minutos."
+          "callback": "O endereço completo `tesla://auth/callback?code=…` do login pelo navegador, ou um **refresh token** de um login por app (um texto longo, geralmente começando com `eyJ`). Cada código funciona uma vez e expira em poucos minutos."
         }
       },
       "site": {
@@ -140,7 +140,7 @@
       "invalid_auth": "A Tesla não aceitou esse código. Um novo link de login foi criado: entre de novo com ele e cole o novo endereço, ou cole um refresh token.",
       "cloud_error": "O serviço da Tesla retornou um erro. Tente de novo em um minuto.",
       "none_found": "Nenhuma Powerwall respondeu nesta rede. Digite o endereço em vez disso (seu roteador mostra o gateway como `teslapw_…`).",
-      "owner_api_refused": "Você entrou, mas a Tesla recusa esse tipo de login para a Powerwall (HTTP 403). Logins pelo navegador são bloqueados; cole em vez disso um token de atualização de um login por app, como o Auth app for Tesla.",
+      "owner_api_refused": "Você entrou, mas a Owner API da Tesla recusou o token (HTTP 403). Entre de novo; se continuar acontecendo, a Tesla pode ter mudado as regras de login outra vez: abra um issue.",
       "invalid_token": "A Tesla não aceitou esse refresh token. Ele pode ter expirado ou sido usado por outro app: pegue um novo no seu app de tokens. O link de login não mudou.",
       "invalid_callback": "Esse não é um endereço de login do link acima. Cole o endereço completo `tesla://auth/callback?code=…` deste link (um link mais antigo não funciona mais), ou um refresh token. O link não mudou."
     },
@@ -152,7 +152,7 @@
       "reconfigure_successful": "A conexão foi alterada.",
       "reauth_successful": "Acesso restaurado.",
       "unique_id_mismatch": "O gateway nesse endereço é outra Powerwall. Digite o endereço desta Powerwall ou adicione a outra como uma nova entrada.",
-      "register_token_refused": "A Tesla recusou o token de login ao registrar a chave. Comece a configuração de novo e cole um token de atualização novo de um login por app, como o Auth app for Tesla (logins pelo navegador são recusados).",
+      "register_token_refused": "A Tesla recusou o token de login ao registrar a chave. Comece a configuração de novo e entre outra vez (pelo navegador, ou com um refresh token novo).",
       "register_wrong_site": "A Tesla não conhece esse site de energia nesta conta. Comece a configuração de novo e escolha o site com esta Powerwall, conectado à conta Tesla dona dela.",
       "register_unreachable": "A Tesla não conseguiu alcançar a Powerwall para registrar a chave. Confira se ela aparece on-line no app da Tesla (a conexão de internet dela), aguarde alguns minutos e comece a configuração de novo."
     }
@@ -165,7 +165,7 @@
           "settings": "Configurações",
           "cloud_backup": "Reserva na nuvem (Owner API, Tesla Fleet)",
           "link_account": "Vincular uma conta Tesla (Owner API)",
-          "unlink_account": "Desvincular a conta Tesla"
+          "unlink_account": "Desvincular um backup na nuvem"
         }
       },
       "settings": {
@@ -198,12 +198,12 @@
       },
       "login": {
         "title": "Entrar na Tesla",
-        "description": "Sua conta Tesla é usada para registrar a chave na Powerwall e como reserva para alterar configurações quando a conexão local cai.\n\n**Recomendado: entrar por um app.** Desde outubro de 2026, a Tesla recusa para a Powerwall logins feitos em um navegador comum. Entre com um app que mostre o login da Tesla em uma janela própria, como o *Auth app for Tesla* (iOS, Android), e copie o **token de atualização** (refresh token) mostrado. Cole-o abaixo. Use um token criado para isso, não um que outra integração já use: entrar em outro lugar com o mesmo token pode desconectar essa integração.\n\n**Ou login pelo navegador** (pode ser recusado pela Tesla):\n1. Abra este link em um computador, com as ferramentas de desenvolvedor do navegador abertas na aba **Rede** (F12):\n   [Entrar na Tesla]({url})\n2. Entre. A última página não carrega, porque a Tesla envia o navegador para um endereço `tesla://auth/callback?code=…`.\n3. Na aba Rede, encontre a requisição que começa com `callback?code=` (ou o cabeçalho `Location` do último redirecionamento) e copie esse endereço completo.\n4. Cole-o abaixo. Os códigos expiram em minutos e funcionam uma vez.",
+        "description": "Sua conta Tesla é usada para registrar a chave na Powerwall e como reserva para alterar configurações quando a conexão local cai.\n\n**Login pelo navegador:**\n1. Abra este link em um computador, com as ferramentas de desenvolvedor do navegador abertas na aba **Rede** (F12):\n   [Entrar na Tesla]({url})\n2. Entre. A última página não carrega, porque a Tesla envia o navegador para um endereço `tesla://auth/callback?code=…`.\n3. Na aba Rede, encontre a requisição que começa com `callback?code=` (ou o cabeçalho `Location` do último redirecionamento) e copie esse endereço completo.\n4. Cole-o abaixo. Os códigos expiram em minutos e funcionam uma vez.\n\n**Ou um refresh token:** cole o refresh token de um login por app, como o *Auth app for Tesla* (iOS, Android). Use um token criado para isso, não um que outra integração já usa: entrar em outro lugar com o mesmo token pode desconectar essa integração.",
         "data": {
           "callback": "Token de atualização ou endereço de retorno"
         },
         "data_description": {
-          "callback": "Cole o **token de atualização** de um login por app (um texto longo, geralmente começando com `eyJ`), ou o endereço completo `tesla://auth/callback?code=…` de um login pelo navegador. Cada código funciona uma vez e expira em minutos."
+          "callback": "O endereço completo `tesla://auth/callback?code=…` do login pelo navegador, ou um **refresh token** de um login por app (um texto longo, geralmente começando com `eyJ`). Cada código funciona uma vez e expira em poucos minutos."
         }
       },
       "site": {
@@ -216,14 +216,20 @@
         }
       },
       "unlink_account": {
-        "title": "Desvincular a conta Tesla",
-        "description": "As configurações passarão a ser alteradas só pela conexão local. O login salvo fica no disco até você remover a pasta `tesla_tedapi`."
+        "title": "Desvincular um backup na nuvem",
+        "description": "Escolha o backup na nuvem que deixará de ser usado. **Owner API:** a conta Tesla vinculada aqui é removida (o login salvo fica no disco até você remover a pasta `tesla_tedapi`). **Tesla Fleet:** esta integração deixa de usá-lo; a integração Tesla Fleet ou Teslemetry não muda. As configurações passam então pelo outro backup, ou só pela conexão local.",
+        "data": {
+          "backup": "Backup na nuvem"
+        },
+        "data_description": {
+          "backup": "O backup que deixará de ser usado."
+        }
       }
     },
     "error": {
       "invalid_auth": "A Tesla não aceitou esse código. Um novo link de login foi criado: entre de novo com ele e cole o novo endereço, ou cole um refresh token.",
       "cloud_error": "O serviço da Tesla retornou um erro. Tente de novo em um minuto.",
-      "owner_api_refused": "Você entrou, mas a Tesla recusa esse tipo de login para a Powerwall (HTTP 403). Logins pelo navegador são bloqueados; cole em vez disso um token de atualização de um login por app, como o Auth app for Tesla.",
+      "owner_api_refused": "Você entrou, mas a Owner API da Tesla recusou o token (HTTP 403). Entre de novo; se continuar acontecendo, a Tesla pode ter mudado as regras de login outra vez: abra um issue.",
       "invalid_token": "A Tesla não aceitou esse refresh token. Ele pode ter expirado ou sido usado por outro app: pegue um novo no seu app de tokens. O link de login não mudou.",
       "invalid_callback": "Esse não é um endereço de login do link acima. Cole o endereço completo `tesla://auth/callback?code=…` deste link (um link mais antigo não funciona mais), ou um refresh token. O link não mudou."
     },
@@ -548,12 +554,12 @@
         "step": {
           "login": {
             "title": "Entrar na Tesla",
-            "description": "A reserva na nuvem da Tesla para as configurações parou de funcionar, geralmente porque o login salvo expirou ou foi revogado. As leituras e o controle locais não são afetados.\n\nSua conta Tesla é usada para registrar a chave na Powerwall e como reserva para alterar configurações quando a conexão local cai.\n\n**Recomendado: entrar por um app.** Desde outubro de 2026, a Tesla recusa para a Powerwall logins feitos em um navegador comum. Entre com um app que mostre o login da Tesla em uma janela própria, como o *Auth app for Tesla* (iOS, Android), e copie o **token de atualização** (refresh token) mostrado. Cole-o abaixo. Use um token criado para isso, não um que outra integração já use: entrar em outro lugar com o mesmo token pode desconectar essa integração.\n\n**Ou login pelo navegador** (pode ser recusado pela Tesla):\n1. Abra este link em um computador, com as ferramentas de desenvolvedor do navegador abertas na aba **Rede** (F12):\n   [Entrar na Tesla]({url})\n2. Entre. A última página não carrega, porque a Tesla envia o navegador para um endereço `tesla://auth/callback?code=…`.\n3. Na aba Rede, encontre a requisição que começa com `callback?code=` (ou o cabeçalho `Location` do último redirecionamento) e copie esse endereço completo.\n4. Cole-o abaixo. Os códigos expiram em minutos e funcionam uma vez.",
+            "description": "Sua conta Tesla é usada para registrar a chave na Powerwall e como reserva para alterar configurações quando a conexão local cai.\n\n**Login pelo navegador:**\n1. Abra este link em um computador, com as ferramentas de desenvolvedor do navegador abertas na aba **Rede** (F12):\n   [Entrar na Tesla]({url})\n2. Entre. A última página não carrega, porque a Tesla envia o navegador para um endereço `tesla://auth/callback?code=…`.\n3. Na aba Rede, encontre a requisição que começa com `callback?code=` (ou o cabeçalho `Location` do último redirecionamento) e copie esse endereço completo.\n4. Cole-o abaixo. Os códigos expiram em minutos e funcionam uma vez.\n\n**Ou um refresh token:** cole o refresh token de um login por app, como o *Auth app for Tesla* (iOS, Android). Use um token criado para isso, não um que outra integração já usa: entrar em outro lugar com o mesmo token pode desconectar essa integração.",
             "data": {
               "callback": "Token de atualização ou endereço de retorno"
             },
             "data_description": {
-              "callback": "Cole o **token de atualização** de um login por app (um texto longo, geralmente começando com `eyJ`), ou o endereço completo `tesla://auth/callback?code=…` de um login pelo navegador. Cada código funciona uma vez e expira em minutos."
+              "callback": "O endereço completo `tesla://auth/callback?code=…` do login pelo navegador, ou um **refresh token** de um login por app (um texto longo, geralmente começando com `eyJ`). Cada código funciona uma vez e expira em poucos minutos."
             }
           },
           "site": {
@@ -566,7 +572,7 @@
         "error": {
           "invalid_auth": "A Tesla não aceitou esse código. Um novo link de login foi criado: entre de novo com ele e cole o novo endereço, ou cole um refresh token.",
           "cloud_error": "O serviço da Tesla retornou um erro. Tente de novo em um minuto.",
-          "owner_api_refused": "Você entrou, mas a Tesla recusa esse tipo de login para a Powerwall (HTTP 403). Logins pelo navegador são bloqueados; cole em vez disso um token de atualização de um login por app, como o Auth app for Tesla.",
+          "owner_api_refused": "Você entrou, mas a Owner API da Tesla recusou o token (HTTP 403). Entre de novo; se continuar acontecendo, a Tesla pode ter mudado as regras de login outra vez: abra um issue.",
           "invalid_token": "A Tesla não aceitou esse refresh token. Ele pode ter expirado ou sido usado por outro app: pegue um novo no seu app de tokens. O link de login não mudou.",
           "invalid_callback": "Esse não é um endereço de login do link acima. Cole o endereço completo `tesla://auth/callback?code=…` deste link (um link mais antigo não funciona mais), ou um refresh token. O link não mudou."
         },

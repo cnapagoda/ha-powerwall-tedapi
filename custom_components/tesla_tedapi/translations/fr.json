@@ -65,12 +65,12 @@
       },
       "login": {
         "title": "Se connecter à Tesla",
-        "description": "Votre compte Tesla sert à enregistrer la clé auprès de la Powerwall et de secours pour modifier les paramètres quand la connexion locale est coupée.\n\n**Recommandé : une connexion par application.** Depuis octobre 2026, Tesla refuse pour la Powerwall les connexions faites dans un navigateur normal. Connectez-vous avec une application qui affiche la connexion Tesla dans sa propre fenêtre, comme *Auth app for Tesla* (iOS, Android), et copiez le **jeton d'actualisation** (refresh token) affiché. Collez-le ci-dessous. Utilisez un jeton créé pour cela, pas un jeton déjà utilisé par une autre intégration : se connecter ailleurs avec le même jeton peut déconnecter cette intégration.\n\n**Ou connexion par navigateur** (peut être refusée par Tesla) :\n1. Ouvrez ce lien sur un ordinateur, avec les outils de développement du navigateur ouverts sur l'onglet **Réseau** (F12) :\n   [Se connecter à Tesla]({url})\n2. Connectez-vous. La dernière page ne se charge pas, car Tesla envoie le navigateur vers une adresse `tesla://auth/callback?code=…`.\n3. Dans l'onglet Réseau, trouvez la requête commençant par `callback?code=` (ou l'en-tête `Location` de la dernière redirection) et copiez l'adresse complète.\n4. Collez-la ci-dessous. Les codes expirent en quelques minutes et ne fonctionnent qu'une fois.",
+        "description": "Votre compte Tesla sert à enregistrer la clé auprès de la Powerwall et de secours pour modifier les paramètres quand la connexion locale est coupée.\n\n**Connexion par navigateur :**\n1. Ouvrez ce lien sur un ordinateur, avec les outils de développement du navigateur ouverts sur l'onglet **Réseau** (F12) :\n   [Se connecter à Tesla]({url})\n2. Connectez-vous. La dernière page ne se charge pas, car Tesla envoie le navigateur vers une adresse `tesla://auth/callback?code=…`.\n3. Dans l'onglet Réseau, trouvez la requête commençant par `callback?code=` (ou l'en-tête `Location` de la dernière redirection) et copiez l'adresse complète.\n4. Collez-la ci-dessous. Les codes expirent en quelques minutes et ne fonctionnent qu'une fois.\n\n**Ou un jeton d'actualisation :** collez le jeton d'actualisation d'une connexion par application, par exemple *Auth app for Tesla* (iOS, Android). Utilisez un jeton créé pour cela, pas un jeton qu'une autre intégration utilise déjà : se connecter ailleurs avec le même jeton peut déconnecter cette intégration.",
         "data": {
           "callback": "Jeton d'actualisation ou adresse de rappel"
         },
         "data_description": {
-          "callback": "Collez le **jeton d'actualisation** d'une connexion par application (un long texte commençant généralement par `eyJ`), ou l'adresse complète `tesla://auth/callback?code=…` d'une connexion par navigateur. Chaque code ne fonctionne qu'une fois et expire en quelques minutes."
+          "callback": "L'adresse complète `tesla://auth/callback?code=…` de la connexion par navigateur, ou un **jeton d'actualisation** d'une connexion par application (un long texte qui commence généralement par `eyJ`). Chaque code ne fonctionne qu'une fois et expire en quelques minutes."
         }
       },
       "site": {
@@ -140,7 +140,7 @@
       "invalid_auth": "Tesla n'a pas accepté ce code. Un nouveau lien de connexion a été créé : reconnectez-vous avec et collez la nouvelle adresse, ou collez un jeton d'actualisation.",
       "cloud_error": "Le service Tesla a renvoyé une erreur. Réessayez dans une minute.",
       "none_found": "Aucune Powerwall n'a répondu sur ce réseau. Saisissez plutôt l'adresse (votre routeur affiche la passerelle comme `teslapw_…`).",
-      "owner_api_refused": "Vous êtes connecté, mais Tesla refuse ce type de connexion pour la Powerwall (HTTP 403). Les connexions par navigateur sont bloquées ; collez plutôt un jeton d'actualisation issu d'une connexion par application comme Auth app for Tesla.",
+      "owner_api_refused": "Vous êtes connecté, mais l'Owner API de Tesla a refusé le jeton (HTTP 403). Reconnectez-vous ; si cela se reproduit, Tesla a peut-être de nouveau changé ses règles de connexion : merci d'ouvrir un ticket (issue).",
       "invalid_token": "Tesla n'a pas accepté ce jeton d'actualisation. Il a peut-être expiré ou été utilisé par une autre application : obtenez-en un nouveau dans votre application de jetons. Le lien de connexion n'a pas changé.",
       "invalid_callback": "Ce n'est pas une adresse de connexion issue du lien ci-dessus. Collez l'adresse complète `tesla://auth/callback?code=…` de ce lien (un lien plus ancien ne fonctionne plus), ou un jeton d'actualisation. Le lien n'a pas changé."
     },
@@ -152,7 +152,7 @@
       "reconfigure_successful": "La connexion a été modifiée.",
       "reauth_successful": "Accès rétabli.",
       "unique_id_mismatch": "La passerelle à cette adresse est une autre Powerwall. Saisissez l'adresse de cette Powerwall, ou ajoutez l'autre comme nouvelle entrée.",
-      "register_token_refused": "Tesla a refusé le jeton de connexion lors de l'enregistrement de la clé. Relancez la configuration et collez un nouveau jeton d'actualisation issu d'une connexion par application comme Auth app for Tesla (les connexions par navigateur sont refusées).",
+      "register_token_refused": "Tesla a refusé le jeton de connexion lors de l'enregistrement de la clé. Relancez la configuration et reconnectez-vous (dans le navigateur, ou avec un nouveau jeton d'actualisation).",
       "register_wrong_site": "Tesla ne connaît pas ce site énergétique sur ce compte. Relancez la configuration et choisissez le site avec cette Powerwall, connecté avec le compte Tesla qui la possède.",
       "register_unreachable": "Tesla n'a pas pu joindre la Powerwall pour enregistrer la clé. Vérifiez qu'elle apparaît en ligne dans l'application Tesla (sa connexion Internet), attendez quelques minutes et relancez la configuration."
     }
@@ -165,7 +165,7 @@
           "settings": "Paramètres",
           "cloud_backup": "Secours cloud (Owner API, Tesla Fleet)",
           "link_account": "Lier un compte Tesla (Owner API)",
-          "unlink_account": "Dissocier le compte Tesla"
+          "unlink_account": "Dissocier une sauvegarde cloud"
         }
       },
       "settings": {
@@ -198,12 +198,12 @@
       },
       "login": {
         "title": "Se connecter à Tesla",
-        "description": "Votre compte Tesla sert à enregistrer la clé auprès de la Powerwall et de secours pour modifier les paramètres quand la connexion locale est coupée.\n\n**Recommandé : une connexion par application.** Depuis octobre 2026, Tesla refuse pour la Powerwall les connexions faites dans un navigateur normal. Connectez-vous avec une application qui affiche la connexion Tesla dans sa propre fenêtre, comme *Auth app for Tesla* (iOS, Android), et copiez le **jeton d'actualisation** (refresh token) affiché. Collez-le ci-dessous. Utilisez un jeton créé pour cela, pas un jeton déjà utilisé par une autre intégration : se connecter ailleurs avec le même jeton peut déconnecter cette intégration.\n\n**Ou connexion par navigateur** (peut être refusée par Tesla) :\n1. Ouvrez ce lien sur un ordinateur, avec les outils de développement du navigateur ouverts sur l'onglet **Réseau** (F12) :\n   [Se connecter à Tesla]({url})\n2. Connectez-vous. La dernière page ne se charge pas, car Tesla envoie le navigateur vers une adresse `tesla://auth/callback?code=…`.\n3. Dans l'onglet Réseau, trouvez la requête commençant par `callback?code=` (ou l'en-tête `Location` de la dernière redirection) et copiez l'adresse complète.\n4. Collez-la ci-dessous. Les codes expirent en quelques minutes et ne fonctionnent qu'une fois.",
+        "description": "Votre compte Tesla sert à enregistrer la clé auprès de la Powerwall et de secours pour modifier les paramètres quand la connexion locale est coupée.\n\n**Connexion par navigateur :**\n1. Ouvrez ce lien sur un ordinateur, avec les outils de développement du navigateur ouverts sur l'onglet **Réseau** (F12) :\n   [Se connecter à Tesla]({url})\n2. Connectez-vous. La dernière page ne se charge pas, car Tesla envoie le navigateur vers une adresse `tesla://auth/callback?code=…`.\n3. Dans l'onglet Réseau, trouvez la requête commençant par `callback?code=` (ou l'en-tête `Location` de la dernière redirection) et copiez l'adresse complète.\n4. Collez-la ci-dessous. Les codes expirent en quelques minutes et ne fonctionnent qu'une fois.\n\n**Ou un jeton d'actualisation :** collez le jeton d'actualisation d'une connexion par application, par exemple *Auth app for Tesla* (iOS, Android). Utilisez un jeton créé pour cela, pas un jeton qu'une autre intégration utilise déjà : se connecter ailleurs avec le même jeton peut déconnecter cette intégration.",
         "data": {
           "callback": "Jeton d'actualisation ou adresse de rappel"
         },
         "data_description": {
-          "callback": "Collez le **jeton d'actualisation** d'une connexion par application (un long texte commençant généralement par `eyJ`), ou l'adresse complète `tesla://auth/callback?code=…` d'une connexion par navigateur. Chaque code ne fonctionne qu'une fois et expire en quelques minutes."
+          "callback": "L'adresse complète `tesla://auth/callback?code=…` de la connexion par navigateur, ou un **jeton d'actualisation** d'une connexion par application (un long texte qui commence généralement par `eyJ`). Chaque code ne fonctionne qu'une fois et expire en quelques minutes."
         }
       },
       "site": {
@@ -216,14 +216,20 @@
         }
       },
       "unlink_account": {
-        "title": "Dissocier le compte Tesla",
-        "description": "Les paramètres ne seront alors modifiés que par la connexion locale. La connexion enregistrée reste sur le disque jusqu'à ce que vous supprimiez le dossier `tesla_tedapi`."
+        "title": "Dissocier une sauvegarde cloud",
+        "description": "Choisissez la sauvegarde cloud à ne plus utiliser. **Owner API :** le compte Tesla associé ici est retiré (la connexion enregistrée reste sur le disque jusqu'à ce que vous supprimiez le dossier `tesla_tedapi`). **Tesla Fleet :** cette intégration cesse de l'utiliser ; l'intégration Tesla Fleet ou Teslemetry elle-même n'est pas modifiée. Les réglages passent alors par l'autre sauvegarde, ou seulement par la connexion locale.",
+        "data": {
+          "backup": "Sauvegarde cloud"
+        },
+        "data_description": {
+          "backup": "La sauvegarde à ne plus utiliser."
+        }
       }
     },
     "error": {
       "invalid_auth": "Tesla n'a pas accepté ce code. Un nouveau lien de connexion a été créé : reconnectez-vous avec et collez la nouvelle adresse, ou collez un jeton d'actualisation.",
       "cloud_error": "Le service Tesla a renvoyé une erreur. Réessayez dans une minute.",
-      "owner_api_refused": "Vous êtes connecté, mais Tesla refuse ce type de connexion pour la Powerwall (HTTP 403). Les connexions par navigateur sont bloquées ; collez plutôt un jeton d'actualisation issu d'une connexion par application comme Auth app for Tesla.",
+      "owner_api_refused": "Vous êtes connecté, mais l'Owner API de Tesla a refusé le jeton (HTTP 403). Reconnectez-vous ; si cela se reproduit, Tesla a peut-être de nouveau changé ses règles de connexion : merci d'ouvrir un ticket (issue).",
       "invalid_token": "Tesla n'a pas accepté ce jeton d'actualisation. Il a peut-être expiré ou été utilisé par une autre application : obtenez-en un nouveau dans votre application de jetons. Le lien de connexion n'a pas changé.",
       "invalid_callback": "Ce n'est pas une adresse de connexion issue du lien ci-dessus. Collez l'adresse complète `tesla://auth/callback?code=…` de ce lien (un lien plus ancien ne fonctionne plus), ou un jeton d'actualisation. Le lien n'a pas changé."
     },
@@ -548,12 +554,12 @@
         "step": {
           "login": {
             "title": "Se connecter à Tesla",
-            "description": "Le secours cloud Tesla pour les paramètres ne fonctionne plus, généralement parce que la connexion enregistrée a expiré ou a été révoquée. Les mesures et le contrôle locaux ne sont pas affectés.\n\nVotre compte Tesla sert à enregistrer la clé auprès de la Powerwall et de secours pour modifier les paramètres quand la connexion locale est coupée.\n\n**Recommandé : une connexion par application.** Depuis octobre 2026, Tesla refuse pour la Powerwall les connexions faites dans un navigateur normal. Connectez-vous avec une application qui affiche la connexion Tesla dans sa propre fenêtre, comme *Auth app for Tesla* (iOS, Android), et copiez le **jeton d'actualisation** (refresh token) affiché. Collez-le ci-dessous. Utilisez un jeton créé pour cela, pas un jeton déjà utilisé par une autre intégration : se connecter ailleurs avec le même jeton peut déconnecter cette intégration.\n\n**Ou connexion par navigateur** (peut être refusée par Tesla) :\n1. Ouvrez ce lien sur un ordinateur, avec les outils de développement du navigateur ouverts sur l'onglet **Réseau** (F12) :\n   [Se connecter à Tesla]({url})\n2. Connectez-vous. La dernière page ne se charge pas, car Tesla envoie le navigateur vers une adresse `tesla://auth/callback?code=…`.\n3. Dans l'onglet Réseau, trouvez la requête commençant par `callback?code=` (ou l'en-tête `Location` de la dernière redirection) et copiez l'adresse complète.\n4. Collez-la ci-dessous. Les codes expirent en quelques minutes et ne fonctionnent qu'une fois.",
+            "description": "Votre compte Tesla sert à enregistrer la clé auprès de la Powerwall et de secours pour modifier les paramètres quand la connexion locale est coupée.\n\n**Connexion par navigateur :**\n1. Ouvrez ce lien sur un ordinateur, avec les outils de développement du navigateur ouverts sur l'onglet **Réseau** (F12) :\n   [Se connecter à Tesla]({url})\n2. Connectez-vous. La dernière page ne se charge pas, car Tesla envoie le navigateur vers une adresse `tesla://auth/callback?code=…`.\n3. Dans l'onglet Réseau, trouvez la requête commençant par `callback?code=` (ou l'en-tête `Location` de la dernière redirection) et copiez l'adresse complète.\n4. Collez-la ci-dessous. Les codes expirent en quelques minutes et ne fonctionnent qu'une fois.\n\n**Ou un jeton d'actualisation :** collez le jeton d'actualisation d'une connexion par application, par exemple *Auth app for Tesla* (iOS, Android). Utilisez un jeton créé pour cela, pas un jeton qu'une autre intégration utilise déjà : se connecter ailleurs avec le même jeton peut déconnecter cette intégration.",
             "data": {
               "callback": "Jeton d'actualisation ou adresse de rappel"
             },
             "data_description": {
-              "callback": "Collez le **jeton d'actualisation** d'une connexion par application (un long texte commençant généralement par `eyJ`), ou l'adresse complète `tesla://auth/callback?code=…` d'une connexion par navigateur. Chaque code ne fonctionne qu'une fois et expire en quelques minutes."
+              "callback": "L'adresse complète `tesla://auth/callback?code=…` de la connexion par navigateur, ou un **jeton d'actualisation** d'une connexion par application (un long texte qui commence généralement par `eyJ`). Chaque code ne fonctionne qu'une fois et expire en quelques minutes."
             }
           },
           "site": {
@@ -566,7 +572,7 @@
         "error": {
           "invalid_auth": "Tesla n'a pas accepté ce code. Un nouveau lien de connexion a été créé : reconnectez-vous avec et collez la nouvelle adresse, ou collez un jeton d'actualisation.",
           "cloud_error": "Le service Tesla a renvoyé une erreur. Réessayez dans une minute.",
-          "owner_api_refused": "Vous êtes connecté, mais Tesla refuse ce type de connexion pour la Powerwall (HTTP 403). Les connexions par navigateur sont bloquées ; collez plutôt un jeton d'actualisation issu d'une connexion par application comme Auth app for Tesla.",
+          "owner_api_refused": "Vous êtes connecté, mais l'Owner API de Tesla a refusé le jeton (HTTP 403). Reconnectez-vous ; si cela se reproduit, Tesla a peut-être de nouveau changé ses règles de connexion : merci d'ouvrir un ticket (issue).",
           "invalid_token": "Tesla n'a pas accepté ce jeton d'actualisation. Il a peut-être expiré ou été utilisé par une autre application : obtenez-en un nouveau dans votre application de jetons. Le lien de connexion n'a pas changé.",
           "invalid_callback": "Ce n'est pas une adresse de connexion issue du lien ci-dessus. Collez l'adresse complète `tesla://auth/callback?code=…` de ce lien (un lien plus ancien ne fonctionne plus), ou un jeton d'actualisation. Le lien n'a pas changé."
         },

@@ -474,3 +474,45 @@ async def test_linking_an_account_loads_the_owner_backup(hass: HomeAssistant, fa
     assert entry.options["cloud_backends"] == "fleet_then_owner"
     # The reload after linking sets up both backups, without another reload.
     assert [b.name for b in entry.runtime_data.coordinator.backends] == ["tesla_fleet", "owner_api"]
+
+
+async def _unlink(hass: HomeAssistant, entry: MockConfigEntry, backup: str | None) -> dict:
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    menu = result["menu_options"]
+    if backup is None:
+        return result
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "unlink_account"})
+    offered = result["data_schema"].schema["backup"].config["options"]
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"backup": backup})
+    await hass.async_block_till_done()
+    return {"menu": menu, "offered": offered, **result}
+
+
+async def test_unlink_tesla_fleet_keeps_the_account(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, "fleet_then_owner")
+    result = await _unlink(hass, entry, "tesla_fleet")
+    assert "unlink_account" in result["menu"] and "link_account" not in result["menu"]
+    assert result["offered"] == ["tesla_fleet", "owner_api"]
+    assert entry.options["cloud_backends"] == "owner_api"
+    assert entry.data["owners_email"] == ACCOUNT["owners_email"]
+    assert [b.name for b in entry.runtime_data.coordinator.backends] == ["owner_api"]
+
+
+async def test_unlink_owner_api_keeps_tesla_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, "owner_then_fleet")
+    result = await _unlink(hass, entry, "owner_api")
+    assert result["offered"] == ["owner_api", "tesla_fleet"]
+    assert entry.options["cloud_backends"] == "tesla_fleet"
+    assert "owners_email" not in entry.data
+    assert [b.name for b in entry.runtime_data.coordinator.backends] == ["tesla_fleet"]
+
+
+async def test_menu_offers_link_and_unlink_with_only_tesla_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, V1R)
+    result = await _unlink(hass, entry, None)
+    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "unlink_account"]
+    result = await _unlink(hass, entry, "tesla_fleet")
+    assert result["offered"] == ["tesla_fleet"]
+    assert entry.options["cloud_backends"] == "none"
+    result = await _unlink(hass, entry, None)
+    assert result["menu_options"] == ["settings", "cloud_backup", "link_account"]

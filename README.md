@@ -10,7 +10,7 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 - **Battery dispatch**: charge or discharge at a set power for a set time, with state-of-charge limits. Use it for price-based charging, peak export and similar jobs.
 - **Tesla cloud as a backup** (optional): if the gateway can't be reached, the settings entities keep working through your Tesla account.
 
-> **Tesla sign-in: use a refresh token.** Since late October 2026 the Tesla Owner API answers *403 Forbidden* to sign-ins made in a normal browser. Sign-ins made with a token app still work. Registering a new key needs one; a key that is already registered keeps working without it. See [Getting a Tesla refresh token](#getting-a-tesla-refresh-token).
+> **Tesla sign-in works again (2.3.0).** From late October 2026 the Tesla Owner API answered *403 Forbidden* to sign-ins made through this integration (2.2.x): Tesla fingerprints the TLS connection that gets the token. 2.3.0 connects to Tesla over TLS 1.2, as the Tesla Custom integration does, so both a **browser sign-in** and a **refresh token** from a token app work. A key that is already registered never needed either.
 
 - **Setup wizard**: finds the Powerwall on your network, checks the gateway password, registers the key with your Powerwall and notices the confirmation by itself. No command line needed.
 - **Keeps your export and grid charging settings**: the Powerwall sometimes drops them from its own settings; the integration writes them back.
@@ -102,25 +102,20 @@ You don't need to reserve the gateway's IP: when your router gives it a new addr
 > | | Owner API | Fleet API |
 > |---|---|---|
 > | Who it's for | Everyone | Developers |
-> | You need | A Tesla account and a refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | A developer app at [developer.tesla.com](https://developer.tesla.com), with its public key hosted on a domain you own, set up as for Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration ([steps](#b-upload-a-key-that-is-already-registered)) |
+> | You need | A Tesla account: a browser sign-in in the wizard, or a refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | A developer app at [developer.tesla.com](https://developer.tesla.com), with its public key hosted on a domain you own, set up as for Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration ([steps](#b-upload-a-key-that-is-already-registered)) |
 > | Where | This wizard, path **A** | `python -m pypowerwall register` (option 2) on a computer, then path **B** |
 >
 > Neither one exposes Home Assistant to the internet: after the key is verified, everything is local. A key can't be registered over the local network alone. The Powerwall accepts it there, but never verifies it.
 
 #### A. Register a new key (recommended)
 
-1. **Sign in to Tesla.** Paste a **refresh token** from a token app (see [Getting a Tesla refresh token](#getting-a-tesla-refresh-token)). This is the way that works today.
-
-   <details>
-   <summary>Or: browser sign-in (Tesla now usually refuses it)</summary>
-
-   The wizard shows a sign-in link. Tesla's login ends by sending the browser to a `tesla://auth/callback?code=…` address that browsers can't open, so you copy it by hand:
-   1. On a computer, open the browser's developer tools (F12) on the **Network** tab.
-   2. Open the link and sign in, including MFA.
-   3. In the Network list, find the request that starts with `callback?code=`, or the last redirect's `Location` header. Copy the full address.
-   4. Paste it into the wizard. Codes expire within minutes and work only once. If one is rejected, the wizard makes a new link. If Tesla answers *403*, use a refresh token instead.
-
-   </details>
+1. **Sign in to Tesla**, in the browser or with a refresh token:
+   - **Browser sign-in.** The wizard shows a sign-in link. Tesla's login ends by sending the browser to a `tesla://auth/callback?code=…` address that browsers can't open, so you copy it by hand:
+     1. On a computer, open the browser's developer tools (F12) on the **Network** tab.
+     2. Open the link and sign in, including MFA. Tesla always shows its full sign-in form.
+     3. In the Network list, find the request that starts with `callback?code=`, or the last redirect's `Location` header. Copy the full address.
+     4. Paste it into the wizard. Codes expire within minutes and work only once. If Tesla rejects a code, the wizard makes a new link; a paste that isn't from the current link leaves the link unchanged.
+   - **Refresh token.** Paste a refresh token from a token app instead (see [Getting a Tesla refresh token](#getting-a-tesla-refresh-token)). No developer tools needed.
 2. The energy site with this gateway is picked automatically (you choose only if it can't tell).
 3. **Confirm at the Powerwall.** The wizard makes an RSA-4096 key in `config/tesla_tedapi/` and registers it with your Powerwall. Within about **10 minutes**:
    - **Powerwall 3:** switch the **On/Off switch** (left side, under the red rapid-shutdown flap) **OFF for about 15 seconds, then back ON**. A quick flick is ignored. Don't leave it off until the unit powers down.
@@ -186,7 +181,7 @@ If you register with the Fleet API, local control works fully. For the cloud bac
 
 </details>
 
-> Registered a key with `python -m pypowerwall register` on another computer? Use this path. (That command signs in through Tesla too, so it may get the same *403* as a browser sign-in.)
+> Registered a key with `python -m pypowerwall register` on another computer? Use this path. (That command signs in through Tesla too. If it gets a *403*, register the key with path A instead.)
 
 #### C. Wi-Fi password only
 
@@ -201,7 +196,7 @@ Home Assistant must be connected to the Powerwall's `TeslaPW_…` Wi-Fi (address
 
 ### Getting a Tesla refresh token
 
-Tesla has no official way to sign in to the Owner API from Home Assistant, so, like the [Tesla Custom](https://github.com/alandtse/tesla) integration, this integration takes a **refresh token** made by an app that runs Tesla's own login page. Use one of these:
+A refresh token is the alternative to the browser sign-in: no developer tools, and it can be pasted from a phone. Like the [Tesla Custom](https://github.com/alandtse/tesla) integration, this integration takes a **refresh token** made by an app that runs Tesla's own login page. Use one of these:
 
 | App | Platforms |
 |---|---|
@@ -243,7 +238,8 @@ The integration swaps the token for a fresh pair straight away and keeps refresh
 </details>
 
 - **Configure → Cloud backup:** choose the cloud backup and its order. See [Cloud backup](#cloud-backup).
-- **Configure → Link / Unlink a Tesla account:** add or remove the Owner API backup without setting the Powerwall up again. A *Cloud backup* choice that includes Tesla Fleet keeps it.
+- **Configure → Link a Tesla account:** add the Owner API backup without setting the Powerwall up again (browser sign-in or refresh token). A *Cloud backup* choice that includes Tesla Fleet keeps it.
+- **Configure → Unlink a cloud backup:** stop using one backup and keep the other. **Owner API** removes the Tesla account linked here. **Tesla Fleet** only stops this integration using it; the Tesla Fleet or Teslemetry integration itself is not changed. Either way the change applies straight away.
 - If the Powerwall starts refusing the password or the key (for example the key was removed in the Tesla app), Home Assistant asks you to fix it (**Reauthenticate**): enter the password again, register the key again or upload another key. If the Tesla sign-in stops working, **Settings → Repairs** offers to sign in again.
 
 ---
@@ -431,8 +427,8 @@ When the local connection can't read or change a setting (the gateway is unreach
 
 | | Owner API | Tesla Fleet |
 |---|---|---|
-| What it uses | A Tesla account linked here (**Link a Tesla account**, refresh token) | Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) or [Teslemetry](https://www.home-assistant.io/integrations/teslemetry) integration (official Fleet API) |
-| You need | A refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | That integration enabled and loaded, on the Tesla account with this Powerwall, with the energy permissions (`energy_device_data` to read, `energy_cmds` to change settings) |
+| What it uses | A Tesla account linked here (**Link a Tesla account**: browser sign-in or refresh token) | Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) or [Teslemetry](https://www.home-assistant.io/integrations/teslemetry) integration (official Fleet API) |
+| You need | A Tesla sign-in: in the browser, or a refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | That integration enabled and loaded, on the Tesla account with this Powerwall, with the energy permissions (`energy_device_data` to read, `energy_cmds` to change settings) |
 | Reads | Tesla's site settings, every 5 minutes at most while needed | The site data that integration already reads every minute: no extra Tesla calls |
 | Token | Kept and refreshed here (`config/tesla_tedapi/.pypowerwall.auth`) | That integration's own; used, never refreshed here, so it stays signed in |
 | Cost | None | A change of setting is a command on your Tesla developer account (Tesla Fleet) or Teslemetry subscription |
@@ -476,7 +472,7 @@ After you change a setting, the integration reads the Powerwall again straight a
 ## Known limitations
 
 - **Undocumented interfaces.** TEDAPI and the signed (v1r) protocol are not public. A Powerwall firmware update can change or break them without notice.
-- **Registering a key needs the Tesla cloud** once: a Tesla refresh token (path A) or `pypowerwall register` (path B). The gateway doesn't confirm a key registered only over the local network.
+- **Registering a key needs the Tesla cloud** once: a Tesla sign-in (path A) or `pypowerwall register` (path B). The gateway doesn't confirm a key registered only over the local network.
 - **The Wi-Fi password connection can't change settings locally**, and has no battery dispatch or max backup. Settings changes need a cloud backup.
 - **Cloud-only settings:** Storm Watch, grid services and the off-grid vehicle charging reserve need a [cloud backup](#cloud-backup).
 - **Through the cloud, backup reserve stops at 80 %.** Tesla's cloud caps it. Locally, any value up to 100 % works, and [max backup](#tesla_tedapistart_max_backup) charges to full; neither is available through the cloud.
@@ -505,7 +501,7 @@ After you change a setting, the integration reads the Powerwall again straight a
 | *Tesla Fleet cloud backup can't change settings* | Sign in to that integration again and allow the energy commands (`energy_cmds`) permission. |
 | Backup reserve shows 80 % after setting more | The gateway didn't take the change, so it went through Tesla's cloud, which caps backup reserve at 80 %. Check the gateway connection. To charge to full and hold it, use [max backup](#tesla_tedapistart_max_backup) (signed connection). |
 | Sign-in code rejected | Codes are single-use and expire quickly. After Tesla rejects a code, the form shows a new link: sign in with that one and copy the callback address straight away. A paste that isn't from the current link (*not a sign-in address from the link above*) leaves the link unchanged. |
-| *Tesla refuses this kind of sign-in (HTTP 403)* | Browser sign-ins are blocked for the Powerwall. Paste a refresh token instead: [Getting a Tesla refresh token](#getting-a-tesla-refresh-token). |
+| *The Tesla Owner API refused the token (HTTP 403)* | Update to 2.3.0 or newer: 2.2.x connects to Tesla in a way it now refuses. On 2.3.0, sign in again; if the 403 keeps coming back, Tesla may have changed its rules again, so please open an issue. |
 
 Debug logging:
 

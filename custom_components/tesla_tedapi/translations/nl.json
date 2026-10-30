@@ -65,12 +65,12 @@
       },
       "login": {
         "title": "Inloggen bij Tesla",
-        "description": "Je Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\n**Aanbevolen: inloggen via een app.** Sinds oktober 2026 weigert Tesla voor de Powerwall aanmeldingen in een gewone browser. Log in met een app die de Tesla-aanmelding in een eigen venster toont, zoals *Auth app for Tesla* (iOS, Android), en kopieer de getoonde **refresh token**. Plak hem hieronder. Gebruik een token die hiervoor is gemaakt, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie uitloggen.\n\n**Of inloggen via de browser** (kan door Tesla worden geweigerd):\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.",
+        "description": "Je Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\n**Inloggen via de browser:**\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.\n\n**Of een refresh-token:** plak de refresh-token van een app-aanmelding, zoals *Auth app for Tesla* (iOS, Android). Gebruik een token die hiervoor gemaakt is, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie afmelden.",
         "data": {
           "callback": "Refresh token of callback-adres"
         },
         "data_description": {
-          "callback": "Plak de **refresh token** van een app-aanmelding (een lange tekst, meestal beginnend met `eyJ`), of het volledige adres `tesla://auth/callback?code=…` van een browseraanmelding. Elke code werkt één keer en verloopt binnen enkele minuten."
+          "callback": "Het volledige adres `tesla://auth/callback?code=…` van de aanmelding in de browser, of een **refresh-token** van een app-aanmelding (een lange tekst, meestal beginnend met `eyJ`). Elke code werkt één keer en verloopt binnen enkele minuten."
         }
       },
       "site": {
@@ -140,7 +140,7 @@
       "invalid_auth": "Tesla heeft die code niet geaccepteerd. Er is een nieuwe aanmeldlink gemaakt: log daarmee opnieuw in en plak het nieuwe adres, of plak een refresh-token.",
       "cloud_error": "De Tesla-dienst gaf een fout. Probeer het over een minuut opnieuw.",
       "none_found": "Geen Powerwall antwoordde op dit netwerk. Voer in plaats daarvan het adres in (je router toont de gateway als `teslapw_…`).",
-      "owner_api_refused": "Je bent ingelogd, maar Tesla weigert dit soort aanmelding voor de Powerwall (HTTP 403). Browseraanmeldingen worden geblokkeerd; plak in plaats daarvan een refresh token van een app-aanmelding zoals Auth app for Tesla.",
+      "owner_api_refused": "Je bent ingelogd, maar de Tesla Owner API heeft de token geweigerd (HTTP 403). Log opnieuw in; blijft dit gebeuren, dan heeft Tesla misschien zijn aanmeldregels weer veranderd: meld dan een probleem (issue).",
       "invalid_token": "Tesla heeft die refresh-token niet geaccepteerd. Hij is misschien verlopen of door een andere app gebruikt: haal een nieuwe op in je token-app. De aanmeldlink is niet veranderd.",
       "invalid_callback": "Dat is geen aanmeldadres van de link hierboven. Plak het volledige adres `tesla://auth/callback?code=…` van deze link (een oudere link werkt niet meer), of een refresh-token. De link is niet veranderd."
     },
@@ -152,7 +152,7 @@
       "reconfigure_successful": "De verbinding is gewijzigd.",
       "reauth_successful": "Toegang hersteld.",
       "unique_id_mismatch": "De gateway op dat adres is een andere Powerwall. Voer het adres van deze Powerwall in, of voeg de andere toe als nieuwe vermelding.",
-      "register_token_refused": "Tesla weigerde de aanmeldtoken bij het registreren van de sleutel. Start de installatie opnieuw en plak een nieuwe refresh token van een app-aanmelding zoals Auth app for Tesla (browseraanmeldingen worden geweigerd).",
+      "register_token_refused": "Tesla heeft de aanmeldtoken geweigerd bij het registreren van de sleutel. Start de installatie opnieuw en log opnieuw in (in de browser, of met een nieuwe refresh-token).",
       "register_wrong_site": "Tesla kent die energielocatie niet op dit account. Start de installatie opnieuw en kies de locatie met deze Powerwall, ingelogd met het Tesla-account dat eigenaar is.",
       "register_unreachable": "Tesla kon de Powerwall niet bereiken om de sleutel te registreren. Controleer of hij online is in de Tesla-app (zijn internetverbinding), wacht een paar minuten en start de installatie opnieuw."
     }
@@ -165,7 +165,7 @@
           "settings": "Instellingen",
           "cloud_backup": "Cloud-back-up (Owner API, Tesla Fleet)",
           "link_account": "Een Tesla-account koppelen (Owner API)",
-          "unlink_account": "Het Tesla-account ontkoppelen"
+          "unlink_account": "Een cloudback-up ontkoppelen"
         }
       },
       "settings": {
@@ -198,12 +198,12 @@
       },
       "login": {
         "title": "Inloggen bij Tesla",
-        "description": "Je Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\n**Aanbevolen: inloggen via een app.** Sinds oktober 2026 weigert Tesla voor de Powerwall aanmeldingen in een gewone browser. Log in met een app die de Tesla-aanmelding in een eigen venster toont, zoals *Auth app for Tesla* (iOS, Android), en kopieer de getoonde **refresh token**. Plak hem hieronder. Gebruik een token die hiervoor is gemaakt, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie uitloggen.\n\n**Of inloggen via de browser** (kan door Tesla worden geweigerd):\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.",
+        "description": "Je Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\n**Inloggen via de browser:**\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.\n\n**Of een refresh-token:** plak de refresh-token van een app-aanmelding, zoals *Auth app for Tesla* (iOS, Android). Gebruik een token die hiervoor gemaakt is, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie afmelden.",
         "data": {
           "callback": "Refresh token of callback-adres"
         },
         "data_description": {
-          "callback": "Plak de **refresh token** van een app-aanmelding (een lange tekst, meestal beginnend met `eyJ`), of het volledige adres `tesla://auth/callback?code=…` van een browseraanmelding. Elke code werkt één keer en verloopt binnen enkele minuten."
+          "callback": "Het volledige adres `tesla://auth/callback?code=…` van de aanmelding in de browser, of een **refresh-token** van een app-aanmelding (een lange tekst, meestal beginnend met `eyJ`). Elke code werkt één keer en verloopt binnen enkele minuten."
         }
       },
       "site": {
@@ -216,14 +216,20 @@
         }
       },
       "unlink_account": {
-        "title": "Het Tesla-account ontkoppelen",
-        "description": "Instellingen worden dan alleen via de lokale verbinding gewijzigd. De opgeslagen aanmelding blijft op schijf staan tot je de map `tesla_tedapi` verwijdert."
+        "title": "Een cloudback-up ontkoppelen",
+        "description": "Kies de cloudback-up die niet meer gebruikt moet worden. **Owner API:** het hier gekoppelde Tesla-account wordt verwijderd (de opgeslagen aanmelding blijft op schijf staan tot je de map `tesla_tedapi` verwijdert). **Tesla Fleet:** deze integratie gebruikt hem niet meer; de integratie Tesla Fleet of Teslemetry zelf blijft ongewijzigd. Instellingen gaan dan via de andere back-up, of alleen via de lokale verbinding.",
+        "data": {
+          "backup": "Cloudback-up"
+        },
+        "data_description": {
+          "backup": "De back-up die niet meer gebruikt moet worden."
+        }
       }
     },
     "error": {
       "invalid_auth": "Tesla heeft die code niet geaccepteerd. Er is een nieuwe aanmeldlink gemaakt: log daarmee opnieuw in en plak het nieuwe adres, of plak een refresh-token.",
       "cloud_error": "De Tesla-dienst gaf een fout. Probeer het over een minuut opnieuw.",
-      "owner_api_refused": "Je bent ingelogd, maar Tesla weigert dit soort aanmelding voor de Powerwall (HTTP 403). Browseraanmeldingen worden geblokkeerd; plak in plaats daarvan een refresh token van een app-aanmelding zoals Auth app for Tesla.",
+      "owner_api_refused": "Je bent ingelogd, maar de Tesla Owner API heeft de token geweigerd (HTTP 403). Log opnieuw in; blijft dit gebeuren, dan heeft Tesla misschien zijn aanmeldregels weer veranderd: meld dan een probleem (issue).",
       "invalid_token": "Tesla heeft die refresh-token niet geaccepteerd. Hij is misschien verlopen of door een andere app gebruikt: haal een nieuwe op in je token-app. De aanmeldlink is niet veranderd.",
       "invalid_callback": "Dat is geen aanmeldadres van de link hierboven. Plak het volledige adres `tesla://auth/callback?code=…` van deze link (een oudere link werkt niet meer), of een refresh-token. De link is niet veranderd."
     },
@@ -548,12 +554,12 @@
         "step": {
           "login": {
             "title": "Inloggen bij Tesla",
-            "description": "De Tesla-cloud-back-up voor instellingen werkt niet meer, meestal omdat de opgeslagen aanmelding is verlopen of ingetrokken. Lokale metingen en bediening worden niet beïnvloed.\n\nJe Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\n**Aanbevolen: inloggen via een app.** Sinds oktober 2026 weigert Tesla voor de Powerwall aanmeldingen in een gewone browser. Log in met een app die de Tesla-aanmelding in een eigen venster toont, zoals *Auth app for Tesla* (iOS, Android), en kopieer de getoonde **refresh token**. Plak hem hieronder. Gebruik een token die hiervoor is gemaakt, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie uitloggen.\n\n**Of inloggen via de browser** (kan door Tesla worden geweigerd):\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.",
+            "description": "Je Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\n**Inloggen via de browser:**\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.\n\n**Of een refresh-token:** plak de refresh-token van een app-aanmelding, zoals *Auth app for Tesla* (iOS, Android). Gebruik een token die hiervoor gemaakt is, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie afmelden.",
             "data": {
               "callback": "Refresh token of callback-adres"
             },
             "data_description": {
-              "callback": "Plak de **refresh token** van een app-aanmelding (een lange tekst, meestal beginnend met `eyJ`), of het volledige adres `tesla://auth/callback?code=…` van een browseraanmelding. Elke code werkt één keer en verloopt binnen enkele minuten."
+              "callback": "Het volledige adres `tesla://auth/callback?code=…` van de aanmelding in de browser, of een **refresh-token** van een app-aanmelding (een lange tekst, meestal beginnend met `eyJ`). Elke code werkt één keer en verloopt binnen enkele minuten."
             }
           },
           "site": {
@@ -566,7 +572,7 @@
         "error": {
           "invalid_auth": "Tesla heeft die code niet geaccepteerd. Er is een nieuwe aanmeldlink gemaakt: log daarmee opnieuw in en plak het nieuwe adres, of plak een refresh-token.",
           "cloud_error": "De Tesla-dienst gaf een fout. Probeer het over een minuut opnieuw.",
-          "owner_api_refused": "Je bent ingelogd, maar Tesla weigert dit soort aanmelding voor de Powerwall (HTTP 403). Browseraanmeldingen worden geblokkeerd; plak in plaats daarvan een refresh token van een app-aanmelding zoals Auth app for Tesla.",
+          "owner_api_refused": "Je bent ingelogd, maar de Tesla Owner API heeft de token geweigerd (HTTP 403). Log opnieuw in; blijft dit gebeuren, dan heeft Tesla misschien zijn aanmeldregels weer veranderd: meld dan een probleem (issue).",
           "invalid_token": "Tesla heeft die refresh-token niet geaccepteerd. Hij is misschien verlopen of door een andere app gebruikt: haal een nieuwe op in je token-app. De aanmeldlink is niet veranderd.",
           "invalid_callback": "Dat is geen aanmeldadres van de link hierboven. Plak het volledige adres `tesla://auth/callback?code=…` van deze link (een oudere link werkt niet meer), of een refresh-token. De link is niet veranderd."
         },

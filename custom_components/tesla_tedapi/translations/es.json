@@ -65,12 +65,12 @@
       },
       "login": {
         "title": "Iniciar sesión en Tesla",
-        "description": "Tu cuenta de Tesla se usa para registrar la clave en la Powerwall y como respaldo para cambiar ajustes cuando la conexión local falla.\n\n**Recomendado: inicio de sesión con una app.** Desde octubre de 2026, Tesla rechaza para la Powerwall los inicios de sesión hechos en un navegador normal. Inicia sesión con una app que muestre el inicio de sesión de Tesla en su propia ventana, como *Auth app for Tesla* (iOS, Android), y copia el **token de actualización** (refresh token) que muestra. Pégalo abajo. Usa un token creado para esto, no uno que ya use otra integración: iniciar sesión en otro sitio con el mismo token puede cerrar la sesión de esa integración.\n\n**O inicio de sesión en el navegador** (Tesla puede rechazarlo):\n1. Abre este enlace en un ordenador, con las herramientas de desarrollo del navegador abiertas en la pestaña **Red** (F12):\n   [Iniciar sesión en Tesla]({url})\n2. Inicia sesión. La última página no cargará, porque Tesla envía el navegador a una dirección `tesla://auth/callback?code=…`.\n3. En la pestaña Red, busca la solicitud que empieza por `callback?code=` (o la cabecera `Location` de la última redirección) y copia esa dirección completa.\n4. Pégala abajo. Los códigos caducan en minutos y funcionan una sola vez.",
+        "description": "Tu cuenta de Tesla se usa para registrar la clave en la Powerwall y como respaldo para cambiar ajustes cuando la conexión local falla.\n\n**Inicio de sesión en el navegador:**\n1. Abre este enlace en un ordenador, con las herramientas de desarrollo del navegador abiertas en la pestaña **Red** (F12):\n   [Iniciar sesión en Tesla]({url})\n2. Inicia sesión. La última página no cargará, porque Tesla envía el navegador a una dirección `tesla://auth/callback?code=…`.\n3. En la pestaña Red, busca la solicitud que empieza por `callback?code=` (o la cabecera `Location` de la última redirección) y copia esa dirección completa.\n4. Pégala abajo. Los códigos caducan en minutos y funcionan una sola vez.\n\n**O un token de actualización:** pega el token de actualización de un inicio de sesión con una app, como *Auth app for Tesla* (iOS, Android). Usa un token creado para esto, no uno que ya use otra integración: iniciar sesión en otro sitio con el mismo token puede cerrar la sesión de esa integración.",
         "data": {
           "callback": "Token de actualización o dirección de retorno"
         },
         "data_description": {
-          "callback": "Pega el **token de actualización** de un inicio de sesión con app (un texto largo que suele empezar por `eyJ`), o la dirección completa `tesla://auth/callback?code=…` de un inicio de sesión en el navegador. Cada código funciona una vez y caduca en minutos."
+          "callback": "La dirección completa `tesla://auth/callback?code=…` del inicio de sesión en el navegador, o un **token de actualización** de un inicio de sesión con una app (un texto largo que suele empezar por `eyJ`). Cada código funciona una vez y caduca en pocos minutos."
         }
       },
       "site": {
@@ -140,7 +140,7 @@
       "invalid_auth": "Tesla no aceptó ese código. Se ha creado un nuevo enlace de inicio de sesión: inicia sesión de nuevo con él y pega la nueva dirección, o pega un token de actualización.",
       "cloud_error": "El servicio de Tesla devolvió un error. Inténtalo de nuevo en un minuto.",
       "none_found": "Ninguna Powerwall respondió en esta red. Introduce la dirección en su lugar (tu router muestra la pasarela como `teslapw_…`).",
-      "owner_api_refused": "Has iniciado sesión, pero Tesla rechaza este tipo de inicio de sesión para la Powerwall (HTTP 403). Los inicios de sesión en el navegador están bloqueados; pega en su lugar un token de actualización de un inicio de sesión con app como Auth app for Tesla.",
+      "owner_api_refused": "Has iniciado sesión, pero la Owner API de Tesla rechazó el token (HTTP 403). Inicia sesión de nuevo; si sigue pasando, puede que Tesla haya vuelto a cambiar sus reglas de inicio de sesión: abre una incidencia (issue).",
       "invalid_token": "Tesla no aceptó ese token de actualización. Puede que haya caducado o que otra app lo haya usado: consigue uno nuevo en tu app de tokens. El enlace de inicio de sesión no ha cambiado.",
       "invalid_callback": "Esa no es una dirección de inicio de sesión del enlace de arriba. Pega la dirección completa `tesla://auth/callback?code=…` de este enlace (un enlace anterior ya no funciona), o un token de actualización. El enlace no ha cambiado."
     },
@@ -152,7 +152,7 @@
       "reconfigure_successful": "La conexión se ha cambiado.",
       "reauth_successful": "Acceso restablecido.",
       "unique_id_mismatch": "La pasarela en esa dirección es otra Powerwall. Introduce la dirección de esta Powerwall, o añade la otra como una entrada nueva.",
-      "register_token_refused": "Tesla rechazó el token de inicio de sesión al registrar la clave. Vuelve a empezar la configuración y pega un token de actualización nuevo de un inicio de sesión con app como Auth app for Tesla (los inicios de sesión en el navegador se rechazan).",
+      "register_token_refused": "Tesla rechazó el token de inicio de sesión al registrar la clave. Vuelve a empezar la configuración e inicia sesión de nuevo (en el navegador, o con un token de actualización nuevo).",
       "register_wrong_site": "Tesla no conoce ese sitio de energía en esta cuenta. Vuelve a empezar la configuración y elige el sitio con esta Powerwall, con la sesión iniciada en la cuenta de Tesla propietaria.",
       "register_unreachable": "Tesla no pudo llegar a la Powerwall para registrar la clave. Comprueba que aparece en línea en la app de Tesla (su conexión a internet), espera unos minutos y vuelve a empezar la configuración."
     }
@@ -165,7 +165,7 @@
           "settings": "Ajustes",
           "cloud_backup": "Respaldo en la nube (Owner API, Tesla Fleet)",
           "link_account": "Vincular una cuenta de Tesla (Owner API)",
-          "unlink_account": "Desvincular la cuenta de Tesla"
+          "unlink_account": "Desvincular un respaldo en la nube"
         }
       },
       "settings": {
@@ -198,12 +198,12 @@
       },
       "login": {
         "title": "Iniciar sesión en Tesla",
-        "description": "Tu cuenta de Tesla se usa para registrar la clave en la Powerwall y como respaldo para cambiar ajustes cuando la conexión local falla.\n\n**Recomendado: inicio de sesión con una app.** Desde octubre de 2026, Tesla rechaza para la Powerwall los inicios de sesión hechos en un navegador normal. Inicia sesión con una app que muestre el inicio de sesión de Tesla en su propia ventana, como *Auth app for Tesla* (iOS, Android), y copia el **token de actualización** (refresh token) que muestra. Pégalo abajo. Usa un token creado para esto, no uno que ya use otra integración: iniciar sesión en otro sitio con el mismo token puede cerrar la sesión de esa integración.\n\n**O inicio de sesión en el navegador** (Tesla puede rechazarlo):\n1. Abre este enlace en un ordenador, con las herramientas de desarrollo del navegador abiertas en la pestaña **Red** (F12):\n   [Iniciar sesión en Tesla]({url})\n2. Inicia sesión. La última página no cargará, porque Tesla envía el navegador a una dirección `tesla://auth/callback?code=…`.\n3. En la pestaña Red, busca la solicitud que empieza por `callback?code=` (o la cabecera `Location` de la última redirección) y copia esa dirección completa.\n4. Pégala abajo. Los códigos caducan en minutos y funcionan una sola vez.",
+        "description": "Tu cuenta de Tesla se usa para registrar la clave en la Powerwall y como respaldo para cambiar ajustes cuando la conexión local falla.\n\n**Inicio de sesión en el navegador:**\n1. Abre este enlace en un ordenador, con las herramientas de desarrollo del navegador abiertas en la pestaña **Red** (F12):\n   [Iniciar sesión en Tesla]({url})\n2. Inicia sesión. La última página no cargará, porque Tesla envía el navegador a una dirección `tesla://auth/callback?code=…`.\n3. En la pestaña Red, busca la solicitud que empieza por `callback?code=` (o la cabecera `Location` de la última redirección) y copia esa dirección completa.\n4. Pégala abajo. Los códigos caducan en minutos y funcionan una sola vez.\n\n**O un token de actualización:** pega el token de actualización de un inicio de sesión con una app, como *Auth app for Tesla* (iOS, Android). Usa un token creado para esto, no uno que ya use otra integración: iniciar sesión en otro sitio con el mismo token puede cerrar la sesión de esa integración.",
         "data": {
           "callback": "Token de actualización o dirección de retorno"
         },
         "data_description": {
-          "callback": "Pega el **token de actualización** de un inicio de sesión con app (un texto largo que suele empezar por `eyJ`), o la dirección completa `tesla://auth/callback?code=…` de un inicio de sesión en el navegador. Cada código funciona una vez y caduca en minutos."
+          "callback": "La dirección completa `tesla://auth/callback?code=…` del inicio de sesión en el navegador, o un **token de actualización** de un inicio de sesión con una app (un texto largo que suele empezar por `eyJ`). Cada código funciona una vez y caduca en pocos minutos."
         }
       },
       "site": {
@@ -216,14 +216,20 @@
         }
       },
       "unlink_account": {
-        "title": "Desvincular la cuenta de Tesla",
-        "description": "Entonces los ajustes solo se cambiarán por la conexión local. El inicio de sesión guardado permanece en el disco hasta que elimines la carpeta `tesla_tedapi`."
+        "title": "Desvincular un respaldo en la nube",
+        "description": "Elige el respaldo en la nube que se dejará de usar. **Owner API:** se quita la cuenta de Tesla vinculada aquí (el inicio de sesión guardado permanece en el disco hasta que elimines la carpeta `tesla_tedapi`). **Tesla Fleet:** esta integración deja de usarlo; la integración Tesla Fleet o Teslemetry no cambia. Los ajustes se cambian entonces por el otro respaldo, o solo por la conexión local.",
+        "data": {
+          "backup": "Respaldo en la nube"
+        },
+        "data_description": {
+          "backup": "El respaldo que se dejará de usar."
+        }
       }
     },
     "error": {
       "invalid_auth": "Tesla no aceptó ese código. Se ha creado un nuevo enlace de inicio de sesión: inicia sesión de nuevo con él y pega la nueva dirección, o pega un token de actualización.",
       "cloud_error": "El servicio de Tesla devolvió un error. Inténtalo de nuevo en un minuto.",
-      "owner_api_refused": "Has iniciado sesión, pero Tesla rechaza este tipo de inicio de sesión para la Powerwall (HTTP 403). Los inicios de sesión en el navegador están bloqueados; pega en su lugar un token de actualización de un inicio de sesión con app como Auth app for Tesla.",
+      "owner_api_refused": "Has iniciado sesión, pero la Owner API de Tesla rechazó el token (HTTP 403). Inicia sesión de nuevo; si sigue pasando, puede que Tesla haya vuelto a cambiar sus reglas de inicio de sesión: abre una incidencia (issue).",
       "invalid_token": "Tesla no aceptó ese token de actualización. Puede que haya caducado o que otra app lo haya usado: consigue uno nuevo en tu app de tokens. El enlace de inicio de sesión no ha cambiado.",
       "invalid_callback": "Esa no es una dirección de inicio de sesión del enlace de arriba. Pega la dirección completa `tesla://auth/callback?code=…` de este enlace (un enlace anterior ya no funciona), o un token de actualización. El enlace no ha cambiado."
     },
@@ -548,12 +554,12 @@
         "step": {
           "login": {
             "title": "Iniciar sesión en Tesla",
-            "description": "El respaldo en la nube de Tesla para los ajustes ha dejado de funcionar, normalmente porque el inicio de sesión guardado caducó o se revocó. Las lecturas y el control locales no se ven afectados.\n\nTu cuenta de Tesla se usa para registrar la clave en la Powerwall y como respaldo para cambiar ajustes cuando la conexión local falla.\n\n**Recomendado: inicio de sesión con una app.** Desde octubre de 2026, Tesla rechaza para la Powerwall los inicios de sesión hechos en un navegador normal. Inicia sesión con una app que muestre el inicio de sesión de Tesla en su propia ventana, como *Auth app for Tesla* (iOS, Android), y copia el **token de actualización** (refresh token) que muestra. Pégalo abajo. Usa un token creado para esto, no uno que ya use otra integración: iniciar sesión en otro sitio con el mismo token puede cerrar la sesión de esa integración.\n\n**O inicio de sesión en el navegador** (Tesla puede rechazarlo):\n1. Abre este enlace en un ordenador, con las herramientas de desarrollo del navegador abiertas en la pestaña **Red** (F12):\n   [Iniciar sesión en Tesla]({url})\n2. Inicia sesión. La última página no cargará, porque Tesla envía el navegador a una dirección `tesla://auth/callback?code=…`.\n3. En la pestaña Red, busca la solicitud que empieza por `callback?code=` (o la cabecera `Location` de la última redirección) y copia esa dirección completa.\n4. Pégala abajo. Los códigos caducan en minutos y funcionan una sola vez.",
+            "description": "Tu cuenta de Tesla se usa para registrar la clave en la Powerwall y como respaldo para cambiar ajustes cuando la conexión local falla.\n\n**Inicio de sesión en el navegador:**\n1. Abre este enlace en un ordenador, con las herramientas de desarrollo del navegador abiertas en la pestaña **Red** (F12):\n   [Iniciar sesión en Tesla]({url})\n2. Inicia sesión. La última página no cargará, porque Tesla envía el navegador a una dirección `tesla://auth/callback?code=…`.\n3. En la pestaña Red, busca la solicitud que empieza por `callback?code=` (o la cabecera `Location` de la última redirección) y copia esa dirección completa.\n4. Pégala abajo. Los códigos caducan en minutos y funcionan una sola vez.\n\n**O un token de actualización:** pega el token de actualización de un inicio de sesión con una app, como *Auth app for Tesla* (iOS, Android). Usa un token creado para esto, no uno que ya use otra integración: iniciar sesión en otro sitio con el mismo token puede cerrar la sesión de esa integración.",
             "data": {
               "callback": "Token de actualización o dirección de retorno"
             },
             "data_description": {
-              "callback": "Pega el **token de actualización** de un inicio de sesión con app (un texto largo que suele empezar por `eyJ`), o la dirección completa `tesla://auth/callback?code=…` de un inicio de sesión en el navegador. Cada código funciona una vez y caduca en minutos."
+              "callback": "La dirección completa `tesla://auth/callback?code=…` del inicio de sesión en el navegador, o un **token de actualización** de un inicio de sesión con una app (un texto largo que suele empezar por `eyJ`). Cada código funciona una vez y caduca en pocos minutos."
             }
           },
           "site": {
@@ -566,7 +572,7 @@
         "error": {
           "invalid_auth": "Tesla no aceptó ese código. Se ha creado un nuevo enlace de inicio de sesión: inicia sesión de nuevo con él y pega la nueva dirección, o pega un token de actualización.",
           "cloud_error": "El servicio de Tesla devolvió un error. Inténtalo de nuevo en un minuto.",
-          "owner_api_refused": "Has iniciado sesión, pero Tesla rechaza este tipo de inicio de sesión para la Powerwall (HTTP 403). Los inicios de sesión en el navegador están bloqueados; pega en su lugar un token de actualización de un inicio de sesión con app como Auth app for Tesla.",
+          "owner_api_refused": "Has iniciado sesión, pero la Owner API de Tesla rechazó el token (HTTP 403). Inicia sesión de nuevo; si sigue pasando, puede que Tesla haya vuelto a cambiar sus reglas de inicio de sesión: abre una incidencia (issue).",
           "invalid_token": "Tesla no aceptó ese token de actualización. Puede que haya caducado o que otra app lo haya usado: consigue uno nuevo en tu app de tokens. El enlace de inicio de sesión no ha cambiado.",
           "invalid_callback": "Esa no es una dirección de inicio de sesión del enlace de arriba. Pega la dirección completa `tesla://auth/callback?code=…` de este enlace (un enlace anterior ya no funciona), o un token de actualización. El enlace no ha cambiado."
         },
