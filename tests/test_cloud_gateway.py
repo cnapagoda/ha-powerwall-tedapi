@@ -224,3 +224,35 @@ def test_redact_token_file(tmp_path) -> None:
     summary = tesla_cloud.redact_token_file(str(path))
     assert summary == {"present": True, "accounts": 1, "expires_at": [123]}
     assert "secret" not in json.dumps(summary)
+
+
+def test_tesla_tls_is_capped_at_1_2() -> None:
+    import ssl
+
+    from pypowerwall import tesla_auth, v1r_register
+    from pypowerwall.cloud.teslapy import Tesla
+
+    ctx = tesla_cloud.tesla_ssl_context()
+    assert ctx.maximum_version == ssl.TLSVersion.TLSv1_2
+    assert ctx.verify_mode == ssl.CERT_REQUIRED
+    # Explicit verify settings pass through unchanged.
+    assert tesla_cloud.tesla_ssl_context(False) is False
+    assert tesla_cloud.tesla_ssl_context("/ca.pem") == "/ca.pem"
+
+    tesla_cloud.use_tesla_tls()
+    # Sign-in and refresh, the Owner API calls and the cloud backup's client.
+    for verify in (tesla_auth._httpx_auth_verify(), v1r_register._ssl_ctx(), Tesla._httpx_auth_verify(True)):
+        assert verify.maximum_version == ssl.TLSVersion.TLSv1_2
+
+
+def test_tesla_calls_use_the_tls_policy() -> None:
+    with patch.object(tesla_cloud, "use_tesla_tls") as use, \
+            patch("pypowerwall.tesla_auth._build_auth_url", return_value=("https://a?x=1", "v", "s")), \
+            patch("pypowerwall.tesla_auth._refresh_access_token", return_value={}), \
+            patch("pypowerwall.tesla_auth._exchange_code", return_value={}), \
+            patch("pypowerwall.v1r_register.api_call", return_value=(200, {"response": []})):
+        tesla_cloud.start_login()
+        tesla_cloud.refresh_login("r")
+        tesla_cloud.exchange_code("c", "v")
+        tesla_cloud.energy_sites("t")
+    assert use.call_count == 4

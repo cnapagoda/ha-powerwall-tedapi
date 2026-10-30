@@ -21,7 +21,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from . import gateway
+from . import gateway, tesla_cloud
 from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, summary
 from .cloud import CloudBackend, OwnerSettings
 from .const import (
@@ -343,6 +343,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _init_cloud(self):
         import pypowerwall  # noqa: PLC0415
+
+        tesla_cloud.use_tesla_tls()
 
         kwargs: dict[str, Any] = {
             "host": "",

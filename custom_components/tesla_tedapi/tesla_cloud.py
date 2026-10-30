@@ -1,7 +1,8 @@
 """Tesla account login and v1r key registration, used by the config flow.
 
 Everything here is blocking and runs in the executor. The HTTP work goes through
-pypowerwall, which carries Tesla's transport quirks (HTTP/2, TLS policy)."""
+pypowerwall, which carries Tesla's transport quirks (HTTP/2), with its TLS
+policy replaced by use_tesla_tls() below."""
 from __future__ import annotations
 
 import base64
@@ -9,11 +10,40 @@ from dataclasses import dataclass
 import hashlib
 import json
 import os
+import ssl
 import time
 from typing import Any
 import urllib.parse
 
 OWNER_API = "https://owner-api.teslamotors.com"
+
+
+def tesla_ssl_context(verify: Any = True) -> Any:
+    """TLS for Tesla's auth and Owner API: TLS 1.2 at most.
+
+    Tesla fingerprints the TLS handshake that mints a token: tokens minted
+    with some TLS 1.3 handshakes (pypowerwall pins TLS 1.3 except on Windows)
+    are refused by the Owner API with HTTP 403. Home Assistant's own runtime
+    got 403s that way, while the same steps work over TLS 1.2. The Tesla
+    Custom integration made the same change (alandtse/tesla #1202).
+    """
+    if verify is False or isinstance(verify, (str, bytes, ssl.SSLContext)):
+        return verify
+    ctx = ssl.create_default_context()
+    ctx.maximum_version = ssl.TLSVersion.TLSv1_2
+    return ctx
+
+
+def use_tesla_tls() -> None:
+    """Make pypowerwall's Tesla clients use tesla_ssl_context: the sign-in
+    and token refresh, the Owner API calls here and the cloud backup's
+    client. HTTP/2 stays as pypowerwall sets it."""
+    from pypowerwall import tesla_auth, v1r_register  # noqa: PLC0415
+    from pypowerwall.cloud.teslapy import Tesla  # noqa: PLC0415
+
+    tesla_auth._httpx_auth_verify = tesla_ssl_context
+    v1r_register._ssl_ctx = tesla_ssl_context
+    Tesla._httpx_auth_verify = staticmethod(tesla_ssl_context)
 
 # Authorized-client key states reported by the gateway.
 KEY_PENDING = 1
@@ -65,6 +95,7 @@ def start_login() -> LoginStart:
     """Build the Tesla login URL (OAuth PKCE, same client as the Tesla app)."""
     from pypowerwall.tesla_auth import _build_auth_url  # noqa: PLC0415
 
+    use_tesla_tls()
     url, verifier, state = _build_auth_url()
     parts = urllib.parse.urlsplit(url)
     query = [(k, v) for k, v in urllib.parse.parse_qsl(parts.query) if k not in LOGIN_URL_EXTRA]
@@ -104,6 +135,7 @@ def refresh_login(refresh_token: str) -> dict[str, Any]:
     from pypowerwall.tesla_auth import _refresh_access_token  # noqa: PLC0415
 
     refresh_token = refresh_token.strip()
+    use_tesla_tls()
     try:
         data = _refresh_access_token(refresh_token)
     except RuntimeError as err:
@@ -116,6 +148,7 @@ def exchange_code(code: str, code_verifier: str) -> dict[str, Any]:
     """Swap the authorization code for tokens."""
     from pypowerwall.tesla_auth import _exchange_code  # noqa: PLC0415
 
+    use_tesla_tls()
     try:
         return _exchange_code(code, code_verifier)
     except RuntimeError as err:
@@ -146,6 +179,7 @@ def save_site(authpath: str, site_id: int) -> None:
 def _call(method: str, path: str, token: str, data: dict | None = None) -> dict[str, Any]:
     from pypowerwall.v1r_register import api_call  # noqa: PLC0415
 
+    use_tesla_tls()
     code, resp = api_call(f"{OWNER_API}{path}", method=method, data=data, token=token)
     if code == 403:
         raise TeslaRefused("Owner API refused the token (HTTP 403)", code)
