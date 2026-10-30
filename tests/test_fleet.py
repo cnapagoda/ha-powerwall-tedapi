@@ -16,7 +16,7 @@ from homeassistant.helpers import entity_registry as er, issue_registry as ir
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.tesla_tedapi import fleet as fleet_mod
+from custom_components.tesla_tedapi import fleet as fleet_mod, tesla_cloud
 from custom_components.tesla_tedapi.const import DOMAIN
 
 from .conftest import DIN, cloud, local
@@ -449,3 +449,28 @@ async def test_unlink_keeps_fleet(hass: HomeAssistant, fake_powerwall, fleet) ->
     await hass.async_block_till_done()
     assert entry.options["cloud_backends"] == "tesla_fleet"
     assert "owners_email" not in entry.data
+
+
+async def test_linking_an_account_loads_the_owner_backup(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, V1R)
+    assert [b.name for b in entry.runtime_data.coordinator.backends] == ["tesla_fleet"]
+    login = tesla_cloud.LoginStart("https://auth.tesla.com/x", "verifier", "s")
+    cloud_mod = "custom_components.tesla_tedapi.config_flow.tesla_cloud"
+    with (
+        patch(f"{cloud_mod}.start_login", return_value=login),
+        patch(f"{cloud_mod}.refresh_login", return_value={"access_token": "at", "refresh_token": "rt"}),
+        patch(f"{cloud_mod}.token_email", return_value="owner@example.com"),
+        patch(f"{cloud_mod}.energy_sites", return_value=[tesla_cloud.EnergySite(42, DIN, "Home")]),
+        patch(f"{cloud_mod}.save_token"),
+        patch(f"{cloud_mod}.save_site"),
+    ):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "link_account"})
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"callback": "eyJ" + "a" * 600})
+        await hass.async_block_till_done()
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options["cloud_backends"] == "fleet_then_owner"
+    # The reload after linking sets up both backups, without another reload.
+    assert [b.name for b in entry.runtime_data.coordinator.backends] == ["tesla_fleet", "owner_api"]

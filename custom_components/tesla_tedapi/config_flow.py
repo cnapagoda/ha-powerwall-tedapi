@@ -764,15 +764,18 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         return await self.async_step_login()
 
     async def _async_logged_in(self, site: tesla_cloud.EnergySite) -> ConfigFlowResult:
-        self.hass.config_entries.async_update_entry(
-            self.config_entry, data={**self.config_entry.data, **self._account_data(site)})
-        # Saving the options reloads the entry with the account.
-        return self.async_create_entry(data=self._options_with(CLOUD_WITH_OWNER))
+        return self._save(data={**self.config_entry.data, **self._account_data(site)},
+                          options=self._options_with(CLOUD_WITH_OWNER))
+
+    def _save(self, data: dict[str, Any], options: dict[str, Any]) -> ConfigFlowResult:
+        """Data and options in one update, so the single reload it starts sees
+        both (two updates reloaded with the account but the old cloud choice)."""
+        self.hass.config_entries.async_update_entry(self.config_entry, data=data, options=options)
+        return self.async_create_entry(data=options)
 
     async def async_step_unlink_account(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             data = {k: v for k, v in self.config_entry.data.items()
                     if k not in (CONF_OWNERS_EMAIL, CONF_OWNERS_AUTHPATH, CONF_SITE_ID)}
-            self.hass.config_entries.async_update_entry(self.config_entry, data=data)
-            return self.async_create_entry(data=self._options_with(CLOUD_WITHOUT_OWNER))
+            return self._save(data=data, options=self._options_with(CLOUD_WITHOUT_OWNER))
         return self.async_show_form(step_id="unlink_account", data_schema=vol.Schema({}))
