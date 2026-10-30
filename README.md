@@ -8,6 +8,7 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 - **Local readings** every 30 seconds: power flows, battery level, lifetime energy counters, capacity and health, temperatures, grid voltage and frequency, per-input solar power (Powerwall 3), alerts.
 - **Local control** with a signed (v1r) key: operation mode, backup reserve, grid charging and grid export.
 - **Battery dispatch**: charge or discharge at a set power for a set time, with state-of-charge limits. Use it for price-based charging, peak export and similar jobs.
+- **Go off-grid and reconnect** (signed connection): like *Go off-grid* in the Tesla app, with a time limit and a battery floor at which the integration reconnects by itself.
 - **Tesla cloud as a backup** (optional): if the gateway can't be reached, the settings entities keep working through your Tesla account.
 
 > **Tesla sign-in works again (2.3.0).** From late October 2026 the Tesla Owner API answered *403 Forbidden* to sign-ins made through this integration (2.2.x): Tesla fingerprints the TLS connection that gets the token. 2.3.0 connects to Tesla over TLS 1.2, as the Tesla Custom integration does, so both a **browser sign-in** and a **refresh token** from a token app work. A key that is already registered never needed either.
@@ -15,7 +16,7 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 - **Setup wizard**: finds the Powerwall on your network, checks the gateway password, registers the key with your Powerwall and notices the confirmation by itself. No command line needed.
 - **Keeps your export and grid charging settings**: the Powerwall sometimes drops them from its own settings; the integration writes them back.
 
-> **Not affiliated with Tesla.** This uses undocumented interfaces that Tesla can change at any time. A dispatch overrides your export setting (and, if you ask it to, the backup reserve), so use it with care. See [Safety](#safety).
+> **Not affiliated with Tesla.** This uses undocumented interfaces that Tesla can change at any time. A dispatch overrides your export setting (and, if you ask it to, the backup reserve), and going off-grid disconnects your house from the grid, so use them with care. See [Safety](#safety).
 
 ---
 
@@ -271,7 +272,7 @@ The examples on this page use the *Garage* form; replace `garage_` with your are
 | **Battery level** (%) | Same scale as the Tesla app. |
 | Battery state of energy (%) | The gateway's raw value, about 2–4 points higher than the app (the app hides the bottom 5 %). |
 | Grid status, frequency, voltage | |
-| **Grid connected** (binary sensor) | On while the Powerwall is on the grid. Off during an outage or *Go off-grid*, and while it syncs to reconnect. `grid_status` attribute: `UP`, `DOWN` or `SYNCING`. |
+| **Grid connected** (binary sensor) | On while the Powerwall is on the grid. Off during an outage or *Go off-grid*, and while it syncs to reconnect. `grid_status` attribute: `UP`, `DOWN` or `SYNCING`. With a signed connection, it also shows an [off-grid run](#tesla_tedapigo_off_grid) started here: `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below` and `last_end_reason`. |
 | Lifetime energy: grid imported/exported, battery charged/discharged, solar produced, home consumed (kWh) | `total_increasing`, ready for the **Energy dashboard**. |
 | Battery full capacity, energy remaining (kWh), health (%) | Health = full capacity ÷ (13.5 kWh × packs). |
 | Per-pack capacity and temperature | One pair per Powerwall / expansion pack. |
@@ -344,6 +345,39 @@ data:
 ### `tesla_tedapi.cancel_max_backup`
 
 Ends a max backup started here or in the Tesla app. Events Tesla scheduled (Storm Watch) are not affected; turn the **Storm Watch** switch off to stop those.
+
+### `tesla_tedapi.go_off_grid`
+
+Signed connection only. **Use with care: this disconnects your house from the grid.** It sends the same command as *Go off-grid* in the Tesla app: the Powerwall opens its grid contactor and the house runs on the battery and solar. Solar stops for about 30 seconds while the contactor switches.
+
+| Field | |
+|---|---|
+| `confirm` | Required, and must be `true`. |
+| `duration_minutes` | Optional, 1–1440 (24 hours). Reconnect after this long. |
+| `min_soc` | Optional. Reconnect when the **Battery level** falls to this. Default: the backup reserve. |
+| `config_entry_id` | Only needed with more than one Powerwall. |
+
+How an off-grid run works:
+
+- The action is refused unless the Powerwall is on the grid and the battery is above `min_soc`.
+- It then waits up to 90 seconds for the gateway to report the grid as down. If that doesn't happen, it takes the request back (sends a reconnect) and fails, so the contactor can't open later on.
+- The integration reconnects when the time is up or the battery falls to `min_soc`. The run is saved, so this also works after a restart. If the integration isn't running, nothing reconnects: the Powerwall stays off-grid.
+- If an automatic reconnect fails, it is tried again every minute and a repair says so.
+- The `tesla_tedapi_off_grid_ended` event carries a `reason`: `completed`, `min_soc`, `requested`, or `reconnected_elsewhere` (for example in the Tesla app).
+- **Grid connected** turns off, and its attributes show the run.
+
+```yaml
+# Test the backup for 15 minutes, back on the grid early if the battery falls to 50 %
+action: tesla_tedapi.go_off_grid
+data:
+  confirm: true
+  duration_minutes: 15
+  min_soc: 50
+```
+
+### `tesla_tedapi.reconnect_grid`
+
+Signed connection only. Reconnects the house to the grid, also after *Go off-grid* in the Tesla app. It waits up to 90 seconds for the Powerwall to start syncing to the grid (**Grid connected** turns back on once it has synced). It fails during a real outage, when there is no grid to sync to.
 
 More examples are in [`examples/automations.yaml`](examples/automations.yaml).
 
@@ -419,7 +453,7 @@ Turn this off with **Restore settings when the Powerwall drops them** if another
 - **A dispatch ignores your grid export setting, and the Powerwall itself ignores the backup reserve.** On a Powerwall 3 a discharge exported to the grid with export set to *never*. The integration stops a discharge at the backup reserve unless you pass `min_soc` (option), and refuses calls above the largest dispatch power you set.
 - **Your retailer or VPP may also control the Powerwall.** They can change modes or grid charging from the cloud, and their changes can fight yours.
 - The **Battery level** sensor and the limits use the Tesla app scale.
-- Contactor control (going off-grid) is **not** exposed on purpose.
+- **Going off-grid switches the house to the battery.** If the battery runs out before the house is reconnected, the power goes off. Always set `min_soc` or `duration_minutes` high enough, and don't rely on it while Home Assistant may be down. See [`go_off_grid`](#tesla_tedapigo_off_grid).
 
 ## Cloud backup
 
@@ -465,6 +499,7 @@ After you change a setting, the integration reads the Powerwall again straight a
 - **Export on a price spike.** Use [`dispatch_battery_power`](#tesla_tedapidispatch_battery_power) to discharge at a set power while the price is high, and stop when it falls.
 - **Keep the settings you chose.** The [dropped settings](#dropped-settings) restore keeps your export rule and grid charging in place, even when the Powerwall drops them.
 - **Get ready for a storm.** Turn on **Storm Watch**, or start a [max backup](#tesla_tedapistart_max_backup) to charge to full and hold it.
+- **Test your backup.** [Go off-grid](#tesla_tedapigo_off_grid) for a few minutes, with a battery floor, to see that the house runs on the Powerwall.
 - **Know when the power goes out.** **Grid connected** turns off within one poll of an outage. Use it for notifications or to switch off big loads.
 - **Track energy.** Add the lifetime energy sensors to the **Energy dashboard** (grid, solar, battery, home).
 - **Watch the hardware.** [Alerts](#alerts), the **Problem** sensor, battery health, temperatures and fan speeds show issues early, with the gateway's own alert codes.
@@ -476,7 +511,7 @@ After you change a setting, the integration reads the Powerwall again straight a
 - **The Wi-Fi password connection can't change settings locally**, and has no battery dispatch or max backup. Settings changes need a cloud backup.
 - **Cloud-only settings:** Storm Watch, grid services and the off-grid vehicle charging reserve need a [cloud backup](#cloud-backup).
 - **Through the cloud, backup reserve stops at 80 %.** Tesla's cloud caps it. Locally, any value up to 100 % works, and [max backup](#tesla_tedapistart_max_backup) charges to full; neither is available through the cloud.
-- **Battery dispatch and max backup are local only** (signed connection), with no cloud fallback.
+- **Battery dispatch, max backup, going off-grid and reconnecting are local only** (signed connection), with no cloud fallback. Going off-grid is new in 2.3.1; pypowerwall's authors tested the command on a Powerwall 3.
 - **A registered key can't be removed from here.** Remove it in the Tesla app.
 - **Tested mainly on Powerwall 3.** Powerwall 2 / Powerwall+ are less tested, and some readings (built-in solar inputs, fans, inverter temperatures) depend on the model and firmware. On some firmware the inverter heatsink temperature doesn't change.
 - **No history backfill.** Readings missed while the gateway was unreachable stay missing.

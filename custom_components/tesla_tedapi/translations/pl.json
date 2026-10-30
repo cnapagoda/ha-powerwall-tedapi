@@ -479,6 +479,27 @@
     },
     "resume_refused": {
       "message": "Powerwall nie przyjął powrotu do normalnej pracy. Szczegóły są w dzienniku."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Odłączenie od sieci wymaga połączenia podpisanego (v1r). Zarejestruj klucz w konfiguracji integracji albo użyj aplikacji Tesla."
+    },
+    "off_grid_confirm": {
+      "message": "Ustaw confirm na true, aby odłączyć dom od sieci."
+    },
+    "off_grid_not_on_grid": {
+      "message": "Powerwall nie jest podłączona do sieci (stan sieci: {status}), więc nie może się odłączyć."
+    },
+    "off_grid_battery_low": {
+      "message": "Poziom baterii ({soc}%) jest już na poziomie ponownego podłączenia ({limit}%) lub niżej."
+    },
+    "contactor_refused": {
+      "message": "Powerwall nie przyjęła polecenia sieciowego. Szczegóły są w dzienniku."
+    },
+    "off_grid_not_confirmed": {
+      "message": "Powerwall przyjęła polecenie, ale nie odłączyła się od sieci w ciągu 90 sekund; żądanie zostało wycofane."
+    },
+    "reconnect_not_confirmed": {
+      "message": "Powerwall przyjęła polecenie, ale nie zaczęła synchronizacji z siecią w ciągu 90 sekund. Sprawdź, czy jest zasilanie z sieci, oraz aplikację Tesla."
     }
   },
   "services": {
@@ -541,6 +562,38 @@
           "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Odłącz od sieci",
+      "description": "Odłącza dom od sieci przez podpisane połączenie lokalne, jak *Odłącz od sieci* w aplikacji Tesla. Dom działa wtedy na baterii i fotowoltaice; fotowoltaika przerywa pracę na około 30 sekund, gdy przełącza się stycznik sieciowy. Akcja czeka do 90 sekund, aż bramka zgłosi odłączenie. Integracja podłącza ponownie po upływie czasu albo gdy bateria spadnie do poziomu ponownego podłączenia, także po restarcie.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "confirm": {
+          "name": "Potwierdź",
+          "description": "Musi być włączone: to odłącza dom od sieci."
+        },
+        "duration_minutes": {
+          "name": "Czas",
+          "description": "Podłącz ponownie po tylu minutach (do 24 godzin). Bez tego dom pozostaje odłączony, aż bateria osiągnie poziom ponownego podłączenia albo podłączysz go ręcznie."
+        },
+        "min_soc": {
+          "name": "Podłącz ponownie przy",
+          "description": "Podłącz ponownie, gdy poziom baterii (skala aplikacji Tesla) spadnie do tego procentu. Domyślnie: rezerwa awaryjna."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Podłącz ponownie do sieci",
+      "description": "Podłącza dom ponownie do sieci przez podpisane połączenie lokalne, także po *Odłącz od sieci* w aplikacji Tesla. Akcja czeka do 90 sekund, aż Powerwall zacznie synchronizację z siecią.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +643,10 @@
     "fleet_read_only": {
       "title": "Zapas w chmurze Tesla Fleet nie może zmieniać ustawień",
       "description": "Logowanie Tesla Fleet (lub Teslemetry) używane jako zapas w chmurze może odczytywać ustawienia Powerwall, ale nie może ich zmieniać: brakuje uprawnienia **energy_cmds** (polecenia energii). Zmiany trafiają do następnego zapasu w chmurze, jeśli jest.\n\nZaloguj się ponownie do tej integracji (zmień konfigurację lub uwierzytelnij ponownie) i zezwól na polecenia energii. To powiadomienie zniknie przy następnym sprawdzeniu."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "Powerwall nie mogła ponownie podłączyć się do sieci",
+      "description": "Odłączenie od sieci uruchomione przez integrację Powerwall TEDAPI zakończyło się, ale ponowne podłączenie nie powiodło się. Dom nadal działa na baterii ({soc}%). Integracja próbuje ponownie co minutę; jeśli to nadal nie działa, podłącz ponownie w aplikacji Tesla. To powiadomienie zniknie, gdy Powerwall wróci do sieci."
     }
   },
   "selector": {

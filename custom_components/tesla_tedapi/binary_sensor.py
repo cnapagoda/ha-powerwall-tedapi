@@ -10,6 +10,7 @@ from .alerts import describe
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .dispatch import DispatchSession
 from .entity import AddConfigEntryEntitiesCallback, TedapiCloudEntity, TedapiEntity, add_when_reported
+from .off_grid import OffGridSession
 
 # Coordinator-based: no limit on parallel updates.
 PARALLEL_UPDATES = 0
@@ -21,7 +22,8 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data.coordinator
-    entities: list[BinarySensorEntity] = [GridConnectedSensor(coordinator), AlertProblemSensor(coordinator)]
+    entities: list[BinarySensorEntity] = [GridConnectedSensor(coordinator, entry.runtime_data.off_grid),
+                                          AlertProblemSensor(coordinator)]
     dispatch = entry.runtime_data.dispatch
     if dispatch is not None:
         entities.append(DispatchActiveSensor(coordinator, dispatch))
@@ -38,13 +40,15 @@ async def async_setup_entry(
 
 class GridConnectedSensor(TedapiEntity, BinarySensorEntity):
     """On while the Powerwall is connected to the grid; off while it runs off
-    grid (an outage, or "Go off-grid") and while it syncs to reconnect."""
+    grid (an outage, or "Go off-grid") and while it syncs to reconnect. An
+    off-grid run started here is shown in the attributes."""
 
     _attr_translation_key = "grid_connected"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
-    def __init__(self, coordinator: TedapiCoordinator) -> None:
+    def __init__(self, coordinator: TedapiCoordinator, off_grid: OffGridSession | None) -> None:
         super().__init__(coordinator, "grid_connected")
+        self._off_grid = off_grid
 
     @property
     def available(self) -> bool:
@@ -56,7 +60,10 @@ class GridConnectedSensor(TedapiEntity, BinarySensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {"grid_status": self.data.get("grid_status")}
+        attrs: dict[str, Any] = {"grid_status": self.data.get("grid_status")}
+        if self._off_grid is not None:
+            attrs.update(self._off_grid.as_dict())
+        return attrs
 
 
 class AlertProblemSensor(TedapiEntity, BinarySensorEntity):

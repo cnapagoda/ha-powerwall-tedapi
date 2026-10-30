@@ -479,6 +479,27 @@
     },
     "resume_refused": {
       "message": "De Powerwall heeft het hervatten niet geaccepteerd. Zie het logboek voor details."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Off-grid gaan heeft de ondertekende verbinding (v1r) nodig. Registreer een sleutel in de installatie van de integratie, of gebruik de Tesla-app."
+    },
+    "off_grid_confirm": {
+      "message": "Zet confirm op true om het huis los te koppelen van het net."
+    },
+    "off_grid_not_on_grid": {
+      "message": "De Powerwall is niet met het net verbonden (netstatus: {status}) en kan dus niet off-grid gaan."
+    },
+    "off_grid_battery_low": {
+      "message": "Het batterijniveau ({soc}%) is al op of onder het herverbindingsniveau ({limit}%)."
+    },
+    "contactor_refused": {
+      "message": "De Powerwall heeft het netcommando niet geaccepteerd. Zie het logboek voor details."
+    },
+    "off_grid_not_confirmed": {
+      "message": "De Powerwall accepteerde het commando maar ging niet binnen 90 seconden off-grid; het verzoek is ingetrokken."
+    },
+    "reconnect_not_confirmed": {
+      "message": "De Powerwall accepteerde het commando maar begon niet binnen 90 seconden te synchroniseren met het net. Controleer of er netstroom is, en de Tesla-app."
     }
   },
   "services": {
@@ -541,6 +562,38 @@
           "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Ga off-grid",
+      "description": "Koppel het huis los van het net via de ondertekende lokale verbinding, zoals *Ga off-grid* in de Tesla-app. Het huis draait dan op de batterij en zonne-energie; de zonnepanelen vallen ongeveer 30 seconden uit terwijl de netschakelaar omschakelt. De actie wacht tot 90 seconden tot de gateway meldt dat hij off-grid is. De integratie verbindt opnieuw aan het eind van de duur, of als de batterij tot het herverbindingsniveau daalt, ook na een herstart.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "confirm": {
+          "name": "Bevestigen",
+          "description": "Moet aan staan: dit koppelt het huis los van het net."
+        },
+        "duration_minutes": {
+          "name": "Duur",
+          "description": "Na zoveel minuten opnieuw verbinden (tot 24 uur). Zonder duur blijft het huis off-grid tot de batterij het herverbindingsniveau bereikt of je opnieuw verbindt."
+        },
+        "min_soc": {
+          "name": "Opnieuw verbinden bij",
+          "description": "Opnieuw verbinden als het batterijniveau (schaal van de Tesla-app) tot dit percentage daalt. Standaard: de back-upreserve."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Opnieuw met het net verbinden",
+      "description": "Verbind het huis opnieuw met het net via de ondertekende lokale verbinding, ook na *Ga off-grid* in de Tesla-app. De actie wacht tot 90 seconden tot de Powerwall begint te synchroniseren met het net.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +643,10 @@
     "fleet_read_only": {
       "title": "Tesla Fleet-cloud-back-up kan geen instellingen wijzigen",
       "description": "De Tesla Fleet- (of Teslemetry-)aanmelding die als cloud-back-up wordt gebruikt, kan de instellingen van de Powerwall lezen maar niet wijzigen: de machtiging **energy_cmds** (energieopdrachten) ontbreekt. Wijzigingen gaan naar de volgende cloud-back-up, als die er is.\n\nLog opnieuw in bij die integratie (opnieuw configureren of opnieuw authenticeren) en sta de machtiging voor energieopdrachten toe. Deze melding verdwijnt bij de volgende controle daarna."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "De Powerwall kon niet opnieuw met het net verbinden",
+      "description": "Een off-grid-periode gestart door de integratie Powerwall TEDAPI is afgelopen, maar opnieuw verbinden met het net is mislukt. Het huis draait nog op de batterij ({soc}%). De integratie probeert het elke minuut opnieuw; als het blijft mislukken, verbind dan opnieuw in de Tesla-app. Deze melding verdwijnt zodra de Powerwall weer op het net zit."
     }
   },
   "selector": {

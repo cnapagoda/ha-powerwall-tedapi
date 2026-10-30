@@ -479,6 +479,27 @@
     },
     "resume_refused": {
       "message": "La Powerwall non ha accettato la ripresa. Vedi il log per i dettagli."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Scollegarsi dalla rete richiede la connessione firmata (v1r). Registra una chiave nella configurazione dell'integrazione, oppure usa l'app Tesla."
+    },
+    "off_grid_confirm": {
+      "message": "Imposta confirm a true per scollegare la casa dalla rete."
+    },
+    "off_grid_not_on_grid": {
+      "message": "La Powerwall non è collegata alla rete (stato della rete: {status}), quindi non può scollegarsi."
+    },
+    "off_grid_battery_low": {
+      "message": "Il livello della batteria ({soc}%) è già pari o inferiore al livello di ricollegamento ({limit}%)."
+    },
+    "contactor_refused": {
+      "message": "La Powerwall non ha accettato il comando di rete. Vedi il registro per i dettagli."
+    },
+    "off_grid_not_confirmed": {
+      "message": "La Powerwall ha accettato il comando ma non si è scollegata dalla rete entro 90 secondi; la richiesta è stata ritirata."
+    },
+    "reconnect_not_confirmed": {
+      "message": "La Powerwall ha accettato il comando ma non ha iniziato a sincronizzarsi con la rete entro 90 secondi. Controlla che la rete sia presente, e l'app Tesla."
     }
   },
   "services": {
@@ -541,6 +562,38 @@
           "description": "Necessario solo se è configurata più di una Powerwall."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Scollega dalla rete",
+      "description": "Scollega la casa dalla rete tramite la connessione locale firmata, come *Scollega dalla rete* nell'app Tesla. La casa funziona allora con batteria e solare; il solare si ferma per circa 30 secondi mentre il contattore di rete commuta. L'azione attende fino a 90 secondi che il gateway segnali lo scollegamento. L'integrazione ricollega alla fine della durata, o quando la batteria scende al livello di ricollegamento, anche dopo un riavvio.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurata più di una Powerwall."
+        },
+        "confirm": {
+          "name": "Conferma",
+          "description": "Deve essere attivo: scollega la casa dalla rete."
+        },
+        "duration_minutes": {
+          "name": "Durata",
+          "description": "Ricollega dopo questi minuti (fino a 24 ore). Senza durata, la casa resta scollegata finché la batteria non raggiunge il livello di ricollegamento o finché non ricolleghi."
+        },
+        "min_soc": {
+          "name": "Ricollega a",
+          "description": "Ricollega quando il livello della batteria (scala dell'app Tesla) scende a questa percentuale. Predefinito: la riserva di backup."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Ricollega alla rete",
+      "description": "Ricollega la casa alla rete tramite la connessione locale firmata, anche dopo *Scollega dalla rete* nell'app Tesla. L'azione attende fino a 90 secondi che la Powerwall inizi a sincronizzarsi con la rete.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurata più di una Powerwall."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +643,10 @@
     "fleet_read_only": {
       "title": "La riserva cloud Tesla Fleet non può cambiare le impostazioni",
       "description": "L'accesso Tesla Fleet (o Teslemetry) usato come riserva cloud può leggere le impostazioni della Powerwall ma non cambiarle: manca il permesso **energy_cmds** (comandi energia). Le modifiche passano alla riserva cloud successiva, se c'è.\n\nAccedi di nuovo a quell'integrazione (riconfigurala o ripeti l'autenticazione) e consenti il permesso per i comandi energia. Questa notifica scompare al controllo successivo."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "La Powerwall non è riuscita a ricollegarsi alla rete",
+      "description": "Uno scollegamento dalla rete avviato dall'integrazione Powerwall TEDAPI è terminato, ma il ricollegamento è fallito. La casa funziona ancora con la batteria ({soc}%). L'integrazione riprova ogni minuto; se continua a fallire, ricollega dall'app Tesla. Questo avviso scompare quando la Powerwall è di nuovo in rete."
     }
   },
   "selector": {

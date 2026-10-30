@@ -479,6 +479,27 @@
     },
     "resume_refused": {
       "message": "A Powerwall não aceitou a retomada. Veja o log para detalhes."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Desconectar da rede precisa da conexão assinada (v1r). Registre uma chave na configuração da integração ou use o app da Tesla."
+    },
+    "off_grid_confirm": {
+      "message": "Defina confirm como true para desconectar a casa da rede."
+    },
+    "off_grid_not_on_grid": {
+      "message": "A Powerwall não está conectada à rede (estado da rede: {status}), então não pode se desconectar."
+    },
+    "off_grid_battery_low": {
+      "message": "O nível da bateria ({soc}%) já está no nível de reconexão ({limit}%) ou abaixo."
+    },
+    "contactor_refused": {
+      "message": "A Powerwall não aceitou o comando de rede. Veja o log para detalhes."
+    },
+    "off_grid_not_confirmed": {
+      "message": "A Powerwall aceitou o comando, mas não saiu da rede em 90 segundos; o pedido foi retirado."
+    },
+    "reconnect_not_confirmed": {
+      "message": "A Powerwall aceitou o comando, mas não começou a sincronizar com a rede em 90 segundos. Verifique se há energia da rede, e o app da Tesla."
     }
   },
   "services": {
@@ -541,6 +562,38 @@
           "description": "Necessário só quando há mais de uma Powerwall configurada."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Desconectar da rede",
+      "description": "Desconecta a casa da rede pela conexão local assinada, como *Desconectar da rede* no app da Tesla. A casa passa a funcionar com a bateria e o solar; o solar para por cerca de 30 segundos enquanto o contator de rede comuta. A ação espera até 90 segundos até o gateway informar que está fora da rede. A integração reconecta no fim da duração, ou quando a bateria cai para o nível de reconexão, também após um reinício.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessário só quando há mais de uma Powerwall configurada."
+        },
+        "confirm": {
+          "name": "Confirmar",
+          "description": "Precisa estar ligado: isto desconecta a casa da rede."
+        },
+        "duration_minutes": {
+          "name": "Duração",
+          "description": "Reconectar após estes minutos (até 24 horas). Sem ela, a casa fica fora da rede até a bateria chegar ao nível de reconexão ou você reconectar."
+        },
+        "min_soc": {
+          "name": "Reconectar em",
+          "description": "Reconectar quando o nível da bateria (escala do app da Tesla) cair para esta porcentagem. Padrão: a reserva de backup."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Reconectar à rede",
+      "description": "Reconecta a casa à rede pela conexão local assinada, também após *Desconectar da rede* no app da Tesla. A ação espera até 90 segundos até a Powerwall começar a sincronizar com a rede.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessário só quando há mais de uma Powerwall configurada."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +643,10 @@
     "fleet_read_only": {
       "title": "A reserva na nuvem do Tesla Fleet não pode alterar configurações",
       "description": "O login do Tesla Fleet (ou Teslemetry) usado como reserva na nuvem consegue ler as configurações da Powerwall, mas não alterá-las: falta a permissão **energy_cmds** (comandos de energia). As alterações passam para a próxima reserva na nuvem, se houver.\n\nEntre de novo nessa integração (reconfigure-a ou autentique-a de novo) e permita os comandos de energia. Este aviso some na verificação seguinte."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "A Powerwall não conseguiu se reconectar à rede",
+      "description": "Uma desconexão da rede iniciada pela integração Powerwall TEDAPI terminou, mas a reconexão falhou. A casa ainda funciona com a bateria ({soc}%). A integração tenta de novo a cada minuto; se continuar falhando, reconecte pelo app da Tesla. Este aviso some quando a Powerwall voltar à rede."
     }
   },
   "selector": {

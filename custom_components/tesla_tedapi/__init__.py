@@ -15,6 +15,7 @@ import voluptuous as vol
 
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
+    ATTR_CONFIRM,
     ATTR_DURATION_MINUTES,
     ATTR_DURATION_SECONDS,
     ATTR_MAX_SOC,
@@ -24,13 +25,17 @@ from .const import (
     DISPATCH_MAX_WATTS,
     DOMAIN,
     MAX_BACKUP_MAX_MINUTES,
+    OFF_GRID_MAX_MINUTES,
     SERVICE_CANCEL_MAX_BACKUP,
     SERVICE_DISPATCH,
+    SERVICE_GO_OFF_GRID,
+    SERVICE_RECONNECT_GRID,
     SERVICE_RESUME,
     SERVICE_START_MAX_BACKUP,
 )
 from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
 from .dispatch import DispatchSession
+from .off_grid import OffGridSession, off_grid_store
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,6 +58,13 @@ START_MAX_BACKUP_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
     vol.Required(ATTR_DURATION_MINUTES): vol.All(
         vol.Coerce(int), vol.Range(min=1, max=MAX_BACKUP_MAX_MINUTES)),
+})
+GO_OFF_GRID_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    vol.Required(ATTR_CONFIRM): cv.boolean,
+    vol.Optional(ATTR_DURATION_MINUTES): vol.All(
+        vol.Coerce(int), vol.Range(min=1, max=OFF_GRID_MAX_MINUTES)),
+    vol.Optional(ATTR_MIN_SOC): _SOC,
 })
 
 
@@ -97,6 +109,16 @@ def _max_backup_coordinator(hass: HomeAssistant, call: ServiceCall) -> TedapiCoo
     return coordinator
 
 
+def _off_grid(hass: HomeAssistant, call: ServiceCall) -> OffGridSession:
+    session = _entry(hass, call).runtime_data.off_grid
+    if session is None:
+        raise ServiceValidationError(
+            "Going off-grid needs the signed (v1r) connection",
+            translation_domain=DOMAIN, translation_key="off_grid_needs_v1r",
+        )
+    return session
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the actions once; they look up the entry per call."""
 
@@ -118,6 +140,22 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     async def cancel_max_backup(call: ServiceCall) -> None:
         await _max_backup_coordinator(hass, call).async_max_backup(None)
 
+    async def go_off_grid(call: ServiceCall) -> ServiceResponse:
+        if not call.data[ATTR_CONFIRM]:
+            raise ServiceValidationError(
+                "Set confirm to true to take the house off the grid",
+                translation_domain=DOMAIN, translation_key="off_grid_confirm",
+            )
+        return await _off_grid(hass, call).async_go_off_grid(
+            call.data.get(ATTR_DURATION_MINUTES), call.data.get(ATTR_MIN_SOC))
+
+    async def reconnect_grid(call: ServiceCall) -> ServiceResponse:
+        return await _off_grid(hass, call).async_reconnect()
+
+    hass.services.async_register(DOMAIN, SERVICE_GO_OFF_GRID, go_off_grid, schema=GO_OFF_GRID_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_RECONNECT_GRID, reconnect_grid, schema=RESUME_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_START_MAX_BACKUP, start_max_backup,
                                  schema=START_MAX_BACKUP_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_CANCEL_MAX_BACKUP, cancel_max_backup, schema=RESUME_SCHEMA)
@@ -157,7 +195,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
     entry.runtime_data = TedapiRuntimeData(
         coordinator=coordinator,
         dispatch=DispatchSession(hass, coordinator) if coordinator.dispatch_supported else None,
+        off_grid=OffGridSession(hass, coordinator) if coordinator.dispatch_supported else None,
     )
+    if entry.runtime_data.off_grid is not None:
+        await entry.runtime_data.off_grid.async_load()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     _LOGGER.debug("Powerwall %s loaded (firmware %s, %s, settings %s)",
@@ -173,14 +214,17 @@ async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) 
 async def async_unload_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bool:
     if entry.runtime_data.dispatch is not None:
         await entry.runtime_data.dispatch.async_shutdown()
+    if entry.runtime_data.off_grid is not None:
+        entry.runtime_data.off_grid.async_shutdown()
     entry.runtime_data.coordinator.async_clear_issues()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> None:
-    """Forget the saved alert times and export rule. The key and the Tesla
-    sign-in stay in the tesla_tedapi folder (another entry may use them)."""
+    """Forget the saved alert times, export rule and off-grid run. The key and
+    the Tesla sign-in stay in the tesla_tedapi folder (another entry may use them)."""
     await Store(hass, 1, f"{DOMAIN}.{entry.entry_id}").async_remove()
+    await off_grid_store(hass, entry.entry_id).async_remove()
 
 
 async def async_remove_config_entry_device(

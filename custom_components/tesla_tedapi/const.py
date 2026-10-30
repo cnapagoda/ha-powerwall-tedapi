@@ -118,10 +118,21 @@ DISPATCH_MAX_FAILURES = 3
 
 EVENT_DISPATCH_ENDED = f"{DOMAIN}_dispatch_ended"
 
+# Go off-grid: the longest run, how long to wait for the grid contactor to
+# move after a command (it takes about 30 s), and how often to look meanwhile.
+OFF_GRID_MAX_MINUTES = 1440
+CONTACTOR_WAIT_SECONDS = 90
+CONTACTOR_POLL_SECONDS = 5
+# An automatic reconnect that fails is tried again this often.
+RECONNECT_RETRY_SECONDS = 60
+EVENT_OFF_GRID_ENDED = f"{DOMAIN}_off_grid_ended"
+
 SERVICE_DISPATCH = "dispatch_battery_power"
 SERVICE_RESUME = "resume_battery_operation"
 SERVICE_START_MAX_BACKUP = "start_max_backup"
 SERVICE_CANCEL_MAX_BACKUP = "cancel_max_backup"
+SERVICE_GO_OFF_GRID = "go_off_grid"
+SERVICE_RECONNECT_GRID = "reconnect_grid"
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 ATTR_POWER_WATTS = "power_watts"
@@ -129,6 +140,7 @@ ATTR_DURATION_SECONDS = "duration_seconds"
 ATTR_MIN_SOC = "min_soc"
 ATTR_MAX_SOC = "max_soc"
 ATTR_DURATION_MINUTES = "duration_minutes"
+ATTR_CONFIRM = "confirm"
 
 
 def app_soc(raw: float | None) -> float | None:

@@ -186,6 +186,12 @@
     },
     "cancel_max_backup": {
       "service": "mdi:shield-off-outline"
+    },
+    "go_off_grid": {
+      "service": "mdi:transmission-tower-off"
+    },
+    "reconnect_grid": {
+      "service": "mdi:transmission-tower-import"
     }
   }
 }

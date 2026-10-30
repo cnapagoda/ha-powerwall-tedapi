@@ -479,6 +479,27 @@
     },
     "resume_refused": {
       "message": "The Powerwall didn't accept the resume. See the log for details."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Going off-grid needs the signed (v1r) connection. Register a key in the integration's setup, or use the Tesla app."
+    },
+    "off_grid_confirm": {
+      "message": "Set confirm to true to take the house off the grid."
+    },
+    "off_grid_not_on_grid": {
+      "message": "The Powerwall isn't connected to the grid (grid status: {status}), so it can't go off-grid."
+    },
+    "off_grid_battery_low": {
+      "message": "The battery level ({soc}%) is already at or below the reconnect level ({limit}%)."
+    },
+    "contactor_refused": {
+      "message": "The Powerwall didn't accept the grid command. See the log for details."
+    },
+    "off_grid_not_confirmed": {
+      "message": "The Powerwall accepted the command but didn't go off-grid within 90 seconds, so the request was taken back."
+    },
+    "reconnect_not_confirmed": {
+      "message": "The Powerwall accepted the command but didn't start syncing to the grid within 90 seconds. Check that the grid supply is on, and the Tesla app."
     }
   },
   "services": {
@@ -541,6 +562,38 @@
           "description": "Only needed when more than one Powerwall is set up."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Go off-grid",
+      "description": "Disconnect the house from the grid over the signed local connection, like *Go off-grid* in the Tesla app. The house then runs on the battery and solar; solar stops for about 30 seconds while the grid contactor switches. The action waits up to 90 seconds until the gateway reports it off-grid. The integration reconnects at the end of the duration, or when the battery falls to the reconnect level, also after a restart.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "confirm": {
+          "name": "Confirm",
+          "description": "Must be on: this switches the house off the grid."
+        },
+        "duration_minutes": {
+          "name": "Duration",
+          "description": "Reconnect after this many minutes (up to 24 hours). Without it, the house stays off-grid until the battery reaches the reconnect level or you reconnect."
+        },
+        "min_soc": {
+          "name": "Reconnect at",
+          "description": "Reconnect when the battery level (Tesla app scale) falls to this percentage. Default: the backup reserve."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Reconnect to the grid",
+      "description": "Reconnect the house to the grid over the signed local connection, also after *Go off-grid* in the Tesla app. The action waits up to 90 seconds until the Powerwall starts syncing to the grid.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +643,10 @@
     "fleet_read_only": {
       "title": "Tesla Fleet cloud backup can't change settings",
       "description": "The Tesla Fleet (or Teslemetry) sign-in used as the cloud backup can read the Powerwall's settings but not change them: it lacks the **energy_cmds** (energy commands) scope. Settings changes fall back to the next cloud backup, if any.\n\nSign in to that integration again (re-configure or re-authenticate it) and allow the energy commands permission. This notice disappears at the next check after that."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "The Powerwall couldn't reconnect to the grid",
+      "description": "An off-grid run started by the Powerwall TEDAPI integration has ended, but reconnecting to the grid failed. The house still runs on the battery ({soc}%). The integration tries again every minute; if it keeps failing, reconnect in the Tesla app. This notice disappears once the Powerwall is back on the grid."
     }
   },
   "selector": {

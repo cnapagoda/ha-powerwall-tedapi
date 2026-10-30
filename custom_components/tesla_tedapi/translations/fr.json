@@ -479,6 +479,27 @@
     },
     "resume_refused": {
       "message": "La Powerwall n'a pas accepté la reprise. Voir le journal pour les détails."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Passer hors réseau nécessite la connexion signée (v1r). Enregistrez une clé dans la configuration de l'intégration, ou utilisez l'application Tesla."
+    },
+    "off_grid_confirm": {
+      "message": "Mettez confirm à true pour déconnecter la maison du réseau."
+    },
+    "off_grid_not_on_grid": {
+      "message": "La Powerwall n'est pas connectée au réseau (état du réseau : {status}) et ne peut donc pas passer hors réseau."
+    },
+    "off_grid_battery_low": {
+      "message": "Le niveau de la batterie ({soc}%) est déjà au niveau de reconnexion ({limit}%) ou en dessous."
+    },
+    "contactor_refused": {
+      "message": "La Powerwall n'a pas accepté la commande réseau. Voir le journal pour les détails."
+    },
+    "off_grid_not_confirmed": {
+      "message": "La Powerwall a accepté la commande mais n'est pas passée hors réseau en 90 secondes ; la demande a été annulée."
+    },
+    "reconnect_not_confirmed": {
+      "message": "La Powerwall a accepté la commande mais n'a pas commencé à se synchroniser avec le réseau en 90 secondes. Vérifiez que le réseau est présent, et l'application Tesla."
     }
   },
   "services": {
@@ -541,6 +562,38 @@
           "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Passer hors réseau",
+      "description": "Déconnecte la maison du réseau par la connexion locale signée, comme *Passer hors réseau* dans l'application Tesla. La maison fonctionne alors sur la batterie et le solaire ; le solaire s'arrête environ 30 secondes pendant que le contacteur réseau bascule. L'action attend jusqu'à 90 secondes que la passerelle indique le passage hors réseau. L'intégration reconnecte à la fin de la durée, ou quand la batterie descend au niveau de reconnexion, même après un redémarrage.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "confirm": {
+          "name": "Confirmer",
+          "description": "Doit être activé : cela déconnecte la maison du réseau."
+        },
+        "duration_minutes": {
+          "name": "Durée",
+          "description": "Reconnecter après ce nombre de minutes (jusqu'à 24 heures). Sans durée, la maison reste hors réseau jusqu'à ce que la batterie atteigne le niveau de reconnexion ou que vous reconnectiez."
+        },
+        "min_soc": {
+          "name": "Reconnecter à",
+          "description": "Reconnecter quand le niveau de la batterie (échelle de l'application Tesla) descend à ce pourcentage. Par défaut : la réserve de secours."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Reconnecter au réseau",
+      "description": "Reconnecte la maison au réseau par la connexion locale signée, même après *Passer hors réseau* dans l'application Tesla. L'action attend jusqu'à 90 secondes que la Powerwall commence à se synchroniser avec le réseau.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +643,10 @@
     "fleet_read_only": {
       "title": "Le secours cloud Tesla Fleet ne peut pas modifier les paramètres",
       "description": "La connexion Tesla Fleet (ou Teslemetry) utilisée comme secours cloud peut lire les paramètres de la Powerwall mais pas les modifier : il lui manque l'autorisation **energy_cmds** (commandes d'énergie). Les modifications passent au secours cloud suivant, s'il y en a un.\n\nReconnectez-vous à cette intégration (reconfigurez-la ou réauthentifiez-la) et autorisez les commandes d'énergie. Cet avis disparaît à la vérification suivante."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "La Powerwall n'a pas pu se reconnecter au réseau",
+      "description": "Un passage hors réseau lancé par l'intégration Powerwall TEDAPI est terminé, mais la reconnexion au réseau a échoué. La maison fonctionne toujours sur la batterie ({soc}%). L'intégration réessaie chaque minute ; si cela continue d'échouer, reconnectez dans l'application Tesla. Cet avis disparaît dès que la Powerwall est de nouveau sur le réseau."
     }
   },
   "selector": {

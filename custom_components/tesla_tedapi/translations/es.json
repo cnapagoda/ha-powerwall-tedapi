@@ -479,6 +479,27 @@
     },
     "resume_refused": {
       "message": "La Powerwall no aceptó la reanudación. Consulta el registro para más detalles."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Desconectar de la red necesita la conexión firmada (v1r). Registra una clave en la configuración de la integración, o usa la app de Tesla."
+    },
+    "off_grid_confirm": {
+      "message": "Pon confirm en true para desconectar la casa de la red."
+    },
+    "off_grid_not_on_grid": {
+      "message": "La Powerwall no está conectada a la red (estado de la red: {status}), así que no puede desconectarse."
+    },
+    "off_grid_battery_low": {
+      "message": "El nivel de la batería ({soc}%) ya está en el nivel de reconexión ({limit}%) o por debajo."
+    },
+    "contactor_refused": {
+      "message": "La Powerwall no aceptó la orden de red. Consulta el registro para más detalles."
+    },
+    "off_grid_not_confirmed": {
+      "message": "La Powerwall aceptó la orden pero no se desconectó de la red en 90 segundos; la solicitud se ha retirado."
+    },
+    "reconnect_not_confirmed": {
+      "message": "La Powerwall aceptó la orden pero no empezó a sincronizarse con la red en 90 segundos. Comprueba que hay suministro de red, y la app de Tesla."
     }
   },
   "services": {
@@ -541,6 +562,38 @@
           "description": "Solo es necesario si hay más de una Powerwall configurada."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Desconectar de la red",
+      "description": "Desconecta la casa de la red por la conexión local firmada, como *Desconectar de la red* en la app de Tesla. La casa funciona entonces con la batería y el solar; el solar se detiene unos 30 segundos mientras conmuta el contactor de red. La acción espera hasta 90 segundos a que la puerta de enlace indique que está fuera de la red. La integración vuelve a conectar al final de la duración, o cuando la batería baja al nivel de reconexión, también tras un reinicio.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Solo es necesario si hay más de una Powerwall configurada."
+        },
+        "confirm": {
+          "name": "Confirmar",
+          "description": "Debe estar activado: esto desconecta la casa de la red."
+        },
+        "duration_minutes": {
+          "name": "Duración",
+          "description": "Volver a conectar tras estos minutos (hasta 24 horas). Sin ella, la casa sigue fuera de la red hasta que la batería llegue al nivel de reconexión o vuelvas a conectar."
+        },
+        "min_soc": {
+          "name": "Volver a conectar en",
+          "description": "Volver a conectar cuando el nivel de la batería (escala de la app de Tesla) baje a este porcentaje. Por defecto: la reserva de respaldo."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Volver a conectar a la red",
+      "description": "Vuelve a conectar la casa a la red por la conexión local firmada, también tras *Desconectar de la red* en la app de Tesla. La acción espera hasta 90 segundos a que la Powerwall empiece a sincronizarse con la red.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Solo es necesario si hay más de una Powerwall configurada."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +643,10 @@
     "fleet_read_only": {
       "title": "El respaldo en la nube de Tesla Fleet no puede cambiar ajustes",
       "description": "El inicio de sesión de Tesla Fleet (o Teslemetry) usado como respaldo en la nube puede leer los ajustes de la Powerwall pero no cambiarlos: le falta el permiso **energy_cmds** (comandos de energía). Los cambios pasan al siguiente respaldo en la nube, si lo hay.\n\nVuelve a iniciar sesión en esa integración (reconfigúrala o vuelve a autenticarla) y permite los comandos de energía. Este aviso desaparece en la siguiente comprobación."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "La Powerwall no pudo volver a conectarse a la red",
+      "description": "Una desconexión de la red iniciada por la integración Powerwall TEDAPI ha terminado, pero la reconexión ha fallado. La casa sigue funcionando con la batería ({soc}%). La integración lo intenta de nuevo cada minuto; si sigue fallando, vuelve a conectar desde la app de Tesla. Este aviso desaparece cuando la Powerwall vuelve a estar en la red."
     }
   },
   "selector": {

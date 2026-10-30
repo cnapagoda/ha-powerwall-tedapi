@@ -479,6 +479,27 @@
     },
     "resume_refused": {
       "message": "Die Powerwall hat die Rückkehr zum Normalbetrieb nicht angenommen. Details stehen im Protokoll."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Das Trennen vom Netz braucht die signierte Verbindung (v1r). Registriere einen Schlüssel in der Einrichtung der Integration oder nutze die Tesla-App."
+    },
+    "off_grid_confirm": {
+      "message": "Setze confirm auf true, um das Haus vom Netz zu trennen."
+    },
+    "off_grid_not_on_grid": {
+      "message": "Die Powerwall ist nicht mit dem Netz verbunden (Netzstatus: {status}) und kann daher nicht getrennt werden."
+    },
+    "off_grid_battery_low": {
+      "message": "Der Batteriestand ({soc}%) liegt bereits auf oder unter dem Wiederverbindungsstand ({limit}%)."
+    },
+    "contactor_refused": {
+      "message": "Die Powerwall hat den Netzbefehl nicht angenommen. Details stehen im Protokoll."
+    },
+    "off_grid_not_confirmed": {
+      "message": "Die Powerwall hat den Befehl angenommen, sich aber nicht innerhalb von 90 Sekunden vom Netz getrennt. Die Anfrage wurde zurückgenommen."
+    },
+    "reconnect_not_confirmed": {
+      "message": "Die Powerwall hat den Befehl angenommen, aber nicht innerhalb von 90 Sekunden mit der Netzsynchronisierung begonnen. Prüfe, ob Netzstrom da ist, und die Tesla-App."
     }
   },
   "services": {
@@ -541,6 +562,38 @@
           "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Netz trennen",
+      "description": "Trennt das Haus über die signierte lokale Verbindung vom Netz, wie *Netz trennen* in der Tesla-App. Das Haus läuft dann mit Batterie und Solar; Solar setzt etwa 30 Sekunden aus, während das Netzschütz schaltet. Die Aktion wartet bis zu 90 Sekunden, bis das Gateway die Trennung meldet. Die Integration verbindet wieder am Ende der Dauer oder wenn die Batterie auf den Wiederverbindungsstand fällt, auch nach einem Neustart.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "confirm": {
+          "name": "Bestätigen",
+          "description": "Muss an sein: Damit wird das Haus vom Netz getrennt."
+        },
+        "duration_minutes": {
+          "name": "Dauer",
+          "description": "Nach so vielen Minuten wieder verbinden (bis 24 Stunden). Ohne Angabe bleibt das Haus getrennt, bis die Batterie den Wiederverbindungsstand erreicht oder du wieder verbindest."
+        },
+        "min_soc": {
+          "name": "Wieder verbinden bei",
+          "description": "Wieder verbinden, wenn der Batteriestand (Skala der Tesla-App) auf diesen Prozentwert fällt. Standard: die Backup-Reserve."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Wieder mit dem Netz verbinden",
+      "description": "Verbindet das Haus über die signierte lokale Verbindung wieder mit dem Netz, auch nach *Netz trennen* in der Tesla-App. Die Aktion wartet bis zu 90 Sekunden, bis die Powerwall mit der Netzsynchronisierung beginnt.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +643,10 @@
     "fleet_read_only": {
       "title": "Tesla-Fleet-Cloud-Backup kann keine Einstellungen ändern",
       "description": "Die als Cloud-Backup genutzte Anmeldung bei Tesla Fleet (oder Teslemetry) kann die Einstellungen der Powerwall lesen, aber nicht ändern: Ihr fehlt die Berechtigung **energy_cmds** (Energiebefehle). Änderungen gehen an das nächste Cloud-Backup, falls vorhanden.\n\nMelde dich bei dieser Integration erneut an (neu konfigurieren oder neu authentifizieren) und erlaube die Berechtigung für Energiebefehle. Dieser Hinweis verschwindet bei der nächsten Prüfung danach."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "Die Powerwall konnte sich nicht wieder mit dem Netz verbinden",
+      "description": "Eine von der Integration Powerwall TEDAPI gestartete Netztrennung ist beendet, aber das Wiederverbinden ist fehlgeschlagen. Das Haus läuft noch mit der Batterie ({soc}%). Die Integration versucht es jede Minute erneut; wenn es weiter fehlschlägt, verbinde in der Tesla-App wieder. Dieser Hinweis verschwindet, sobald die Powerwall wieder am Netz ist."
     }
   },
   "selector": {
