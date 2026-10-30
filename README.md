@@ -449,6 +449,42 @@ With two backups:
 
 Registering a new key still uses the Owner API (path A) or `pypowerwall register` (path B). Registering through the Tesla Fleet integration's sign-in is planned.
 
+## Data updates
+
+The integration polls the gateway every 30 seconds by default (**Polling interval**, 10–300 s). Each poll reads the power flows, battery level, grid status, settings, energy counters, battery packs, temperatures, fans and alerts in one go. Some values are read less often:
+
+| What | How often |
+|---|---|
+| Backup events (signed connection) | Every 5 minutes, and straight after a max backup is started or cancelled |
+| Settings from the cloud backup, when the gateway can't give them | Owner API: cached for 5 minutes. Tesla Fleet: from that integration's own data, which it reads every minute |
+| Storm Watch, grid services, off-grid vehicle charging reserve | Tesla Fleet: every minute (its data). Owner API: every 30 minutes |
+| Cloud backup health check | About once an hour, or 10 minutes after a failure |
+| Restoring a dropped setting | At most every 2 minutes per setting |
+
+After you change a setting, the integration reads the Powerwall again straight away, so the entity shows the new value within seconds. If the gateway can't be reached, readings show *unavailable* until it answers again; nothing is filled in for the missed time.
+
+## Use cases
+
+- **Charge from the grid when power is cheap or free.** Set the operation mode, backup reserve and grid charging from your tariff (for example Amber prices or a free-power window), and switch back afterwards. See [`examples/automations.yaml`](examples/automations.yaml).
+- **Export on a price spike.** Use [`dispatch_battery_power`](#tesla_tedapidispatch_battery_power) to discharge at a set power while the price is high, and stop when it falls.
+- **Keep the settings you chose.** The [dropped settings](#dropped-settings) restore keeps your export rule and grid charging in place, even when the Powerwall drops them.
+- **Get ready for a storm.** Turn on **Storm Watch**, or start a [max backup](#tesla_tedapistart_max_backup) to charge to full and hold it.
+- **Know when the power goes out.** **Grid connected** turns off within one poll of an outage. Use it for notifications or to switch off big loads.
+- **Track energy.** Add the lifetime energy sensors to the **Energy dashboard** (grid, solar, battery, home).
+- **Watch the hardware.** [Alerts](#alerts), the **Problem** sensor, battery health, temperatures and fan speeds show issues early, with the gateway's own alert codes.
+
+## Known limitations
+
+- **Undocumented interfaces.** TEDAPI and the signed (v1r) protocol are not public. A Powerwall firmware update can change or break them without notice.
+- **Registering a key needs the Tesla cloud** once: a Tesla refresh token (path A) or `pypowerwall register` (path B). The gateway doesn't confirm a key registered only over the local network.
+- **The Wi-Fi password connection can't change settings locally**, and has no battery dispatch or max backup. Settings changes need a cloud backup.
+- **Cloud-only settings:** Storm Watch, grid services and the off-grid vehicle charging reserve need a [cloud backup](#cloud-backup).
+- **Through the cloud, backup reserve stops at 80 %.** Tesla's cloud caps it. Locally, any value up to 100 % works, and [max backup](#tesla_tedapistart_max_backup) charges to full; neither is available through the cloud.
+- **Battery dispatch and max backup are local only** (signed connection), with no cloud fallback.
+- **A registered key can't be removed from here.** Remove it in the Tesla app.
+- **Tested mainly on Powerwall 3.** Powerwall 2 / Powerwall+ are less tested, and some readings (built-in solar inputs, fans, inverter temperatures) depend on the model and firmware. On some firmware the inverter heatsink temperature doesn't change.
+- **No history backfill.** Readings missed while the gateway was unreachable stay missing.
+
 ## Privacy and security
 
 - The RSA private key and the Tesla login cache are stored in `config/tesla_tedapi/` with owner-only permissions. Treat them like passwords: anyone with the key on your network can control the Powerwall. They are included in Home Assistant backups.
@@ -479,6 +515,14 @@ logger:
     custom_components.tesla_tedapi: debug
     pypowerwall: debug
 ```
+
+## Removing
+
+1. **Settings → Devices & services → Powerwall TEDAPI → ⋮ → Delete.** This removes the entities and the integration's saved state (alert times, the export rule it restores).
+2. The key and the Tesla sign-in stay in `config/tesla_tedapi/`, because another entry may use them. If you don't set the Powerwall up again, delete that folder.
+3. The key stays registered on the Powerwall. Remove it in the Tesla app if you don't want it any more.
+4. If you installed through HACS: **HACS → Powerwall TEDAPI → ⋮ → Remove**, then restart Home Assistant. For a manual install, delete `config/custom_components/tesla_tedapi/` and restart.
+5. Check your automations, scripts and dashboards for entities that no longer exist.
 
 ## Credits
 

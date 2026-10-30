@@ -10,3 +10,6 @@ ignore = ["SIM105", "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004", "PLC0
 force-sort-within-sections = true
 known-first-party = ["custom_components"]
 combine-as-imports = true
+
+[tool.coverage.report]
+exclude_also = ["if TYPE_CHECKING:"]
