@@ -94,6 +94,13 @@ CLOUD_CACHE_SECONDS = 300
 # before the backup is needed; a failed check is retried sooner.
 CLOUD_CHECK_SECONDS = 3600
 CLOUD_RETRY_SECONDS = 600
+# The Owner API access token (8 hours) is renewed when it has less than this
+# left at a cloud read, before Tesla answers HTTP 401 for it. More than
+# CLOUD_CHECK_SECONDS, so the hourly check renews it in time; a failed renewal
+# is tried again after OWNER_RENEW_RETRY_SECONDS (pypowerwall's own refresh on
+# 401 stays as the fallback).
+OWNER_RENEW_SECONDS = 4500
+OWNER_RENEW_RETRY_SECONDS = 300
 # Storm Watch and other cloud-only values from the Owner API are read this
 # often (two Tesla calls); Tesla Fleet's are read from its data every poll.
 OWNER_EXTRAS_SECONDS = 1800

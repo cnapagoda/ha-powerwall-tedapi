@@ -8,9 +8,19 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
+import logging
+import time
 from typing import Any
 
-from .const import BACKEND_FLEET, BACKEND_OWNER, CLOUD_AUTH_FAILURES
+from .const import (
+    BACKEND_FLEET,
+    BACKEND_OWNER,
+    CLOUD_AUTH_FAILURES,
+    OWNER_RENEW_RETRY_SECONDS,
+    OWNER_RENEW_SECONDS,
+)
+
+_LOGGER = logging.getLogger(__name__)
 
 LABELS = {BACKEND_OWNER: "Owner API", BACKEND_FLEET: "Tesla Fleet"}
 
@@ -61,6 +71,9 @@ class CloudBackend:
                 raise
             # A login alone doesn't reset failures: only a read that returns
             # data does (the Owner API can log in, then reject reads).
+        renew = getattr(self.client, "renew_token", None)
+        if renew is not None:
+            renew()
         return self.client
 
     def drop(self) -> None:
@@ -91,9 +104,30 @@ class OwnerSettings:
 
     def __init__(self, pw: Any) -> None:
         self._pw = pw
+        self._renew_after = 0.0
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._pw, name)
+
+    def renew_token(self) -> bool:
+        """Refresh the access token when it expires within OWNER_RENEW_SECONDS,
+        so no call gets HTTP 401 for it first. True if it was refreshed; a
+        failure is only logged, as pypowerwall still refreshes on 401."""
+        tesla = getattr(self._pw.client, "tesla", None)
+        token = getattr(tesla, "token", None) or {}
+        expires = token.get("expires_at")
+        if (not token.get("refresh_token") or not isinstance(expires, (int, float))
+                or expires - time.time() > OWNER_RENEW_SECONDS or time.monotonic() < self._renew_after):
+            return False
+        try:
+            tesla.refresh_token(tesla.auto_refresh_url, refresh_token=token["refresh_token"],
+                                **tesla.auto_refresh_kwargs)
+        except Exception as err:  # noqa: BLE001
+            self._renew_after = time.monotonic() + OWNER_RENEW_RETRY_SECONDS
+            _LOGGER.debug("Owner API token renewal failed: %s", err)
+            return False
+        _LOGGER.debug("Renewed the Owner API token (%d min left)", (expires - time.time()) / 60)
+        return True
 
     def get_grid_export(self) -> str | None:
         config = self._pw.client.get_site_config() or {}
