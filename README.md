@@ -524,6 +524,10 @@ logger:
 4. If you installed through HACS: **HACS → Powerwall TEDAPI → ⋮ → Remove**, then restart Home Assistant. For a manual install, delete `config/custom_components/tesla_tedapi/` and restart.
 5. Check your automations, scripts and dashboards for entities that no longer exist.
 
+## Quality
+
+[`quality_scale.yaml`](custom_components/tesla_tedapi/quality_scale.yaml) tracks Home Assistant's [integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) rule by rule. It is a self-assessment (the scale is only reviewed for core integrations): Bronze, Silver and Gold rules are done, except dependency transparency, which depends on how pypowerwall publishes its releases. Platinum needs an async library.
+
 ## Credits
 
 - [pypowerwall](https://github.com/jasonacox/pypowerwall) by Jason Cox and contributors: TEDAPI, v1r signing, dispatch and Tesla login.

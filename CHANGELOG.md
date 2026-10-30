@@ -24,6 +24,7 @@
 - When the gateway can't be reached but the cloud backup keeps the settings working, this is logged once as a warning, and once more when the gateway answers again (it was only a debug message).
 - Setting, dispatch and max backup errors are translated, and say what to check. A change that the Powerwall and the cloud backup both refuse logs each reason.
 - `PARALLEL_UPDATES` is set on every platform: setting changes go one at a time.
+- `quality_scale.yaml` records each rule of Home Assistant's integration quality scale: Bronze to Gold done, except dependency transparency (pypowerwall's PyPI releases), and Platinum still to do.
 - README: new sections *Data updates*, *Use cases*, *Known limitations* and *Removing*, and a troubleshooting row for the backup reserve that Tesla's cloud caps at 80 %.
 - Tests: the config flow, the gateway login and the Tesla account helpers are fully covered (96 % overall), including the Tesla Fleet fallback for every setting.
 
