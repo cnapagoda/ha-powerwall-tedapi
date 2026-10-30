@@ -104,21 +104,13 @@ You don't need to reserve the gateway's IP: when your router gives it a new addr
 > |---|---|---|
 > | Who it's for | Everyone | Developers |
 > | You need | A Tesla account: a browser sign-in in the wizard, or a refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | A developer app at [developer.tesla.com](https://developer.tesla.com), with its public key hosted on a domain you own, set up as for Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration ([steps](#b-upload-a-key-that-is-already-registered)) |
-> | Where | This wizard, path **A** | This wizard through Home Assistant's Tesla Fleet or Teslemetry integration ([below](#register-through-tesla-fleet-or-teslemetry)), or `python -m pypowerwall register` (option 2) on a computer, then path **B** |
+> | Where | This wizard, path **A** | This wizard ([with Tesla Fleet or Teslemetry](#register-through-tesla-fleet-or-teslemetry)), or `python -m pypowerwall register` (option 2) on a computer, then path **B** |
 >
 > Neither one exposes Home Assistant to the internet: after the key is verified, everything is local. A key can't be registered over the local network alone. The Powerwall accepts it there, but never verifies it.
 
 #### Register through Tesla Fleet or Teslemetry
 
-If Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) or [Teslemetry](https://www.home-assistant.io/integrations/teslemetry) integration is set up with this Powerwall, the menu offers **Register a new key with my Tesla Fleet or Teslemetry integration**. No Tesla sign-in is needed here:
-
-1. The wizard makes the key and registers it through that integration's Fleet API connection. Its sign-in needs the `energy_cmds` permission, and the option only appears when it has it.
-2. **Confirm at the Powerwall** with the switch toggle, as in step 3 of path A below.
-3. The Tesla Fleet integration also becomes the [cloud backup](#cloud-backup). No Tesla account is linked here; you can link one later.
-
-New in 2.3.1, and less tested than path A, especially with Teslemetry.
-
-Already set up? **Configure → Register a new signed key** registers another key the same way (or with a Tesla sign-in, or an upload), for example to move to Tesla Fleet. It continues as a *Reauthenticate* prompt on the integration. The current key keeps working, and Home Assistant switches to the new key only once the Powerwall confirms it.
+If Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) or [Teslemetry](https://www.home-assistant.io/integrations/teslemetry) integration has this Powerwall, the wizard also offers to register the key through it. Confirm at the Powerwall as in path A. On an existing setup, use **Configure → Register a new signed key**.
 
 #### A. Register a new key (recommended)
 
@@ -488,8 +480,6 @@ With two backups:
 - A change the gateway doesn't take goes to the first backup that accepts it. If Tesla doesn't answer in time, it isn't sent to the other backup as well, because it may still have been applied; the action reports an error instead.
 - Each backup is checked about once an hour. **Setup health** lists each one under `cloud_backends` (`ok`, `starting`, `can_change_settings`, `failures`, `last_ok`) and only shows *Needs attention* when none can change settings. A backup that needs attention gets its own repair: *Sign in to Tesla again* (Owner API), *Tesla Fleet cloud backup is not working*, or *Tesla Fleet cloud backup can't change settings* (no `energy_cmds` permission).
 - After a restart, Tesla Fleet can load after this integration. For up to 10 minutes it counts as *starting*, not as failing. A disabled entry, or one that keeps failing to load, counts as not working.
-
-Registering a new key still uses the Owner API (path A) or `pypowerwall register` (path B). Registering through the Tesla Fleet integration's sign-in is planned.
 
 ## Data updates
 
