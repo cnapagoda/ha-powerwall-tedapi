@@ -504,7 +504,7 @@ After you change a setting, the integration reads the Powerwall again straight a
 | *Tesla Fleet cloud backup is not working* | Check that the Tesla Fleet or Teslemetry integration is enabled, loaded and signed in (re-authenticate it if it asks), and has this Powerwall on its account. |
 | *Tesla Fleet cloud backup can't change settings* | Sign in to that integration again and allow the energy commands (`energy_cmds`) permission. |
 | Backup reserve shows 80 % after setting more | The gateway didn't take the change, so it went through Tesla's cloud, which caps backup reserve at 80 %. Check the gateway connection. To charge to full and hold it, use [max backup](#tesla_tedapistart_max_backup) (signed connection). |
-| Sign-in code rejected | Codes are single-use and expire quickly. Use the fresh link and copy the callback address straight away. |
+| Sign-in code rejected | Codes are single-use and expire quickly. After Tesla rejects a code, the form shows a new link: sign in with that one and copy the callback address straight away. A paste that isn't from the current link (*not a sign-in address from the link above*) leaves the link unchanged. |
 | *Tesla refuses this kind of sign-in (HTTP 403)* | Browser sign-ins are blocked for the Powerwall. Paste a refresh token instead: [Getting a Tesla refresh token](#getting-a-tesla-refresh-token). |
 
 Debug logging:

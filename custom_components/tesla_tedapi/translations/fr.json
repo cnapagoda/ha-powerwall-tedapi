@@ -137,10 +137,12 @@
       "password_required": "L'accès signé nécessite le mot de passe de la passerelle.",
       "invalid_rsa_key": "Ce n'est pas une clé privée RSA au format PEM. Téléversez le fichier de clé privée (il commence par `-----BEGIN`), pas la clé publique.",
       "key_not_accepted": "La Powerwall n'a pas accepté la clé. Vérifiez qu'il s'agit de la clé privée (pas de la publique), qu'elle a été enregistrée pour cette Powerwall et que l'enregistrement est VERIFIED (l'étape de l'interrupteur Marche/Arrêt a été faite). Ou choisissez **Enregistrer une nouvelle clé**.",
-      "invalid_auth": "Tesla n'a pas accepté ce jeton ou ce code. Un nouveau lien de connexion a été créé ; reconnectez-vous et collez le nouveau jeton ou la nouvelle adresse.",
+      "invalid_auth": "Tesla n'a pas accepté ce code. Un nouveau lien de connexion a été créé : reconnectez-vous avec et collez la nouvelle adresse, ou collez un jeton d'actualisation.",
       "cloud_error": "Le service Tesla a renvoyé une erreur. Réessayez dans une minute.",
       "none_found": "Aucune Powerwall n'a répondu sur ce réseau. Saisissez plutôt l'adresse (votre routeur affiche la passerelle comme `teslapw_…`).",
-      "owner_api_refused": "Vous êtes connecté, mais Tesla refuse ce type de connexion pour la Powerwall (HTTP 403). Les connexions par navigateur sont bloquées ; collez plutôt un jeton d'actualisation issu d'une connexion par application comme Auth app for Tesla."
+      "owner_api_refused": "Vous êtes connecté, mais Tesla refuse ce type de connexion pour la Powerwall (HTTP 403). Les connexions par navigateur sont bloquées ; collez plutôt un jeton d'actualisation issu d'une connexion par application comme Auth app for Tesla.",
+      "invalid_token": "Tesla n'a pas accepté ce jeton d'actualisation. Il a peut-être expiré ou été utilisé par une autre application : obtenez-en un nouveau dans votre application de jetons. Le lien de connexion n'a pas changé.",
+      "invalid_callback": "Ce n'est pas une adresse de connexion issue du lien ci-dessus. Collez l'adresse complète `tesla://auth/callback?code=…` de ce lien (un lien plus ancien ne fonctionne plus), ou un jeton d'actualisation. Le lien n'a pas changé."
     },
     "abort": {
       "already_configured": "Cette Powerwall est déjà configurée.",
@@ -219,9 +221,11 @@
       }
     },
     "error": {
-      "invalid_auth": "Tesla n'a pas accepté ce jeton ou ce code. Un nouveau lien de connexion a été créé ; reconnectez-vous et collez le nouveau jeton ou la nouvelle adresse.",
+      "invalid_auth": "Tesla n'a pas accepté ce code. Un nouveau lien de connexion a été créé : reconnectez-vous avec et collez la nouvelle adresse, ou collez un jeton d'actualisation.",
       "cloud_error": "Le service Tesla a renvoyé une erreur. Réessayez dans une minute.",
-      "owner_api_refused": "Vous êtes connecté, mais Tesla refuse ce type de connexion pour la Powerwall (HTTP 403). Les connexions par navigateur sont bloquées ; collez plutôt un jeton d'actualisation issu d'une connexion par application comme Auth app for Tesla."
+      "owner_api_refused": "Vous êtes connecté, mais Tesla refuse ce type de connexion pour la Powerwall (HTTP 403). Les connexions par navigateur sont bloquées ; collez plutôt un jeton d'actualisation issu d'une connexion par application comme Auth app for Tesla.",
+      "invalid_token": "Tesla n'a pas accepté ce jeton d'actualisation. Il a peut-être expiré ou été utilisé par une autre application : obtenez-en un nouveau dans votre application de jetons. Le lien de connexion n'a pas changé.",
+      "invalid_callback": "Ce n'est pas une adresse de connexion issue du lien ci-dessus. Collez l'adresse complète `tesla://auth/callback?code=…` de ce lien (un lien plus ancien ne fonctionne plus), ou un jeton d'actualisation. Le lien n'a pas changé."
     },
     "abort": {
       "no_sites": "Aucune Powerwall n'a été trouvée sur ce compte Tesla. Connectez-vous avec le compte Tesla propriétaire de la Powerwall (celui qui l'affiche dans l'application Tesla).",
@@ -560,9 +564,11 @@
           }
         },
         "error": {
-          "invalid_auth": "Tesla n'a pas accepté ce jeton ou ce code. Un nouveau lien de connexion a été créé ; reconnectez-vous et collez le nouveau jeton ou la nouvelle adresse.",
+          "invalid_auth": "Tesla n'a pas accepté ce code. Un nouveau lien de connexion a été créé : reconnectez-vous avec et collez la nouvelle adresse, ou collez un jeton d'actualisation.",
           "cloud_error": "Le service Tesla a renvoyé une erreur. Réessayez dans une minute.",
-          "owner_api_refused": "Vous êtes connecté, mais Tesla refuse ce type de connexion pour la Powerwall (HTTP 403). Les connexions par navigateur sont bloquées ; collez plutôt un jeton d'actualisation issu d'une connexion par application comme Auth app for Tesla."
+          "owner_api_refused": "Vous êtes connecté, mais Tesla refuse ce type de connexion pour la Powerwall (HTTP 403). Les connexions par navigateur sont bloquées ; collez plutôt un jeton d'actualisation issu d'une connexion par application comme Auth app for Tesla.",
+          "invalid_token": "Tesla n'a pas accepté ce jeton d'actualisation. Il a peut-être expiré ou été utilisé par une autre application : obtenez-en un nouveau dans votre application de jetons. Le lien de connexion n'a pas changé.",
+          "invalid_callback": "Ce n'est pas une adresse de connexion issue du lien ci-dessus. Collez l'adresse complète `tesla://auth/callback?code=…` de ce lien (un lien plus ancien ne fonctionne plus), ou un jeton d'actualisation. Le lien n'a pas changé."
         },
         "abort": {
           "no_sites": "Aucune Powerwall n'a été trouvée sur ce compte Tesla. Connectez-vous avec le compte Tesla propriétaire de la Powerwall (celui qui l'affiche dans l'application Tesla).",

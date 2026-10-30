@@ -238,11 +238,22 @@ class TeslaLoginMixin:
 
         if user_input is not None:
             pasted = user_input[CONF_CALLBACK]
+            # A new link is only needed once a code from this one reached
+            # Tesla (codes work once). A paste that fails before that, or a
+            # refresh token, leaves the link as it is, so a tab still open
+            # on it keeps working.
+            code_sent = False
             try:
                 if tesla_cloud.is_refresh_token(pasted):
                     self._token = await self.hass.async_add_executor_job(tesla_cloud.refresh_login, pasted)
                 else:
-                    code = tesla_cloud.parse_callback(pasted, self._login.state)
+                    try:
+                        code = tesla_cloud.parse_callback(pasted, self._login.state)
+                    except tesla_cloud.TeslaAuthError as err:
+                        _LOGGER.debug("Not a callback from the current sign-in link: %s", err)
+                        errors["base"] = "invalid_callback"
+                        return self._login_form(errors)
+                    code_sent = True
                     self._token = await self.hass.async_add_executor_job(
                         tesla_cloud.exchange_code, code, self._login.code_verifier)
                 self._email = tesla_cloud.token_email(self._token) or "tesla"
@@ -251,15 +262,20 @@ class TeslaLoginMixin:
             except tesla_cloud.TeslaRefused as err:
                 _LOGGER.warning("Tesla sign-in worked but the Owner API refused the token: %s", err)
                 errors["base"] = "owner_api_refused"
-                self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
+                if code_sent:
+                    self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
             except tesla_cloud.TeslaAuthError as err:
                 _LOGGER.debug("Tesla login failed: %s", err)
-                errors["base"] = "invalid_auth"
-                # Codes are single use: start over with a new URL.
-                self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
+                if code_sent:
+                    errors["base"] = "invalid_auth"
+                    self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
+                else:
+                    errors["base"] = "invalid_token"
             except tesla_cloud.TeslaCloudError as err:
                 _LOGGER.warning("Tesla account error: %s", err)
                 errors["base"] = "cloud_error"
+                if code_sent:
+                    self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
             else:
                 if not self._sites:
                     return self.async_abort(reason="no_sites")  # type: ignore[attr-defined]
@@ -272,6 +288,10 @@ class TeslaLoginMixin:
                     return await self._async_site_chosen(self._sites[0])
                 return await self.async_step_site()
 
+        return self._login_form(errors)
+
+    def _login_form(self, errors: dict[str, str]) -> ConfigFlowResult:
+        assert self._login
         return self.async_show_form(  # type: ignore[attr-defined]
             step_id="login",
             data_schema=vol.Schema({vol.Required(CONF_CALLBACK): str}),

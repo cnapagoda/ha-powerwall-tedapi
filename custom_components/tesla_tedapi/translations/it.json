@@ -137,10 +137,12 @@
       "password_required": "L'accesso firmato richiede la password del gateway.",
       "invalid_rsa_key": "Non è una chiave privata RSA in formato PEM. Carica il file della chiave privata (inizia con `-----BEGIN`), non la chiave pubblica.",
       "key_not_accepted": "La Powerwall non ha accettato la chiave. Controlla che sia la chiave privata (non quella pubblica), che sia stata registrata per questa Powerwall e che la registrazione sia VERIFIED (il passaggio dell'interruttore On/Off è stato fatto). Oppure scegli **Registra una nuova chiave**.",
-      "invalid_auth": "Tesla non ha accettato quel token o codice. È stato creato un nuovo link di accesso; accedi di nuovo e incolla il nuovo token o indirizzo.",
+      "invalid_auth": "Tesla non ha accettato quel codice. È stato creato un nuovo link di accesso: accedi di nuovo con quello e incolla il nuovo indirizzo, oppure incolla un refresh token.",
       "cloud_error": "Il servizio Tesla ha restituito un errore. Riprova tra un minuto.",
       "none_found": "Nessuna Powerwall ha risposto su questa rete. Inserisci invece l'indirizzo (il router mostra il gateway come `teslapw_…`).",
-      "owner_api_refused": "Hai effettuato l'accesso, ma Tesla rifiuta questo tipo di accesso per la Powerwall (HTTP 403). Gli accessi dal browser sono bloccati; incolla invece un refresh token di un accesso tramite app come Auth app for Tesla."
+      "owner_api_refused": "Hai effettuato l'accesso, ma Tesla rifiuta questo tipo di accesso per la Powerwall (HTTP 403). Gli accessi dal browser sono bloccati; incolla invece un refresh token di un accesso tramite app come Auth app for Tesla.",
+      "invalid_token": "Tesla non ha accettato quel refresh token. Potrebbe essere scaduto o usato da un'altra app: ottienine uno nuovo dalla tua app per i token. Il link di accesso non è cambiato.",
+      "invalid_callback": "Questo non è un indirizzo di accesso del link qui sopra. Incolla l'indirizzo completo `tesla://auth/callback?code=…` di questo link (un link precedente non funziona più), oppure un refresh token. Il link non è cambiato."
     },
     "abort": {
       "already_configured": "Questa Powerwall è già configurata.",
@@ -219,9 +221,11 @@
       }
     },
     "error": {
-      "invalid_auth": "Tesla non ha accettato quel token o codice. È stato creato un nuovo link di accesso; accedi di nuovo e incolla il nuovo token o indirizzo.",
+      "invalid_auth": "Tesla non ha accettato quel codice. È stato creato un nuovo link di accesso: accedi di nuovo con quello e incolla il nuovo indirizzo, oppure incolla un refresh token.",
       "cloud_error": "Il servizio Tesla ha restituito un errore. Riprova tra un minuto.",
-      "owner_api_refused": "Hai effettuato l'accesso, ma Tesla rifiuta questo tipo di accesso per la Powerwall (HTTP 403). Gli accessi dal browser sono bloccati; incolla invece un refresh token di un accesso tramite app come Auth app for Tesla."
+      "owner_api_refused": "Hai effettuato l'accesso, ma Tesla rifiuta questo tipo di accesso per la Powerwall (HTTP 403). Gli accessi dal browser sono bloccati; incolla invece un refresh token di un accesso tramite app come Auth app for Tesla.",
+      "invalid_token": "Tesla non ha accettato quel refresh token. Potrebbe essere scaduto o usato da un'altra app: ottienine uno nuovo dalla tua app per i token. Il link di accesso non è cambiato.",
+      "invalid_callback": "Questo non è un indirizzo di accesso del link qui sopra. Incolla l'indirizzo completo `tesla://auth/callback?code=…` di questo link (un link precedente non funziona più), oppure un refresh token. Il link non è cambiato."
     },
     "abort": {
       "no_sites": "Nessuna Powerwall trovata su questo account Tesla. Accedi con l'account Tesla proprietario della Powerwall (quello che la mostra nell'app Tesla).",
@@ -560,9 +564,11 @@
           }
         },
         "error": {
-          "invalid_auth": "Tesla non ha accettato quel token o codice. È stato creato un nuovo link di accesso; accedi di nuovo e incolla il nuovo token o indirizzo.",
+          "invalid_auth": "Tesla non ha accettato quel codice. È stato creato un nuovo link di accesso: accedi di nuovo con quello e incolla il nuovo indirizzo, oppure incolla un refresh token.",
           "cloud_error": "Il servizio Tesla ha restituito un errore. Riprova tra un minuto.",
-          "owner_api_refused": "Hai effettuato l'accesso, ma Tesla rifiuta questo tipo di accesso per la Powerwall (HTTP 403). Gli accessi dal browser sono bloccati; incolla invece un refresh token di un accesso tramite app come Auth app for Tesla."
+          "owner_api_refused": "Hai effettuato l'accesso, ma Tesla rifiuta questo tipo di accesso per la Powerwall (HTTP 403). Gli accessi dal browser sono bloccati; incolla invece un refresh token di un accesso tramite app come Auth app for Tesla.",
+          "invalid_token": "Tesla non ha accettato quel refresh token. Potrebbe essere scaduto o usato da un'altra app: ottienine uno nuovo dalla tua app per i token. Il link di accesso non è cambiato.",
+          "invalid_callback": "Questo non è un indirizzo di accesso del link qui sopra. Incolla l'indirizzo completo `tesla://auth/callback?code=…` di questo link (un link precedente non funziona più), oppure un refresh token. Il link non è cambiato."
         },
         "abort": {
           "no_sites": "Nessuna Powerwall trovata su questo account Tesla. Accedi con l'account Tesla proprietario della Powerwall (quello che la mostra nell'app Tesla).",

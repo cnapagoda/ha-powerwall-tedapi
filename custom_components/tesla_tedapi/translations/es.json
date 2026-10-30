@@ -137,10 +137,12 @@
       "password_required": "El acceso firmado necesita la contraseña de la pasarela.",
       "invalid_rsa_key": "Eso no es una clave privada RSA en formato PEM. Sube el archivo de clave privada (empieza por `-----BEGIN`), no la clave pública.",
       "key_not_accepted": "La Powerwall no aceptó la clave. Comprueba que es la clave privada (no la pública), que se registró para esta Powerwall y que el registro está VERIFIED (se hizo el paso del interruptor de encendido/apagado). O elige **Registrar una clave nueva**.",
-      "invalid_auth": "Tesla no aceptó ese token o código. Se ha creado un nuevo enlace de inicio de sesión; inicia sesión de nuevo y pega el nuevo token o dirección.",
+      "invalid_auth": "Tesla no aceptó ese código. Se ha creado un nuevo enlace de inicio de sesión: inicia sesión de nuevo con él y pega la nueva dirección, o pega un token de actualización.",
       "cloud_error": "El servicio de Tesla devolvió un error. Inténtalo de nuevo en un minuto.",
       "none_found": "Ninguna Powerwall respondió en esta red. Introduce la dirección en su lugar (tu router muestra la pasarela como `teslapw_…`).",
-      "owner_api_refused": "Has iniciado sesión, pero Tesla rechaza este tipo de inicio de sesión para la Powerwall (HTTP 403). Los inicios de sesión en el navegador están bloqueados; pega en su lugar un token de actualización de un inicio de sesión con app como Auth app for Tesla."
+      "owner_api_refused": "Has iniciado sesión, pero Tesla rechaza este tipo de inicio de sesión para la Powerwall (HTTP 403). Los inicios de sesión en el navegador están bloqueados; pega en su lugar un token de actualización de un inicio de sesión con app como Auth app for Tesla.",
+      "invalid_token": "Tesla no aceptó ese token de actualización. Puede que haya caducado o que otra app lo haya usado: consigue uno nuevo en tu app de tokens. El enlace de inicio de sesión no ha cambiado.",
+      "invalid_callback": "Esa no es una dirección de inicio de sesión del enlace de arriba. Pega la dirección completa `tesla://auth/callback?code=…` de este enlace (un enlace anterior ya no funciona), o un token de actualización. El enlace no ha cambiado."
     },
     "abort": {
       "already_configured": "Esta Powerwall ya está configurada.",
@@ -219,9 +221,11 @@
       }
     },
     "error": {
-      "invalid_auth": "Tesla no aceptó ese token o código. Se ha creado un nuevo enlace de inicio de sesión; inicia sesión de nuevo y pega el nuevo token o dirección.",
+      "invalid_auth": "Tesla no aceptó ese código. Se ha creado un nuevo enlace de inicio de sesión: inicia sesión de nuevo con él y pega la nueva dirección, o pega un token de actualización.",
       "cloud_error": "El servicio de Tesla devolvió un error. Inténtalo de nuevo en un minuto.",
-      "owner_api_refused": "Has iniciado sesión, pero Tesla rechaza este tipo de inicio de sesión para la Powerwall (HTTP 403). Los inicios de sesión en el navegador están bloqueados; pega en su lugar un token de actualización de un inicio de sesión con app como Auth app for Tesla."
+      "owner_api_refused": "Has iniciado sesión, pero Tesla rechaza este tipo de inicio de sesión para la Powerwall (HTTP 403). Los inicios de sesión en el navegador están bloqueados; pega en su lugar un token de actualización de un inicio de sesión con app como Auth app for Tesla.",
+      "invalid_token": "Tesla no aceptó ese token de actualización. Puede que haya caducado o que otra app lo haya usado: consigue uno nuevo en tu app de tokens. El enlace de inicio de sesión no ha cambiado.",
+      "invalid_callback": "Esa no es una dirección de inicio de sesión del enlace de arriba. Pega la dirección completa `tesla://auth/callback?code=…` de este enlace (un enlace anterior ya no funciona), o un token de actualización. El enlace no ha cambiado."
     },
     "abort": {
       "no_sites": "No se encontró ninguna Powerwall en esta cuenta de Tesla. Inicia sesión con la cuenta de Tesla propietaria de la Powerwall (la que la muestra en la app de Tesla).",
@@ -560,9 +564,11 @@
           }
         },
         "error": {
-          "invalid_auth": "Tesla no aceptó ese token o código. Se ha creado un nuevo enlace de inicio de sesión; inicia sesión de nuevo y pega el nuevo token o dirección.",
+          "invalid_auth": "Tesla no aceptó ese código. Se ha creado un nuevo enlace de inicio de sesión: inicia sesión de nuevo con él y pega la nueva dirección, o pega un token de actualización.",
           "cloud_error": "El servicio de Tesla devolvió un error. Inténtalo de nuevo en un minuto.",
-          "owner_api_refused": "Has iniciado sesión, pero Tesla rechaza este tipo de inicio de sesión para la Powerwall (HTTP 403). Los inicios de sesión en el navegador están bloqueados; pega en su lugar un token de actualización de un inicio de sesión con app como Auth app for Tesla."
+          "owner_api_refused": "Has iniciado sesión, pero Tesla rechaza este tipo de inicio de sesión para la Powerwall (HTTP 403). Los inicios de sesión en el navegador están bloqueados; pega en su lugar un token de actualización de un inicio de sesión con app como Auth app for Tesla.",
+          "invalid_token": "Tesla no aceptó ese token de actualización. Puede que haya caducado o que otra app lo haya usado: consigue uno nuevo en tu app de tokens. El enlace de inicio de sesión no ha cambiado.",
+          "invalid_callback": "Esa no es una dirección de inicio de sesión del enlace de arriba. Pega la dirección completa `tesla://auth/callback?code=…` de este enlace (un enlace anterior ya no funciona), o un token de actualización. El enlace no ha cambiado."
         },
         "abort": {
           "no_sites": "No se encontró ninguna Powerwall en esta cuenta de Tesla. Inicia sesión con la cuenta de Tesla propietaria de la Powerwall (la que la muestra en la app de Tesla).",

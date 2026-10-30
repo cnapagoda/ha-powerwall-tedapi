@@ -137,10 +137,12 @@
       "password_required": "Signierter Zugriff braucht das Gateway-Passwort.",
       "invalid_rsa_key": "Das ist kein privater RSA-Schlüssel im PEM-Format. Lade die Datei mit dem privaten Schlüssel hoch (sie beginnt mit `-----BEGIN`), nicht den öffentlichen Schlüssel.",
       "key_not_accepted": "Die Powerwall hat den Schlüssel nicht akzeptiert. Prüfe, ob es der private Schlüssel ist (nicht der öffentliche), ob er für diese Powerwall registriert wurde und ob die Registrierung VERIFIED ist (der Schritt mit dem Ein/Aus-Schalter wurde ausgeführt). Oder wähle **Neuen Schlüssel registrieren**.",
-      "invalid_auth": "Tesla hat diesen Token oder Code nicht akzeptiert. Ein neuer Anmeldelink wurde erstellt; melde dich erneut an und füge den neuen Token oder die neue Adresse ein.",
+      "invalid_auth": "Tesla hat diesen Code nicht akzeptiert. Ein neuer Anmeldelink wurde erstellt: melde dich damit erneut an und füge die neue Adresse ein, oder füge einen Refresh-Token ein.",
       "cloud_error": "Der Tesla-Dienst hat einen Fehler gemeldet. Versuche es in einer Minute erneut.",
       "none_found": "In diesem Netzwerk hat keine Powerwall geantwortet. Gib stattdessen die Adresse ein (dein Router zeigt das Gateway als `teslapw_…` an).",
-      "owner_api_refused": "Du bist angemeldet, aber Tesla lehnt diese Art der Anmeldung für die Powerwall ab (HTTP 403). Browser-Anmeldungen sind gesperrt; füge stattdessen einen Refresh-Token aus einer App-Anmeldung wie Auth app for Tesla ein."
+      "owner_api_refused": "Du bist angemeldet, aber Tesla lehnt diese Art der Anmeldung für die Powerwall ab (HTTP 403). Browser-Anmeldungen sind gesperrt; füge stattdessen einen Refresh-Token aus einer App-Anmeldung wie Auth app for Tesla ein.",
+      "invalid_token": "Tesla hat diesen Refresh-Token nicht akzeptiert. Er ist vielleicht abgelaufen oder wurde von einer anderen App verwendet: hol dir einen neuen aus deiner Token-App. Der Anmeldelink ist unverändert.",
+      "invalid_callback": "Das ist keine Anmeldeadresse vom Link oben. Füge die vollständige Adresse `tesla://auth/callback?code=…` von diesem Link ein (ein älterer Link funktioniert nicht mehr) oder einen Refresh-Token. Der Link ist unverändert."
     },
     "abort": {
       "already_configured": "Diese Powerwall ist bereits eingerichtet.",
@@ -219,9 +221,11 @@
       }
     },
     "error": {
-      "invalid_auth": "Tesla hat diesen Token oder Code nicht akzeptiert. Ein neuer Anmeldelink wurde erstellt; melde dich erneut an und füge den neuen Token oder die neue Adresse ein.",
+      "invalid_auth": "Tesla hat diesen Code nicht akzeptiert. Ein neuer Anmeldelink wurde erstellt: melde dich damit erneut an und füge die neue Adresse ein, oder füge einen Refresh-Token ein.",
       "cloud_error": "Der Tesla-Dienst hat einen Fehler gemeldet. Versuche es in einer Minute erneut.",
-      "owner_api_refused": "Du bist angemeldet, aber Tesla lehnt diese Art der Anmeldung für die Powerwall ab (HTTP 403). Browser-Anmeldungen sind gesperrt; füge stattdessen einen Refresh-Token aus einer App-Anmeldung wie Auth app for Tesla ein."
+      "owner_api_refused": "Du bist angemeldet, aber Tesla lehnt diese Art der Anmeldung für die Powerwall ab (HTTP 403). Browser-Anmeldungen sind gesperrt; füge stattdessen einen Refresh-Token aus einer App-Anmeldung wie Auth app for Tesla ein.",
+      "invalid_token": "Tesla hat diesen Refresh-Token nicht akzeptiert. Er ist vielleicht abgelaufen oder wurde von einer anderen App verwendet: hol dir einen neuen aus deiner Token-App. Der Anmeldelink ist unverändert.",
+      "invalid_callback": "Das ist keine Anmeldeadresse vom Link oben. Füge die vollständige Adresse `tesla://auth/callback?code=…` von diesem Link ein (ein älterer Link funktioniert nicht mehr) oder einen Refresh-Token. Der Link ist unverändert."
     },
     "abort": {
       "no_sites": "In diesem Tesla-Konto wurde keine Powerwall gefunden. Melde dich mit dem Tesla-Konto an, dem die Powerwall gehört (dem, das sie in der Tesla-App anzeigt).",
@@ -560,9 +564,11 @@
           }
         },
         "error": {
-          "invalid_auth": "Tesla hat diesen Token oder Code nicht akzeptiert. Ein neuer Anmeldelink wurde erstellt; melde dich erneut an und füge den neuen Token oder die neue Adresse ein.",
+          "invalid_auth": "Tesla hat diesen Code nicht akzeptiert. Ein neuer Anmeldelink wurde erstellt: melde dich damit erneut an und füge die neue Adresse ein, oder füge einen Refresh-Token ein.",
           "cloud_error": "Der Tesla-Dienst hat einen Fehler gemeldet. Versuche es in einer Minute erneut.",
-          "owner_api_refused": "Du bist angemeldet, aber Tesla lehnt diese Art der Anmeldung für die Powerwall ab (HTTP 403). Browser-Anmeldungen sind gesperrt; füge stattdessen einen Refresh-Token aus einer App-Anmeldung wie Auth app for Tesla ein."
+          "owner_api_refused": "Du bist angemeldet, aber Tesla lehnt diese Art der Anmeldung für die Powerwall ab (HTTP 403). Browser-Anmeldungen sind gesperrt; füge stattdessen einen Refresh-Token aus einer App-Anmeldung wie Auth app for Tesla ein.",
+          "invalid_token": "Tesla hat diesen Refresh-Token nicht akzeptiert. Er ist vielleicht abgelaufen oder wurde von einer anderen App verwendet: hol dir einen neuen aus deiner Token-App. Der Anmeldelink ist unverändert.",
+          "invalid_callback": "Das ist keine Anmeldeadresse vom Link oben. Füge die vollständige Adresse `tesla://auth/callback?code=…` von diesem Link ein (ein älterer Link funktioniert nicht mehr) oder einen Refresh-Token. Der Link ist unverändert."
         },
         "abort": {
           "no_sites": "In diesem Tesla-Konto wurde keine Powerwall gefunden. Melde dich mit dem Tesla-Konto an, dem die Powerwall gehört (dem, das sie in der Tesla-App anzeigt).",

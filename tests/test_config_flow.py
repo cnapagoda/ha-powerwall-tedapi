@@ -128,10 +128,11 @@ async def test_register_new_key(hass: HomeAssistant, tmp_path) -> None:
         assert result["step_id"] == "login"
         assert "auth.tesla.com" in result["description_placeholders"]["url"]
 
-        # wrong state -> rejected, new link
+        # wrong state -> rejected before reaching Tesla; the link stays
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"callback": "tesla://auth/callback?code=abc&state=other"})
-        assert result["errors"] == {"base": "invalid_auth"}
+        assert result["errors"] == {"base": "invalid_callback"}
+        exchange.assert_not_called()
 
         # Two sites: the one with this gateway's DIN is picked without asking.
         result = await hass.config_entries.flow.async_configure(
@@ -385,3 +386,59 @@ async def test_register_failure_reasons(hass: HomeAssistant, tmp_path, error, re
             result["flow_id"], {"callback": "tesla://auth/callback?code=abc&state=state1"})
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == reason
+
+
+async def test_sign_in_link_changes_only_after_a_code_reached_tesla(hass: HomeAssistant) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={
+        "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/k"})
+    entry.add_to_hass(hass)
+    first = tesla_cloud.LoginStart("https://auth.tesla.com/first", "v1", "s1")
+    second = tesla_cloud.LoginStart("https://auth.tesla.com/second", "v2", "s2")
+    with (
+        patch(f"{CLOUD}.start_login", side_effect=[first, second]) as start,
+        patch(f"{CLOUD}.exchange_code", side_effect=tesla_cloud.TeslaAuthError("expired")) as exchange,
+        patch("pypowerwall.tesla_auth._refresh_access_token", side_effect=RuntimeError("revoked")),
+        patch(f"{CLOUD}.energy_sites", side_effect=tesla_cloud.TeslaRefused("HTTP 403")),
+    ):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "link_account"})
+        flow_id = result["flow_id"]
+
+        # Not from this link, or nothing usable: Tesla isn't asked, the link stays.
+        for pasted in ("tesla://auth/callback?code=old&state=s0", "not a code"):
+            result = await hass.config_entries.options.async_configure(flow_id, {"callback": pasted})
+            assert result["errors"] == {"base": "invalid_callback"}
+            assert result["description_placeholders"]["url"] == first.url
+        # A refresh token Tesla rejects: no code was used, the link stays.
+        result = await hass.config_entries.options.async_configure(flow_id, {"callback": RT})
+        assert result["errors"] == {"base": "invalid_token"}
+        assert result["description_placeholders"]["url"] == first.url
+        exchange.assert_not_called()
+        assert start.call_count == 1
+
+        # A code from this link that Tesla rejects: it can't be used again, new link.
+        result = await hass.config_entries.options.async_configure(
+            flow_id, {"callback": "tesla://auth/callback?code=c1&state=s1"})
+        assert result["errors"] == {"base": "invalid_auth"}
+        assert result["description_placeholders"]["url"] == second.url
+        exchange.assert_called_once_with("c1", "v1")
+
+
+async def test_refresh_token_refused_keeps_the_link(hass: HomeAssistant) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={
+        "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/k"})
+    entry.add_to_hass(hass)
+    login = tesla_cloud.LoginStart("https://auth.tesla.com/x", "verifier", "s")
+    with (
+        patch(f"{CLOUD}.start_login", return_value=login) as start,
+        patch("pypowerwall.tesla_auth._refresh_access_token", return_value={"access_token": "at"}),
+        patch(f"{CLOUD}.token_email", return_value="owner@example.com"),
+        patch(f"{CLOUD}.energy_sites", side_effect=tesla_cloud.TeslaRefused("HTTP 403")),
+    ):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"], {"next_step_id": "link_account"})
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"callback": RT})
+    assert result["errors"] == {"base": "owner_api_refused"}
+    assert start.call_count == 1
