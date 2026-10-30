@@ -38,6 +38,9 @@ class FakePowerwall:
     backup_events: dict | None = None
     extra_packs: dict[str, dict] = {}
     grid = "UP"
+    # Grid commands: answered by the gateway, and the contactor actually moves.
+    contactor_answers = True
+    contactor_moves = True
 
     def __init__(self, host: str = "", cloudmode: bool = False, **kwargs: Any) -> None:
         self.kwargs = {"host": host, "cloudmode": cloudmode, **kwargs}
@@ -221,6 +224,20 @@ class FakePowerwall:
         self.resumes += 1
         return {"accepted": True}
 
+    # grid contactor (signed v1r)
+    def go_off_grid(self, confirm=False):
+        assert confirm is True
+        self.writes.append(("island", 6))
+        if FakePowerwall.contactor_moves:
+            FakePowerwall.grid = "DOWN"
+        return {"mode": 6, "force": True, "result": 1} if FakePowerwall.contactor_answers else None
+
+    def reconnect_grid(self):
+        self.writes.append(("island", 1))
+        if FakePowerwall.contactor_moves:
+            FakePowerwall.grid = "SYNCING"
+        return {"mode": 1, "force": False, "result": 1} if FakePowerwall.contactor_answers else None
+
 
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
@@ -241,6 +258,8 @@ def fake_powerwall():
     FakePowerwall.backup_events = {"manual_backup": None, "backup_events": []}
     FakePowerwall.extra_packs = {}
     FakePowerwall.grid = "UP"
+    FakePowerwall.contactor_answers = True
+    FakePowerwall.contactor_moves = True
     with patch("pypowerwall.Powerwall", FakePowerwall):
         yield FakePowerwall
 

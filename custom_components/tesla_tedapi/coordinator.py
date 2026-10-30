@@ -62,6 +62,7 @@ from .fleet import FleetBackup, FleetTimeout, fleet_starting
 
 if TYPE_CHECKING:
     from .dispatch import DispatchSession
+    from .off_grid import OffGridSession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -207,6 +208,7 @@ class TedapiRuntimeData:
 
     coordinator: TedapiCoordinator
     dispatch: DispatchSession | None = field(default=None)
+    off_grid: OffGridSession | None = field(default=None)
 
 
 type TedapiConfigEntry = ConfigEntry[TedapiRuntimeData]
@@ -766,6 +768,34 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="backup_event_refused")
         _LOGGER.info("Max backup %s", f"started for {minutes} min" if minutes else "cancelled")
         self._backup_events = None  # read it back on the next poll
+
+    def _send_island(self, off_grid: bool) -> dict:
+        """Open (off_grid) or close the grid contactor over signed v1r, with
+        Tesla's setIslandMode command. There is no cloud equivalent."""
+        if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="off_grid_needs_v1r")
+        result = self._pw.go_off_grid(confirm=True) if off_grid else self._pw.reconnect_grid()
+        if not result:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="contactor_refused")
+        _LOGGER.warning("%s requested (gateway result %s)",
+                        "Go off-grid" if off_grid else "Grid reconnect", result.get("result"))
+        return result
+
+    def _read_grid_status(self) -> str | None:
+        """UP, DOWN or SYNCING, read straight from the gateway."""
+        if self._pw is None:
+            return None
+        return self._pw.grid_status()
+
+    async def async_send_island(self, off_grid: bool) -> dict:
+        return await self.hass.async_add_executor_job(self._send_island, off_grid)
+
+    async def async_read_grid_status(self) -> str | None:
+        try:
+            return await self.hass.async_add_executor_job(self._read_grid_status)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Grid status read failed: %s", err)
+            return None
 
     async def async_set_storm_watch(self, enabled: bool) -> None:
         await self.hass.async_add_executor_job(self._set_storm_watch, enabled)

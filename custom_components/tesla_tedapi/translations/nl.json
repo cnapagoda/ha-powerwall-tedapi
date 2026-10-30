@@ -34,6 +34,7 @@
         "title": "Kies hoe je verbindt",
         "description": "Ondertekende toegang (v1r) heeft een sleutel nodig die deze Powerwall vertrouwt.",
         "menu_options": {
+          "register_fleet": "Nieuwe sleutel registreren met mijn Tesla Fleet- of Teslemetry-integratie (zonder Tesla-aanmelding)",
           "register": "Een nieuwe sleutel registreren (aanbevolen)",
           "key_upload": "Een al geregistreerde sleutel uploaden",
           "wifi": "Geen sleutel: alleen wifi-wachtwoord (monitoring)"
@@ -97,6 +98,7 @@
         "title": "De Powerwall accepteert Home Assistant niet meer",
         "description": "De gateway blijft het wachtwoord of de sleutel weigeren. Metingen stoppen tot dit is opgelost; instellingen werken nog via de Tesla-cloud als een account is gekoppeld.",
         "menu_options": {
+          "register_fleet": "Sleutel opnieuw registreren met mijn Tesla Fleet- of Teslemetry-integratie",
           "reauth_password": "Gateway-wachtwoord opnieuw invoeren",
           "register": "De sleutel opnieuw registreren",
           "key_upload": "Een andere sleutel uploaden"
@@ -126,6 +128,15 @@
           "rsa_key_path": "Volledig pad naar het bestand met de private sleutel op de Home Assistant-host, bijvoorbeeld `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laat leeg om de verbinding met wifi-wachtwoord te gebruiken (alleen lezen).",
           "wifi_host": "Het adres van de wifi-hotspot van de Powerwall (meestal `192.168.91.1`), gebruikt als het thuisnetwerkadres niet meer antwoordt. Laat leeg als Home Assistant de hotspot niet kan bereiken."
         }
+      },
+      "new_key": {
+        "title": "Nieuwe sleutel registreren",
+        "description": "Nog een ondertekende sleutel voor deze Powerwall registreren. De huidige sleutel blijft werken; Home Assistant schakelt pas over naar de nieuwe sleutel als de Powerwall die bevestigt.",
+        "menu_options": {
+          "register_fleet": "Nieuwe sleutel registreren met mijn Tesla Fleet- of Teslemetry-integratie (zonder Tesla-aanmelding)",
+          "register": "Een nieuwe sleutel registreren (aanbevolen)",
+          "key_upload": "Een al geregistreerde sleutel uploaden"
+        }
       }
     },
     "progress": {
@@ -154,7 +165,8 @@
       "unique_id_mismatch": "De gateway op dat adres is een andere Powerwall. Voer het adres van deze Powerwall in, of voeg de andere toe als nieuwe vermelding.",
       "register_token_refused": "Tesla heeft de aanmeldtoken geweigerd bij het registreren van de sleutel. Start de installatie opnieuw en log opnieuw in (in de browser, of met een nieuwe refresh-token).",
       "register_wrong_site": "Tesla kent die energielocatie niet op dit account. Start de installatie opnieuw en kies de locatie met deze Powerwall, ingelogd met het Tesla-account dat eigenaar is.",
-      "register_unreachable": "Tesla kon de Powerwall niet bereiken om de sleutel te registreren. Controleer of hij online is in de Tesla-app (zijn internetverbinding), wacht een paar minuten en start de installatie opnieuw."
+      "register_unreachable": "Tesla kon de Powerwall niet bereiken om de sleutel te registreren. Controleer of hij online is in de Tesla-app (zijn internetverbinding), wacht een paar minuten en start de installatie opnieuw.",
+      "register_fleet_unavailable": "De integratie Tesla Fleet of Teslemetry kan niet meer voor deze Powerwall worden gebruikt: ze is niet geladen, kent deze Powerwall niet, of haar aanmelding mag geen opdrachten sturen (ze heeft de machtiging energy_cmds nodig). Controleer die integratie, of start de installatie opnieuw en registreer met een Tesla-aanmelding."
     }
   },
   "options": {
@@ -165,7 +177,8 @@
           "settings": "Instellingen",
           "cloud_backup": "Cloud-back-up (Owner API, Tesla Fleet)",
           "link_account": "Een Tesla-account koppelen (Owner API)",
-          "unlink_account": "Een cloudback-up ontkoppelen"
+          "unlink_account": "Een cloudback-up ontkoppelen",
+          "new_key": "Nieuwe ondertekende sleutel registreren"
         }
       },
       "settings": {
@@ -235,7 +248,8 @@
     },
     "abort": {
       "no_sites": "Er is geen Powerwall gevonden op dit Tesla-account. Log in met het Tesla-account dat eigenaar is van de Powerwall (het account dat hem in de Tesla-app toont).",
-      "wrong_powerwall": "Dat Tesla-account heeft geen locatie met deze Powerwall. Log in met het Tesla-account dat eigenaar is."
+      "wrong_powerwall": "Dat Tesla-account heeft geen locatie met deze Powerwall. Log in met het Tesla-account dat eigenaar is.",
+      "new_key_started": "Open Instellingen → Apparaten & diensten: deze Powerwall toont nu een verzoek om opnieuw te authenticeren, waar je kiest hoe de nieuwe sleutel wordt geregistreerd. De huidige sleutel blijft werken tot de nieuwe is bevestigd."
     }
   },
   "entity": {
@@ -479,6 +493,27 @@
     },
     "resume_refused": {
       "message": "De Powerwall heeft het hervatten niet geaccepteerd. Zie het logboek voor details."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Off-grid gaan heeft de ondertekende verbinding (v1r) nodig. Registreer een sleutel in de installatie van de integratie, of gebruik de Tesla-app."
+    },
+    "off_grid_confirm": {
+      "message": "Zet confirm op true om het huis los te koppelen van het net."
+    },
+    "off_grid_not_on_grid": {
+      "message": "De Powerwall is niet met het net verbonden (netstatus: {status}) en kan dus niet off-grid gaan."
+    },
+    "off_grid_battery_low": {
+      "message": "Het batterijniveau ({soc}%) is al op of onder het herverbindingsniveau ({limit}%)."
+    },
+    "contactor_refused": {
+      "message": "De Powerwall heeft het netcommando niet geaccepteerd. Zie het logboek voor details."
+    },
+    "off_grid_not_confirmed": {
+      "message": "De Powerwall accepteerde het commando maar ging niet binnen 90 seconden off-grid; het verzoek is ingetrokken."
+    },
+    "reconnect_not_confirmed": {
+      "message": "De Powerwall accepteerde het commando maar begon niet binnen 90 seconden te synchroniseren met het net. Controleer of er netstroom is, en de Tesla-app."
     }
   },
   "services": {
@@ -541,6 +576,38 @@
           "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Ga off-grid",
+      "description": "Koppel het huis los van het net via de ondertekende lokale verbinding, zoals *Ga off-grid* in de Tesla-app. Het huis draait dan op de batterij en zonne-energie; de zonnepanelen vallen ongeveer 30 seconden uit terwijl de netschakelaar omschakelt. De actie wacht tot 90 seconden tot de gateway meldt dat hij off-grid is. De integratie verbindt opnieuw aan het eind van de duur, of als de batterij tot het herverbindingsniveau daalt, ook na een herstart.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "confirm": {
+          "name": "Bevestigen",
+          "description": "Moet aan staan: dit koppelt het huis los van het net."
+        },
+        "duration_minutes": {
+          "name": "Duur",
+          "description": "Na zoveel minuten opnieuw verbinden (tot 24 uur). Zonder duur blijft het huis off-grid tot de batterij het herverbindingsniveau bereikt of je opnieuw verbindt."
+        },
+        "min_soc": {
+          "name": "Opnieuw verbinden bij",
+          "description": "Opnieuw verbinden als het batterijniveau (schaal van de Tesla-app) tot dit percentage daalt. Standaard: de back-upreserve."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Opnieuw met het net verbinden",
+      "description": "Verbind het huis opnieuw met het net via de ondertekende lokale verbinding, ook na *Ga off-grid* in de Tesla-app. De actie wacht tot 90 seconden tot de Powerwall begint te synchroniseren met het net.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +657,10 @@
     "fleet_read_only": {
       "title": "Tesla Fleet-cloud-back-up kan geen instellingen wijzigen",
       "description": "De Tesla Fleet- (of Teslemetry-)aanmelding die als cloud-back-up wordt gebruikt, kan de instellingen van de Powerwall lezen maar niet wijzigen: de machtiging **energy_cmds** (energieopdrachten) ontbreekt. Wijzigingen gaan naar de volgende cloud-back-up, als die er is.\n\nLog opnieuw in bij die integratie (opnieuw configureren of opnieuw authenticeren) en sta de machtiging voor energieopdrachten toe. Deze melding verdwijnt bij de volgende controle daarna."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "De Powerwall kon niet opnieuw met het net verbinden",
+      "description": "Een off-grid-periode gestart door de integratie Powerwall TEDAPI is afgelopen, maar opnieuw verbinden met het net is mislukt. Het huis draait nog op de batterij ({soc}%). De integratie probeert het elke minuut opnieuw; als het blijft mislukken, verbind dan opnieuw in de Tesla-app. Deze melding verdwijnt zodra de Powerwall weer op het net zit."
     }
   },
   "selector": {

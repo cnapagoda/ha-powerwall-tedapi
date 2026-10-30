@@ -34,6 +34,7 @@
         "title": "Choose how to connect",
         "description": "Signed (v1r) access needs a key that this Powerwall trusts.",
         "menu_options": {
+          "register_fleet": "Register a new key with my Tesla Fleet or Teslemetry integration (no Tesla sign-in)",
           "register": "Register a new key (recommended)",
           "key_upload": "Upload a key that is already registered",
           "wifi": "No key: Wi-Fi password only (monitoring)"
@@ -97,6 +98,7 @@
         "title": "The Powerwall no longer accepts Home Assistant",
         "description": "The gateway keeps refusing the password or the key. Readings stop until this is fixed; settings still work through the Tesla cloud if an account is linked.",
         "menu_options": {
+          "register_fleet": "Register the key again with my Tesla Fleet or Teslemetry integration",
           "reauth_password": "Enter the gateway password again",
           "register": "Register the key again",
           "key_upload": "Upload a different key"
@@ -126,6 +128,15 @@
           "rsa_key_path": "Full path to the private key file on the Home Assistant host, for example `/config/tesla_tedapi/tedapi_rsa_private.pem`. Leave empty to use the Wi-Fi password connection (read only).",
           "wifi_host": "The Powerwall's Wi-Fi hotspot address (usually `192.168.91.1`), used when the home-network address stops answering. Leave empty if Home Assistant can't reach the hotspot."
         }
+      },
+      "new_key": {
+        "title": "Register a new key",
+        "description": "Register another signed key for this Powerwall. The current key keeps working; Home Assistant switches to the new key only once the Powerwall confirms it.",
+        "menu_options": {
+          "register_fleet": "Register a new key with my Tesla Fleet or Teslemetry integration (no Tesla sign-in)",
+          "register": "Register a new key (recommended)",
+          "key_upload": "Upload a key that is already registered"
+        }
       }
     },
     "progress": {
@@ -154,7 +165,8 @@
       "unique_id_mismatch": "The gateway at that address is a different Powerwall. Enter this Powerwall's address, or add the other one as a new entry.",
       "register_token_refused": "Tesla refused the sign-in token when registering the key. Start the setup again and sign in again (in the browser, or with a fresh refresh token).",
       "register_wrong_site": "Tesla doesn't know that energy site on this account. Start the setup again and choose the site with this Powerwall, signed in with the Tesla account that owns it.",
-      "register_unreachable": "Tesla could not reach the Powerwall to register the key. Check that it shows as online in the Tesla app (its internet connection), wait a few minutes and start the setup again."
+      "register_unreachable": "Tesla could not reach the Powerwall to register the key. Check that it shows as online in the Tesla app (its internet connection), wait a few minutes and start the setup again.",
+      "register_fleet_unavailable": "The Tesla Fleet or Teslemetry integration can no longer be used for this Powerwall: it isn't loaded, doesn't have this Powerwall, or its sign-in can't send commands (it needs the energy_cmds permission). Check that integration, or start the setup again and register with a Tesla sign-in."
     }
   },
   "options": {
@@ -165,7 +177,8 @@
           "settings": "Settings",
           "cloud_backup": "Cloud backup (Owner API, Tesla Fleet)",
           "link_account": "Link a Tesla account (Owner API)",
-          "unlink_account": "Unlink a cloud backup"
+          "unlink_account": "Unlink a cloud backup",
+          "new_key": "Register a new signed key"
         }
       },
       "settings": {
@@ -235,7 +248,8 @@
     },
     "abort": {
       "no_sites": "No Powerwall was found on this Tesla account. Sign in with the Tesla account that owns the Powerwall (the one that shows it in the Tesla app).",
-      "wrong_powerwall": "That Tesla account has no site with this Powerwall. Sign in with the Tesla account that owns it."
+      "wrong_powerwall": "That Tesla account has no site with this Powerwall. Sign in with the Tesla account that owns it.",
+      "new_key_started": "Open Settings → Devices & services: this Powerwall now shows a Reauthenticate prompt, where you choose how to register the new key. The current key keeps working until the new one is confirmed."
     }
   },
   "entity": {
@@ -479,6 +493,27 @@
     },
     "resume_refused": {
       "message": "The Powerwall didn't accept the resume. See the log for details."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Going off-grid needs the signed (v1r) connection. Register a key in the integration's setup, or use the Tesla app."
+    },
+    "off_grid_confirm": {
+      "message": "Set confirm to true to take the house off the grid."
+    },
+    "off_grid_not_on_grid": {
+      "message": "The Powerwall isn't connected to the grid (grid status: {status}), so it can't go off-grid."
+    },
+    "off_grid_battery_low": {
+      "message": "The battery level ({soc}%) is already at or below the reconnect level ({limit}%)."
+    },
+    "contactor_refused": {
+      "message": "The Powerwall didn't accept the grid command. See the log for details."
+    },
+    "off_grid_not_confirmed": {
+      "message": "The Powerwall accepted the command but didn't go off-grid within 90 seconds, so the request was taken back."
+    },
+    "reconnect_not_confirmed": {
+      "message": "The Powerwall accepted the command but didn't start syncing to the grid within 90 seconds. Check that the grid supply is on, and the Tesla app."
     }
   },
   "services": {
@@ -541,6 +576,38 @@
           "description": "Only needed when more than one Powerwall is set up."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Go off-grid",
+      "description": "Disconnect the house from the grid over the signed local connection, like *Go off-grid* in the Tesla app. The house then runs on the battery and solar; solar stops for about 30 seconds while the grid contactor switches. The action waits up to 90 seconds until the gateway reports it off-grid. The integration reconnects at the end of the duration, or when the battery falls to the reconnect level, also after a restart.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "confirm": {
+          "name": "Confirm",
+          "description": "Must be on: this switches the house off the grid."
+        },
+        "duration_minutes": {
+          "name": "Duration",
+          "description": "Reconnect after this many minutes (up to 24 hours). Without it, the house stays off-grid until the battery reaches the reconnect level or you reconnect."
+        },
+        "min_soc": {
+          "name": "Reconnect at",
+          "description": "Reconnect when the battery level (Tesla app scale) falls to this percentage. Default: the backup reserve."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Reconnect to the grid",
+      "description": "Reconnect the house to the grid over the signed local connection, also after *Go off-grid* in the Tesla app. The action waits up to 90 seconds until the Powerwall starts syncing to the grid.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +657,10 @@
     "fleet_read_only": {
       "title": "Tesla Fleet cloud backup can't change settings",
       "description": "The Tesla Fleet (or Teslemetry) sign-in used as the cloud backup can read the Powerwall's settings but not change them: it lacks the **energy_cmds** (energy commands) scope. Settings changes fall back to the next cloud backup, if any.\n\nSign in to that integration again (re-configure or re-authenticate it) and allow the energy commands permission. This notice disappears at the next check after that."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "The Powerwall couldn't reconnect to the grid",
+      "description": "An off-grid run started by the Powerwall TEDAPI integration has ended, but reconnecting to the grid failed. The house still runs on the battery ({soc}%). The integration tries again every minute; if it keeps failing, reconnect in the Tesla app. This notice disappears once the Powerwall is back on the grid."
     }
   },
   "selector": {

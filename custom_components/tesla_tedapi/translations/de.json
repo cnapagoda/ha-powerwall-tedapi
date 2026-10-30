@@ -34,6 +34,7 @@
         "title": "Verbindungsart wählen",
         "description": "Signierter Zugriff (v1r) braucht einen Schlüssel, dem diese Powerwall vertraut.",
         "menu_options": {
+          "register_fleet": "Neuen Schlüssel über meine Tesla-Fleet- oder Teslemetry-Integration registrieren (ohne Tesla-Anmeldung)",
           "register": "Neuen Schlüssel registrieren (empfohlen)",
           "key_upload": "Bereits registrierten Schlüssel hochladen",
           "wifi": "Ohne Schlüssel: nur WLAN-Passwort (nur Überwachung)"
@@ -97,6 +98,7 @@
         "title": "Die Powerwall akzeptiert Home Assistant nicht mehr",
         "description": "Das Gateway lehnt das Passwort oder den Schlüssel wiederholt ab. Messwerte stoppen, bis das behoben ist; Einstellungen funktionieren weiter über die Tesla-Cloud, wenn ein Konto verknüpft ist.",
         "menu_options": {
+          "register_fleet": "Schlüssel erneut über meine Tesla-Fleet- oder Teslemetry-Integration registrieren",
           "reauth_password": "Gateway-Passwort erneut eingeben",
           "register": "Schlüssel erneut registrieren",
           "key_upload": "Anderen Schlüssel hochladen"
@@ -126,6 +128,15 @@
           "rsa_key_path": "Vollständiger Pfad zur Datei mit dem privaten Schlüssel auf dem Home-Assistant-Host, zum Beispiel `/config/tesla_tedapi/tedapi_rsa_private.pem`. Leer lassen für die Verbindung mit WLAN-Passwort (nur lesen).",
           "wifi_host": "Die Adresse des WLAN-Hotspots der Powerwall (meist `192.168.91.1`), genutzt, wenn die Heimnetz-Adresse nicht mehr antwortet. Leer lassen, wenn Home Assistant den Hotspot nicht erreicht."
         }
+      },
+      "new_key": {
+        "title": "Neuen Schlüssel registrieren",
+        "description": "Einen weiteren signierten Schlüssel für diese Powerwall registrieren. Der aktuelle Schlüssel funktioniert weiter; Home Assistant wechselt erst zum neuen Schlüssel, wenn die Powerwall ihn bestätigt.",
+        "menu_options": {
+          "register_fleet": "Neuen Schlüssel über meine Tesla-Fleet- oder Teslemetry-Integration registrieren (ohne Tesla-Anmeldung)",
+          "register": "Neuen Schlüssel registrieren (empfohlen)",
+          "key_upload": "Bereits registrierten Schlüssel hochladen"
+        }
       }
     },
     "progress": {
@@ -154,7 +165,8 @@
       "unique_id_mismatch": "Das Gateway unter dieser Adresse ist eine andere Powerwall. Gib die Adresse dieser Powerwall ein oder füge die andere als neuen Eintrag hinzu.",
       "register_token_refused": "Tesla hat den Anmelde-Token beim Registrieren des Schlüssels abgelehnt. Starte die Einrichtung neu und melde dich erneut an (im Browser oder mit einem neuen Refresh-Token).",
       "register_wrong_site": "Tesla kennt diese Energieanlage in diesem Konto nicht. Starte die Einrichtung neu und wähle die Energieanlage mit dieser Powerwall, angemeldet mit dem Tesla-Konto, dem sie gehört.",
-      "register_unreachable": "Tesla konnte die Powerwall zum Registrieren des Schlüssels nicht erreichen. Prüfe, ob sie in der Tesla-App online ist (ihre Internetverbindung), warte ein paar Minuten und starte die Einrichtung neu."
+      "register_unreachable": "Tesla konnte die Powerwall zum Registrieren des Schlüssels nicht erreichen. Prüfe, ob sie in der Tesla-App online ist (ihre Internetverbindung), warte ein paar Minuten und starte die Einrichtung neu.",
+      "register_fleet_unavailable": "Die Integration Tesla Fleet oder Teslemetry kann für diese Powerwall nicht mehr genutzt werden: Sie ist nicht geladen, kennt diese Powerwall nicht, oder ihre Anmeldung darf keine Befehle senden (sie braucht die Berechtigung energy_cmds). Prüfe diese Integration oder starte die Einrichtung neu und registriere mit einer Tesla-Anmeldung."
     }
   },
   "options": {
@@ -165,7 +177,8 @@
           "settings": "Einstellungen",
           "cloud_backup": "Cloud-Backup (Owner API, Tesla Fleet)",
           "link_account": "Tesla-Konto verknüpfen (Owner API)",
-          "unlink_account": "Eine Cloud-Sicherung trennen"
+          "unlink_account": "Eine Cloud-Sicherung trennen",
+          "new_key": "Neuen signierten Schlüssel registrieren"
         }
       },
       "settings": {
@@ -235,7 +248,8 @@
     },
     "abort": {
       "no_sites": "In diesem Tesla-Konto wurde keine Powerwall gefunden. Melde dich mit dem Tesla-Konto an, dem die Powerwall gehört (dem, das sie in der Tesla-App anzeigt).",
-      "wrong_powerwall": "Dieses Tesla-Konto hat keinen Standort mit dieser Powerwall. Melde dich mit dem Tesla-Konto an, dem sie gehört."
+      "wrong_powerwall": "Dieses Tesla-Konto hat keinen Standort mit dieser Powerwall. Melde dich mit dem Tesla-Konto an, dem sie gehört.",
+      "new_key_started": "Öffne Einstellungen → Geräte & Dienste: Diese Powerwall zeigt jetzt eine Aufforderung zur erneuten Authentifizierung, dort wählst du, wie der neue Schlüssel registriert wird. Der aktuelle Schlüssel funktioniert weiter, bis der neue bestätigt ist."
     }
   },
   "entity": {
@@ -479,6 +493,27 @@
     },
     "resume_refused": {
       "message": "Die Powerwall hat die Rückkehr zum Normalbetrieb nicht angenommen. Details stehen im Protokoll."
+    },
+    "off_grid_needs_v1r": {
+      "message": "Das Trennen vom Netz braucht die signierte Verbindung (v1r). Registriere einen Schlüssel in der Einrichtung der Integration oder nutze die Tesla-App."
+    },
+    "off_grid_confirm": {
+      "message": "Setze confirm auf true, um das Haus vom Netz zu trennen."
+    },
+    "off_grid_not_on_grid": {
+      "message": "Die Powerwall ist nicht mit dem Netz verbunden (Netzstatus: {status}) und kann daher nicht getrennt werden."
+    },
+    "off_grid_battery_low": {
+      "message": "Der Batteriestand ({soc}%) liegt bereits auf oder unter dem Wiederverbindungsstand ({limit}%)."
+    },
+    "contactor_refused": {
+      "message": "Die Powerwall hat den Netzbefehl nicht angenommen. Details stehen im Protokoll."
+    },
+    "off_grid_not_confirmed": {
+      "message": "Die Powerwall hat den Befehl angenommen, sich aber nicht innerhalb von 90 Sekunden vom Netz getrennt. Die Anfrage wurde zurückgenommen."
+    },
+    "reconnect_not_confirmed": {
+      "message": "Die Powerwall hat den Befehl angenommen, aber nicht innerhalb von 90 Sekunden mit der Netzsynchronisierung begonnen. Prüfe, ob Netzstrom da ist, und die Tesla-App."
     }
   },
   "services": {
@@ -541,6 +576,38 @@
           "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
         }
       }
+    },
+    "go_off_grid": {
+      "name": "Netz trennen",
+      "description": "Trennt das Haus über die signierte lokale Verbindung vom Netz, wie *Netz trennen* in der Tesla-App. Das Haus läuft dann mit Batterie und Solar; Solar setzt etwa 30 Sekunden aus, während das Netzschütz schaltet. Die Aktion wartet bis zu 90 Sekunden, bis das Gateway die Trennung meldet. Die Integration verbindet wieder am Ende der Dauer oder wenn die Batterie auf den Wiederverbindungsstand fällt, auch nach einem Neustart.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "confirm": {
+          "name": "Bestätigen",
+          "description": "Muss an sein: Damit wird das Haus vom Netz getrennt."
+        },
+        "duration_minutes": {
+          "name": "Dauer",
+          "description": "Nach so vielen Minuten wieder verbinden (bis 24 Stunden). Ohne Angabe bleibt das Haus getrennt, bis die Batterie den Wiederverbindungsstand erreicht oder du wieder verbindest."
+        },
+        "min_soc": {
+          "name": "Wieder verbinden bei",
+          "description": "Wieder verbinden, wenn der Batteriestand (Skala der Tesla-App) auf diesen Prozentwert fällt. Standard: die Backup-Reserve."
+        }
+      }
+    },
+    "reconnect_grid": {
+      "name": "Wieder mit dem Netz verbinden",
+      "description": "Verbindet das Haus über die signierte lokale Verbindung wieder mit dem Netz, auch nach *Netz trennen* in der Tesla-App. Die Aktion wartet bis zu 90 Sekunden, bis die Powerwall mit der Netzsynchronisierung beginnt.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        }
+      }
     }
   },
   "issues": {
@@ -590,6 +657,10 @@
     "fleet_read_only": {
       "title": "Tesla-Fleet-Cloud-Backup kann keine Einstellungen ändern",
       "description": "Die als Cloud-Backup genutzte Anmeldung bei Tesla Fleet (oder Teslemetry) kann die Einstellungen der Powerwall lesen, aber nicht ändern: Ihr fehlt die Berechtigung **energy_cmds** (Energiebefehle). Änderungen gehen an das nächste Cloud-Backup, falls vorhanden.\n\nMelde dich bei dieser Integration erneut an (neu konfigurieren oder neu authentifizieren) und erlaube die Berechtigung für Energiebefehle. Dieser Hinweis verschwindet bei der nächsten Prüfung danach."
+    },
+    "off_grid_reconnect_failed": {
+      "title": "Die Powerwall konnte sich nicht wieder mit dem Netz verbinden",
+      "description": "Eine von der Integration Powerwall TEDAPI gestartete Netztrennung ist beendet, aber das Wiederverbinden ist fehlgeschlagen. Das Haus läuft noch mit der Batterie ({soc}%). Die Integration versucht es jede Minute erneut; wenn es weiter fehlschlägt, verbinde in der Tesla-App wieder. Dieser Hinweis verschwindet, sobald die Powerwall wieder am Netz ist."
     }
   },
   "selector": {

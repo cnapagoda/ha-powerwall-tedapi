@@ -5,7 +5,8 @@ The Owner API refuses Powerwall access for browser sign-ins (HTTP 403 since
 a working Fleet API session and read each energy site's site_info every minute.
 This uses that: settings are read from their site data (no extra Tesla calls)
 and changed through their energy site API object, so it can stand in for the
-Owner API client.
+Owner API client. The same API object can register the signed (v1r) key, so
+setup needs no Tesla sign-in here.
 
 The token is never refreshed here: their own session does that, under its
 lock, so using it can't log them out.
@@ -13,7 +14,8 @@ lock, so using it can't log them out.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+import base64
+from collections.abc import Awaitable, Callable
 import time
 from typing import Any
 
@@ -37,6 +39,14 @@ class FleetUnavailable(Exception):
 
 class FleetTimeout(Exception):
     """A command got no answer in time; it may still have been applied."""
+
+
+class FleetRegisterError(Exception):
+    """Tesla Fleet did not register the key, or its state could not be read."""
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status
 
 
 def fleet_entries(hass: HomeAssistant) -> list:
@@ -205,3 +215,92 @@ class FleetBackup:
 
     def set_off_grid_reserve(self, percent: int) -> dict[str, Any]:
         return self._command(lambda api: api.off_grid_vehicle_charging_reserve(int(percent)))
+
+
+# -- key registration --------------------------------------------------
+
+# Gateway key states (tesla_fleet_api AuthorizedClientState), also when a
+# response names them instead of numbering them.
+_STATE_NAMES = (("TIMEOUT", 2), ("REMOVED", 4), ("PENDING_VERIFICATION", 1), ("VERIFIED", 3))
+
+
+def fleet_can_register(hass: HomeAssistant, din: str | None) -> bool:
+    """A loaded Tesla Fleet or Teslemetry site with this Powerwall, signed in
+    with the energy_cmds scope."""
+    found = find_site(hass, din)
+    return found is not None and _can_command(found[0])
+
+
+def _state(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        if value.isdigit():
+            return int(value)
+        for name, state in _STATE_NAMES:
+            if value.upper().endswith(name):
+                return state
+    return None
+
+
+def _find_client(node: Any, key_b64: str) -> int | None:
+    """The state of the client with this public key, anywhere in a response
+    (Tesla Fleet passes the gateway's message through; Teslemetry reshapes it)."""
+    if isinstance(node, dict):
+        key = node.get("public_key") or node.get("PublicKey") or node.get("publicKey")
+        if key == key_b64:
+            return _state(node.get("state") if "state" in node else node.get("State"))
+        for value in node.values():
+            found = _find_client(value, key_b64)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for value in node:
+            found = _find_client(value, key_b64)
+            if found is not None:
+                return found
+    return None
+
+
+def key_state_from(resp: Any, public_der: bytes) -> int | None:
+    """This key's state in an add or list response, never another key's."""
+    found = _find_client(resp, base64.b64encode(public_der).decode())
+    if found is not None:
+        return found
+    from pypowerwall.v1r_register import _check_key_state  # noqa: PLC0415
+
+    # An add response may name the new client without its key.
+    return _check_key_state(resp, pubkey_der=public_der) if isinstance(resp, dict) else None
+
+
+async def _async_site_call(hass: HomeAssistant, din: str | None,
+                           call: Callable[[Any], Awaitable[Any]]) -> Any:
+    found = find_site(hass, din)
+    if found is None:
+        raise FleetUnavailable("no loaded Tesla Fleet or Teslemetry energy site has this Powerwall")
+    entry, site = found
+    if not _can_command(entry):
+        raise FleetUnavailable("the Tesla Fleet sign-in has no energy_cmds scope")
+    try:
+        async with asyncio.timeout(CALL_TIMEOUT):
+            return await call(site.api)
+    except TimeoutError as err:
+        raise FleetRegisterError("Tesla did not answer in time", 408) from err
+    except Exception as err:  # noqa: BLE001
+        raise FleetRegisterError(str(err) or type(err).__name__, getattr(err, "status", None)) from err
+
+
+async def async_register_key(hass: HomeAssistant, din: str | None, public_der: bytes) -> int | None:
+    """Ask the gateway, through Tesla Fleet, to trust this key. Returns the key
+    state if reported. Registering the same key again reopens an expired
+    confirmation window."""
+    resp = await _async_site_call(hass, din, lambda api: api.add_authorized_client(
+        public_der, description="Home Assistant"))
+    return key_state_from(resp, public_der)
+
+
+async def async_key_state(hass: HomeAssistant, din: str | None, public_der: bytes) -> int | None:
+    resp = await _async_site_call(hass, din, lambda api: api.list_authorized_clients())
+    return key_state_from(resp, public_der)

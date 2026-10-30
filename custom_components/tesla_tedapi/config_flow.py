@@ -45,7 +45,7 @@ import voluptuous as vol
 if TYPE_CHECKING:
     from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 
-from . import gateway, tesla_cloud
+from . import fleet, gateway, tesla_cloud
 from .const import (
     BACKEND_FLEET,
     BACKEND_OWNER,
@@ -81,7 +81,7 @@ from .const import (
     STORAGE_FOLDER,
     cloud_choice,
 )
-from .fleet import fleet_available
+from .fleet import fleet_available, fleet_can_register
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,12 +98,16 @@ KEY_FILE = FileSelector(FileSelectorConfig(accept=".pem,.key,.txt"))
 
 # Automatic key confirmation: check this often, for this long.
 VERIFY_POLL_SECONDS = 10
+# Reauth data flag: a new key was asked for in the options, nothing failed.
+NEW_KEY = "new_key"
 VERIFY_WINDOW_SECONDS = 600
 
 
 def _register_failure(err: Exception) -> str:
     """Abort reason for a failed key registration, by its likely cause."""
     status = getattr(err, "status", None)
+    if isinstance(err, fleet.FleetUnavailable):
+        return "register_fleet_unavailable"
     if isinstance(err, tesla_cloud.TeslaAuthError):
         return "register_token_refused"
     if status == 404:
@@ -332,6 +336,9 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
         self._init_login()
         self._mode = MODE_V1R
         self._register = False
+        # Register the key through the Tesla Fleet (or Teslemetry) integration
+        # instead of a Tesla sign-in here.
+        self._via_fleet = False
         self._cloud_wanted = False
         self._site: tesla_cloud.EnergySite | None = None
         self._public_der: bytes | None = None
@@ -435,16 +442,27 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
         })
         return self.async_show_form(step_id="gateway", data_schema=schema, errors=errors)
 
+    def _register_options(self) -> list[str]:
+        """Register through Tesla Fleet is offered when it has this Powerwall."""
+        if fleet_can_register(self.hass, self._din):
+            return ["register_fleet", "register"]
+        return ["register"]
+
     async def async_step_access(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="access", menu_options=["register", "key_upload", "wifi"])
+        return self.async_show_menu(step_id="access",
+                                    menu_options=[*self._register_options(), "key_upload", "wifi"])
 
     # ------------------------------------------------------------------
     # Access methods
     # ------------------------------------------------------------------
 
     async def async_step_register(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        self._mode, self._register = MODE_V1R, True
+        self._mode, self._register, self._via_fleet = MODE_V1R, True, False
         return await self.async_step_login()
+
+    async def async_step_register_fleet(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        self._mode, self._register, self._via_fleet = MODE_V1R, True, True
+        return await self.async_step_register_key()
 
     async def async_step_key_upload(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         self._mode, self._register = MODE_V1R, False
@@ -488,14 +506,29 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
             return await self.async_step_register_key()
         return await self._async_finish()
 
-    async def async_step_register_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+    async def _async_register(self) -> int | None:
+        """Register the key (again) through Tesla Fleet or the Owner API."""
+        assert self._public_der
+        if self._via_fleet:
+            return await fleet.async_register_key(self.hass, self._din, self._public_der)
         assert self._site and self._token
+        return await self.hass.async_add_executor_job(
+            tesla_cloud.register_key, self._site.site_id, self._token["access_token"], self._public_der)
+
+    async def _async_key_state(self) -> int | None:
+        assert self._public_der
+        if self._via_fleet:
+            return await fleet.async_key_state(self.hass, self._din, self._public_der)
+        assert self._site and self._token
+        return await self.hass.async_add_executor_job(
+            tesla_cloud.key_state, self._site.site_id, self._token["access_token"], self._public_der)
+
+    async def async_step_register_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         try:
             key_path, self._public_der = await self.hass.async_add_executor_job(
                 tesla_cloud.ensure_rsa_key, self._folder)
-            self._key_state = await self.hass.async_add_executor_job(
-                tesla_cloud.register_key, self._site.site_id, self._token["access_token"], self._public_der)
-        except tesla_cloud.TeslaCloudError as err:
+            self._key_state = await self._async_register()
+        except (tesla_cloud.TeslaCloudError, fleet.FleetUnavailable, fleet.FleetRegisterError) as err:
             _LOGGER.warning("Key registration failed: %s", err)
             return self.async_abort(reason=_register_failure(err))
         self._data[CONF_RSA_KEY_PATH] = key_path
@@ -506,21 +539,17 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
     async def _async_wait_verified(self) -> int | None:
         """Check the key every VERIFY_POLL_SECONDS until the Powerwall confirms
         it; re-register once if the 10-minute window closes."""
-        assert self._site and self._token and self._public_der
-        token, site_id = self._token["access_token"], self._site.site_id
         reregistered = False
         state = self._key_state
         deadline = self.hass.loop.time() + 2 * VERIFY_WINDOW_SECONDS
         while self.hass.loop.time() < deadline:
             await asyncio.sleep(VERIFY_POLL_SECONDS)
             try:
-                state = await self.hass.async_add_executor_job(
-                    tesla_cloud.key_state, site_id, token, self._public_der)
+                state = await self._async_key_state()
                 if state == tesla_cloud.KEY_TIMEOUT and not reregistered:
                     reregistered = True
-                    state = await self.hass.async_add_executor_job(
-                        tesla_cloud.register_key, site_id, token, self._public_der)
-            except tesla_cloud.TeslaCloudError as err:
+                    state = await self._async_register()
+            except (tesla_cloud.TeslaCloudError, fleet.FleetUnavailable, fleet.FleetRegisterError) as err:
                 _LOGGER.debug("Key state check failed: %s", err)
                 continue
             if state in (tesla_cloud.KEY_VERIFIED, tesla_cloud.KEY_REMOVED) \
@@ -606,7 +635,10 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
             return self.async_update_reload_and_abort(entry, data_updates=data)
         data.setdefault(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         label = "v1r" if self._mode == MODE_V1R else "Wi-Fi"
-        return self.async_create_entry(title=f"Powerwall {self.unique_id} ({label})", data=data)
+        # A key registered through Tesla Fleet: it is also the cloud backup.
+        options = {CONF_CLOUD_BACKENDS: BACKEND_FLEET} if self._via_fleet and self._token is None else {}
+        return self.async_create_entry(title=f"Powerwall {self.unique_id} ({label})", data=data,
+                                       options=options)
 
     # ------------------------------------------------------------------
     # Reauth: the gateway refuses the password or the key
@@ -618,11 +650,18 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
                       if k in entry.data}
         self._din = entry.unique_id
         self._mode = entry.data.get(CONF_CONNECTION_MODE, MODE_V1R)
+        if entry_data.get(NEW_KEY):
+            return await self.async_step_new_key()
         return await self.async_step_reauth_confirm()
+
+    async def async_step_new_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Started from the options: register another key while the current
+        one still works. The entry only changes once the new key is confirmed."""
+        return self.async_show_menu(step_id="new_key", menu_options=[*self._register_options(), "key_upload"])
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(step_id="reauth_confirm",
-                                    menu_options=["reauth_password", "register", "key_upload"])
+                                    menu_options=["reauth_password", *self._register_options(), "key_upload"])
 
     async def async_step_reauth_password(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
@@ -707,7 +746,15 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             menu.append("link_account")
         if self._backups_in_use():
             menu.append("unlink_account")
+        if self.config_entry.data.get(CONF_CONNECTION_MODE, MODE_V1R) == MODE_V1R:
+            menu.append("new_key")
         return self.async_show_menu(step_id="init", menu_options=menu)
+
+    async def async_step_new_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Register another signed key (e.g. through Tesla Fleet). It goes on as
+        a reauthentication, which Home Assistant shows on the integration."""
+        self.config_entry.async_start_reauth(self.hass, data={**self.config_entry.data, NEW_KEY: True})
+        return self.async_abort(reason="new_key_started")
 
     async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:

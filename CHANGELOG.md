@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.3.1
+
+- **`tesla_tedapi.go_off_grid`** and **`tesla_tedapi.reconnect_grid`** actions (signed connection): disconnect the house from the grid and reconnect it, the same command as *Go off-grid* in the Tesla app (Tesla's `setIslandMode`, through pypowerwall).
+- Going off-grid needs `confirm: true`. It is refused unless the Powerwall is on the grid and the battery is above the reconnect level (`min_soc`, default the backup reserve).
+- Each command is checked against the gateway's grid status for up to 90 seconds. A go off-grid that isn't confirmed is taken back, so the contactor can't open later on.
+- An off-grid run reconnects at the end of `duration_minutes` or when the battery falls to `min_soc`. The run is saved and watched again after a restart or reload. A failed automatic reconnect is retried every minute and raises a repair.
+- New event `tesla_tedapi_off_grid_ended` (`reason`: `completed`, `min_soc`, `requested`, `reconnected_elsewhere`). **Grid connected** shows the run in its attributes.
+- Texts in all eight languages.
+- **Register the key through Tesla Fleet or Teslemetry**, in setup and with **Configure → Register a new signed key**.
+- The Owner API access token is renewed when it has less than 75 minutes left, at the next cloud read (at least hourly). Before, it ran out every 8 hours and the next call got HTTP 401, which pypowerwall logged while it refreshed and retried.
+
 ## 2.3.0
 
 - **Two cloud backups.** Besides a Tesla account linked here (Owner API), the cloud backup can now use Home Assistant's **Tesla Fleet** or **Teslemetry** integration (official Fleet API). **Configure → Cloud backup** chooses *None*, *Owner API*, *Tesla Fleet (or Teslemetry)*, or both in either order. Without a choice, a linked account stays the backup, as before.

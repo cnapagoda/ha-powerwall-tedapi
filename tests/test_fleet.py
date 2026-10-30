@@ -510,9 +510,9 @@ async def test_unlink_owner_api_keeps_tesla_fleet(hass: HomeAssistant, fake_powe
 async def test_menu_offers_link_and_unlink_with_only_tesla_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
     entry = await _setup(hass, V1R)
     result = await _unlink(hass, entry, None)
-    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "unlink_account"]
+    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "unlink_account", "new_key"]
     result = await _unlink(hass, entry, "tesla_fleet")
     assert result["offered"] == ["tesla_fleet"]
     assert entry.options["cloud_backends"] == "none"
     result = await _unlink(hass, entry, None)
-    assert result["menu_options"] == ["settings", "cloud_backup", "link_account"]
+    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "new_key"]
