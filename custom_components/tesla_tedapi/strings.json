@@ -128,6 +128,15 @@
           "rsa_key_path": "Full path to the private key file on the Home Assistant host, for example `/config/tesla_tedapi/tedapi_rsa_private.pem`. Leave empty to use the Wi-Fi password connection (read only).",
           "wifi_host": "The Powerwall's Wi-Fi hotspot address (usually `192.168.91.1`), used when the home-network address stops answering. Leave empty if Home Assistant can't reach the hotspot."
         }
+      },
+      "new_key": {
+        "title": "Register a new key",
+        "description": "Register another signed key for this Powerwall. The current key keeps working; Home Assistant switches to the new key only once the Powerwall confirms it.",
+        "menu_options": {
+          "register_fleet": "Register a new key with my Tesla Fleet or Teslemetry integration (no Tesla sign-in)",
+          "register": "Register a new key (recommended)",
+          "key_upload": "Upload a key that is already registered"
+        }
       }
     },
     "progress": {
@@ -168,7 +177,8 @@
           "settings": "Settings",
           "cloud_backup": "Cloud backup (Owner API, Tesla Fleet)",
           "link_account": "Link a Tesla account (Owner API)",
-          "unlink_account": "Unlink a cloud backup"
+          "unlink_account": "Unlink a cloud backup",
+          "new_key": "Register a new signed key"
         }
       },
       "settings": {
@@ -238,7 +248,8 @@
     },
     "abort": {
       "no_sites": "No Powerwall was found on this Tesla account. Sign in with the Tesla account that owns the Powerwall (the one that shows it in the Tesla app).",
-      "wrong_powerwall": "That Tesla account has no site with this Powerwall. Sign in with the Tesla account that owns it."
+      "wrong_powerwall": "That Tesla account has no site with this Powerwall. Sign in with the Tesla account that owns it.",
+      "new_key_started": "Open Settings → Devices & services: this Powerwall now shows a Reauthenticate prompt, where you choose how to register the new key. The current key keeps working until the new one is confirmed."
     }
   },
   "entity": {

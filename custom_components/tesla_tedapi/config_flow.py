@@ -98,6 +98,8 @@ KEY_FILE = FileSelector(FileSelectorConfig(accept=".pem,.key,.txt"))
 
 # Automatic key confirmation: check this often, for this long.
 VERIFY_POLL_SECONDS = 10
+# Reauth data flag: a new key was asked for in the options, nothing failed.
+NEW_KEY = "new_key"
 VERIFY_WINDOW_SECONDS = 600
 
 
@@ -648,7 +650,14 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
                       if k in entry.data}
         self._din = entry.unique_id
         self._mode = entry.data.get(CONF_CONNECTION_MODE, MODE_V1R)
+        if entry_data.get(NEW_KEY):
+            return await self.async_step_new_key()
         return await self.async_step_reauth_confirm()
+
+    async def async_step_new_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Started from the options: register another key while the current
+        one still works. The entry only changes once the new key is confirmed."""
+        return self.async_show_menu(step_id="new_key", menu_options=[*self._register_options(), "key_upload"])
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(step_id="reauth_confirm",
@@ -737,7 +746,15 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             menu.append("link_account")
         if self._backups_in_use():
             menu.append("unlink_account")
+        if self.config_entry.data.get(CONF_CONNECTION_MODE, MODE_V1R) == MODE_V1R:
+            menu.append("new_key")
         return self.async_show_menu(step_id="init", menu_options=menu)
+
+    async def async_step_new_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Register another signed key (e.g. through Tesla Fleet). It goes on as
+        a reauthentication, which Home Assistant shows on the integration."""
+        self.config_entry.async_start_reauth(self.hass, data={**self.config_entry.data, NEW_KEY: True})
+        return self.async_abort(reason="new_key_started")
 
     async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:

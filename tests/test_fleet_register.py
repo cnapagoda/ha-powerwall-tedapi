@@ -8,9 +8,12 @@ from unittest.mock import patch
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.tesla_tedapi import config_flow, fleet, tesla_cloud
+from custom_components.tesla_tedapi.const import DOMAIN
 
+from .conftest import DIN
 from .test_config_flow import CLOUD, SETUP, _gateway
 from .test_fleet import FLEET_ENTRIES, SCOPES, _fleet_entry, _site
 
@@ -141,3 +144,44 @@ def test_key_state_only_for_our_key() -> None:
     teslemetry["response"]["clients"][1]["state"] = "2"
     assert fleet.key_state_from(teslemetry, PUB) == tesla_cloud.KEY_TIMEOUT
     assert fleet.key_state_from(None, PUB) is None
+
+
+async def test_new_key_from_options_through_fleet(hass: HomeAssistant, tmp_path) -> None:
+    """Options → Register a new signed key opens a reauth that keeps the entry
+    (and its options) until the new key is confirmed, then switches to it."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, options={"cloud_backends": "fleet_then_owner"}, data={
+        "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": "ABCDE12345", "rsa_key_path": "/old.pem"})
+    entry.add_to_hass(hass)
+    api = KeyApi([1, 3])
+    with (
+        _fleet_with(api), _key(tmp_path),
+        patch.object(config_flow, "VERIFY_POLL_SECONDS", 0),
+        patch(SETUP, return_value=True),
+    ):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        assert "new_key" in result["menu_options"]
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+        assert result["type"] is FlowResultType.ABORT
+        assert result["reason"] == "new_key_started"
+        await hass.async_block_till_done()
+        flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+        assert len(flows) == 1 and flows[0]["step_id"] == "new_key"
+        flow_id = flows[0]["flow_id"]
+        result = await hass.config_entries.flow.async_configure(flow_id, {"next_step_id": "register_fleet"})
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        assert entry.data["rsa_key_path"] == "/old.pem"  # not before it's confirmed
+        await hass.async_block_till_done()
+        result = await hass.config_entries.flow.async_configure(flow_id)
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    assert entry.data["rsa_key_path"].endswith("k.pem")
+    assert entry.options == {"cloud_backends": "fleet_then_owner"}
+    assert api.added == [(PUB, "Home Assistant")]
+
+
+async def test_new_key_not_offered_on_wifi_entries(hass: HomeAssistant) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="x", data={"connection_mode": "wifi", "host": "192.168.91.1"})
+    entry.add_to_hass(hass)
+    with patch(SETUP, return_value=True):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert "new_key" not in result["menu_options"]

@@ -128,6 +128,15 @@
           "rsa_key_path": "Caminho completo do arquivo da chave privada no host do Home Assistant, por exemplo `/config/tesla_tedapi/tedapi_rsa_private.pem`. Deixe em branco para usar a conexão com senha do Wi-Fi (somente leitura).",
           "wifi_host": "O endereço do ponto de acesso Wi-Fi da Powerwall (normalmente `192.168.91.1`), usado quando o endereço da rede doméstica para de responder. Deixe em branco se o Home Assistant não alcançar o ponto de acesso."
         }
+      },
+      "new_key": {
+        "title": "Registrar uma nova chave",
+        "description": "Registrar outra chave assinada para esta Powerwall. A chave atual continua funcionando; o Home Assistant só passa para a nova chave quando a Powerwall a confirmar.",
+        "menu_options": {
+          "register_fleet": "Registrar uma nova chave com minha integração Tesla Fleet ou Teslemetry (sem login na Tesla)",
+          "register": "Registrar uma nova chave (recomendado)",
+          "key_upload": "Enviar uma chave já registrada"
+        }
       }
     },
     "progress": {
@@ -168,7 +177,8 @@
           "settings": "Configurações",
           "cloud_backup": "Reserva na nuvem (Owner API, Tesla Fleet)",
           "link_account": "Vincular uma conta Tesla (Owner API)",
-          "unlink_account": "Desvincular um backup na nuvem"
+          "unlink_account": "Desvincular um backup na nuvem",
+          "new_key": "Registrar uma nova chave assinada"
         }
       },
       "settings": {
@@ -238,7 +248,8 @@
     },
     "abort": {
       "no_sites": "Nenhuma Powerwall foi encontrada nesta conta Tesla. Entre com a conta Tesla dona da Powerwall (a que a mostra no app da Tesla).",
-      "wrong_powerwall": "Essa conta Tesla não tem nenhum site com esta Powerwall. Entre com a conta Tesla dona dela."
+      "wrong_powerwall": "Essa conta Tesla não tem nenhum site com esta Powerwall. Entre com a conta Tesla dona dela.",
+      "new_key_started": "Abra Configurações → Dispositivos e serviços: esta Powerwall agora mostra um pedido de nova autenticação, onde você escolhe como registrar a nova chave. A chave atual continua funcionando até a nova ser confirmada."
     }
   },
   "entity": {

@@ -118,6 +118,8 @@ If Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tes
 
 New in 2.3.1, and less tested than path A, especially with Teslemetry.
 
+Already set up? **Configure → Register a new signed key** registers another key the same way (or with a Tesla sign-in, or an upload), for example to move to Tesla Fleet. It continues as a *Reauthenticate* prompt on the integration. The current key keeps working, and Home Assistant switches to the new key only once the Powerwall confirms it.
+
 #### A. Register a new key (recommended)
 
 1. **Sign in to Tesla**, in the browser or with a refresh token:

@@ -128,6 +128,15 @@
           "rsa_key_path": "Volledig pad naar het bestand met de private sleutel op de Home Assistant-host, bijvoorbeeld `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laat leeg om de verbinding met wifi-wachtwoord te gebruiken (alleen lezen).",
           "wifi_host": "Het adres van de wifi-hotspot van de Powerwall (meestal `192.168.91.1`), gebruikt als het thuisnetwerkadres niet meer antwoordt. Laat leeg als Home Assistant de hotspot niet kan bereiken."
         }
+      },
+      "new_key": {
+        "title": "Nieuwe sleutel registreren",
+        "description": "Nog een ondertekende sleutel voor deze Powerwall registreren. De huidige sleutel blijft werken; Home Assistant schakelt pas over naar de nieuwe sleutel als de Powerwall die bevestigt.",
+        "menu_options": {
+          "register_fleet": "Nieuwe sleutel registreren met mijn Tesla Fleet- of Teslemetry-integratie (zonder Tesla-aanmelding)",
+          "register": "Een nieuwe sleutel registreren (aanbevolen)",
+          "key_upload": "Een al geregistreerde sleutel uploaden"
+        }
       }
     },
     "progress": {
@@ -168,7 +177,8 @@
           "settings": "Instellingen",
           "cloud_backup": "Cloud-back-up (Owner API, Tesla Fleet)",
           "link_account": "Een Tesla-account koppelen (Owner API)",
-          "unlink_account": "Een cloudback-up ontkoppelen"
+          "unlink_account": "Een cloudback-up ontkoppelen",
+          "new_key": "Nieuwe ondertekende sleutel registreren"
         }
       },
       "settings": {
@@ -238,7 +248,8 @@
     },
     "abort": {
       "no_sites": "Er is geen Powerwall gevonden op dit Tesla-account. Log in met het Tesla-account dat eigenaar is van de Powerwall (het account dat hem in de Tesla-app toont).",
-      "wrong_powerwall": "Dat Tesla-account heeft geen locatie met deze Powerwall. Log in met het Tesla-account dat eigenaar is."
+      "wrong_powerwall": "Dat Tesla-account heeft geen locatie met deze Powerwall. Log in met het Tesla-account dat eigenaar is.",
+      "new_key_started": "Open Instellingen → Apparaten & diensten: deze Powerwall toont nu een verzoek om opnieuw te authenticeren, waar je kiest hoe de nieuwe sleutel wordt geregistreerd. De huidige sleutel blijft werken tot de nieuwe is bevestigd."
     }
   },
   "entity": {

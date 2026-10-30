@@ -128,6 +128,15 @@
           "rsa_key_path": "Ruta completa al archivo de clave privada en el equipo de Home Assistant, por ejemplo `/config/tesla_tedapi/tedapi_rsa_private.pem`. Déjalo vacío para usar la conexión con contraseña Wi-Fi (solo lectura).",
           "wifi_host": "La dirección del punto de acceso Wi-Fi de la Powerwall (normalmente `192.168.91.1`), usada cuando la dirección de la red doméstica deja de responder. Déjalo vacío si Home Assistant no puede llegar al punto de acceso."
         }
+      },
+      "new_key": {
+        "title": "Registrar una clave nueva",
+        "description": "Registrar otra clave firmada para esta Powerwall. La clave actual sigue funcionando; Home Assistant solo cambia a la clave nueva cuando la Powerwall la confirma.",
+        "menu_options": {
+          "register_fleet": "Registrar una clave nueva con mi integración Tesla Fleet o Teslemetry (sin iniciar sesión en Tesla)",
+          "register": "Registrar una clave nueva (recomendado)",
+          "key_upload": "Subir una clave ya registrada"
+        }
       }
     },
     "progress": {
@@ -168,7 +177,8 @@
           "settings": "Ajustes",
           "cloud_backup": "Respaldo en la nube (Owner API, Tesla Fleet)",
           "link_account": "Vincular una cuenta de Tesla (Owner API)",
-          "unlink_account": "Desvincular un respaldo en la nube"
+          "unlink_account": "Desvincular un respaldo en la nube",
+          "new_key": "Registrar una clave firmada nueva"
         }
       },
       "settings": {
@@ -238,7 +248,8 @@
     },
     "abort": {
       "no_sites": "No se encontró ninguna Powerwall en esta cuenta de Tesla. Inicia sesión con la cuenta de Tesla propietaria de la Powerwall (la que la muestra en la app de Tesla).",
-      "wrong_powerwall": "Esa cuenta de Tesla no tiene ningún sitio con esta Powerwall. Inicia sesión con la cuenta de Tesla propietaria."
+      "wrong_powerwall": "Esa cuenta de Tesla no tiene ningún sitio con esta Powerwall. Inicia sesión con la cuenta de Tesla propietaria.",
+      "new_key_started": "Abre Ajustes → Dispositivos y servicios: esta Powerwall muestra ahora un aviso para volver a autenticar, donde eliges cómo registrar la clave nueva. La clave actual sigue funcionando hasta que se confirme la nueva."
     }
   },
   "entity": {

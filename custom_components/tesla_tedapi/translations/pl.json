@@ -128,6 +128,15 @@
           "rsa_key_path": "Pełna ścieżka do pliku klucza prywatnego na hoście Home Assistant, na przykład `/config/tesla_tedapi/tedapi_rsa_private.pem`. Zostaw puste, aby użyć połączenia hasłem Wi-Fi (tylko odczyt).",
           "wifi_host": "Adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`), używany, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu."
         }
+      },
+      "new_key": {
+        "title": "Zarejestruj nowy klucz",
+        "description": "Zarejestruj kolejny podpisany klucz dla tej Powerwall. Obecny klucz działa dalej; Home Assistant przełączy się na nowy klucz dopiero, gdy Powerwall go potwierdzi.",
+        "menu_options": {
+          "register_fleet": "Zarejestruj nowy klucz przez moją integrację Tesla Fleet lub Teslemetry (bez logowania do Tesla)",
+          "register": "Zarejestruj nowy klucz (zalecane)",
+          "key_upload": "Prześlij już zarejestrowany klucz"
+        }
       }
     },
     "progress": {
@@ -168,7 +177,8 @@
           "settings": "Ustawienia",
           "cloud_backup": "Zapas w chmurze (Owner API, Tesla Fleet)",
           "link_account": "Połącz konto Tesla (Owner API)",
-          "unlink_account": "Odłącz kopię zapasową w chmurze"
+          "unlink_account": "Odłącz kopię zapasową w chmurze",
+          "new_key": "Zarejestruj nowy podpisany klucz"
         }
       },
       "settings": {
@@ -238,7 +248,8 @@
     },
     "abort": {
       "no_sites": "Na tym koncie Tesla nie znaleziono żadnej Powerwall. Zaloguj się na konto Tesla, do którego należy Powerwall (to, które pokazuje ją w aplikacji Tesla).",
-      "wrong_powerwall": "To konto Tesla nie ma instalacji z tą Powerwall. Zaloguj się na konto Tesla, do którego należy."
+      "wrong_powerwall": "To konto Tesla nie ma instalacji z tą Powerwall. Zaloguj się na konto Tesla, do którego należy.",
+      "new_key_started": "Otwórz Ustawienia → Urządzenia oraz usługi: ta Powerwall pokazuje teraz prośbę o ponowne uwierzytelnienie, gdzie wybierzesz sposób rejestracji nowego klucza. Obecny klucz działa dalej, dopóki nowy nie zostanie potwierdzony."
     }
   },
   "entity": {

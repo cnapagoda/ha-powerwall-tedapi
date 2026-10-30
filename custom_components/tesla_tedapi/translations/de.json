@@ -128,6 +128,15 @@
           "rsa_key_path": "Vollständiger Pfad zur Datei mit dem privaten Schlüssel auf dem Home-Assistant-Host, zum Beispiel `/config/tesla_tedapi/tedapi_rsa_private.pem`. Leer lassen für die Verbindung mit WLAN-Passwort (nur lesen).",
           "wifi_host": "Die Adresse des WLAN-Hotspots der Powerwall (meist `192.168.91.1`), genutzt, wenn die Heimnetz-Adresse nicht mehr antwortet. Leer lassen, wenn Home Assistant den Hotspot nicht erreicht."
         }
+      },
+      "new_key": {
+        "title": "Neuen Schlüssel registrieren",
+        "description": "Einen weiteren signierten Schlüssel für diese Powerwall registrieren. Der aktuelle Schlüssel funktioniert weiter; Home Assistant wechselt erst zum neuen Schlüssel, wenn die Powerwall ihn bestätigt.",
+        "menu_options": {
+          "register_fleet": "Neuen Schlüssel über meine Tesla-Fleet- oder Teslemetry-Integration registrieren (ohne Tesla-Anmeldung)",
+          "register": "Neuen Schlüssel registrieren (empfohlen)",
+          "key_upload": "Bereits registrierten Schlüssel hochladen"
+        }
       }
     },
     "progress": {
@@ -168,7 +177,8 @@
           "settings": "Einstellungen",
           "cloud_backup": "Cloud-Backup (Owner API, Tesla Fleet)",
           "link_account": "Tesla-Konto verknüpfen (Owner API)",
-          "unlink_account": "Eine Cloud-Sicherung trennen"
+          "unlink_account": "Eine Cloud-Sicherung trennen",
+          "new_key": "Neuen signierten Schlüssel registrieren"
         }
       },
       "settings": {
@@ -238,7 +248,8 @@
     },
     "abort": {
       "no_sites": "In diesem Tesla-Konto wurde keine Powerwall gefunden. Melde dich mit dem Tesla-Konto an, dem die Powerwall gehört (dem, das sie in der Tesla-App anzeigt).",
-      "wrong_powerwall": "Dieses Tesla-Konto hat keinen Standort mit dieser Powerwall. Melde dich mit dem Tesla-Konto an, dem sie gehört."
+      "wrong_powerwall": "Dieses Tesla-Konto hat keinen Standort mit dieser Powerwall. Melde dich mit dem Tesla-Konto an, dem sie gehört.",
+      "new_key_started": "Öffne Einstellungen → Geräte & Dienste: Diese Powerwall zeigt jetzt eine Aufforderung zur erneuten Authentifizierung, dort wählst du, wie der neue Schlüssel registriert wird. Der aktuelle Schlüssel funktioniert weiter, bis der neue bestätigt ist."
     }
   },
   "entity": {

@@ -128,6 +128,15 @@
           "rsa_key_path": "Percorso completo del file della chiave privata sull'host di Home Assistant, per esempio `/config/tesla_tedapi/tedapi_rsa_private.pem`. Lascia vuoto per usare la connessione con password Wi-Fi (sola lettura).",
           "wifi_host": "L'indirizzo dell'hotspot Wi-Fi della Powerwall (di solito `192.168.91.1`), usato quando l'indirizzo della rete di casa smette di rispondere. Lascia vuoto se Home Assistant non raggiunge l'hotspot."
         }
+      },
+      "new_key": {
+        "title": "Registra una nuova chiave",
+        "description": "Registra un'altra chiave firmata per questa Powerwall. La chiave attuale continua a funzionare; Home Assistant passa alla nuova chiave solo quando la Powerwall la conferma.",
+        "menu_options": {
+          "register_fleet": "Registra una nuova chiave con la mia integrazione Tesla Fleet o Teslemetry (senza accesso Tesla)",
+          "register": "Registra una nuova chiave (consigliato)",
+          "key_upload": "Carica una chiave già registrata"
+        }
       }
     },
     "progress": {
@@ -168,7 +177,8 @@
           "settings": "Impostazioni",
           "cloud_backup": "Riserva cloud (Owner API, Tesla Fleet)",
           "link_account": "Collega un account Tesla (Owner API)",
-          "unlink_account": "Scollega un backup cloud"
+          "unlink_account": "Scollega un backup cloud",
+          "new_key": "Registra una nuova chiave firmata"
         }
       },
       "settings": {
@@ -238,7 +248,8 @@
     },
     "abort": {
       "no_sites": "Nessuna Powerwall trovata su questo account Tesla. Accedi con l'account Tesla proprietario della Powerwall (quello che la mostra nell'app Tesla).",
-      "wrong_powerwall": "Quell'account Tesla non ha alcun sito con questa Powerwall. Accedi con l'account Tesla proprietario."
+      "wrong_powerwall": "Quell'account Tesla non ha alcun sito con questa Powerwall. Accedi con l'account Tesla proprietario.",
+      "new_key_started": "Apri Impostazioni → Dispositivi e servizi: questa Powerwall ora mostra una richiesta di riautenticazione, dove scegli come registrare la nuova chiave. La chiave attuale continua a funzionare finché la nuova non è confermata."
     }
   },
   "entity": {

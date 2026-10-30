@@ -128,6 +128,15 @@
           "rsa_key_path": "Chemin complet du fichier de clé privée sur l'hôte Home Assistant, par exemple `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laissez vide pour utiliser la connexion par mot de passe Wi-Fi (lecture seule).",
           "wifi_host": "L'adresse du point d'accès Wi-Fi de la Powerwall (généralement `192.168.91.1`), utilisée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès."
         }
+      },
+      "new_key": {
+        "title": "Enregistrer une nouvelle clé",
+        "description": "Enregistrer une autre clé signée pour cette Powerwall. La clé actuelle continue de fonctionner ; Home Assistant ne passe à la nouvelle clé qu'une fois que la Powerwall l'a confirmée.",
+        "menu_options": {
+          "register_fleet": "Enregistrer une nouvelle clé avec mon intégration Tesla Fleet ou Teslemetry (sans connexion Tesla)",
+          "register": "Enregistrer une nouvelle clé (recommandé)",
+          "key_upload": "Téléverser une clé déjà enregistrée"
+        }
       }
     },
     "progress": {
@@ -168,7 +177,8 @@
           "settings": "Paramètres",
           "cloud_backup": "Secours cloud (Owner API, Tesla Fleet)",
           "link_account": "Lier un compte Tesla (Owner API)",
-          "unlink_account": "Dissocier une sauvegarde cloud"
+          "unlink_account": "Dissocier une sauvegarde cloud",
+          "new_key": "Enregistrer une nouvelle clé signée"
         }
       },
       "settings": {
@@ -238,7 +248,8 @@
     },
     "abort": {
       "no_sites": "Aucune Powerwall n'a été trouvée sur ce compte Tesla. Connectez-vous avec le compte Tesla propriétaire de la Powerwall (celui qui l'affiche dans l'application Tesla).",
-      "wrong_powerwall": "Ce compte Tesla n'a aucun site avec cette Powerwall. Connectez-vous avec le compte Tesla qui la possède."
+      "wrong_powerwall": "Ce compte Tesla n'a aucun site avec cette Powerwall. Connectez-vous avec le compte Tesla qui la possède.",
+      "new_key_started": "Ouvrez Paramètres → Appareils et services : cette Powerwall affiche maintenant une demande de réauthentification, où vous choisissez comment enregistrer la nouvelle clé. La clé actuelle continue de fonctionner jusqu'à la confirmation de la nouvelle."
     }
   },
   "entity": {
