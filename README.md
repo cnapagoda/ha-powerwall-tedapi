@@ -104,9 +104,19 @@ You don't need to reserve the gateway's IP: when your router gives it a new addr
 > |---|---|---|
 > | Who it's for | Everyone | Developers |
 > | You need | A Tesla account: a browser sign-in in the wizard, or a refresh token from a token app ([how](#getting-a-tesla-refresh-token)) | A developer app at [developer.tesla.com](https://developer.tesla.com), with its public key hosted on a domain you own, set up as for Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration ([steps](#b-upload-a-key-that-is-already-registered)) |
-> | Where | This wizard, path **A** | `python -m pypowerwall register` (option 2) on a computer, then path **B** |
+> | Where | This wizard, path **A** | This wizard through Home Assistant's Tesla Fleet or Teslemetry integration ([below](#register-through-tesla-fleet-or-teslemetry)), or `python -m pypowerwall register` (option 2) on a computer, then path **B** |
 >
 > Neither one exposes Home Assistant to the internet: after the key is verified, everything is local. A key can't be registered over the local network alone. The Powerwall accepts it there, but never verifies it.
+
+#### Register through Tesla Fleet or Teslemetry
+
+If Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) or [Teslemetry](https://www.home-assistant.io/integrations/teslemetry) integration is set up with this Powerwall, the menu offers **Register a new key with my Tesla Fleet or Teslemetry integration**. No Tesla sign-in is needed here:
+
+1. The wizard makes the key and registers it through that integration's Fleet API connection. Its sign-in needs the `energy_cmds` permission, and the option only appears when it has it.
+2. **Confirm at the Powerwall** with the switch toggle, as in step 3 of path A below.
+3. The Tesla Fleet integration also becomes the [cloud backup](#cloud-backup). No Tesla account is linked here; you can link one later.
+
+New in 2.3.1, and less tested than path A, especially with Teslemetry.
 
 #### A. Register a new key (recommended)
 

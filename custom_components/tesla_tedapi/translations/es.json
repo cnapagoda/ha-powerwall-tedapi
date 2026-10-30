@@ -34,6 +34,7 @@
         "title": "Elige cómo conectar",
         "description": "El acceso firmado (v1r) necesita una clave en la que esta Powerwall confíe.",
         "menu_options": {
+          "register_fleet": "Registrar una clave nueva con mi integración Tesla Fleet o Teslemetry (sin iniciar sesión en Tesla)",
           "register": "Registrar una clave nueva (recomendado)",
           "key_upload": "Subir una clave ya registrada",
           "wifi": "Sin clave: solo contraseña Wi-Fi (supervisión)"
@@ -97,6 +98,7 @@
         "title": "La Powerwall ya no acepta a Home Assistant",
         "description": "La pasarela sigue rechazando la contraseña o la clave. Las lecturas se detienen hasta que se corrija; los ajustes siguen funcionando a través de la nube de Tesla si hay una cuenta vinculada.",
         "menu_options": {
+          "register_fleet": "Registrar la clave de nuevo con mi integración Tesla Fleet o Teslemetry",
           "reauth_password": "Introducir de nuevo la contraseña de la pasarela",
           "register": "Registrar la clave de nuevo",
           "key_upload": "Subir otra clave"
@@ -154,7 +156,8 @@
       "unique_id_mismatch": "La pasarela en esa dirección es otra Powerwall. Introduce la dirección de esta Powerwall, o añade la otra como una entrada nueva.",
       "register_token_refused": "Tesla rechazó el token de inicio de sesión al registrar la clave. Vuelve a empezar la configuración e inicia sesión de nuevo (en el navegador, o con un token de actualización nuevo).",
       "register_wrong_site": "Tesla no conoce ese sitio de energía en esta cuenta. Vuelve a empezar la configuración y elige el sitio con esta Powerwall, con la sesión iniciada en la cuenta de Tesla propietaria.",
-      "register_unreachable": "Tesla no pudo llegar a la Powerwall para registrar la clave. Comprueba que aparece en línea en la app de Tesla (su conexión a internet), espera unos minutos y vuelve a empezar la configuración."
+      "register_unreachable": "Tesla no pudo llegar a la Powerwall para registrar la clave. Comprueba que aparece en línea en la app de Tesla (su conexión a internet), espera unos minutos y vuelve a empezar la configuración.",
+      "register_fleet_unavailable": "La integración Tesla Fleet o Teslemetry ya no se puede usar para esta Powerwall: no está cargada, no tiene esta Powerwall, o su sesión no puede enviar órdenes (necesita el permiso energy_cmds). Revisa esa integración, o vuelve a iniciar la configuración y registra con un inicio de sesión de Tesla."
     }
   },
   "options": {

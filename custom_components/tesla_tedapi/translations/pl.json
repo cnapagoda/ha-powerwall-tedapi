@@ -34,6 +34,7 @@
         "title": "Wybierz sposób połączenia",
         "description": "Dostęp podpisany (v1r) wymaga klucza, któremu ta Powerwall ufa.",
         "menu_options": {
+          "register_fleet": "Zarejestruj nowy klucz przez moją integrację Tesla Fleet lub Teslemetry (bez logowania do Tesla)",
           "register": "Zarejestruj nowy klucz (zalecane)",
           "key_upload": "Prześlij już zarejestrowany klucz",
           "wifi": "Bez klucza: tylko hasło Wi-Fi (monitorowanie)"
@@ -97,6 +98,7 @@
         "title": "Powerwall nie akceptuje już Home Assistant",
         "description": "Brama ciągle odrzuca hasło lub klucz. Odczyty są wstrzymane do czasu naprawy; ustawienia nadal działają przez chmurę Tesla, jeśli połączono konto.",
         "menu_options": {
+          "register_fleet": "Zarejestruj klucz ponownie przez moją integrację Tesla Fleet lub Teslemetry",
           "reauth_password": "Wpisz ponownie hasło bramy",
           "register": "Zarejestruj klucz ponownie",
           "key_upload": "Prześlij inny klucz"
@@ -154,7 +156,8 @@
       "unique_id_mismatch": "Brama pod tym adresem to inna Powerwall. Wpisz adres tej Powerwall albo dodaj tamtą jako nowy wpis.",
       "register_token_refused": "Tesla odrzuciła token logowania podczas rejestracji klucza. Uruchom konfigurację od nowa i zaloguj się ponownie (w przeglądarce albo nowym tokenem odświeżania).",
       "register_wrong_site": "Tesla nie zna tej instalacji energetycznej na tym koncie. Rozpocznij konfigurację od nowa i wybierz instalację z tą Powerwall, zalogowany na konto Tesla, do którego należy.",
-      "register_unreachable": "Tesla nie mogła połączyć się z Powerwall, aby zarejestrować klucz. Sprawdź, czy jest online w aplikacji Tesla (jej połączenie z internetem), poczekaj kilka minut i rozpocznij konfigurację od nowa."
+      "register_unreachable": "Tesla nie mogła połączyć się z Powerwall, aby zarejestrować klucz. Sprawdź, czy jest online w aplikacji Tesla (jej połączenie z internetem), poczekaj kilka minut i rozpocznij konfigurację od nowa.",
+      "register_fleet_unavailable": "Integracji Tesla Fleet lub Teslemetry nie można już użyć dla tej Powerwall: nie jest załadowana, nie ma tej Powerwall albo jej logowanie nie może wysyłać poleceń (potrzebne jest uprawnienie energy_cmds). Sprawdź tę integrację albo uruchom konfigurację ponownie i zarejestruj klucz po zalogowaniu do Tesla."
     }
   },
   "options": {

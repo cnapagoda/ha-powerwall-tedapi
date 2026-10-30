@@ -34,6 +34,7 @@
         "title": "Kies hoe je verbindt",
         "description": "Ondertekende toegang (v1r) heeft een sleutel nodig die deze Powerwall vertrouwt.",
         "menu_options": {
+          "register_fleet": "Nieuwe sleutel registreren met mijn Tesla Fleet- of Teslemetry-integratie (zonder Tesla-aanmelding)",
           "register": "Een nieuwe sleutel registreren (aanbevolen)",
           "key_upload": "Een al geregistreerde sleutel uploaden",
           "wifi": "Geen sleutel: alleen wifi-wachtwoord (monitoring)"
@@ -97,6 +98,7 @@
         "title": "De Powerwall accepteert Home Assistant niet meer",
         "description": "De gateway blijft het wachtwoord of de sleutel weigeren. Metingen stoppen tot dit is opgelost; instellingen werken nog via de Tesla-cloud als een account is gekoppeld.",
         "menu_options": {
+          "register_fleet": "Sleutel opnieuw registreren met mijn Tesla Fleet- of Teslemetry-integratie",
           "reauth_password": "Gateway-wachtwoord opnieuw invoeren",
           "register": "De sleutel opnieuw registreren",
           "key_upload": "Een andere sleutel uploaden"
@@ -154,7 +156,8 @@
       "unique_id_mismatch": "De gateway op dat adres is een andere Powerwall. Voer het adres van deze Powerwall in, of voeg de andere toe als nieuwe vermelding.",
       "register_token_refused": "Tesla heeft de aanmeldtoken geweigerd bij het registreren van de sleutel. Start de installatie opnieuw en log opnieuw in (in de browser, of met een nieuwe refresh-token).",
       "register_wrong_site": "Tesla kent die energielocatie niet op dit account. Start de installatie opnieuw en kies de locatie met deze Powerwall, ingelogd met het Tesla-account dat eigenaar is.",
-      "register_unreachable": "Tesla kon de Powerwall niet bereiken om de sleutel te registreren. Controleer of hij online is in de Tesla-app (zijn internetverbinding), wacht een paar minuten en start de installatie opnieuw."
+      "register_unreachable": "Tesla kon de Powerwall niet bereiken om de sleutel te registreren. Controleer of hij online is in de Tesla-app (zijn internetverbinding), wacht een paar minuten en start de installatie opnieuw.",
+      "register_fleet_unavailable": "De integratie Tesla Fleet of Teslemetry kan niet meer voor deze Powerwall worden gebruikt: ze is niet geladen, kent deze Powerwall niet, of haar aanmelding mag geen opdrachten sturen (ze heeft de machtiging energy_cmds nodig). Controleer die integratie, of start de installatie opnieuw en registreer met een Tesla-aanmelding."
     }
   },
   "options": {

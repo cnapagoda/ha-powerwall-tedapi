@@ -34,6 +34,7 @@
         "title": "Choose how to connect",
         "description": "Signed (v1r) access needs a key that this Powerwall trusts.",
         "menu_options": {
+          "register_fleet": "Register a new key with my Tesla Fleet or Teslemetry integration (no Tesla sign-in)",
           "register": "Register a new key (recommended)",
           "key_upload": "Upload a key that is already registered",
           "wifi": "No key: Wi-Fi password only (monitoring)"
@@ -97,6 +98,7 @@
         "title": "The Powerwall no longer accepts Home Assistant",
         "description": "The gateway keeps refusing the password or the key. Readings stop until this is fixed; settings still work through the Tesla cloud if an account is linked.",
         "menu_options": {
+          "register_fleet": "Register the key again with my Tesla Fleet or Teslemetry integration",
           "reauth_password": "Enter the gateway password again",
           "register": "Register the key again",
           "key_upload": "Upload a different key"
@@ -154,7 +156,8 @@
       "unique_id_mismatch": "The gateway at that address is a different Powerwall. Enter this Powerwall's address, or add the other one as a new entry.",
       "register_token_refused": "Tesla refused the sign-in token when registering the key. Start the setup again and sign in again (in the browser, or with a fresh refresh token).",
       "register_wrong_site": "Tesla doesn't know that energy site on this account. Start the setup again and choose the site with this Powerwall, signed in with the Tesla account that owns it.",
-      "register_unreachable": "Tesla could not reach the Powerwall to register the key. Check that it shows as online in the Tesla app (its internet connection), wait a few minutes and start the setup again."
+      "register_unreachable": "Tesla could not reach the Powerwall to register the key. Check that it shows as online in the Tesla app (its internet connection), wait a few minutes and start the setup again.",
+      "register_fleet_unavailable": "The Tesla Fleet or Teslemetry integration can no longer be used for this Powerwall: it isn't loaded, doesn't have this Powerwall, or its sign-in can't send commands (it needs the energy_cmds permission). Check that integration, or start the setup again and register with a Tesla sign-in."
     }
   },
   "options": {

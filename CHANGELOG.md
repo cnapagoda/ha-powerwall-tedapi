@@ -8,6 +8,7 @@
 - An off-grid run reconnects at the end of `duration_minutes` or when the battery falls to `min_soc`. The run is saved and watched again after a restart or reload. A failed automatic reconnect is retried every minute and raises a repair.
 - New event `tesla_tedapi_off_grid_ended` (`reason`: `completed`, `min_soc`, `requested`, `reconnected_elsewhere`). **Grid connected** shows the run in its attributes.
 - Texts in all eight languages.
+- **Register the key through Tesla Fleet or Teslemetry.** When Home Assistant's Tesla Fleet or Teslemetry integration has this Powerwall and can send commands (`energy_cmds`), setup and reauthentication offer to register the signed (v1r) key through it, with no Tesla sign-in here. The switch toggle confirms it as before, and Tesla Fleet becomes the cloud backup.
 
 ## 2.3.0
 
