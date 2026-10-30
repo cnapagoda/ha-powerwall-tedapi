@@ -347,8 +347,10 @@ async def test_timeout_is_not_sent_elsewhere(hass: HomeAssistant, fake_powerwall
     await _setup(hass, {**V1R, **ACCOUNT}, "fleet_then_owner")
     fleet.api.hang = True
     local(fake_powerwall).set_mode = lambda mode: None
-    with patch.object(fleet_mod, "CALL_TIMEOUT", 0.2), pytest.raises(HomeAssistantError, match="in time"):
+    with patch.object(fleet_mod, "CALL_TIMEOUT", 0.2), pytest.raises(HomeAssistantError) as err:
         await _select(hass, "operation_mode", "backup")
+    assert err.value.translation_key == "write_cloud_timeout"
+    assert err.value.translation_placeholders == {"backend": "Tesla Fleet"}
     assert ("operation", {"default_real_mode": "backup"}) in fleet.api.calls
     assert ("mode", "backup") not in cloud(fake_powerwall).writes
 

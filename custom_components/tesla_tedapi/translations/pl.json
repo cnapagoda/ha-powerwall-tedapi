@@ -445,6 +445,30 @@
     },
     "max_backup_needs_v1r": {
       "message": "Maksymalne zasilanie awaryjne wymaga połączenia podpisanego (v1r). Zarejestruj klucz w konfiguracji integracji albo uruchom je w aplikacji Tesla."
+    },
+    "settings_need_control": {
+      "message": "Zmiana ustawień wymaga połączenia podpisanego (v1r) albo kopii zapasowej w chmurze."
+    },
+    "write_refused_no_cloud": {
+      "message": "Powerwall nie przyjął zmiany, a kopia zapasowa w chmurze nie jest skonfigurowana."
+    },
+    "write_cloud_timeout": {
+      "message": "{backend} nie odpowiedział na czas. Zmiana mogła zostać zastosowana: sprawdź to przed ponowną próbą."
+    },
+    "write_failed": {
+      "message": "Ani Powerwall, ani kopia zapasowa w chmurze nie przyjęły zmiany. Szczegóły są w dzienniku."
+    },
+    "backup_event_refused": {
+      "message": "Powerwall nie przyjął zdarzenia zasilania awaryjnego. Szczegóły są w dzienniku."
+    },
+    "dispatch_invalid": {
+      "message": "Nieprawidłowe sterowanie baterią: {error}"
+    },
+    "dispatch_refused": {
+      "message": "Powerwall nie przyjął sterowania baterią. Szczegóły są w dzienniku."
+    },
+    "resume_refused": {
+      "message": "Powerwall nie przyjął powrotu do normalnej pracy. Szczegóły są w dzienniku."
     }
   },
   "services": {

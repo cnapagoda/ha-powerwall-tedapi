@@ -445,6 +445,30 @@
     },
     "max_backup_needs_v1r": {
       "message": "Un backup massimo richiede la connessione firmata (v1r). Registra una chiave nella configurazione dell'integrazione, oppure avvialo nell'app Tesla."
+    },
+    "settings_need_control": {
+      "message": "Per cambiare le impostazioni serve la connessione firmata (v1r) o un backup cloud."
+    },
+    "write_refused_no_cloud": {
+      "message": "La Powerwall non ha accettato la modifica e non è configurato nessun backup cloud."
+    },
+    "write_cloud_timeout": {
+      "message": "{backend} non ha risposto in tempo. La modifica potrebbe essere stata applicata comunque: controlla prima di riprovare."
+    },
+    "write_failed": {
+      "message": "Né la Powerwall né il backup cloud hanno accettato la modifica. Vedi il log per i dettagli."
+    },
+    "backup_event_refused": {
+      "message": "La Powerwall non ha accettato l'evento di backup. Vedi il log per i dettagli."
+    },
+    "dispatch_invalid": {
+      "message": "Dispatch non valido: {error}"
+    },
+    "dispatch_refused": {
+      "message": "La Powerwall non ha accettato il dispatch. Vedi il log per i dettagli."
+    },
+    "resume_refused": {
+      "message": "La Powerwall non ha accettato la ripresa. Vedi il log per i dettagli."
     }
   },
   "services": {

@@ -11,6 +11,9 @@ from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .dispatch import DispatchSession
 from .entity import AddConfigEntryEntitiesCallback, TedapiCloudEntity, TedapiEntity, add_when_reported
 
+# Coordinator-based: no limit on parallel updates.
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

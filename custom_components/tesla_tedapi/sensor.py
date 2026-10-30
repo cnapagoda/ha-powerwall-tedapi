@@ -29,6 +29,9 @@ from .alerts import LEVELS
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
 
+# Coordinator-based: no limit on parallel updates.
+PARALLEL_UPDATES = 0
+
 # Usable energy per pack in Tesla's spec (Powerwall 2/3 and the expansion pack).
 NOMINAL_PACK_KWH = 13.5
 

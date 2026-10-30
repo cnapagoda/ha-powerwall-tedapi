@@ -445,6 +445,30 @@
     },
     "max_backup_needs_v1r": {
       "message": "Un secours maximal nécessite la connexion signée (v1r). Enregistrez une clé dans la configuration de l'intégration, ou lancez-le dans l'application Tesla."
+    },
+    "settings_need_control": {
+      "message": "Modifier les réglages nécessite la connexion signée (v1r) ou une sauvegarde cloud."
+    },
+    "write_refused_no_cloud": {
+      "message": "La Powerwall n'a pas accepté la modification, et aucune sauvegarde cloud n'est configurée."
+    },
+    "write_cloud_timeout": {
+      "message": "{backend} n'a pas répondu à temps. La modification a peut-être été appliquée : vérifiez avant de réessayer."
+    },
+    "write_failed": {
+      "message": "Ni la Powerwall ni la sauvegarde cloud n'ont accepté la modification. Voir le journal pour les détails."
+    },
+    "backup_event_refused": {
+      "message": "La Powerwall n'a pas accepté l'événement de secours. Voir le journal pour les détails."
+    },
+    "dispatch_invalid": {
+      "message": "Pilotage invalide : {error}"
+    },
+    "dispatch_refused": {
+      "message": "La Powerwall n'a pas accepté le pilotage. Voir le journal pour les détails."
+    },
+    "resume_refused": {
+      "message": "La Powerwall n'a pas accepté la reprise. Voir le journal pour les détails."
     }
   },
   "services": {

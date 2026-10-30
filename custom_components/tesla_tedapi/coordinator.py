@@ -257,6 +257,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._password_refused = 0
         self._key_refused = 0
         self._reauth_started = False
+        # Gateway down while the cloud backup keeps the settings: logged once.
+        self._gateway_down = False
         self._token_expiry: tuple[float, float | None] | None = None
         # Backup events from the gateway: (monotonic time read, raw result).
         self._backup_events: tuple[float, dict[str, Any]] | None = None
@@ -663,7 +665,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for backend in self.backends:
             backend.cache = backend.extras = None
         if not (self.control_enabled if local else self.cloud_enabled):
-            raise HomeAssistantError("Changing settings needs a signed (v1r) connection or a cloud backup")
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="settings_need_control")
         # The Wi-Fi password session cannot change settings; the gateway accepts
         # the call and ignores it, so it is not tried.
         if local and self._conn_mode == MODE_V1R:
@@ -678,7 +680,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             else:
                 _LOGGER.warning("%s: gateway not connected", what)
         if not self.cloud_enabled:
-            raise HomeAssistantError(f"{what}: the gateway did not accept it and no cloud backup is set up")
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_refused_no_cloud")
         errors: list[str] = []
         for backend in self.backends:
             if backend.starting():
@@ -688,8 +690,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 ok = self._write_ok(write(backend.get_client()))
             except FleetTimeout as err:
                 # It may still have been applied: don't send it elsewhere too.
-                raise HomeAssistantError(f"{what}: {backend.label} did not answer in time; "
-                                         "it may or may not have been applied") from err
+                raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_cloud_timeout",
+                                         translation_placeholders={"backend": backend.label}) from err
             except Exception as err:  # noqa: BLE001
                 backend.drop()
                 errors.append(f"{backend.label}: {err}")
@@ -700,7 +702,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.info("%s (cloud, %s)", what, backend.label)
                 return
             errors.append(f"{backend.label} did not accept it")
-        raise HomeAssistantError(f"{what}: local and cloud writes failed ({'; '.join(errors)})")
+        _LOGGER.warning("%s: local and cloud writes failed (%s)", what, "; ".join(errors))
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_failed")
 
     def _set_mode(self, mode: str) -> None:
         self._write(f"Operation mode set to {mode}", lambda pw: pw.set_mode(mode))
@@ -752,13 +755,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Start (minutes) or cancel (None) a manual backup event over signed
         v1r: the Powerwall charges to full and holds it, as in Storm Watch."""
         if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
-            raise HomeAssistantError("A max backup needs the signed (v1r) local connection")
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="max_backup_needs_v1r")
         if minutes is None:
             ok = self._pw.cancel_max_backup()
         else:
             ok = self._pw.schedule_max_backup(duration_seconds=int(minutes) * 60)
         if not ok:
-            raise HomeAssistantError("The Powerwall did not accept the backup event (see log)")
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="backup_event_refused")
         _LOGGER.info("Max backup %s", f"started for {minutes} min" if minutes else "cancelled")
         self._backup_events = None  # read it back on the next poll
 
@@ -777,21 +780,22 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _send_dispatch(self, power_watts: float, duration_seconds: int) -> dict:
         """One timed battery setpoint over signed v1r (no cloud equivalent)."""
         if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
-            raise HomeAssistantError("Battery dispatch needs the signed (v1r) local connection")
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_needs_v1r")
         try:
             result = self._pw.dispatch_battery_power(power_watts, duration_seconds)
         except ValueError as err:
-            raise HomeAssistantError(f"Invalid dispatch: {err}") from err
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_invalid",
+                                     translation_placeholders={"error": str(err)}) from err
         if not result:
-            raise HomeAssistantError("The Powerwall did not accept the dispatch (see log)")
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_refused")
         return result
 
     def _send_resume(self) -> dict:
         if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
-            raise HomeAssistantError("Battery resume needs the signed (v1r) local connection")
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_needs_v1r")
         result = self._pw.resume_battery_operation()
         if not result:
-            raise HomeAssistantError("The Powerwall did not accept the resume (see log)")
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="resume_refused")
         return result
 
     async def async_send_dispatch(self, power_watts: float, duration_seconds: int) -> dict:
@@ -843,12 +847,18 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 await self._async_note_local_failure()
                 if not (self.cloud_enabled and self.din):
                     raise
-                _LOGGER.debug("Gateway read failed (%s), settings from the cloud", err)
                 data = await self.hass.async_add_executor_job(self._fetch_cloud_only)
                 if data.get("control_source") is None:
                     raise
+                if not self._gateway_down:
+                    self._gateway_down = True
+                    _LOGGER.warning("The Powerwall gateway at %s can't be reached (%s); readings are "
+                                    "unavailable and settings use the cloud backup", self._host, err)
             else:
                 self._password_refused = self._key_refused = 0
+                if self._gateway_down:
+                    self._gateway_down = False
+                    _LOGGER.info("The Powerwall gateway at %s answers again", self._host)
         except Exception as err:
             self._pw = None
             self._sync_cloud_issue()

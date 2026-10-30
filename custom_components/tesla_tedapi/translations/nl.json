@@ -445,6 +445,30 @@
     },
     "max_backup_needs_v1r": {
       "message": "Een max-back-up heeft de ondertekende verbinding (v1r) nodig. Registreer een sleutel in de installatie van de integratie, of start hem in de Tesla-app."
+    },
+    "settings_need_control": {
+      "message": "Instellingen wijzigen heeft de ondertekende verbinding (v1r) of een cloudback-up nodig."
+    },
+    "write_refused_no_cloud": {
+      "message": "De Powerwall heeft de wijziging niet geaccepteerd, en er is geen cloudback-up ingesteld."
+    },
+    "write_cloud_timeout": {
+      "message": "{backend} antwoordde niet op tijd. De wijziging is misschien toch toegepast: controleer dat voordat je het opnieuw probeert."
+    },
+    "write_failed": {
+      "message": "De Powerwall en de cloudback-up hebben de wijziging allebei niet geaccepteerd. Zie het logboek voor details."
+    },
+    "backup_event_refused": {
+      "message": "De Powerwall heeft de back-upgebeurtenis niet geaccepteerd. Zie het logboek voor details."
+    },
+    "dispatch_invalid": {
+      "message": "Ongeldige batterijsturing: {error}"
+    },
+    "dispatch_refused": {
+      "message": "De Powerwall heeft de batterijsturing niet geaccepteerd. Zie het logboek voor details."
+    },
+    "resume_refused": {
+      "message": "De Powerwall heeft het hervatten niet geaccepteerd. Zie het logboek voor details."
     }
   },
   "services": {

@@ -9,6 +9,9 @@ from homeassistant.core import HomeAssistant
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .entity import AddConfigEntryEntitiesCallback, TedapiCloudEntity, TedapiControlEntity, add_when_reported
 
+# One setting change at a time per platform.
+PARALLEL_UPDATES = 1
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

@@ -445,6 +445,30 @@
     },
     "max_backup_needs_v1r": {
       "message": "Ein Max-Backup braucht die signierte Verbindung (v1r). Registriere einen Schlüssel in der Einrichtung der Integration oder starte es in der Tesla-App."
+    },
+    "settings_need_control": {
+      "message": "Zum Ändern von Einstellungen braucht es die signierte Verbindung (v1r) oder eine Cloud-Sicherung."
+    },
+    "write_refused_no_cloud": {
+      "message": "Die Powerwall hat die Änderung nicht angenommen, und es ist keine Cloud-Sicherung eingerichtet."
+    },
+    "write_cloud_timeout": {
+      "message": "{backend} hat nicht rechtzeitig geantwortet. Die Änderung wurde vielleicht trotzdem übernommen: prüfe das, bevor du es erneut versuchst."
+    },
+    "write_failed": {
+      "message": "Weder die Powerwall noch die Cloud-Sicherung hat die Änderung angenommen. Details stehen im Protokoll."
+    },
+    "backup_event_refused": {
+      "message": "Die Powerwall hat das Backup-Ereignis nicht angenommen. Details stehen im Protokoll."
+    },
+    "dispatch_invalid": {
+      "message": "Ungültige Batteriesteuerung: {error}"
+    },
+    "dispatch_refused": {
+      "message": "Die Powerwall hat die Batteriesteuerung nicht angenommen. Details stehen im Protokoll."
+    },
+    "resume_refused": {
+      "message": "Die Powerwall hat die Rückkehr zum Normalbetrieb nicht angenommen. Details stehen im Protokoll."
     }
   },
   "services": {
