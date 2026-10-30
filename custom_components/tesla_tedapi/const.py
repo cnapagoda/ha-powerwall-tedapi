@@ -1,4 +1,8 @@
 """Constants for the Powerwall TEDAPI integration."""
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
 
 DOMAIN = "tesla_tedapi"
 
@@ -19,6 +23,37 @@ CONF_STATUS_EVENTS = "status_alert_events"
 CONF_PROBLEM_MINUTES = "problem_minutes"
 CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
 CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
+# Which cloud backup to use and in what order (one of CLOUD_CHOICES).
+CONF_CLOUD_BACKENDS = "cloud_backends"
+
+# Cloud backups: a Tesla account signed in here (Owner API), or the core Tesla
+# Fleet integration's sign-in (Fleet API).
+BACKEND_OWNER = "owner_api"
+BACKEND_FLEET = "tesla_fleet"
+CLOUD_NONE = "none"
+CLOUD_FLEET_FIRST = "fleet_then_owner"
+CLOUD_OWNER_FIRST = "owner_then_fleet"
+CLOUD_CHOICES: dict[str, tuple[str, ...]] = {
+    CLOUD_NONE: (),
+    BACKEND_OWNER: (BACKEND_OWNER,),
+    BACKEND_FLEET: (BACKEND_FLEET,),
+    CLOUD_FLEET_FIRST: (BACKEND_FLEET, BACKEND_OWNER),
+    CLOUD_OWNER_FIRST: (BACKEND_OWNER, BACKEND_FLEET),
+}
+# After linking or unlinking a Tesla account here: the choice that keeps the
+# other backup and adds or drops the Owner API.
+CLOUD_WITH_OWNER = {CLOUD_NONE: BACKEND_OWNER, BACKEND_FLEET: CLOUD_FLEET_FIRST}
+CLOUD_WITHOUT_OWNER = {BACKEND_OWNER: CLOUD_NONE, CLOUD_FLEET_FIRST: BACKEND_FLEET,
+                       CLOUD_OWNER_FIRST: BACKEND_FLEET}
+CLOUD_WITHOUT_FLEET = {BACKEND_FLEET: CLOUD_NONE, CLOUD_FLEET_FIRST: BACKEND_OWNER,
+                       CLOUD_OWNER_FIRST: BACKEND_OWNER}
+
+
+def cloud_choice(data: Mapping[str, Any], options: Mapping[str, Any]) -> str:
+    """The cloud backup choice. Without one, a Tesla account linked here is
+    the backup (as before 2.3)."""
+    return options.get(CONF_CLOUD_BACKENDS) or (BACKEND_OWNER if data.get(CONF_OWNERS_EMAIL) else CLOUD_NONE)
+
 
 # Connection modes
 MODE_WIFI = "wifi"
@@ -59,6 +94,13 @@ CLOUD_CACHE_SECONDS = 300
 # before the backup is needed; a failed check is retried sooner.
 CLOUD_CHECK_SECONDS = 3600
 CLOUD_RETRY_SECONDS = 600
+# Storm Watch and other cloud-only values from the Owner API are read this
+# often (two Tesla calls); Tesla Fleet's are read from its data every poll.
+OWNER_EXTRAS_SECONDS = 1800
+# Backup events (Storm Watch, manual backup) are read from the gateway this
+# often, and right after one is started or cancelled here.
+BACKUP_EVENTS_SECONDS = 300
+MAX_BACKUP_MAX_MINUTES = 2880
 # Consecutive failures before asking the user to sign in or re-register.
 CLOUD_AUTH_FAILURES = 3
 KEY_REFUSED_POLLS = 10
@@ -78,12 +120,15 @@ EVENT_DISPATCH_ENDED = f"{DOMAIN}_dispatch_ended"
 
 SERVICE_DISPATCH = "dispatch_battery_power"
 SERVICE_RESUME = "resume_battery_operation"
+SERVICE_START_MAX_BACKUP = "start_max_backup"
+SERVICE_CANCEL_MAX_BACKUP = "cancel_max_backup"
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 ATTR_POWER_WATTS = "power_watts"
 ATTR_DURATION_SECONDS = "duration_seconds"
 ATTR_MIN_SOC = "min_soc"
 ATTR_MAX_SOC = "max_soc"
+ATTR_DURATION_MINUTES = "duration_minutes"
 
 
 def app_soc(raw: float | None) -> float | None:

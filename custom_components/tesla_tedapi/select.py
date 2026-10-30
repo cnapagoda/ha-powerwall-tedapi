@@ -11,6 +11,9 @@ from .const import GRID_EXPORT_MODES, OPERATION_MODES
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .entity import AddConfigEntryEntitiesCallback, TedapiControlEntity
 
+# One setting change at a time per platform.
+PARALLEL_UPDATES = 1
+
 
 @dataclass(frozen=True, kw_only=True)
 class TedapiSelectEntityDescription(SelectEntityDescription):

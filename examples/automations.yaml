@@ -1,4 +1,6 @@
-# Example automations for Powerwall TEDAPI. Replace the entity ids with yours.
+# Example automations for Powerwall TEDAPI. Entity ids use the default
+# Entity ID format (area + device + entity) with the device in a "Garage" area;
+# replace garage_ with your area, or drop it (see the README, Entities).
 
 # 1. Charge from the grid while the price is low, up to 90 %.
 - alias: Powerwall - charge when power is cheap
@@ -8,12 +10,12 @@
       below: 0.10
   conditions:
     - condition: numeric_state
-      entity_id: sensor.powerwall_tedapi_battery_level
+      entity_id: sensor.garage_powerwall_tedapi_battery_level
       below: 90
   actions:
     - action: switch.turn_on
       target:
-        entity_id: switch.powerwall_tedapi_grid_charging
+        entity_id: switch.garage_powerwall_tedapi_grid_charging
     - action: tesla_tedapi.dispatch_battery_power
       data:
         power_watts: -5000
@@ -43,7 +45,7 @@
       below: 0.50
   conditions:
     - condition: state
-      entity_id: binary_sensor.powerwall_tedapi_dispatch_active
+      entity_id: binary_sensor.garage_powerwall_tedapi_dispatch_active
       state: "on"
   actions:
     - action: tesla_tedapi.resume_battery_operation

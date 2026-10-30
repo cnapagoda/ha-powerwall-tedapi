@@ -1,0 +1,611 @@
+{
+  "config": {
+    "flow_title": "Powerwall ({host})",
+    "step": {
+      "user": {
+        "title": "Powerwall TEDAPI",
+        "description": "Trova la Powerwall nella tua rete. L'accesso firmato (v1r) offre letture locali, controllo locale e dispatch della batteria; questa procedura può registrare la chiave necessaria.",
+        "menu_options": {
+          "gateway": "Inserisci l'indirizzo del gateway",
+          "scan": "Cerca nella mia rete (circa 20 secondi)"
+        }
+      },
+      "scan": {
+        "title": "Powerwall trovate",
+        "data": {
+          "found": "Gateway"
+        }
+      },
+      "gateway": {
+        "title": "Gateway",
+        "description": "**Indirizzo del gateway:** l'indirizzo della Powerwall nella rete di casa (il router lo mostra come `teslapw_…`; riservare l'indirizzo aiuta, ma Home Assistant segue il gateway anche quando il router segnala un nuovo indirizzo). Usa `192.168.91.1` solo se Home Assistant è sulla rete Wi-Fi della Powerwall.\n\n**Password del gateway:** stampata sull'adesivo QR sotto il coperchio della Powerwall (Powerwall 3: dietro il vetro frontale, in basso a sinistra). Home Assistant usa gli ultimi 5 caratteri per accedere al gateway; viene verificata ora.",
+        "data": {
+          "host": "Indirizzo del gateway",
+          "gw_pwd": "Password del gateway",
+          "wifi_host": "Indirizzo Wi-Fi di riserva"
+        },
+        "data_description": {
+          "host": "L'indirizzo del gateway nella rete di casa, per esempio `192.168.1.50`. Il router lo mostra come `teslapw_…`.",
+          "gw_pwd": "Gli ultimi 5 caratteri della password sull'adesivo QR sotto il coperchio della Powerwall (Powerwall 3: dietro il vetro frontale, in basso a sinistra), oppure l'intera password. Le lettere sono maiuscole.",
+          "wifi_host": "L'hotspot Wi-Fi della Powerwall, usato con la stessa connessione firmata quando l'indirizzo della rete di casa smette di rispondere. Lascia vuoto se Home Assistant non raggiunge l'hotspot."
+        }
+      },
+      "access": {
+        "title": "Scegli come connetterti",
+        "description": "L'accesso firmato (v1r) richiede una chiave di cui questa Powerwall si fida.",
+        "menu_options": {
+          "register": "Registra una nuova chiave (consigliato)",
+          "key_upload": "Carica una chiave già registrata",
+          "wifi": "Nessuna chiave: solo password Wi-Fi (monitoraggio)"
+        }
+      },
+      "key_upload": {
+        "title": "Carica la chiave",
+        "description": "Carica la chiave privata PEM di una chiave registrata su questa Powerwall (per esempio con `python -m pypowerwall register`, stato VERIFIED). Viene copiata nella cartella `tesla_tedapi` della configurazione ed è leggibile solo da Home Assistant.",
+        "data": {
+          "key_file": "Chiave privata (.pem)",
+          "cloud_backup": "Collega un account Tesla come riserva per le impostazioni"
+        },
+        "data_description": {
+          "key_file": "Il file della chiave privata (`.pem`, inizia con `-----BEGIN PRIVATE KEY-----` o `-----BEGIN RSA PRIVATE KEY-----`) la cui chiave pubblica è registrata e VERIFIED su questa Powerwall. Non la chiave pubblica.",
+          "cloud_backup": "Accedi anche a un account Tesla, così le impostazioni si possono ancora cambiare tramite il cloud Tesla quando la connessione locale non funziona."
+        }
+      },
+      "wifi": {
+        "title": "Connetti tramite il Wi-Fi della Powerwall",
+        "description": "Home Assistant deve essere connesso alla rete Wi-Fi della Powerwall (TeslaPW_…). Questa connessione può leggere tutto ma non può cambiare impostazioni né fare il dispatch della batteria; collega un account Tesla per cambiare le impostazioni tramite il cloud.",
+        "data": {
+          "host": "Indirizzo dell'hotspot",
+          "cloud_backup": "Collega un account Tesla per cambiare le impostazioni"
+        },
+        "data_description": {
+          "host": "Di solito `192.168.91.1`, l'indirizzo della rete Wi-Fi della Powerwall (TeslaPW_…).",
+          "cloud_backup": "Senza un account Tesla, questa connessione può solo leggere. Accedi per cambiare le impostazioni tramite il cloud Tesla."
+        }
+      },
+      "login": {
+        "title": "Accedi a Tesla",
+        "description": "Il tuo account Tesla serve a registrare la chiave sulla Powerwall e come riserva per cambiare le impostazioni quando la connessione locale non funziona.\n\n**Accesso dal browser:**\n1. Apri questo link su un computer, con gli strumenti per sviluppatori del browser aperti sulla scheda **Rete** (F12):\n   [Accedi a Tesla]({url})\n2. Accedi. L'ultima pagina non si carica, perché Tesla invia il browser a un indirizzo `tesla://auth/callback?code=…`.\n3. Nella scheda Rete trova la richiesta che inizia con `callback?code=` (o l'intestazione `Location` dell'ultimo reindirizzamento) e copia l'indirizzo completo.\n4. Incollalo qui sotto. I codici scadono in pochi minuti e funzionano una sola volta.\n\n**Oppure un refresh token:** incolla il refresh token di un accesso tramite app, come *Auth app for Tesla* (iOS, Android). Usa un token creato apposta, non uno che un'altra integrazione usa già: accedere altrove con lo stesso token può disconnettere quell'integrazione.",
+        "data": {
+          "callback": "Refresh token o indirizzo di callback"
+        },
+        "data_description": {
+          "callback": "L'indirizzo completo `tesla://auth/callback?code=…` dell'accesso dal browser, oppure un **refresh token** di un accesso tramite app (un testo lungo, di solito inizia con `eyJ`). Ogni codice funziona una volta e scade in pochi minuti."
+        }
+      },
+      "site": {
+        "title": "Scegli la Powerwall",
+        "data": {
+          "site": "Sito energetico"
+        },
+        "data_description": {
+          "site": "Il sito energetico (nome nell'app Tesla) con questa Powerwall. Scegliere la Powerwall di un altro sito interrompe la configurazione."
+        }
+      },
+      "verify": {
+        "title": "Conferma sulla Powerwall"
+      },
+      "verify_failed": {
+        "title": "La Powerwall non ha confermato la chiave",
+        "description": "Non è arrivata nessuna conferma in tempo (o la chiave è stata rimossa). Seleziona **Invia** per registrare di nuovo la chiave e aprire una nuova finestra di 10 minuti, poi esegui il passaggio dell'interruttore."
+      },
+      "connect_failed": {
+        "title": "Impossibile connettersi",
+        "description": "L'ultimo controllo della connessione non è riuscito (vedi il messaggio qui sotto). Seleziona **Invia** per tornare indietro e controllare indirizzo e password del gateway."
+      },
+      "reauth_confirm": {
+        "title": "La Powerwall non accetta più Home Assistant",
+        "description": "Il gateway continua a rifiutare la password o la chiave. Le letture si fermano finché non si risolve; le impostazioni funzionano ancora tramite il cloud Tesla se è collegato un account.",
+        "menu_options": {
+          "reauth_password": "Inserisci di nuovo la password del gateway",
+          "register": "Registra di nuovo la chiave",
+          "key_upload": "Carica un'altra chiave"
+        }
+      },
+      "reauth_password": {
+        "title": "Password del gateway",
+        "data": {
+          "gw_pwd": "Password del gateway"
+        },
+        "data_description": {
+          "gw_pwd": "Gli ultimi 5 caratteri della password sull'adesivo QR sotto il coperchio della Powerwall (Powerwall 3: dietro il vetro frontale, in basso a sinistra), oppure l'intera password. Le lettere sono maiuscole."
+        }
+      },
+      "reconfigure": {
+        "title": "Cambia la connessione",
+        "description": "Indica un file di chiave RSA per usare la connessione firmata (v1r); lascia vuoto per la connessione con password Wi-Fi.",
+        "data": {
+          "host": "Indirizzo del gateway",
+          "gw_pwd": "Password del gateway",
+          "rsa_key_path": "File della chiave privata RSA",
+          "wifi_host": "Indirizzo Wi-Fi di riserva (solo firmata)"
+        },
+        "data_description": {
+          "host": "L'indirizzo del gateway nella rete di casa, per esempio `192.168.1.50`. Il router lo mostra come `teslapw_…`.",
+          "gw_pwd": "Gli ultimi 5 caratteri della password sull'adesivo QR sotto il coperchio della Powerwall (Powerwall 3: dietro il vetro frontale, in basso a sinistra), oppure l'intera password. Le lettere sono maiuscole.",
+          "rsa_key_path": "Percorso completo del file della chiave privata sull'host di Home Assistant, per esempio `/config/tesla_tedapi/tedapi_rsa_private.pem`. Lascia vuoto per usare la connessione con password Wi-Fi (sola lettura).",
+          "wifi_host": "L'indirizzo dell'hotspot Wi-Fi della Powerwall (di solito `192.168.91.1`), usato quando l'indirizzo della rete di casa smette di rispondere. Lascia vuoto se Home Assistant non raggiunge l'hotspot."
+        }
+      }
+    },
+    "progress": {
+      "confirm_key": "La chiave (impronta `{fingerprint}…`) è registrata e attende la conferma fisica. Entro circa 10 minuti:\n\n- **Powerwall 3:** porta l'interruttore On/Off (lato sinistro, sotto lo sportellino rosso di spegnimento rapido) su OFF per circa 15 secondi, poi di nuovo su ON. Un breve scatto viene ignorato; lasciarlo spento finché l'unità si spegne chiude la finestra.\n- **Altri modelli:** spegnere l'interruttore CA della Powerwall per circa 15 secondi funzionerebbe su alcune unità.\n\nQuesta pagina controlla ogni 10 secondi e prosegue da sola appena la Powerwall conferma. Se la finestra si chiude, la chiave viene registrata di nuovo una volta in automatico."
+    },
+    "error": {
+      "cannot_connect": "Impossibile raggiungere la Powerwall a quell'indirizzo. Controlla l'indirizzo (il router mostra il gateway come `teslapw_…`), che la Powerwall sia accesa e sulla stessa rete di Home Assistant, e riprova.",
+      "invalid_gw_pwd": "Il gateway ha rifiutato questa password. Controlla l'adesivo QR (le lettere sono maiuscole).",
+      "password_required": "L'accesso firmato richiede la password del gateway.",
+      "invalid_rsa_key": "Non è una chiave privata RSA in formato PEM. Carica il file della chiave privata (inizia con `-----BEGIN`), non la chiave pubblica.",
+      "key_not_accepted": "La Powerwall non ha accettato la chiave. Controlla che sia la chiave privata (non quella pubblica), che sia stata registrata per questa Powerwall e che la registrazione sia VERIFIED (il passaggio dell'interruttore On/Off è stato fatto). Oppure scegli **Registra una nuova chiave**.",
+      "invalid_auth": "Tesla non ha accettato quel codice. È stato creato un nuovo link di accesso: accedi di nuovo con quello e incolla il nuovo indirizzo, oppure incolla un refresh token.",
+      "cloud_error": "Il servizio Tesla ha restituito un errore. Riprova tra un minuto.",
+      "none_found": "Nessuna Powerwall ha risposto su questa rete. Inserisci invece l'indirizzo (il router mostra il gateway come `teslapw_…`).",
+      "owner_api_refused": "Hai effettuato l'accesso, ma la Owner API di Tesla ha rifiutato il token (HTTP 403). Accedi di nuovo; se continua a succedere, Tesla potrebbe aver cambiato di nuovo le regole di accesso: apri una segnalazione (issue).",
+      "invalid_token": "Tesla non ha accettato quel refresh token. Potrebbe essere scaduto o usato da un'altra app: ottienine uno nuovo dalla tua app per i token. Il link di accesso non è cambiato.",
+      "invalid_callback": "Questo non è un indirizzo di accesso del link qui sopra. Incolla l'indirizzo completo `tesla://auth/callback?code=…` di questo link (un link precedente non funziona più), oppure un refresh token. Il link non è cambiato."
+    },
+    "abort": {
+      "already_configured": "Questa Powerwall è già configurata.",
+      "no_sites": "Nessuna Powerwall trovata su questo account Tesla. Accedi con l'account Tesla proprietario della Powerwall (quello che la mostra nell'app Tesla).",
+      "register_failed": "Tesla non ha registrato la chiave. Cause probabili: Tesla ha rifiutato il token di accesso (accedi di nuovo con un nuovo accesso tramite app), è stato scelto il sito energetico sbagliato, oppure Tesla non riesce a raggiungere la Powerwall in questo momento (controlla che risulti online nell'app Tesla). Ricomincia la configurazione; il log contiene la risposta esatta di Tesla.",
+      "wrong_powerwall": "È una Powerwall diversa da quella in configurazione. Scegli il sito energetico con questa Powerwall, oppure controlla l'indirizzo del gateway.",
+      "reconfigure_successful": "La connessione è stata cambiata.",
+      "reauth_successful": "Accesso ripristinato.",
+      "unique_id_mismatch": "Il gateway a quell'indirizzo è un'altra Powerwall. Inserisci l'indirizzo di questa Powerwall, oppure aggiungi l'altra come nuova voce.",
+      "register_token_refused": "Tesla ha rifiutato il token di accesso durante la registrazione della chiave. Riavvia la configurazione e accedi di nuovo (dal browser, oppure con un nuovo refresh token).",
+      "register_wrong_site": "Tesla non conosce quel sito energetico su questo account. Ricomincia la configurazione e scegli il sito con questa Powerwall, con l'accesso all'account Tesla proprietario.",
+      "register_unreachable": "Tesla non è riuscita a raggiungere la Powerwall per registrare la chiave. Controlla che risulti online nell'app Tesla (la sua connessione a internet), attendi qualche minuto e ricomincia la configurazione."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni di Powerwall TEDAPI",
+        "menu_options": {
+          "settings": "Impostazioni",
+          "cloud_backup": "Riserva cloud (Owner API, Tesla Fleet)",
+          "link_account": "Collega un account Tesla (Owner API)",
+          "unlink_account": "Scollega un backup cloud"
+        }
+      },
+      "settings": {
+        "title": "Impostazioni",
+        "data": {
+          "scan_interval": "Intervallo di aggiornamento",
+          "restore_export": "Ripristina le impostazioni quando la Powerwall le perde",
+          "status_alert_events": "Eventi di avviso anche per gli avvisi di stato",
+          "problem_minutes": "Ritardo del problema",
+          "dispatch_floor_reserve": "Le scariche si fermano alla riserva di backup",
+          "dispatch_max_watts": "Potenza massima di dispatch"
+        },
+        "data_description": {
+          "restore_export": "La Powerwall a volte perde la regola di immissione in rete e l'impostazione di carica dalla rete (visto ogni ora su una Powerwall 3); la carica dalla rete allora si attiva. Se attivo, l'impostazione scelta viene riscritta entro uno o due minuti (solo connessione firmata).",
+          "status_alert_events": "Gli avvisi di stato come \"Export limited\" descrivono il normale funzionamento e alcuni vanno e vengono ogni pochi minuti; per impostazione predefinita solo notifiche, avvertenze e guasti creano eventi di avviso.",
+          "problem_minutes": "Quanto deve durare un'avvertenza o un guasto prima che il sensore Problema si attivi e venga segnalata una riparazione.",
+          "dispatch_floor_reserve": "Una scarica avviata senza `min_soc` si ferma quando la batteria raggiunge la riserva di backup.",
+          "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate."
+        }
+      },
+      "cloud_backup": {
+        "title": "Riserva cloud",
+        "description": "Quando la connessione locale non può leggere o cambiare un'impostazione, passa invece dal cloud Tesla. Si possono usare due riserve, da sole o una dopo l'altra:\n\n- **Owner API**: un account Tesla collegato qui (*Collega un account Tesla*). Attualmente {owner}.\n- **Tesla Fleet**: l'accesso dell'integrazione Tesla Fleet o Teslemetry di Home Assistant, che usano la Fleet API ufficiale di Tesla. Una voce caricata con questa Powerwall è attualmente {fleet}. I suoi dati del sito vengono letti senza chiamate Tesla aggiuntive, e il suo token non viene mai rinnovato qui, quindi resta connessa.\n\nCon entrambe, le impostazioni si leggono dalla prima che risponde e una modifica va alla prima che la accetta. Ogni riserva viene controllata circa una volta all'ora; quella che smette di funzionare riceve una propria riparazione mentre l'altra continua.",
+        "data": {
+          "cloud_backends": "Riserva cloud"
+        },
+        "data_description": {
+          "cloud_backends": "Vengono proposte solo le riserve configurate. Cambiare un'impostazione tramite Tesla Fleet conta come un comando su quell'account sviluppatore Tesla (o abbonamento Teslemetry); la lettura non costa nulla in più."
+        }
+      },
+      "login": {
+        "title": "Accedi a Tesla",
+        "description": "Il tuo account Tesla serve a registrare la chiave sulla Powerwall e come riserva per cambiare le impostazioni quando la connessione locale non funziona.\n\n**Accesso dal browser:**\n1. Apri questo link su un computer, con gli strumenti per sviluppatori del browser aperti sulla scheda **Rete** (F12):\n   [Accedi a Tesla]({url})\n2. Accedi. L'ultima pagina non si carica, perché Tesla invia il browser a un indirizzo `tesla://auth/callback?code=…`.\n3. Nella scheda Rete trova la richiesta che inizia con `callback?code=` (o l'intestazione `Location` dell'ultimo reindirizzamento) e copia l'indirizzo completo.\n4. Incollalo qui sotto. I codici scadono in pochi minuti e funzionano una sola volta.\n\n**Oppure un refresh token:** incolla il refresh token di un accesso tramite app, come *Auth app for Tesla* (iOS, Android). Usa un token creato apposta, non uno che un'altra integrazione usa già: accedere altrove con lo stesso token può disconnettere quell'integrazione.",
+        "data": {
+          "callback": "Refresh token o indirizzo di callback"
+        },
+        "data_description": {
+          "callback": "L'indirizzo completo `tesla://auth/callback?code=…` dell'accesso dal browser, oppure un **refresh token** di un accesso tramite app (un testo lungo, di solito inizia con `eyJ`). Ogni codice funziona una volta e scade in pochi minuti."
+        }
+      },
+      "site": {
+        "title": "Scegli la Powerwall",
+        "data": {
+          "site": "Sito energetico"
+        },
+        "data_description": {
+          "site": "Il sito energetico (nome nell'app Tesla) con questa Powerwall."
+        }
+      },
+      "unlink_account": {
+        "title": "Scollega un backup cloud",
+        "description": "Scegli il backup cloud da non usare più. **Owner API:** l'account Tesla collegato qui viene rimosso (l'accesso salvato resta su disco finché non rimuovi la cartella `tesla_tedapi`). **Tesla Fleet:** questa integrazione smette di usarlo; l'integrazione Tesla Fleet o Teslemetry non cambia. Le impostazioni passano allora dall'altro backup, o solo dalla connessione locale.",
+        "data": {
+          "backup": "Backup cloud"
+        },
+        "data_description": {
+          "backup": "Il backup da non usare più."
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Tesla non ha accettato quel codice. È stato creato un nuovo link di accesso: accedi di nuovo con quello e incolla il nuovo indirizzo, oppure incolla un refresh token.",
+      "cloud_error": "Il servizio Tesla ha restituito un errore. Riprova tra un minuto.",
+      "owner_api_refused": "Hai effettuato l'accesso, ma la Owner API di Tesla ha rifiutato il token (HTTP 403). Accedi di nuovo; se continua a succedere, Tesla potrebbe aver cambiato di nuovo le regole di accesso: apri una segnalazione (issue).",
+      "invalid_token": "Tesla non ha accettato quel refresh token. Potrebbe essere scaduto o usato da un'altra app: ottienine uno nuovo dalla tua app per i token. Il link di accesso non è cambiato.",
+      "invalid_callback": "Questo non è un indirizzo di accesso del link qui sopra. Incolla l'indirizzo completo `tesla://auth/callback?code=…` di questo link (un link precedente non funziona più), oppure un refresh token. Il link non è cambiato."
+    },
+    "abort": {
+      "no_sites": "Nessuna Powerwall trovata su questo account Tesla. Accedi con l'account Tesla proprietario della Powerwall (quello che la mostra nell'app Tesla).",
+      "wrong_powerwall": "Quell'account Tesla non ha alcun sito con questa Powerwall. Accedi con l'account Tesla proprietario."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "grid_connected": {
+        "name": "Rete connessa"
+      },
+      "dispatch_active": {
+        "name": "Dispatch attivo"
+      },
+      "alert_problem": {
+        "name": "Problema"
+      },
+      "backup_event": {
+        "name": "Evento di backup"
+      },
+      "storm_watch_active": {
+        "name": "Allerta tempesta attiva"
+      },
+      "grid_services_active": {
+        "name": "Servizi di rete attivi"
+      }
+    },
+    "number": {
+      "backup_reserve": {
+        "name": "Riserva di backup"
+      },
+      "off_grid_reserve": {
+        "name": "Riserva off-grid per la ricarica del veicolo"
+      }
+    },
+    "select": {
+      "operation_mode": {
+        "name": "Modalità di funzionamento",
+        "state": {
+          "self_consumption": "Autoconsumo",
+          "backup": "Solo backup",
+          "autonomous": "Controllo a fasce orarie"
+        }
+      },
+      "grid_export": {
+        "name": "Modalità di immissione in rete",
+        "state": {
+          "battery_ok": "Batteria e solare",
+          "pv_only": "Solo solare",
+          "never": "Disattivata"
+        }
+      }
+    },
+    "sensor": {
+      "solar_power": {
+        "name": "Potenza solare"
+      },
+      "battery_power": {
+        "name": "Potenza della batteria"
+      },
+      "grid_power": {
+        "name": "Potenza di rete"
+      },
+      "home_power": {
+        "name": "Consumo della casa"
+      },
+      "grid_import_power": {
+        "name": "Potenza prelevata dalla rete"
+      },
+      "grid_export_power": {
+        "name": "Potenza immessa in rete"
+      },
+      "battery_discharge_power": {
+        "name": "Potenza di scarica della batteria"
+      },
+      "battery_charge_power": {
+        "name": "Potenza di carica della batteria"
+      },
+      "battery_level": {
+        "name": "Livello della batteria"
+      },
+      "battery_soe": {
+        "name": "Stato di energia della batteria"
+      },
+      "grid_status": {
+        "name": "Stato della rete"
+      },
+      "grid_frequency": {
+        "name": "Frequenza di rete"
+      },
+      "grid_voltage": {
+        "name": "Tensione di rete"
+      },
+      "grid_energy_imported": {
+        "name": "Energia prelevata dalla rete"
+      },
+      "grid_energy_exported": {
+        "name": "Energia immessa in rete"
+      },
+      "battery_energy_charged": {
+        "name": "Energia caricata nella batteria"
+      },
+      "battery_energy_discharged": {
+        "name": "Energia scaricata dalla batteria"
+      },
+      "solar_energy_produced": {
+        "name": "Energia solare prodotta"
+      },
+      "home_energy_consumed": {
+        "name": "Energia consumata dalla casa"
+      },
+      "battery_full_capacity": {
+        "name": "Capacità piena della batteria"
+      },
+      "battery_energy_remaining": {
+        "name": "Energia residua della batteria"
+      },
+      "battery_health": {
+        "name": "Salute della batteria"
+      },
+      "backup_time_remaining": {
+        "name": "Autonomia di backup residua"
+      },
+      "inverter_ambient_temperature": {
+        "name": "Temperatura ambiente dell'inverter"
+      },
+      "inverter_heatsink_temperature": {
+        "name": "Temperatura del dissipatore dell'inverter"
+      },
+      "alerts": {
+        "name": "Avvisi"
+      },
+      "gateway_started": {
+        "name": "Ultimo avvio del gateway"
+      },
+      "firmware_version": {
+        "name": "Versione firmware"
+      },
+      "connection": {
+        "name": "Connessione",
+        "state": {
+          "v1r": "Firmata (v1r)",
+          "wifi": "Password Wi-Fi"
+        }
+      },
+      "pack_capacity": {
+        "name": "Capacità {pack}"
+      },
+      "pack_temperature": {
+        "name": "Temperatura {pack}"
+      },
+      "alert_level": {
+        "name": "Livello di avviso",
+        "state": {
+          "ok": "OK",
+          "notice": "Notifica",
+          "warning": "Avvertenza",
+          "fault": "Guasto"
+        }
+      },
+      "active_alerts": {
+        "name": "Avvisi attivi"
+      },
+      "string_power": {
+        "name": "Potenza ingresso solare {string}"
+      },
+      "string_voltage": {
+        "name": "Tensione ingresso solare {string}"
+      },
+      "string_current": {
+        "name": "Corrente ingresso solare {string}"
+      },
+      "setup_health": {
+        "name": "Stato della configurazione",
+        "state": {
+          "ok": "OK",
+          "degraded": "Richiede attenzione"
+        }
+      },
+      "fan_speed": {
+        "name": "Velocità ventola {fan}"
+      }
+    },
+    "switch": {
+      "grid_charging": {
+        "name": "Carica dalla rete"
+      },
+      "storm_watch": {
+        "name": "Allerta tempesta"
+      }
+    },
+    "event": {
+      "alert": {
+        "name": "Avviso",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "raised": "Attivato",
+              "cleared": "Risolto"
+            }
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "Nessuna voce Powerwall TEDAPI caricata trovata. Controlla che l'integrazione sia configurata e non disattivata, oppure indica il suo config_entry_id."
+    },
+    "entry_ambiguous": {
+      "message": "Sono configurate più Powerwall: scegline una con config_entry_id."
+    },
+    "dispatch_needs_v1r": {
+      "message": "Il dispatch della batteria richiede la connessione firmata (v1r). Registra una chiave nella configurazione dell'integrazione (Riconfigura, oppure configurala di nuovo)."
+    },
+    "dispatch_soc_limit": {
+      "message": "Il livello della batteria ({soc}%) ha già superato il limite {limit}."
+    },
+    "dispatch_power_cap": {
+      "message": "{power} W supera il limite di {cap} W impostato nelle opzioni dell'integrazione."
+    },
+    "max_backup_needs_v1r": {
+      "message": "Un backup massimo richiede la connessione firmata (v1r). Registra una chiave nella configurazione dell'integrazione, oppure avvialo nell'app Tesla."
+    },
+    "settings_need_control": {
+      "message": "Per cambiare le impostazioni serve la connessione firmata (v1r) o un backup cloud."
+    },
+    "write_refused_no_cloud": {
+      "message": "La Powerwall non ha accettato la modifica e non è configurato nessun backup cloud."
+    },
+    "write_cloud_timeout": {
+      "message": "{backend} non ha risposto in tempo. La modifica potrebbe essere stata applicata comunque: controlla prima di riprovare."
+    },
+    "write_failed": {
+      "message": "Né la Powerwall né il backup cloud hanno accettato la modifica. Vedi il log per i dettagli."
+    },
+    "backup_event_refused": {
+      "message": "La Powerwall non ha accettato l'evento di backup. Vedi il log per i dettagli."
+    },
+    "dispatch_invalid": {
+      "message": "Dispatch non valido: {error}"
+    },
+    "dispatch_refused": {
+      "message": "La Powerwall non ha accettato il dispatch. Vedi il log per i dettagli."
+    },
+    "resume_refused": {
+      "message": "La Powerwall non ha accettato la ripresa. Vedi il log per i dettagli."
+    }
+  },
+  "services": {
+    "dispatch_battery_power": {
+      "name": "Dispatch della potenza della batteria",
+      "description": "Fa funzionare la batteria a una potenza fissa per un tempo stabilito tramite la connessione locale firmata. Watt positivi scaricano, negativi caricano, 0 tiene la batteria a riposo. Ha la precedenza sull'impostazione di immissione; una scarica si ferma alla riserva di backup a meno che sia indicato `min_soc` (opzione). L'integrazione rinnova il comando ogni minuto a piccoli passi, così la Powerwall torna alla normalità entro 5 minuti se Home Assistant si ferma. Una nuova chiamata sostituisce un dispatch in corso.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurata più di una Powerwall."
+        },
+        "power_watts": {
+          "name": "Potenza",
+          "description": "Potenza della batteria in watt: positiva scarica, negativa carica (fino a 10.000)."
+        },
+        "duration_seconds": {
+          "name": "Durata",
+          "description": "Per quanto mantenere questa potenza, in secondi (fino a 24 ore)."
+        },
+        "min_soc": {
+          "name": "Ferma la scarica a",
+          "description": "Termina una scarica quando il livello della batteria (scala dell'app Tesla) scende a questa percentuale. Predefinito: la riserva di backup."
+        },
+        "max_soc": {
+          "name": "Ferma la carica a",
+          "description": "Termina una carica quando il livello della batteria (scala dell'app Tesla) raggiunge questa percentuale."
+        }
+      }
+    },
+    "resume_battery_operation": {
+      "name": "Riprendi il funzionamento della batteria",
+      "description": "Termina subito un dispatch e restituisce la batteria alla modalità normale della Powerwall.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurata più di una Powerwall."
+        }
+      }
+    },
+    "start_max_backup": {
+      "name": "Avvia backup massimo",
+      "description": "Avvia un evento di backup tramite la connessione locale firmata: la Powerwall si carica completamente (anche dalla rete) e mantiene la batteria piena per la durata indicata, come fa Allerta tempesta. Una nuova chiamata sostituisce un backup massimo in corso.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurata più di una Powerwall."
+        },
+        "duration_minutes": {
+          "name": "Durata",
+          "description": "Per quanto tenere la batteria piena, in minuti (fino a 48 ore)."
+        }
+      }
+    },
+    "cancel_max_backup": {
+      "name": "Annulla backup massimo",
+      "description": "Termina un backup massimo avviato qui o nell'app Tesla. Gli eventi Allerta tempesta programmati da Tesla non sono interessati.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurata più di una Powerwall."
+        }
+      }
+    }
+  },
+  "issues": {
+    "powerwall_alert": {
+      "title": "Avviso Powerwall: {description}",
+      "description": "La Powerwall segnala **{alert}** ({description}) dalle {since} UTC.\n\nAvvisi brevi come questo sono normali mentre la Powerwall si riavvia o dopo l'uso del suo interruttore On/Off; questo dura da più di {minutes} minuti. Controlla l'app Tesla. Se non scompare, contatta l'installatore o Tesla. Questa notifica scompare quando l'avviso termina."
+    },
+    "cloud_login": {
+      "title": "Accedi di nuovo a Tesla",
+      "fix_flow": {
+        "step": {
+          "login": {
+            "title": "Accedi a Tesla",
+            "description": "Il tuo account Tesla serve a registrare la chiave sulla Powerwall e come riserva per cambiare le impostazioni quando la connessione locale non funziona.\n\n**Accesso dal browser:**\n1. Apri questo link su un computer, con gli strumenti per sviluppatori del browser aperti sulla scheda **Rete** (F12):\n   [Accedi a Tesla]({url})\n2. Accedi. L'ultima pagina non si carica, perché Tesla invia il browser a un indirizzo `tesla://auth/callback?code=…`.\n3. Nella scheda Rete trova la richiesta che inizia con `callback?code=` (o l'intestazione `Location` dell'ultimo reindirizzamento) e copia l'indirizzo completo.\n4. Incollalo qui sotto. I codici scadono in pochi minuti e funzionano una sola volta.\n\n**Oppure un refresh token:** incolla il refresh token di un accesso tramite app, come *Auth app for Tesla* (iOS, Android). Usa un token creato apposta, non uno che un'altra integrazione usa già: accedere altrove con lo stesso token può disconnettere quell'integrazione.",
+            "data": {
+              "callback": "Refresh token o indirizzo di callback"
+            },
+            "data_description": {
+              "callback": "L'indirizzo completo `tesla://auth/callback?code=…` dell'accesso dal browser, oppure un **refresh token** di un accesso tramite app (un testo lungo, di solito inizia con `eyJ`). Ogni codice funziona una volta e scade in pochi minuti."
+            }
+          },
+          "site": {
+            "title": "Scegli la Powerwall",
+            "data": {
+              "site": "Sito energetico"
+            }
+          }
+        },
+        "error": {
+          "invalid_auth": "Tesla non ha accettato quel codice. È stato creato un nuovo link di accesso: accedi di nuovo con quello e incolla il nuovo indirizzo, oppure incolla un refresh token.",
+          "cloud_error": "Il servizio Tesla ha restituito un errore. Riprova tra un minuto.",
+          "owner_api_refused": "Hai effettuato l'accesso, ma la Owner API di Tesla ha rifiutato il token (HTTP 403). Accedi di nuovo; se continua a succedere, Tesla potrebbe aver cambiato di nuovo le regole di accesso: apri una segnalazione (issue).",
+          "invalid_token": "Tesla non ha accettato quel refresh token. Potrebbe essere scaduto o usato da un'altra app: ottienine uno nuovo dalla tua app per i token. Il link di accesso non è cambiato.",
+          "invalid_callback": "Questo non è un indirizzo di accesso del link qui sopra. Incolla l'indirizzo completo `tesla://auth/callback?code=…` di questo link (un link precedente non funziona più), oppure un refresh token. Il link non è cambiato."
+        },
+        "abort": {
+          "no_sites": "Nessuna Powerwall trovata su questo account Tesla. Accedi con l'account Tesla proprietario della Powerwall (quello che la mostra nell'app Tesla).",
+          "wrong_powerwall": "Quell'account Tesla non ha alcun sito con questa Powerwall. Accedi con l'account Tesla proprietario.",
+          "entry_gone": "La voce della Powerwall è stata rimossa."
+        }
+      }
+    },
+    "fleet_backup": {
+      "title": "La riserva cloud Tesla Fleet non funziona",
+      "description": "L'integrazione Powerwall TEDAPI usa l'integrazione Tesla Fleet (o Teslemetry) come riserva cloud per le impostazioni, e gli ultimi controlli non sono riusciti. Le letture e il controllo locali non sono interessati.\n\nControlla che l'integrazione Tesla Fleet o Teslemetry sia attiva, caricata e con l'accesso effettuato (ripeti l'autenticazione se lo chiede), e che questa Powerwall sia sul suo account Tesla. Questa notifica scompare dopo il prossimo controllo riuscito (circa ogni ora). Per non usarla più, scegli un'altra riserva cloud nelle opzioni di questa integrazione."
+    },
+    "fleet_read_only": {
+      "title": "La riserva cloud Tesla Fleet non può cambiare le impostazioni",
+      "description": "L'accesso Tesla Fleet (o Teslemetry) usato come riserva cloud può leggere le impostazioni della Powerwall ma non cambiarle: manca il permesso **energy_cmds** (comandi energia). Le modifiche passano alla riserva cloud successiva, se c'è.\n\nAccedi di nuovo a quell'integrazione (riconfigurala o ripeti l'autenticazione) e consenti il permesso per i comandi energia. Questa notifica scompare al controllo successivo."
+    }
+  },
+  "selector": {
+    "found": {
+      "options": {
+        "manual": "Inserisco io l'indirizzo"
+      }
+    },
+    "cloud_backends": {
+      "options": {
+        "none": "Nessuna (solo locale)",
+        "owner_api": "Owner API (account Tesla collegato qui)",
+        "tesla_fleet": "Tesla Fleet (o Teslemetry)",
+        "fleet_then_owner": "Tesla Fleet, poi Owner API",
+        "owner_then_fleet": "Owner API, poi Tesla Fleet"
+      }
+    }
+  }
+}

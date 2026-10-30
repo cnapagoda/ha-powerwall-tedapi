@@ -1,5 +1,39 @@
 # Changelog
 
+## 2.3.0
+
+- **Two cloud backups.** Besides a Tesla account linked here (Owner API), the cloud backup can now use Home Assistant's **Tesla Fleet** or **Teslemetry** integration (official Fleet API). **Configure → Cloud backup** chooses *None*, *Owner API*, *Tesla Fleet (or Teslemetry)*, or both in either order. Without a choice, a linked account stays the backup, as before.
+- The Tesla Fleet backup reads the site data that integration already fetches every minute, so it adds no Tesla calls and never holds up local readings. Changes go through its API object, which then refreshes. Its token is never refreshed here, so it stays signed in.
+- With two backups, settings are read from the first that answers and a change goes to the first that accepts it. A change Tesla doesn't answer in time is not sent to the other backup too. The setting entities have a new `cloud_backend` attribute.
+- Each backup has its own check, cache, failure count and repair. **Setup health** lists them under `cloud_backends` and shows *Needs attention* only when none can change settings. New repairs: *Tesla Fleet cloud backup is not working* and *Tesla Fleet cloud backup can't change settings* (sign-in without `energy_cmds`).
+- Tesla Fleet still loading after a restart counts as *starting* for up to 10 minutes. A disabled Tesla Fleet entry, or one that keeps failing, counts as not working.
+- The Tesla Fleet site is matched to this Powerwall by the site id, gateway and battery serials; a site with another Powerwall is never used, and Tesla Fleet is only offered when a site matches.
+- The Owner API export rule is read from the site's own setting. pypowerwall reported "never" whenever the site has `non_export_configured`, which stays set on sites that do export with "battery_ok".
+- Linking or unlinking a Tesla account keeps a Tesla Fleet backup that was chosen.
+- The `fleet_backup` option left by a 2.2.1 test build is removed when the entry is updated.
+- **Backup event** binary sensor (signed connection): on while the Powerwall runs a backup event, whether a max backup or one Tesla's Storm Watch scheduled, with its kind, start and end. Read locally from the gateway.
+- **`tesla_tedapi.start_max_backup` / `cancel_max_backup`** actions (signed connection): charge to full and hold for a set time, locally, the same command Storm Watch uses.
+- **Storm Watch** switch and **Storm Watch active** binary sensor, through the cloud backup (Tesla Fleet data, or the Owner API every 30 minutes), on sites Tesla reports as Storm Watch capable.
+- **Grid services active** binary sensor and **Off-grid vehicle charging reserve** number, through the cloud backup, only on sites that use them.
+- **Grid connected** binary sensor: on while on the grid, off during an outage, *Go off-grid* or while syncing back. Read locally.
+- **Grid import / export power** and **Battery charge / discharge power** sensors: the signed power readings split by direction, never negative.
+- **Fan speed** sensors (diagnostic): the Powerwall 3 inverter's two fans (with drive duty), or each Powerwall 2's fan (with target speed), from the readings already fetched.
+- **Help text** under the setup fields: gateway address and password, key file, sign-in token or callback address, energy site, and the reconfigure fields.
+- **Clearer failures.** A failed key registration now says why: Tesla refused the sign-in token, the energy site is wrong, or Tesla can't reach the Powerwall, each with what to do (anything else lists all three). Connection, key, account and action errors also say what to check.
+- **Translations:** German, French, Dutch, Spanish, Italian, Polish and Brazilian Portuguese.
+- When the gateway can't be reached but the cloud backup keeps the settings working, this is logged once as a warning, and once more when the gateway answers again (it was only a debug message).
+- Setting, dispatch and max backup errors are translated, and say what to check. A change that the Powerwall and the cloud backup both refuse logs each reason.
+- `PARALLEL_UPDATES` is set on every platform: setting changes go one at a time.
+- **Tesla sign-in link stays put** unless a code from it reached Tesla. A paste from an older link, a mistyped address or a refused refresh token no longer replaces the link, so a sign-in tab that is still open keeps working. New messages say which case it was: a callback that isn't from the current link, or a refresh token Tesla rejected.
+- **Tesla sign-in link** now includes `locale=en` and `prompt=login`, like the Tesla app's own sign-in. With `prompt=login` Tesla always shows its sign-in form instead of reusing a browser session; codes from links without it were refused by the Owner API (HTTP 403) in testing, while the same steps with it worked.
+- **Tesla account sign-in works again from Home Assistant.** Tesla fingerprints the TLS handshake that mints a token, and tokens minted with pypowerwall's TLS 1.3 handshake in Home Assistant's runtime were refused by the Owner API (HTTP 403), for both pasted refresh tokens and browser sign-ins. The integration now caps pypowerwall's Tesla connections at TLS 1.2 (HTTP/2 stays), as the Tesla Custom integration does (alandtse/tesla #1202): sign-in, token refresh, the Owner API calls and the Owner API cloud backup.
+- Linking a Tesla account (or unlinking it) now sets up the Owner API backup straight away. The account and the new cloud backup choice were saved in two steps, and the reload after the first one kept the old choice until the next reload.
+- **Unlink a cloud backup** (Configure): choose which backup to stop using. *Owner API* removes the Tesla account linked here; *Tesla Fleet* only stops this integration using it (the Tesla Fleet or Teslemetry integration is left as it is). The menu offers it whenever a backup is in use, next to *Link a Tesla account* when no account is linked.
+- The sign-in screens, errors and README no longer say browser sign-ins are blocked: the browser sign-in and a refresh token both work again, in all eight languages.
+- `quality_scale.yaml` records each rule of Home Assistant's integration quality scale: Bronze to Gold done, except dependency transparency (pypowerwall's PyPI releases), and Platinum still to do.
+- README: new sections *Data updates*, *Use cases*, *Known limitations* and *Removing*, and a troubleshooting row for the backup reserve that Tesla's cloud caps at 80 %.
+- Tests: the config flow, the gateway login and the Tesla account helpers are fully covered (96 % overall), including the Tesla Fleet fallback for every setting.
+
 ## 2.2.1
 
 - The Powerwall also drops its **grid charging** setting about once an hour, and grid charging then turns on by itself (seen on a Powerwall 3 right after it was switched off). Like the export rule, the setting you chose is now shown and written back over a signed connection. The Grid charging switch has the same `missing_on_powerwall`, `restored_count` and `last_restored` attributes as the export select. The existing restore option covers both.

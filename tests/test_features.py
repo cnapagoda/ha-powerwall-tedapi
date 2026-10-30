@@ -132,19 +132,20 @@ async def test_cloud_checked_hourly(hass: HomeAssistant, fake_powerwall) -> None
     await _refresh(hass, entry)
     assert calls == []  # not again within the hour
 
-    coordinator._cloud_check_at -= 3601
-    coordinator.cloud_last_ok -= timedelta(hours=2)
+    owner = coordinator.backends[0]
+    owner.check_at -= 3601
+    owner.last_ok -= timedelta(hours=2)
     await _refresh(hass, entry)
     assert calls == [1]
 
 
 async def test_cloud_check_failure_degrades_health(hass: HomeAssistant, fake_powerwall) -> None:
     entry = await _setup(hass, {**V1R, **ACCOUNT})
-    coordinator = entry.runtime_data.coordinator
+    owner = entry.runtime_data.coordinator.backends[0]
     fake_powerwall.cloud_reads_fail = True
     for _ in range(3):
-        coordinator._cloud_check_at -= 3601
-        coordinator.cloud_last_ok = None
+        owner.check_at -= 3601
+        owner.last_ok = None
         await _refresh(hass, entry)
         health = hass.states.get(_eid(hass, "sensor", "setup_health"))
         assert health.state == "degraded" and "cloud_backup" in health.attributes["problems"]
@@ -152,15 +153,15 @@ async def test_cloud_check_failure_degrades_health(hass: HomeAssistant, fake_pow
     assert ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}") is not None
 
     # With the repair up, no more than hourly, even when a value is needed.
-    coordinator._cloud_check_at -= 601
-    coordinator._cloud_cache = None
+    owner.check_at -= 601
+    owner.cache = None
     local(fake_powerwall).get_mode = lambda: None
     reads = len([p for p in fake_powerwall.instances if p.mode == "cloud"])
     await _refresh(hass, entry)
     assert len([p for p in fake_powerwall.instances if p.mode == "cloud"]) == reads
 
     fake_powerwall.cloud_reads_fail = False
-    coordinator._cloud_check_at -= 3601
+    owner.check_at -= 3601
     await _refresh(hass, entry)
     assert hass.states.get(_eid(hass, "sensor", "setup_health")).state == "ok"
     assert ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}") is None
@@ -258,11 +259,11 @@ async def test_unreachable_does_not_start_reauth(hass: HomeAssistant, fake_power
 async def test_cloud_login_repair(hass: HomeAssistant, fake_powerwall) -> None:
     entry = await _setup(hass, {**V1R, **ACCOUNT})
     local(fake_powerwall).get_mode = lambda: None
-    coordinator = entry.runtime_data.coordinator
-    with patch.object(coordinator, "_init_cloud", side_effect=RuntimeError("Tesla cloud login failed")):
+    owner = entry.runtime_data.coordinator.backends[0]
+    with patch.object(owner, "factory", side_effect=RuntimeError("Tesla cloud login failed")):
         for _ in range(3):
-            coordinator._cloud = None
-            coordinator._cloud_cache = None
+            owner.client = None
+            owner.cache = None
             await _refresh(hass, entry)
     issue = ir.async_get(hass).async_get_issue(DOMAIN, f"cloud_login_{entry.entry_id}")
     assert issue is not None and issue.is_fixable
@@ -323,3 +324,49 @@ async def test_cloud_login_repair_flow(hass: HomeAssistant) -> None:
     assert result["type"] == "create_entry"
     assert entry.data["owners_email"] == "new@example.com" and entry.data["site_id"] == 42
     reload.assert_called_once_with(entry.entry_id)
+
+
+async def test_split_power(hass: HomeAssistant, fake_powerwall) -> None:
+    # Fake readings: grid +100 W (importing), battery -500 W (charging).
+    await _setup(hass, V1R)
+    values = {key: hass.states.get(_eid(hass, "sensor", key)).state for key in (
+        "grid_import_power", "grid_export_power", "battery_discharge_power", "battery_charge_power")}
+    assert values == {"grid_import_power": "100.0", "grid_export_power": "0.0",
+                      "battery_discharge_power": "0.0", "battery_charge_power": "500.0"}
+
+
+async def test_grid_connected(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, V1R)
+    grid = _eid(hass, "binary_sensor", "grid_connected")
+    assert hass.states.get(grid).state == "on"
+    for status, state in (("DOWN", "off"), ("SYNCING", "off"), ("UP", "on")):
+        fake_powerwall.grid = status
+        await _refresh(hass, entry)
+        assert hass.states.get(grid).state == state
+        assert hass.states.get(grid).attributes["grid_status"] == status
+    fake_powerwall.fail_local = True
+    entry.runtime_data.coordinator._pw = None
+    await _refresh(hass, entry)
+    assert hass.states.get(grid).state == "unavailable"
+
+
+async def test_fan_speeds(hass: HomeAssistant, fake_powerwall) -> None:
+    await _setup(hass, V1R)
+    fan_a = hass.states.get(_eid(hass, "sensor", "fan_A_speed"))
+    assert fan_a.state == "1395.0"
+    assert fan_a.attributes["duty"] == 19.1
+    assert hass.states.get(_eid(hass, "sensor", "fan_B_speed")).state == "1397.0"
+
+
+def test_fan_extraction() -> None:
+    from custom_components.tesla_tedapi.coordinator import _extract_fans
+
+    pw3 = {"TEPINV--1707000-11-J--A": {"PCH_FanSpeed_A": 1395, "PCH_FanSpeed_B": None, "PCH_FanDuty_A": 19.1},
+           "TEPINV--1707000-11-J--B": {"PCH_FanSpeed_A": 1200, "PCH_FanDuty_A": 15.0},
+           "PVAC--x--y": {"PVAC_Fan_Speed_Actual_RPM": 999}}
+    assert _extract_fans(pw3) == {"A": {"rpm": 1395.0, "duty": 19.1}, "2A": {"rpm": 1200.0, "duty": 15.0}}
+    pw2 = {"PVAC--1--a": {"PVAC_Fan_Speed_Actual_RPM": 2000, "PVAC_Fan_Speed_Target_RPM": 2100},
+           "PVAC--1--b": {"PVAC_Fan_Speed_Target_RPM": 0},
+           "TEPINV--1--a": {"PINV_Fout": 50.0}}
+    assert _extract_fans(pw2) == {"1": {"rpm": 2000.0, "target_rpm": 2100.0}}
+    assert _extract_fans({}) == {}

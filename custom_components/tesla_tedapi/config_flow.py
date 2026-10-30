@@ -35,6 +35,7 @@ from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
@@ -46,6 +47,13 @@ if TYPE_CHECKING:
 
 from . import gateway, tesla_cloud
 from .const import (
+    BACKEND_FLEET,
+    BACKEND_OWNER,
+    CLOUD_CHOICES,
+    CLOUD_WITH_OWNER,
+    CLOUD_WITHOUT_FLEET,
+    CLOUD_WITHOUT_OWNER,
+    CONF_CLOUD_BACKENDS,
     CONF_CONNECTION_MODE,
     CONF_DISPATCH_FLOOR_RESERVE,
     CONF_DISPATCH_MAX_WATTS,
@@ -71,7 +79,9 @@ from .const import (
     MODE_WIFI,
     RSA_KEY_FILE,
     STORAGE_FOLDER,
+    cloud_choice,
 )
+from .fleet import fleet_available
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,6 +90,7 @@ CONF_CLOUD = "cloud_backup"
 CONF_SITE = "site"
 CONF_KEY_FILE = "key_file"
 CONF_FOUND = "found"
+CONF_BACKUP = "backup"
 MANUAL = "manual"
 
 PASSWORD = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
@@ -88,6 +99,18 @@ KEY_FILE = FileSelector(FileSelectorConfig(accept=".pem,.key,.txt"))
 # Automatic key confirmation: check this often, for this long.
 VERIFY_POLL_SECONDS = 10
 VERIFY_WINDOW_SECONDS = 600
+
+
+def _register_failure(err: Exception) -> str:
+    """Abort reason for a failed key registration, by its likely cause."""
+    status = getattr(err, "status", None)
+    if isinstance(err, tesla_cloud.TeslaAuthError):
+        return "register_token_refused"
+    if status == 404:
+        return "register_wrong_site"
+    if status in (408, 502, 503, 504) or "offline" in str(err).lower() or "timeout" in str(err).lower():
+        return "register_unreachable"
+    return "register_failed"
 
 
 class CannotConnect(Exception):
@@ -217,11 +240,22 @@ class TeslaLoginMixin:
 
         if user_input is not None:
             pasted = user_input[CONF_CALLBACK]
+            # A new link is only needed once a code from this one reached
+            # Tesla (codes work once). A paste that fails before that, or a
+            # refresh token, leaves the link as it is, so a tab still open
+            # on it keeps working.
+            code_sent = False
             try:
                 if tesla_cloud.is_refresh_token(pasted):
                     self._token = await self.hass.async_add_executor_job(tesla_cloud.refresh_login, pasted)
                 else:
-                    code = tesla_cloud.parse_callback(pasted, self._login.state)
+                    try:
+                        code = tesla_cloud.parse_callback(pasted, self._login.state)
+                    except tesla_cloud.TeslaAuthError as err:
+                        _LOGGER.debug("Not a callback from the current sign-in link: %s", err)
+                        errors["base"] = "invalid_callback"
+                        return self._login_form(errors)
+                    code_sent = True
                     self._token = await self.hass.async_add_executor_job(
                         tesla_cloud.exchange_code, code, self._login.code_verifier)
                 self._email = tesla_cloud.token_email(self._token) or "tesla"
@@ -230,15 +264,20 @@ class TeslaLoginMixin:
             except tesla_cloud.TeslaRefused as err:
                 _LOGGER.warning("Tesla sign-in worked but the Owner API refused the token: %s", err)
                 errors["base"] = "owner_api_refused"
-                self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
+                if code_sent:
+                    self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
             except tesla_cloud.TeslaAuthError as err:
                 _LOGGER.debug("Tesla login failed: %s", err)
-                errors["base"] = "invalid_auth"
-                # Codes are single use: start over with a new URL.
-                self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
+                if code_sent:
+                    errors["base"] = "invalid_auth"
+                    self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
+                else:
+                    errors["base"] = "invalid_token"
             except tesla_cloud.TeslaCloudError as err:
                 _LOGGER.warning("Tesla account error: %s", err)
                 errors["base"] = "cloud_error"
+                if code_sent:
+                    self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
             else:
                 if not self._sites:
                     return self.async_abort(reason="no_sites")  # type: ignore[attr-defined]
@@ -251,6 +290,10 @@ class TeslaLoginMixin:
                     return await self._async_site_chosen(self._sites[0])
                 return await self.async_step_site()
 
+        return self._login_form(errors)
+
+    def _login_form(self, errors: dict[str, str]) -> ConfigFlowResult:
+        assert self._login
         return self.async_show_form(  # type: ignore[attr-defined]
             step_id="login",
             data_schema=vol.Schema({vol.Required(CONF_CALLBACK): str}),
@@ -283,6 +326,7 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
     """Set up a Powerwall."""
 
     VERSION = 1
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         self._init_login()
@@ -453,7 +497,7 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
                 tesla_cloud.register_key, self._site.site_id, self._token["access_token"], self._public_der)
         except tesla_cloud.TeslaCloudError as err:
             _LOGGER.warning("Key registration failed: %s", err)
-            return self.async_abort(reason="register_failed")
+            return self.async_abort(reason=_register_failure(err))
         self._data[CONF_RSA_KEY_PATH] = key_path
         if self._key_state == tesla_cloud.KEY_VERIFIED:
             return await self._async_connect()
@@ -651,9 +695,19 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         self._init_login()
         self._din: str | None = None
 
+    def _backups_in_use(self) -> list[str]:
+        """Cloud backups this entry uses, in order: what Unlink offers."""
+        names = CLOUD_CHOICES.get(cloud_choice(self.config_entry.data, self.config_entry.options), ())
+        return [name for name in names
+                if name != BACKEND_OWNER or self.config_entry.data.get(CONF_OWNERS_EMAIL)]
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        account = "unlink_account" if self.config_entry.data.get(CONF_OWNERS_EMAIL) else "link_account"
-        return self.async_show_menu(step_id="init", menu_options=["settings", account])
+        menu = ["settings", "cloud_backup"]
+        if not self.config_entry.data.get(CONF_OWNERS_EMAIL):
+            menu.append("link_account")
+        if self._backups_in_use():
+            menu.append("unlink_account")
+        return self.async_show_menu(step_id="init", menu_options=menu)
 
     async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
@@ -682,20 +736,69 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             }),
         )
 
+    async def async_step_cloud_backup(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Which cloud backup to use, and in what order when there are two:
+        the Tesla account linked here (Owner API) and the Tesla Fleet
+        integration's sign-in (Fleet API)."""
+        if user_input is not None:
+            return self.async_create_entry(
+                data={**self.config_entry.options, CONF_CLOUD_BACKENDS: user_input[CONF_CLOUD_BACKENDS]})
+        owner = bool(self.config_entry.data.get(CONF_OWNERS_EMAIL))
+        fleet = fleet_available(self.hass, self.config_entry.unique_id)
+        current = cloud_choice(self.config_entry.data, self.config_entry.options)
+        choices = [choice for choice, names in CLOUD_CHOICES.items()
+                   if (owner or BACKEND_OWNER not in names) and (fleet or BACKEND_FLEET not in names)]
+        if current not in choices:
+            # E.g. Tesla Fleet was removed: keep showing what is set.
+            choices.append(current)
+        return self.async_show_form(
+            step_id="cloud_backup",
+            data_schema=vol.Schema({vol.Required(CONF_CLOUD_BACKENDS, default=current): SelectSelector(
+                SelectSelectorConfig(options=choices, translation_key="cloud_backends",
+                                     mode=SelectSelectorMode.LIST))}),
+            description_placeholders={
+                "owner": "linked" if owner else "not linked",
+                "fleet": "set up" if fleet else "not set up",
+            },
+        )
+
+    def _options_with(self, table: dict[str, str]) -> dict[str, Any]:
+        """The options after the account changed: a cloud backup choice that
+        was set is adjusted to add or drop the Owner API."""
+        options = dict(self.config_entry.options)
+        choice = options.get(CONF_CLOUD_BACKENDS)
+        if choice in table:
+            options[CONF_CLOUD_BACKENDS] = table[choice]
+        return options
+
     async def async_step_link_account(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         self._din = self.config_entry.unique_id
         return await self.async_step_login()
 
     async def _async_logged_in(self, site: tesla_cloud.EnergySite) -> ConfigFlowResult:
-        self.hass.config_entries.async_update_entry(
-            self.config_entry, data={**self.config_entry.data, **self._account_data(site)})
-        # Saving the (unchanged) options reloads the entry with the account.
-        return self.async_create_entry(data=dict(self.config_entry.options))
+        return self._save(data={**self.config_entry.data, **self._account_data(site)},
+                          options=self._options_with(CLOUD_WITH_OWNER))
+
+    def _save(self, data: dict[str, Any], options: dict[str, Any]) -> ConfigFlowResult:
+        """Data and options in one update, so the single reload it starts sees
+        both (two updates reloaded with the account but the old cloud choice)."""
+        self.hass.config_entries.async_update_entry(self.config_entry, data=data, options=options)
+        return self.async_create_entry(data=options)
 
     async def async_step_unlink_account(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Stop using one cloud backup: the Owner API (the Tesla account linked
+        here is removed) or Tesla Fleet (its integration is left as it is)."""
+        in_use = self._backups_in_use()
         if user_input is not None:
+            if user_input[CONF_BACKUP] == BACKEND_FLEET:
+                return self._save(data=dict(self.config_entry.data),
+                                  options=self._options_with(CLOUD_WITHOUT_FLEET))
             data = {k: v for k, v in self.config_entry.data.items()
                     if k not in (CONF_OWNERS_EMAIL, CONF_OWNERS_AUTHPATH, CONF_SITE_ID)}
-            self.hass.config_entries.async_update_entry(self.config_entry, data=data)
-            return self.async_create_entry(data=dict(self.config_entry.options))
-        return self.async_show_form(step_id="unlink_account", data_schema=vol.Schema({}))
+            return self._save(data=data, options=self._options_with(CLOUD_WITHOUT_OWNER))
+        return self.async_show_form(
+            step_id="unlink_account",
+            data_schema=vol.Schema({vol.Required(CONF_BACKUP, default=in_use[0]): SelectSelector(
+                SelectSelectorConfig(options=in_use, translation_key="cloud_backends",
+                                     mode=SelectSelectorMode.LIST))}),
+        )

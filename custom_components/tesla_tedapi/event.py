@@ -9,6 +9,9 @@ from .const import CONF_STATUS_EVENTS
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
 
+# Coordinator-based: no limit on parallel updates.
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -14,6 +15,7 @@ from pytest_homeassistant_custom_component.common import (
     async_fire_time_changed,
 )
 
+from custom_components.tesla_tedapi import coordinator as coordinator_mod
 from custom_components.tesla_tedapi.const import DOMAIN
 from custom_components.tesla_tedapi.diagnostics import async_get_config_entry_diagnostics
 
@@ -116,11 +118,42 @@ async def test_v1r_local_failure_falls_back_to_cloud(hass: HomeAssistant, fake_p
 async def test_v1r_without_account_write_failure(hass: HomeAssistant, fake_powerwall) -> None:
     entry = await _setup(hass, V1R)
     local(fake_powerwall).set_mode = lambda mode: None  # gateway refuses
-    with pytest.raises(HomeAssistantError):
+    with pytest.raises(HomeAssistantError) as err:
         await hass.services.async_call("select", "select_option",
                                        {"entity_id": _eid(hass, "select", "operation_mode"),
                                         "option": "backup"}, blocking=True)
+    assert err.value.translation_key == "write_refused_no_cloud"
     assert entry.runtime_data.coordinator.control_enabled
+
+
+async def test_gateway_down_logged_once(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, {**V1R, "owners_email": "a@b.c", "owners_authpath": "/tmp"})
+    coordinator = entry.runtime_data.coordinator
+    fake_powerwall.fail_local = True
+
+    def down():
+        raise ConnectionError("gateway down")
+
+    local(fake_powerwall).power = down
+    with patch.object(coordinator_mod, "_LOGGER") as logger:
+        for _ in range(3):
+            await coordinator.async_refresh()
+        # Settings still come from the cloud: one warning, not one per poll.
+        assert coordinator.last_update_success
+        down_logs = [c for c in logger.warning.call_args_list if "can't be reached" in c.args[0]]
+        assert len(down_logs) == 1
+        fake_powerwall.fail_local = False
+        await coordinator.async_refresh()
+        await coordinator.async_refresh()
+        back_logs = [c for c in logger.info.call_args_list if "answers again" in c.args[0]]
+        assert len(back_logs) == 1
+
+
+def test_parallel_updates() -> None:
+    from custom_components.tesla_tedapi import binary_sensor, event, number, select, sensor, switch
+
+    assert sensor.PARALLEL_UPDATES == binary_sensor.PARALLEL_UPDATES == event.PARALLEL_UPDATES == 0
+    assert select.PARALLEL_UPDATES == number.PARALLEL_UPDATES == switch.PARALLEL_UPDATES == 1
 
 
 async def test_dispatch_session(hass: HomeAssistant, fake_powerwall) -> None:

@@ -1,0 +1,611 @@
+{
+  "config": {
+    "flow_title": "Powerwall ({host})",
+    "step": {
+      "user": {
+        "title": "Powerwall TEDAPI",
+        "description": "Znajdź Powerwall w swojej sieci. Dostęp podpisany (v1r) daje lokalne odczyty, lokalne sterowanie i sterowanie mocą baterii (dispatch); ten kreator może zarejestrować potrzebny klucz.",
+        "menu_options": {
+          "gateway": "Wpisz adres bramy",
+          "scan": "Przeszukaj moją sieć (około 20 sekund)"
+        }
+      },
+      "scan": {
+        "title": "Znalezione Powerwall",
+        "data": {
+          "found": "Brama"
+        }
+      },
+      "gateway": {
+        "title": "Brama",
+        "description": "**Adres bramy:** adres Powerwall w sieci domowej (router pokazuje go jako `teslapw_…`; zarezerwowanie adresu pomaga, ale Home Assistant podąża za bramą także wtedy, gdy router zgłosi nowy adres). Używaj `192.168.91.1` tylko wtedy, gdy Home Assistant jest we własnej sieci Wi-Fi Powerwall.\n\n**Hasło bramy:** wydrukowane na naklejce z kodem QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Home Assistant loguje się do bramy jego ostatnimi 5 znakami; jest ono sprawdzane teraz.",
+        "data": {
+          "host": "Adres bramy",
+          "gw_pwd": "Hasło bramy",
+          "wifi_host": "Zapasowy adres Wi-Fi"
+        },
+        "data_description": {
+          "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
+          "gw_pwd": "Ostatnie 5 znaków hasła z naklejki z kodem QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej) lub całe hasło. Litery są wielkie.",
+          "wifi_host": "Hotspot Wi-Fi Powerwall, używany przez to samo podpisane połączenie, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu."
+        }
+      },
+      "access": {
+        "title": "Wybierz sposób połączenia",
+        "description": "Dostęp podpisany (v1r) wymaga klucza, któremu ta Powerwall ufa.",
+        "menu_options": {
+          "register": "Zarejestruj nowy klucz (zalecane)",
+          "key_upload": "Prześlij już zarejestrowany klucz",
+          "wifi": "Bez klucza: tylko hasło Wi-Fi (monitorowanie)"
+        }
+      },
+      "key_upload": {
+        "title": "Prześlij klucz",
+        "description": "Prześlij prywatny klucz PEM klucza zarejestrowanego w tej Powerwall (na przykład przez `python -m pypowerwall register`, stan VERIFIED). Zostanie skopiowany do folderu `tesla_tedapi` w konfiguracji i będzie czytelny tylko dla Home Assistant.",
+        "data": {
+          "key_file": "Klucz prywatny (.pem)",
+          "cloud_backup": "Połącz konto Tesla jako zapas dla ustawień"
+        },
+        "data_description": {
+          "key_file": "Plik klucza prywatnego (`.pem`, zaczyna się od `-----BEGIN PRIVATE KEY-----` lub `-----BEGIN RSA PRIVATE KEY-----`), którego klucz publiczny jest zarejestrowany i VERIFIED w tej Powerwall. Nie klucz publiczny.",
+          "cloud_backup": "Zaloguj się także do konta Tesla, aby ustawienia można było zmieniać przez chmurę Tesla, gdy połączenie lokalne nie działa."
+        }
+      },
+      "wifi": {
+        "title": "Połącz przez Wi-Fi Powerwall",
+        "description": "Home Assistant musi być połączony z własną siecią Wi-Fi Powerwall (TeslaPW_…). To połączenie może wszystko odczytać, ale nie może zmieniać ustawień ani sterować baterią; połącz konto Tesla, aby zmieniać ustawienia przez chmurę.",
+        "data": {
+          "host": "Adres hotspotu",
+          "cloud_backup": "Połącz konto Tesla, aby zmieniać ustawienia"
+        },
+        "data_description": {
+          "host": "Zwykle `192.168.91.1`, adres własnej sieci Wi-Fi Powerwall (TeslaPW_…).",
+          "cloud_backup": "Bez konta Tesla to połączenie może tylko odczytywać. Zaloguj się, aby zmieniać ustawienia przez chmurę Tesla."
+        }
+      },
+      "login": {
+        "title": "Zaloguj się do Tesla",
+        "description": "Konto Tesla służy do zarejestrowania klucza w Powerwall i jako zapas do zmiany ustawień, gdy połączenie lokalne nie działa.\n\n**Logowanie w przeglądarce:**\n1. Otwórz ten link na komputerze, z narzędziami deweloperskimi przeglądarki otwartymi na karcie **Sieć** (F12):\n   [Zaloguj się do Tesla]({url})\n2. Zaloguj się. Ostatnia strona się nie wczyta, bo Tesla przekierowuje przeglądarkę na adres `tesla://auth/callback?code=…`.\n3. Na karcie Sieć znajdź żądanie zaczynające się od `callback?code=` (lub nagłówek `Location` ostatniego przekierowania) i skopiuj cały adres.\n4. Wklej go poniżej. Kody wygasają w ciągu kilku minut i działają raz.\n\n**Albo token odświeżania:** wklej token odświeżania z logowania przez aplikację, np. *Auth app for Tesla* (iOS, Android). Użyj tokenu utworzonego do tego celu, nie takiego, którego używa już inna integracja: zalogowanie się gdzie indziej tym samym tokenem może wylogować tamtą integrację.",
+        "data": {
+          "callback": "Token odświeżania lub adres zwrotny"
+        },
+        "data_description": {
+          "callback": "Pełny adres `tesla://auth/callback?code=…` z logowania w przeglądarce albo **token odświeżania** z logowania przez aplikację (długi tekst, zwykle zaczyna się od `eyJ`). Każdy kod działa raz i wygasa po kilku minutach."
+        }
+      },
+      "site": {
+        "title": "Wybierz Powerwall",
+        "data": {
+          "site": "Instalacja energetyczna"
+        },
+        "data_description": {
+          "site": "Instalacja energetyczna (nazwa w aplikacji Tesla) z tą Powerwall. Wybranie Powerwall z innej instalacji przerywa konfigurację."
+        }
+      },
+      "verify": {
+        "title": "Potwierdź przy Powerwall"
+      },
+      "verify_failed": {
+        "title": "Powerwall nie potwierdziła klucza",
+        "description": "Potwierdzenie nie przyszło na czas (albo klucz usunięto). Wybierz **Zatwierdź**, aby ponownie zarejestrować klucz i otworzyć nowe 10-minutowe okno, a potem wykonaj krok z przełącznikiem."
+      },
+      "connect_failed": {
+        "title": "Nie można połączyć",
+        "description": "Ostatnie sprawdzenie połączenia nie powiodło się (zobacz komunikat poniżej). Wybierz **Zatwierdź**, aby wrócić i sprawdzić adres i hasło bramy."
+      },
+      "reauth_confirm": {
+        "title": "Powerwall nie akceptuje już Home Assistant",
+        "description": "Brama ciągle odrzuca hasło lub klucz. Odczyty są wstrzymane do czasu naprawy; ustawienia nadal działają przez chmurę Tesla, jeśli połączono konto.",
+        "menu_options": {
+          "reauth_password": "Wpisz ponownie hasło bramy",
+          "register": "Zarejestruj klucz ponownie",
+          "key_upload": "Prześlij inny klucz"
+        }
+      },
+      "reauth_password": {
+        "title": "Hasło bramy",
+        "data": {
+          "gw_pwd": "Hasło bramy"
+        },
+        "data_description": {
+          "gw_pwd": "Ostatnie 5 znaków hasła z naklejki z kodem QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej) lub całe hasło. Litery są wielkie."
+        }
+      },
+      "reconfigure": {
+        "title": "Zmień połączenie",
+        "description": "Podaj plik klucza RSA, aby użyć połączenia podpisanego (v1r); zostaw puste dla połączenia hasłem Wi-Fi.",
+        "data": {
+          "host": "Adres bramy",
+          "gw_pwd": "Hasło bramy",
+          "rsa_key_path": "Plik klucza prywatnego RSA",
+          "wifi_host": "Zapasowy adres Wi-Fi (tylko podpisane)"
+        },
+        "data_description": {
+          "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
+          "gw_pwd": "Ostatnie 5 znaków hasła z naklejki z kodem QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej) lub całe hasło. Litery są wielkie.",
+          "rsa_key_path": "Pełna ścieżka do pliku klucza prywatnego na hoście Home Assistant, na przykład `/config/tesla_tedapi/tedapi_rsa_private.pem`. Zostaw puste, aby użyć połączenia hasłem Wi-Fi (tylko odczyt).",
+          "wifi_host": "Adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`), używany, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu."
+        }
+      }
+    },
+    "progress": {
+      "confirm_key": "Klucz (odcisk `{fingerprint}…`) jest zarejestrowany i czeka na fizyczne potwierdzenie. W ciągu około 10 minut:\n\n- **Powerwall 3:** przełącz włącznik (lewa strona, pod czerwoną klapką szybkiego wyłączenia) na WYŁ. na około 15 sekund, a potem z powrotem na WŁ. Krótkie przełączenie jest ignorowane; pozostawienie go wyłączonego do wyłączenia urządzenia zamyka okno.\n- **Inne modele:** według zgłoszeń na niektórych urządzeniach działa wyłączenie wyłącznika AC Powerwall na około 15 sekund.\n\nTa strona sprawdza co 10 sekund i przechodzi dalej sama, gdy Powerwall potwierdzi. Jeśli okno się zamknie, klucz zostanie raz automatycznie zarejestrowany ponownie."
+    },
+    "error": {
+      "cannot_connect": "Nie można połączyć się z Powerwall pod tym adresem. Sprawdź adres (router pokazuje bramę jako `teslapw_…`), czy Powerwall jest włączona i w tej samej sieci co Home Assistant, i spróbuj ponownie.",
+      "invalid_gw_pwd": "Brama odrzuciła to hasło. Sprawdź naklejkę z kodem QR (litery są wielkie).",
+      "password_required": "Dostęp podpisany wymaga hasła bramy.",
+      "invalid_rsa_key": "To nie jest prywatny klucz RSA w formacie PEM. Prześlij plik klucza prywatnego (zaczyna się od `-----BEGIN`), a nie klucz publiczny.",
+      "key_not_accepted": "Powerwall nie przyjęła klucza. Sprawdź, czy to klucz prywatny (nie publiczny), czy został zarejestrowany dla tej Powerwall i czy rejestracja ma stan VERIFIED (wykonano krok z włącznikiem). Albo wybierz **Zarejestruj nowy klucz**.",
+      "invalid_auth": "Tesla nie przyjęła tego kodu. Utworzono nowy link logowania: zaloguj się nim ponownie i wklej nowy adres albo wklej token odświeżania.",
+      "cloud_error": "Usługa Tesla zwróciła błąd. Spróbuj ponownie za minutę.",
+      "none_found": "Żadna Powerwall nie odpowiedziała w tej sieci. Wpisz zamiast tego adres (router pokazuje bramę jako `teslapw_…`).",
+      "owner_api_refused": "Zalogowano, ale Owner API Tesli odrzuciło token (HTTP 403). Zaloguj się ponownie; jeśli to się powtarza, Tesla mogła znowu zmienić zasady logowania: zgłoś problem (issue).",
+      "invalid_token": "Tesla nie przyjęła tego tokenu odświeżania. Mógł wygasnąć albo zostać użyty przez inną aplikację: pobierz nowy z aplikacji do tokenów. Link logowania się nie zmienił.",
+      "invalid_callback": "To nie jest adres logowania z linku powyżej. Wklej pełny adres `tesla://auth/callback?code=…` z tego linku (starszy link już nie działa) albo token odświeżania. Link się nie zmienił."
+    },
+    "abort": {
+      "already_configured": "Ta Powerwall jest już skonfigurowana.",
+      "no_sites": "Na tym koncie Tesla nie znaleziono żadnej Powerwall. Zaloguj się na konto Tesla, do którego należy Powerwall (to, które pokazuje ją w aplikacji Tesla).",
+      "register_failed": "Tesla nie zarejestrowała klucza. Prawdopodobne przyczyny: Tesla odrzuciła token logowania (zaloguj się ponownie świeżym logowaniem przez aplikację), wybrano niewłaściwą instalację energetyczną albo Tesla nie może teraz połączyć się z Powerwall (sprawdź, czy jest online w aplikacji Tesla). Rozpocznij konfigurację od nowa; w dzienniku jest dokładna odpowiedź Tesla.",
+      "wrong_powerwall": "To inna Powerwall niż konfigurowana. Wybierz instalację energetyczną z tą Powerwall albo sprawdź adres bramy.",
+      "reconfigure_successful": "Połączenie zostało zmienione.",
+      "reauth_successful": "Dostęp przywrócony.",
+      "unique_id_mismatch": "Brama pod tym adresem to inna Powerwall. Wpisz adres tej Powerwall albo dodaj tamtą jako nowy wpis.",
+      "register_token_refused": "Tesla odrzuciła token logowania podczas rejestracji klucza. Uruchom konfigurację od nowa i zaloguj się ponownie (w przeglądarce albo nowym tokenem odświeżania).",
+      "register_wrong_site": "Tesla nie zna tej instalacji energetycznej na tym koncie. Rozpocznij konfigurację od nowa i wybierz instalację z tą Powerwall, zalogowany na konto Tesla, do którego należy.",
+      "register_unreachable": "Tesla nie mogła połączyć się z Powerwall, aby zarejestrować klucz. Sprawdź, czy jest online w aplikacji Tesla (jej połączenie z internetem), poczekaj kilka minut i rozpocznij konfigurację od nowa."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje Powerwall TEDAPI",
+        "menu_options": {
+          "settings": "Ustawienia",
+          "cloud_backup": "Zapas w chmurze (Owner API, Tesla Fleet)",
+          "link_account": "Połącz konto Tesla (Owner API)",
+          "unlink_account": "Odłącz kopię zapasową w chmurze"
+        }
+      },
+      "settings": {
+        "title": "Ustawienia",
+        "data": {
+          "scan_interval": "Interwał odpytywania",
+          "restore_export": "Przywracaj ustawienia, gdy Powerwall je utraci",
+          "status_alert_events": "Zdarzenia alertów także dla alertów stanu",
+          "problem_minutes": "Opóźnienie problemu",
+          "dispatch_floor_reserve": "Rozładowanie zatrzymuje się na rezerwie awaryjnej",
+          "dispatch_max_watts": "Największa moc sterowania"
+        },
+        "data_description": {
+          "restore_export": "Powerwall czasem gubi swoją regułę oddawania do sieci i ustawienie ładowania z sieci (co godzinę na Powerwall 3); ładowanie z sieci się wtedy włącza. Gdy włączone, wybrane ustawienie jest zapisywane z powrotem w ciągu minuty lub dwóch (tylko połączenie podpisane).",
+          "status_alert_events": "Alerty stanu, takie jak \"Export limited\", opisują normalną pracę, a niektóre pojawiają się i znikają co kilka minut; domyślnie zdarzenia alertów tworzą tylko powiadomienia, ostrzeżenia i usterki.",
+          "problem_minutes": "Jak długo ostrzeżenie lub usterka musi trwać, zanim czujnik Problem się włączy i zostanie zgłoszona naprawa.",
+          "dispatch_floor_reserve": "Rozładowanie uruchomione bez `min_soc` zatrzymuje się, gdy bateria osiągnie rezerwę awaryjną.",
+          "dispatch_max_watts": "Wywołania sterowania powyżej tej mocy są odrzucane."
+        }
+      },
+      "cloud_backup": {
+        "title": "Zapas w chmurze",
+        "description": "Gdy połączenie lokalne nie może odczytać lub zmienić ustawienia, idzie ono przez chmurę Tesla. Można użyć dwóch zapasów, osobno lub jeden po drugim:\n\n- **Owner API**: konto Tesla połączone tutaj (*Połącz konto Tesla*). Obecnie {owner}.\n- **Tesla Fleet**: logowanie integracji Tesla Fleet lub Teslemetry w Home Assistant, które używają oficjalnego Fleet API Tesla. Wczytany wpis z tą Powerwall jest obecnie {fleet}. Jego dane instalacji są odczytywane bez dodatkowych wywołań Tesla, a jego token nigdy nie jest tu odświeżany, więc pozostaje zalogowany.\n\nPrzy obu ustawienia są odczytywane z pierwszego, który odpowie, a zmiana trafia do pierwszego, który ją przyjmie. Każdy zapas jest sprawdzany mniej więcej co godzinę; ten, który przestanie działać, dostaje własną naprawę, a drugi działa dalej.",
+        "data": {
+          "cloud_backends": "Zapas w chmurze"
+        },
+        "data_description": {
+          "cloud_backends": "Proponowane są tylko skonfigurowane zapasy. Zmiana ustawienia przez Tesla Fleet liczy się jako polecenie na tym koncie dewelopera Tesla (lub subskrypcji Teslemetry); odczyt nic dodatkowo nie kosztuje."
+        }
+      },
+      "login": {
+        "title": "Zaloguj się do Tesla",
+        "description": "Konto Tesla służy do zarejestrowania klucza w Powerwall i jako zapas do zmiany ustawień, gdy połączenie lokalne nie działa.\n\n**Logowanie w przeglądarce:**\n1. Otwórz ten link na komputerze, z narzędziami deweloperskimi przeglądarki otwartymi na karcie **Sieć** (F12):\n   [Zaloguj się do Tesla]({url})\n2. Zaloguj się. Ostatnia strona się nie wczyta, bo Tesla przekierowuje przeglądarkę na adres `tesla://auth/callback?code=…`.\n3. Na karcie Sieć znajdź żądanie zaczynające się od `callback?code=` (lub nagłówek `Location` ostatniego przekierowania) i skopiuj cały adres.\n4. Wklej go poniżej. Kody wygasają w ciągu kilku minut i działają raz.\n\n**Albo token odświeżania:** wklej token odświeżania z logowania przez aplikację, np. *Auth app for Tesla* (iOS, Android). Użyj tokenu utworzonego do tego celu, nie takiego, którego używa już inna integracja: zalogowanie się gdzie indziej tym samym tokenem może wylogować tamtą integrację.",
+        "data": {
+          "callback": "Token odświeżania lub adres zwrotny"
+        },
+        "data_description": {
+          "callback": "Pełny adres `tesla://auth/callback?code=…` z logowania w przeglądarce albo **token odświeżania** z logowania przez aplikację (długi tekst, zwykle zaczyna się od `eyJ`). Każdy kod działa raz i wygasa po kilku minutach."
+        }
+      },
+      "site": {
+        "title": "Wybierz Powerwall",
+        "data": {
+          "site": "Instalacja energetyczna"
+        },
+        "data_description": {
+          "site": "Instalacja energetyczna (nazwa w aplikacji Tesla) z tą Powerwall."
+        }
+      },
+      "unlink_account": {
+        "title": "Odłącz kopię zapasową w chmurze",
+        "description": "Wybierz kopię zapasową w chmurze, której nie chcesz już używać. **Owner API:** konto Tesla połączone tutaj zostanie usunięte (zapisane logowanie zostaje na dysku, dopóki nie usuniesz folderu `tesla_tedapi`). **Tesla Fleet:** ta integracja przestanie z niej korzystać; sama integracja Tesla Fleet lub Teslemetry się nie zmienia. Ustawienia będą wtedy zmieniane przez drugą kopię albo tylko przez połączenie lokalne.",
+        "data": {
+          "backup": "Kopia zapasowa w chmurze"
+        },
+        "data_description": {
+          "backup": "Kopia zapasowa, której nie chcesz już używać."
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Tesla nie przyjęła tego kodu. Utworzono nowy link logowania: zaloguj się nim ponownie i wklej nowy adres albo wklej token odświeżania.",
+      "cloud_error": "Usługa Tesla zwróciła błąd. Spróbuj ponownie za minutę.",
+      "owner_api_refused": "Zalogowano, ale Owner API Tesli odrzuciło token (HTTP 403). Zaloguj się ponownie; jeśli to się powtarza, Tesla mogła znowu zmienić zasady logowania: zgłoś problem (issue).",
+      "invalid_token": "Tesla nie przyjęła tego tokenu odświeżania. Mógł wygasnąć albo zostać użyty przez inną aplikację: pobierz nowy z aplikacji do tokenów. Link logowania się nie zmienił.",
+      "invalid_callback": "To nie jest adres logowania z linku powyżej. Wklej pełny adres `tesla://auth/callback?code=…` z tego linku (starszy link już nie działa) albo token odświeżania. Link się nie zmienił."
+    },
+    "abort": {
+      "no_sites": "Na tym koncie Tesla nie znaleziono żadnej Powerwall. Zaloguj się na konto Tesla, do którego należy Powerwall (to, które pokazuje ją w aplikacji Tesla).",
+      "wrong_powerwall": "To konto Tesla nie ma instalacji z tą Powerwall. Zaloguj się na konto Tesla, do którego należy."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "grid_connected": {
+        "name": "Sieć podłączona"
+      },
+      "dispatch_active": {
+        "name": "Sterowanie aktywne"
+      },
+      "alert_problem": {
+        "name": "Problem"
+      },
+      "backup_event": {
+        "name": "Zdarzenie awaryjne"
+      },
+      "storm_watch_active": {
+        "name": "Storm Watch aktywny"
+      },
+      "grid_services_active": {
+        "name": "Usługi sieciowe aktywne"
+      }
+    },
+    "number": {
+      "backup_reserve": {
+        "name": "Rezerwa awaryjna"
+      },
+      "off_grid_reserve": {
+        "name": "Rezerwa poza siecią na ładowanie pojazdu"
+      }
+    },
+    "select": {
+      "operation_mode": {
+        "name": "Tryb pracy",
+        "state": {
+          "self_consumption": "Autokonsumpcja",
+          "backup": "Tylko zasilanie awaryjne",
+          "autonomous": "Sterowanie czasowe"
+        }
+      },
+      "grid_export": {
+        "name": "Tryb oddawania do sieci",
+        "state": {
+          "battery_ok": "Bateria i fotowoltaika",
+          "pv_only": "Tylko fotowoltaika",
+          "never": "Wyłączone"
+        }
+      }
+    },
+    "sensor": {
+      "solar_power": {
+        "name": "Moc fotowoltaiki"
+      },
+      "battery_power": {
+        "name": "Moc baterii"
+      },
+      "grid_power": {
+        "name": "Moc sieci"
+      },
+      "home_power": {
+        "name": "Moc domu"
+      },
+      "grid_import_power": {
+        "name": "Moc pobierana z sieci"
+      },
+      "grid_export_power": {
+        "name": "Moc oddawana do sieci"
+      },
+      "battery_discharge_power": {
+        "name": "Moc rozładowania baterii"
+      },
+      "battery_charge_power": {
+        "name": "Moc ładowania baterii"
+      },
+      "battery_level": {
+        "name": "Poziom baterii"
+      },
+      "battery_soe": {
+        "name": "Stan energii baterii"
+      },
+      "grid_status": {
+        "name": "Stan sieci"
+      },
+      "grid_frequency": {
+        "name": "Częstotliwość sieci"
+      },
+      "grid_voltage": {
+        "name": "Napięcie sieci"
+      },
+      "grid_energy_imported": {
+        "name": "Energia pobrana z sieci"
+      },
+      "grid_energy_exported": {
+        "name": "Energia oddana do sieci"
+      },
+      "battery_energy_charged": {
+        "name": "Energia naładowana do baterii"
+      },
+      "battery_energy_discharged": {
+        "name": "Energia rozładowana z baterii"
+      },
+      "solar_energy_produced": {
+        "name": "Energia wyprodukowana z fotowoltaiki"
+      },
+      "home_energy_consumed": {
+        "name": "Energia zużyta przez dom"
+      },
+      "battery_full_capacity": {
+        "name": "Pełna pojemność baterii"
+      },
+      "battery_energy_remaining": {
+        "name": "Pozostała energia baterii"
+      },
+      "battery_health": {
+        "name": "Kondycja baterii"
+      },
+      "backup_time_remaining": {
+        "name": "Pozostały czas zasilania awaryjnego"
+      },
+      "inverter_ambient_temperature": {
+        "name": "Temperatura otoczenia falownika"
+      },
+      "inverter_heatsink_temperature": {
+        "name": "Temperatura radiatora falownika"
+      },
+      "alerts": {
+        "name": "Alerty"
+      },
+      "gateway_started": {
+        "name": "Ostatnie uruchomienie bramy"
+      },
+      "firmware_version": {
+        "name": "Wersja oprogramowania"
+      },
+      "connection": {
+        "name": "Połączenie",
+        "state": {
+          "v1r": "Podpisane (v1r)",
+          "wifi": "Hasło Wi-Fi"
+        }
+      },
+      "pack_capacity": {
+        "name": "Pojemność {pack}"
+      },
+      "pack_temperature": {
+        "name": "Temperatura {pack}"
+      },
+      "alert_level": {
+        "name": "Poziom alertu",
+        "state": {
+          "ok": "OK",
+          "notice": "Powiadomienie",
+          "warning": "Ostrzeżenie",
+          "fault": "Usterka"
+        }
+      },
+      "active_alerts": {
+        "name": "Aktywne alerty"
+      },
+      "string_power": {
+        "name": "Moc wejścia PV {string}"
+      },
+      "string_voltage": {
+        "name": "Napięcie wejścia PV {string}"
+      },
+      "string_current": {
+        "name": "Prąd wejścia PV {string}"
+      },
+      "setup_health": {
+        "name": "Stan konfiguracji",
+        "state": {
+          "ok": "OK",
+          "degraded": "Wymaga uwagi"
+        }
+      },
+      "fan_speed": {
+        "name": "Obroty wentylatora {fan}"
+      }
+    },
+    "switch": {
+      "grid_charging": {
+        "name": "Ładowanie z sieci"
+      },
+      "storm_watch": {
+        "name": "Storm Watch"
+      }
+    },
+    "event": {
+      "alert": {
+        "name": "Alert",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "raised": "Zgłoszony",
+              "cleared": "Usunięty"
+            }
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "Nie znaleziono wczytanego wpisu Powerwall TEDAPI. Sprawdź, czy integracja jest skonfigurowana i nie jest wyłączona, albo podaj jej config_entry_id."
+    },
+    "entry_ambiguous": {
+      "message": "Skonfigurowano kilka Powerwall: wybierz jedną przez config_entry_id."
+    },
+    "dispatch_needs_v1r": {
+      "message": "Sterowanie baterią wymaga połączenia podpisanego (v1r). Zarejestruj klucz w konfiguracji integracji (Zmień konfigurację albo skonfiguruj ją ponownie)."
+    },
+    "dispatch_soc_limit": {
+      "message": "Poziom baterii ({soc}%) już przekroczył limit {limit}."
+    },
+    "dispatch_power_cap": {
+      "message": "{power} W przekracza limit {cap} W ustawiony w opcjach integracji."
+    },
+    "max_backup_needs_v1r": {
+      "message": "Maksymalne zasilanie awaryjne wymaga połączenia podpisanego (v1r). Zarejestruj klucz w konfiguracji integracji albo uruchom je w aplikacji Tesla."
+    },
+    "settings_need_control": {
+      "message": "Zmiana ustawień wymaga połączenia podpisanego (v1r) albo kopii zapasowej w chmurze."
+    },
+    "write_refused_no_cloud": {
+      "message": "Powerwall nie przyjął zmiany, a kopia zapasowa w chmurze nie jest skonfigurowana."
+    },
+    "write_cloud_timeout": {
+      "message": "{backend} nie odpowiedział na czas. Zmiana mogła zostać zastosowana: sprawdź to przed ponowną próbą."
+    },
+    "write_failed": {
+      "message": "Ani Powerwall, ani kopia zapasowa w chmurze nie przyjęły zmiany. Szczegóły są w dzienniku."
+    },
+    "backup_event_refused": {
+      "message": "Powerwall nie przyjął zdarzenia zasilania awaryjnego. Szczegóły są w dzienniku."
+    },
+    "dispatch_invalid": {
+      "message": "Nieprawidłowe sterowanie baterią: {error}"
+    },
+    "dispatch_refused": {
+      "message": "Powerwall nie przyjął sterowania baterią. Szczegóły są w dzienniku."
+    },
+    "resume_refused": {
+      "message": "Powerwall nie przyjął powrotu do normalnej pracy. Szczegóły są w dzienniku."
+    }
+  },
+  "services": {
+    "dispatch_battery_power": {
+      "name": "Steruj mocą baterii",
+      "description": "Utrzymuje baterię na stałej mocy przez określony czas przez podpisane połączenie lokalne. Dodatnie waty rozładowują, ujemne ładują, 0 utrzymuje baterię w spoczynku. Ma pierwszeństwo przed ustawieniem oddawania; rozładowanie zatrzymuje się na rezerwie awaryjnej, chyba że podano `min_soc` (opcja). Integracja odnawia polecenie co minutę krótkimi krokami, więc Powerwall wraca do normalnej pracy w ciągu 5 minut, jeśli Home Assistant się zatrzyma. Nowe wywołanie zastępuje trwające sterowanie.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "power_watts": {
+          "name": "Moc",
+          "description": "Moc baterii w watach: dodatnia rozładowuje, ujemna ładuje (do 10 000)."
+        },
+        "duration_seconds": {
+          "name": "Czas trwania",
+          "description": "Jak długo utrzymywać tę moc, w sekundach (do 24 godzin)."
+        },
+        "min_soc": {
+          "name": "Zatrzymaj rozładowanie przy",
+          "description": "Kończy rozładowanie, gdy poziom baterii (skala aplikacji Tesla) spadnie do tego procentu. Domyślnie: rezerwa awaryjna."
+        },
+        "max_soc": {
+          "name": "Zatrzymaj ładowanie przy",
+          "description": "Kończy ładowanie, gdy poziom baterii (skala aplikacji Tesla) osiągnie ten procent."
+        }
+      }
+    },
+    "resume_battery_operation": {
+      "name": "Wznów normalną pracę baterii",
+      "description": "Kończy sterowanie teraz i oddaje baterię do normalnego trybu Powerwall.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        }
+      }
+    },
+    "start_max_backup": {
+      "name": "Uruchom maksymalne zasilanie awaryjne",
+      "description": "Uruchamia zdarzenie awaryjne przez podpisane połączenie lokalne: Powerwall ładuje się do pełna (także z sieci) i utrzymuje pełną baterię przez podany czas, tak jak Storm Watch. Nowe wywołanie zastępuje trwające maksymalne zasilanie awaryjne.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "duration_minutes": {
+          "name": "Czas trwania",
+          "description": "Jak długo utrzymywać pełną baterię, w minutach (do 48 godzin)."
+        }
+      }
+    },
+    "cancel_max_backup": {
+      "name": "Anuluj maksymalne zasilanie awaryjne",
+      "description": "Kończy maksymalne zasilanie awaryjne uruchomione tutaj lub w aplikacji Tesla. Zdarzenia Storm Watch zaplanowane przez Tesla nie są objęte.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        }
+      }
+    }
+  },
+  "issues": {
+    "powerwall_alert": {
+      "title": "Alert Powerwall: {description}",
+      "description": "Powerwall zgłasza **{alert}** ({description}) od {since} UTC.\n\nKrótkie alerty, takie jak ten, są normalne podczas ponownego uruchamiania Powerwall lub po użyciu jej włącznika; ten trwa już ponad {minutes} minut. Sprawdź aplikację Tesla. Jeśli nie zniknie, skontaktuj się z instalatorem lub z Tesla. To powiadomienie zniknie, gdy alert ustąpi."
+    },
+    "cloud_login": {
+      "title": "Zaloguj się ponownie do Tesla",
+      "fix_flow": {
+        "step": {
+          "login": {
+            "title": "Zaloguj się do Tesla",
+            "description": "Konto Tesla służy do zarejestrowania klucza w Powerwall i jako zapas do zmiany ustawień, gdy połączenie lokalne nie działa.\n\n**Logowanie w przeglądarce:**\n1. Otwórz ten link na komputerze, z narzędziami deweloperskimi przeglądarki otwartymi na karcie **Sieć** (F12):\n   [Zaloguj się do Tesla]({url})\n2. Zaloguj się. Ostatnia strona się nie wczyta, bo Tesla przekierowuje przeglądarkę na adres `tesla://auth/callback?code=…`.\n3. Na karcie Sieć znajdź żądanie zaczynające się od `callback?code=` (lub nagłówek `Location` ostatniego przekierowania) i skopiuj cały adres.\n4. Wklej go poniżej. Kody wygasają w ciągu kilku minut i działają raz.\n\n**Albo token odświeżania:** wklej token odświeżania z logowania przez aplikację, np. *Auth app for Tesla* (iOS, Android). Użyj tokenu utworzonego do tego celu, nie takiego, którego używa już inna integracja: zalogowanie się gdzie indziej tym samym tokenem może wylogować tamtą integrację.",
+            "data": {
+              "callback": "Token odświeżania lub adres zwrotny"
+            },
+            "data_description": {
+              "callback": "Pełny adres `tesla://auth/callback?code=…` z logowania w przeglądarce albo **token odświeżania** z logowania przez aplikację (długi tekst, zwykle zaczyna się od `eyJ`). Każdy kod działa raz i wygasa po kilku minutach."
+            }
+          },
+          "site": {
+            "title": "Wybierz Powerwall",
+            "data": {
+              "site": "Instalacja energetyczna"
+            }
+          }
+        },
+        "error": {
+          "invalid_auth": "Tesla nie przyjęła tego kodu. Utworzono nowy link logowania: zaloguj się nim ponownie i wklej nowy adres albo wklej token odświeżania.",
+          "cloud_error": "Usługa Tesla zwróciła błąd. Spróbuj ponownie za minutę.",
+          "owner_api_refused": "Zalogowano, ale Owner API Tesli odrzuciło token (HTTP 403). Zaloguj się ponownie; jeśli to się powtarza, Tesla mogła znowu zmienić zasady logowania: zgłoś problem (issue).",
+          "invalid_token": "Tesla nie przyjęła tego tokenu odświeżania. Mógł wygasnąć albo zostać użyty przez inną aplikację: pobierz nowy z aplikacji do tokenów. Link logowania się nie zmienił.",
+          "invalid_callback": "To nie jest adres logowania z linku powyżej. Wklej pełny adres `tesla://auth/callback?code=…` z tego linku (starszy link już nie działa) albo token odświeżania. Link się nie zmienił."
+        },
+        "abort": {
+          "no_sites": "Na tym koncie Tesla nie znaleziono żadnej Powerwall. Zaloguj się na konto Tesla, do którego należy Powerwall (to, które pokazuje ją w aplikacji Tesla).",
+          "wrong_powerwall": "To konto Tesla nie ma instalacji z tą Powerwall. Zaloguj się na konto Tesla, do którego należy.",
+          "entry_gone": "Wpis Powerwall został usunięty."
+        }
+      }
+    },
+    "fleet_backup": {
+      "title": "Zapas w chmurze Tesla Fleet nie działa",
+      "description": "Integracja Powerwall TEDAPI używa integracji Tesla Fleet (lub Teslemetry) jako zapasu w chmurze dla ustawień, a ostatnie sprawdzenia się nie powiodły. Lokalne odczyty i sterowanie nie są objęte.\n\nSprawdź, czy integracja Tesla Fleet lub Teslemetry jest włączona, wczytana i zalogowana (uwierzytelnij ją ponownie, jeśli o to prosi) oraz czy ta Powerwall jest na jej koncie Tesla. To powiadomienie zniknie po następnym udanym sprawdzeniu (mniej więcej co godzinę). Aby przestać jej używać, wybierz inny zapas w chmurze w opcjach tej integracji."
+    },
+    "fleet_read_only": {
+      "title": "Zapas w chmurze Tesla Fleet nie może zmieniać ustawień",
+      "description": "Logowanie Tesla Fleet (lub Teslemetry) używane jako zapas w chmurze może odczytywać ustawienia Powerwall, ale nie może ich zmieniać: brakuje uprawnienia **energy_cmds** (polecenia energii). Zmiany trafiają do następnego zapasu w chmurze, jeśli jest.\n\nZaloguj się ponownie do tej integracji (zmień konfigurację lub uwierzytelnij ponownie) i zezwól na polecenia energii. To powiadomienie zniknie przy następnym sprawdzeniu."
+    }
+  },
+  "selector": {
+    "found": {
+      "options": {
+        "manual": "Wpiszę adres sam"
+      }
+    },
+    "cloud_backends": {
+      "options": {
+        "none": "Brak (tylko lokalnie)",
+        "owner_api": "Owner API (konto Tesla połączone tutaj)",
+        "tesla_fleet": "Tesla Fleet (lub Teslemetry)",
+        "fleet_then_owner": "Tesla Fleet, potem Owner API",
+        "owner_then_fleet": "Owner API, potem Tesla Fleet"
+      }
+    }
+  }
+}

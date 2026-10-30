@@ -49,3 +49,26 @@ resume_battery_operation:
       selector:
         config_entry:
           integration: tesla_tedapi
+start_max_backup:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    duration_minutes:
+      required: true
+      example: 120
+      selector:
+        number:
+          min: 1
+          max: 2880
+          unit_of_measurement: min
+          mode: box
+cancel_max_backup:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi
