@@ -467,6 +467,7 @@ Registering a new key still uses the Owner API (path A) or `pypowerwall register
 | **Setup health** says *Needs attention* | Its `problems` attribute names the failing check. For the cloud backup, `cloud_backends` shows which backup fails. |
 | *Tesla Fleet cloud backup is not working* | Check that the Tesla Fleet or Teslemetry integration is enabled, loaded and signed in (re-authenticate it if it asks), and has this Powerwall on its account. |
 | *Tesla Fleet cloud backup can't change settings* | Sign in to that integration again and allow the energy commands (`energy_cmds`) permission. |
+| Backup reserve shows 80 % after setting more | The gateway didn't take the change, so it went through Tesla's cloud, which caps backup reserve at 80 %. Check the gateway connection. To charge to full and hold it, use [max backup](#tesla_tedapistart_max_backup) (signed connection). |
 | Sign-in code rejected | Codes are single-use and expire quickly. Use the fresh link and copy the callback address straight away. |
 | *Tesla refuses this kind of sign-in (HTTP 403)* | Browser sign-ins are blocked for the Powerwall. Paste a refresh token instead: [Getting a Tesla refresh token](#getting-a-tesla-refresh-token). |
 

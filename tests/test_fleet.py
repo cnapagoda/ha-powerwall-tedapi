@@ -196,6 +196,29 @@ async def test_reads_use_fleet_data_and_writes_use_its_api(hass: HomeAssistant, 
     assert fleet.info_coordinator.refreshes == 3
 
 
+async def test_mode_and_errors_fall_back_to_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, V1R)
+    # The gateway refuses the mode: it goes through Tesla Fleet.
+    local(fake_powerwall).set_mode = lambda mode: None
+    await _select(hass, "operation_mode", "backup")
+    assert ("operation", {"default_real_mode": "backup"}) in fleet.api.calls
+
+    # A local write that raises goes there too.
+    def boom(level):
+        raise ConnectionError("gateway down")
+
+    local(fake_powerwall).set_reserve = boom
+    await hass.services.async_call("number", "set_value", {
+        "entity_id": _eid(hass, "number", "backup_reserve"), "value": 95}, blocking=True)
+    assert ("backup", {"backup_reserve_percent": 95}) in fleet.api.calls
+
+    # So does any write while the gateway is not connected.
+    entry.runtime_data.coordinator._pw = None
+    await _select(hass, "grid_export", "never")
+    assert ("grid_import_export", {"customer_preferred_export_rule": "never"}) in fleet.api.calls
+    assert fleet.info_coordinator.refreshes == 3
+
+
 async def test_export_rule_ignores_non_export_configured(hass: HomeAssistant, fake_powerwall, fleet) -> None:
     # Real sites keep non_export_configured while exporting with battery_ok.
     fleet.info_coordinator.data["components_customer_preferred_export_rule"] = "battery_ok"
