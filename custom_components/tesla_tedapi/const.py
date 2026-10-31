@@ -94,6 +94,13 @@ CLOUD_CACHE_SECONDS = 300
 # before the backup is needed; a failed check is retried sooner.
 CLOUD_CHECK_SECONDS = 3600
 CLOUD_RETRY_SECONDS = 600
+# A change made through a cloud backup is read back: first after this long
+# (Tesla takes about a minute to pass it to the gateway), and for at most
+# CLOUD_VERIFY_TIMEOUT_SECONDS before a different value is reported.
+CLOUD_VERIFY_SECONDS = 60
+CLOUD_VERIFY_TIMEOUT_SECONDS = 300
+# Tesla's cloud caps the backup reserve it sets (80 % since 2026-10).
+CLOUD_RESERVE_CAP = 80
 # The Owner API access token (8 hours) is renewed when it has less than this
 # left at a cloud read, before Tesla answers HTTP 401 for it. More than
 # CLOUD_CHECK_SECONDS, so the hourly check renews it in time; a failed renewal

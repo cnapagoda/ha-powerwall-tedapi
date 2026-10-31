@@ -708,6 +708,14 @@
     "off_grid_reconnect_failed": {
       "title": "The Powerwall couldn't reconnect to the grid",
       "description": "An off-grid run started by the Powerwall TEDAPI integration has ended, but reconnecting to the grid failed. The house still runs on the battery ({soc}%). The integration tries again every minute; if it keeps failing, reconnect in the Tesla app. This notice disappears once the Powerwall is back on the grid."
+    },
+    "cloud_reserve_capped": {
+      "title": "Tesla's cloud capped the backup reserve",
+      "description": "The backup reserve was set to {wanted}% through {backend}, but the Powerwall reports {actual}%. Tesla's cloud caps the reserve it sets at 80%.\n\nTo keep the battery fuller, use the **Start max backup** action (`tesla_tedapi.start_max_backup`), or set the reserve again while the signed local connection works: local writes are not capped."
+    },
+    "cloud_write_mismatch": {
+      "title": "A cloud change did not apply as set",
+      "description": "A setting was changed to `{wanted}` through {backend}, but after 5 minutes the Powerwall reports `{actual}`. Tesla may have changed or refused it. Check the setting in the Tesla app, and set it again once the signed local connection works."
     }
   },
   "selector": {

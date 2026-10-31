@@ -6,6 +6,7 @@
 - A dispatch session logs one warning when it starts. pypowerwall's warning for every accepted command (each renewal, every minute) is dropped.
 - pypowerwall **0.23.1** (`>=0.23.1,<0.24`): a reconnect that fails keeps the working client, and the battery level no longer goes below 0 % under the reserve.
 - Setup: the Powerwall 3 confirmation uses the **On/Off switch (left side)**.
+- **Cloud changes are read back.** A setting changed through a cloud backup is logged as sent, then checked against the readings for up to 5 minutes. If the Powerwall reports something else, a repair says so. When Tesla's cloud caps the backup reserve at 80 %, the repair suggests a max backup or a local write.
 - **`tesla_tedapi.charge_to`** and **`tesla_tedapi.discharge_to`** actions (signed connection): charge or discharge at a set power until the battery reaches a target level, or for at most a time limit. They run as a dispatch session, end with the new reason `target_reached`, and are refused when the battery is already at the target. **Dispatch active** shows the `target_soc`.
 
 ## 2.3.1

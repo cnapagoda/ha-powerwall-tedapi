@@ -708,6 +708,14 @@
     "off_grid_reconnect_failed": {
       "title": "De Powerwall kon niet opnieuw met het net verbinden",
       "description": "Een off-grid-periode gestart door de integratie Powerwall TEDAPI is afgelopen, maar opnieuw verbinden met het net is mislukt. Het huis draait nog op de batterij ({soc}%). De integratie probeert het elke minuut opnieuw; als het blijft mislukken, verbind dan opnieuw in de Tesla-app. Deze melding verdwijnt zodra de Powerwall weer op het net zit."
+    },
+    "cloud_reserve_capped": {
+      "title": "Teslas cloud heeft de noodstroomreserve begrensd",
+      "description": "De noodstroomreserve is via {backend} op {wanted}% gezet, maar de Powerwall meldt {actual}%. Teslas cloud begrenst de reserve die hij instelt op 80%.\n\nOm de batterij voller te houden, gebruik je de actie **Max-back-up starten** (`tesla_tedapi.start_max_backup`), of stel je de reserve opnieuw in zolang de ondertekende lokale verbinding werkt: lokale wijzigingen worden niet begrensd."
+    },
+    "cloud_write_mismatch": {
+      "title": "Een cloudwijziging is niet zo toegepast",
+      "description": "Een instelling is via {backend} op `{wanted}` gezet, maar na 5 minuten meldt de Powerwall `{actual}`. Tesla heeft hem misschien aangepast of geweigerd. Controleer de instelling in de Tesla-app en stel hem opnieuw in zodra de ondertekende lokale verbinding werkt."
     }
   },
   "selector": {

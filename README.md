@@ -500,6 +500,7 @@ With two backups:
 - Settings are read from the first one that answers. The setting entities' `cloud_backend` attribute says which one did.
 - A change the gateway doesn't take goes to the first backup that accepts it. If Tesla doesn't answer in time, it isn't sent to the other backup as well, because it may still have been applied; the action reports an error instead.
 - Each backup is checked about once an hour. **Setup health** lists each one under `cloud_backends` (`ok`, `starting`, `can_change_settings`, `failures`, `last_ok`) and only shows *Needs attention* when none can change settings. A backup that needs attention gets its own repair: *Sign in to Tesla again* (Owner API), *Tesla Fleet cloud backup is not working*, or *Tesla Fleet cloud backup can't change settings* (no `energy_cmds` permission).
+- A change made through a cloud backup is read back for up to 5 minutes. If the Powerwall reports a different value (Tesla's cloud caps the backup reserve at 80 %), a repair says so.
 - After a restart, Tesla Fleet can load after this integration. For up to 10 minutes it counts as *starting*, not as failing. A disabled entry, or one that keeps failing to load, counts as not working.
 
 ## Data updates

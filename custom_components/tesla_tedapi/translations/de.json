@@ -708,6 +708,14 @@
     "off_grid_reconnect_failed": {
       "title": "Die Powerwall konnte sich nicht wieder mit dem Netz verbinden",
       "description": "Eine von der Integration Powerwall TEDAPI gestartete Netztrennung ist beendet, aber das Wiederverbinden ist fehlgeschlagen. Das Haus läuft noch mit der Batterie ({soc}%). Die Integration versucht es jede Minute erneut; wenn es weiter fehlschlägt, verbinde in der Tesla-App wieder. Dieser Hinweis verschwindet, sobald die Powerwall wieder am Netz ist."
+    },
+    "cloud_reserve_capped": {
+      "title": "Teslas Cloud hat die Notstromreserve begrenzt",
+      "description": "Die Notstromreserve wurde über {backend} auf {wanted} % gesetzt, die Powerwall meldet aber {actual} %. Teslas Cloud begrenzt die Reserve, die sie setzt, auf 80 %.\n\nUm den Akku voller zu halten, nutze die Aktion **Max-Backup starten** (`tesla_tedapi.start_max_backup`) oder setze die Reserve erneut, solange die signierte lokale Verbindung funktioniert: Lokale Änderungen sind nicht begrenzt."
+    },
+    "cloud_write_mismatch": {
+      "title": "Eine Cloud-Änderung wurde nicht wie gesetzt übernommen",
+      "description": "Eine Einstellung wurde über {backend} auf `{wanted}` geändert, nach 5 Minuten meldet die Powerwall aber `{actual}`. Tesla hat sie vielleicht geändert oder abgelehnt. Prüfe die Einstellung in der Tesla-App und setze sie erneut, sobald die signierte lokale Verbindung funktioniert."
     }
   },
   "selector": {

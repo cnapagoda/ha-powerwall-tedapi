@@ -708,6 +708,14 @@
     "off_grid_reconnect_failed": {
       "title": "Powerwall nie mogła ponownie podłączyć się do sieci",
       "description": "Odłączenie od sieci uruchomione przez integrację Powerwall TEDAPI zakończyło się, ale ponowne podłączenie nie powiodło się. Dom nadal działa na baterii ({soc}%). Integracja próbuje ponownie co minutę; jeśli to nadal nie działa, podłącz ponownie w aplikacji Tesla. To powiadomienie zniknie, gdy Powerwall wróci do sieci."
+    },
+    "cloud_reserve_capped": {
+      "title": "Chmura Tesla ograniczyła rezerwę awaryjną",
+      "description": "Rezerwę awaryjną ustawiono na {wanted}% przez {backend}, ale Powerwall zgłasza {actual}%. Chmura Tesla ogranicza ustawianą rezerwę do 80%.\n\nAby bateria była pełniejsza, użyj akcji **Uruchom maksymalne zasilanie awaryjne** (`tesla_tedapi.start_max_backup`) albo ustaw rezerwę ponownie, gdy działa podpisane połączenie lokalne: zmiany lokalne nie są ograniczane."
+    },
+    "cloud_write_mismatch": {
+      "title": "Zmiana przez chmurę nie została zastosowana tak, jak ustawiono",
+      "description": "Ustawienie zmieniono na `{wanted}` przez {backend}, ale po 5 minutach Powerwall zgłasza `{actual}`. Tesla mogła je zmienić lub odrzucić. Sprawdź ustawienie w aplikacji Tesla i ustaw je ponownie, gdy zadziała podpisane połączenie lokalne."
     }
   },
   "selector": {

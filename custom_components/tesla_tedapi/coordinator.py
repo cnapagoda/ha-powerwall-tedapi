@@ -33,7 +33,10 @@ from .const import (
     CLOUD_CACHE_SECONDS,
     CLOUD_CHECK_SECONDS,
     CLOUD_CHOICES,
+    CLOUD_RESERVE_CAP,
     CLOUD_RETRY_SECONDS,
+    CLOUD_VERIFY_SECONDS,
+    CLOUD_VERIFY_TIMEOUT_SECONDS,
     CONF_CONNECTION_MODE,
     CONF_GW_PWD,
     CONF_HOST,
@@ -65,6 +68,27 @@ if TYPE_CHECKING:
     from .off_grid import OffGridSession
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass
+class CloudWrite:
+    """A change sent through a cloud backup, read back until it shows."""
+
+    what: str
+    wanted: Any
+    backend: str
+    check_at: float
+    give_up_at: float
+
+
+def _same(key: str, a: Any, b: Any) -> bool:
+    if a is None or b is None:
+        return False
+    if key == "reserve":
+        return round(float(a)) == round(float(b))
+    if key == "grid_charging":
+        return bool(a) == bool(b)
+    return str(a) == str(b)
 
 CONTROL_KEYS = ("operation_mode", "reserve", "grid_charging", "grid_export")
 
@@ -255,6 +279,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.restores: dict[str, int] = dict.fromkeys(DROPPABLE_SETTINGS, 0)
         self.last_restored: dict[str, datetime | None] = dict.fromkeys(DROPPABLE_SETTINGS)
         self._restore_at: dict[str, float] = {}
+        # Cloud writes waiting to show up in the readings, by setting.
+        self.cloud_writes: dict[str, CloudWrite] = {}
+        self._write_issues: set[str] = set()
         # Consecutive polls where the gateway refused the password or the key.
         self._password_refused = 0
         self._key_refused = 0
@@ -662,10 +689,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         {"error": ...} instead."""
         return bool(result) and not (isinstance(result, dict) and "error" in result)
 
-    def _write(self, what: str, write, local: bool = True) -> None:
+    def _write(self, what: str, write, local: bool = True) -> str | None:
         """Run write(pw) on the gateway (signed connection only; local=False
         for cloud-only settings), then on each cloud backup in order until one
-        accepts it."""
+        accepts it. Returns the backup's name when the cloud took it."""
         for backend in self.backends:
             backend.cache = backend.extras = None
         if not (self.control_enabled if local else self.cloud_enabled):
@@ -677,7 +704,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 try:
                     if self._write_ok(write(self._pw)):
                         _LOGGER.info("%s (local)", what)
-                        return
+                        return None
                     _LOGGER.warning("%s: local write failed", what)
                 except Exception as err:  # noqa: BLE001
                     _LOGGER.warning("%s: local write error (%s)", what, err)
@@ -703,27 +730,40 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if ok:
                 backend.failures = 0
                 backend.last_ok = dt_util.utcnow()
-                _LOGGER.info("%s (cloud, %s)", what, backend.label)
-                return
+                # Accepted is not applied: Tesla may change the value (e.g. it
+                # caps the reserve). It is read back before it counts as done.
+                _LOGGER.info("%s: sent through %s, checking that the Powerwall applies it", what, backend.label)
+                return backend.label
             errors.append(f"{backend.label} did not accept it")
         _LOGGER.warning("%s: local and cloud writes failed (%s)", what, "; ".join(errors))
         raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_failed")
 
+    def _write_setting(self, key: str, what: str, value: Any, write) -> None:
+        self.cloud_writes.pop(key, None)
+        backend = self._write(what, write)
+        if backend is not None:
+            now = time.monotonic()
+            self.cloud_writes[key] = CloudWrite(what, value, backend, now + CLOUD_VERIFY_SECONDS,
+                                                now + CLOUD_VERIFY_TIMEOUT_SECONDS)
+
     def _set_mode(self, mode: str) -> None:
-        self._write(f"Operation mode set to {mode}", lambda pw: pw.set_mode(mode))
+        self._write_setting("operation_mode", f"Operation mode set to {mode}", mode,
+                            lambda pw: pw.set_mode(mode))
 
     def _set_reserve(self, reserve: float) -> None:
         level = int(reserve)
-        self._write(f"Backup reserve set to {level}%", lambda pw: pw.set_reserve(level))
+        self._write_setting("reserve", f"Backup reserve set to {level}%", level,
+                            lambda pw: pw.set_reserve(level))
 
     def _set_grid_charging(self, enabled: bool) -> None:
         # A real bool: the local path does bool(mode), so "off" would enable.
-        self._write(f"Grid charging set to {'on' if enabled else 'off'}",
-                    lambda pw: pw.set_grid_charging(bool(enabled)))
+        self._write_setting("grid_charging", f"Grid charging set to {'on' if enabled else 'off'}",
+                            bool(enabled), lambda pw: pw.set_grid_charging(bool(enabled)))
         self.wanted["grid_charging"] = bool(enabled)
 
     def _set_grid_export(self, mode: str) -> None:
-        self._write(f"Grid export set to {mode}", lambda pw: pw.set_grid_export(mode))
+        self._write_setting("grid_export", f"Grid export set to {mode}", mode,
+                            lambda pw: pw.set_grid_export(mode))
         self.wanted["grid_export"] = mode
 
     def _set_storm_watch(self, enabled: bool) -> None:
@@ -907,6 +947,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self.hass.async_add_executor_job(self._check_cloud, due)
         data["cloud_extras"] = await self.hass.async_add_executor_job(self._cloud_extras) if self.backends else {}
         self._process_alerts(data)
+        self._check_cloud_writes(data)
         self._sync_cloud_issue()
         for key in DROPPABLE_SETTINGS:
             data[f"{key}_restores"] = self.restores[key]
@@ -914,6 +955,40 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data["health"] = await self._async_health(data)
         self._store.async_delay_save(self._state_to_save, 10)
         return data
+
+    def _check_cloud_writes(self, data: dict[str, Any]) -> None:
+        """Compare cloud changes with the readings once Tesla had time to
+        apply them. Until they match, the cloud is read fresh each poll."""
+        now = time.monotonic()
+        for key, write in list(self.cloud_writes.items()):
+            if now < write.check_at:
+                continue
+            actual = data.get(key)
+            issue_id = f"cloud_write_{key}_{self.config_entry.entry_id}"
+            if _same(key, actual, write.wanted):
+                del self.cloud_writes[key]
+                _LOGGER.info("%s: confirmed (%s)", write.what, write.backend)
+                if issue_id in self._write_issues:
+                    self._write_issues.discard(issue_id)
+                    ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+                continue
+            if now < write.give_up_at:
+                for backend in self.backends:
+                    backend.cache = None
+                continue
+            del self.cloud_writes[key]
+            _LOGGER.warning("%s through %s, but the Powerwall reports %s", write.what, write.backend, actual)
+            capped = (key == "reserve" and isinstance(actual, (int, float))
+                      and float(actual) < float(write.wanted) and round(float(actual)) == CLOUD_RESERVE_CAP)
+            self._write_issues.add(issue_id)
+            ir.async_create_issue(
+                self.hass, DOMAIN, issue_id,
+                is_fixable=False,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key="cloud_reserve_capped" if capped else "cloud_write_mismatch",
+                translation_placeholders={"wanted": str(write.wanted), "actual": str(actual),
+                                          "backend": write.backend},
+            )
 
     @staticmethod
     def _cloud_check_due(backend: CloudBackend) -> bool:
@@ -1098,9 +1173,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._issues = set(wanted)
 
     def async_clear_issues(self) -> None:
-        for issue_id in self._issues:
+        for issue_id in self._issues | self._write_issues:
             ir.async_delete_issue(self.hass, DOMAIN, issue_id)
         self._issues = set()
+        self._write_issues = set()
         for backend in self.backends:
             if backend.issue:
                 ir.async_delete_issue(self.hass, DOMAIN, self._cloud_issue_id(backend))

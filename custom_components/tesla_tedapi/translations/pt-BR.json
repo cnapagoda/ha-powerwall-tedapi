@@ -708,6 +708,14 @@
     "off_grid_reconnect_failed": {
       "title": "A Powerwall não conseguiu se reconectar à rede",
       "description": "Uma desconexão da rede iniciada pela integração Powerwall TEDAPI terminou, mas a reconexão falhou. A casa ainda funciona com a bateria ({soc}%). A integração tenta de novo a cada minuto; se continuar falhando, reconecte pelo app da Tesla. Este aviso some quando a Powerwall voltar à rede."
+    },
+    "cloud_reserve_capped": {
+      "title": "A nuvem da Tesla limitou a reserva de backup",
+      "description": "A reserva de backup foi definida em {wanted}% por {backend}, mas a Powerwall informa {actual}%. A nuvem da Tesla limita a 80% a reserva que define.\n\nPara manter a bateria mais cheia, use a ação **Iniciar backup máximo** (`tesla_tedapi.start_max_backup`), ou defina a reserva de novo enquanto a conexão local assinada funciona: alterações locais não são limitadas."
+    },
+    "cloud_write_mismatch": {
+      "title": "Uma alteração pela nuvem não foi aplicada como definida",
+      "description": "Uma configuração foi alterada para `{wanted}` por {backend}, mas depois de 5 minutos a Powerwall informa `{actual}`. A Tesla pode tê-la alterado ou recusado. Verifique a configuração no app da Tesla e defina-a de novo quando a conexão local assinada funcionar."
     }
   },
   "selector": {
