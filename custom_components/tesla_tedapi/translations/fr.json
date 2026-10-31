@@ -382,7 +382,15 @@
         "name": "Dernier démarrage de la passerelle"
       },
       "firmware_version": {
-        "name": "Version du firmware"
+        "name": "Version du firmware",
+        "state_attributes": {
+          "previous_version": {
+            "name": "Version précédente"
+          },
+          "updated_at": {
+            "name": "Mis à jour le"
+          }
+        }
       },
       "connection": {
         "name": "Connexion",
@@ -736,6 +744,10 @@
     "cloud_write_mismatch": {
       "title": "Un changement via le cloud n'a pas été appliqué tel quel",
       "description": "Un réglage a été changé en `{wanted}` via {backend}, mais après 5 minutes la Powerwall indique `{actual}`. Tesla l'a peut-être modifié ou refusé. Vérifiez le réglage dans l'app Tesla et réglez-le à nouveau dès que la connexion locale signée fonctionne."
+    },
+    "firmware_signed_access": {
+      "title": "L'accès local signé s'est arrêté après une mise à jour du firmware",
+      "description": "La Powerwall est passée du firmware {previous} au {version} et ne répond plus à la connexion locale signée. Tesla peut modifier l'accès local avec une mise à jour.\n\nLes mesures sont indisponibles ; les réglages passent par la sauvegarde cloud si elle est configurée. Ce problème disparaît de lui-même quand l'accès signé fonctionne à nouveau. S'il persiste, vérifiez s'il existe une mise à jour de cette intégration, ou enregistrez à nouveau la clé (**Configurer → Enregistrer une nouvelle clé signée**)."
     }
   },
   "selector": {

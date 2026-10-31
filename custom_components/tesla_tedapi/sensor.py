@@ -29,6 +29,7 @@ from homeassistant.core import HomeAssistant, callback
 from .alerts import LEVELS
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
+from .firmware import split_version
 from .outages import month_start
 
 # Coordinator-based: no limit on parallel updates.
@@ -72,11 +73,7 @@ def _health(d: dict[str, Any]) -> float | None:
 
 
 def _firmware(d: dict[str, Any]) -> tuple[str | None, str | None]:
-    """Split the gateway version string into (version, build hash)."""
-    parts = str(d.get("firmware_version") or "").split()
-    if not parts:
-        return None, None
-    return parts[0], parts[1] if len(parts) > 1 else None
+    return split_version(d.get("firmware_version"))
 
 
 def _power(key: str) -> TedapiSensorEntityDescription:
@@ -274,7 +271,7 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         # The gateway reports "26.34.1 dcee474d": version, then build hash.
         value_fn=lambda d: _firmware(d)[0],
-        attrs_fn=lambda d: {"build": _firmware(d)[1]},
+        attrs_fn=lambda d: {"build": _firmware(d)[1], **(d.get("firmware") or {})},
     ),
     TedapiSensorEntityDescription(
         key="setup_health",

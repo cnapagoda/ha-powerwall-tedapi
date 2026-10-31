@@ -382,7 +382,15 @@
         "name": "Gateway laatst gestart"
       },
       "firmware_version": {
-        "name": "Firmwareversie"
+        "name": "Firmwareversie",
+        "state_attributes": {
+          "previous_version": {
+            "name": "Vorige versie"
+          },
+          "updated_at": {
+            "name": "Bijgewerkt op"
+          }
+        }
       },
       "connection": {
         "name": "Verbinding",
@@ -736,6 +744,10 @@
     "cloud_write_mismatch": {
       "title": "Een cloudwijziging is niet zo toegepast",
       "description": "Een instelling is via {backend} op `{wanted}` gezet, maar na 5 minuten meldt de Powerwall `{actual}`. Tesla heeft hem misschien aangepast of geweigerd. Controleer de instelling in de Tesla-app en stel hem opnieuw in zodra de ondertekende lokale verbinding werkt."
+    },
+    "firmware_signed_access": {
+      "title": "Ondertekende lokale toegang gestopt na een firmware-update",
+      "description": "De Powerwall is bijgewerkt van firmware {previous} naar {version} en reageert niet meer op de ondertekende lokale verbinding. Tesla kan lokale toegang met een update wijzigen.\n\nMetingen zijn niet beschikbaar; instellingen lopen via de cloudback-up als die is ingesteld. Dit verdwijnt vanzelf zodra ondertekende toegang weer werkt. Blijft het, kijk dan of er een update van deze integratie is, of registreer de sleutel opnieuw (**Configureren → Nieuwe ondertekende sleutel registreren**)."
     }
   },
   "selector": {

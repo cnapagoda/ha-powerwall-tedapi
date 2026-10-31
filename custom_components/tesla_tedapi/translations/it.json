@@ -382,7 +382,15 @@
         "name": "Ultimo avvio del gateway"
       },
       "firmware_version": {
-        "name": "Versione firmware"
+        "name": "Versione firmware",
+        "state_attributes": {
+          "previous_version": {
+            "name": "Versione precedente"
+          },
+          "updated_at": {
+            "name": "Aggiornato il"
+          }
+        }
       },
       "connection": {
         "name": "Connessione",
@@ -736,6 +744,10 @@
     "cloud_write_mismatch": {
       "title": "Una modifica via cloud non è stata applicata come impostata",
       "description": "Un'impostazione è stata cambiata in `{wanted}` tramite {backend}, ma dopo 5 minuti la Powerwall riporta `{actual}`. Tesla potrebbe averla modificata o rifiutata. Controlla l'impostazione nell'app Tesla e reimpostala quando la connessione locale firmata funziona."
+    },
+    "firmware_signed_access": {
+      "title": "L'accesso locale firmato si è fermato dopo un aggiornamento del firmware",
+      "description": "La Powerwall è passata dal firmware {previous} al {version} e non risponde più alla connessione locale firmata. Tesla può cambiare l'accesso locale con un aggiornamento.\n\nLe letture non sono disponibili; le impostazioni passano dal backup cloud se configurato. Il problema sparisce da solo quando l'accesso firmato torna a funzionare. Se persiste, controlla se c'è un aggiornamento di questa integrazione, oppure registra di nuovo la chiave (**Configura → Registra una nuova chiave firmata**)."
     }
   },
   "selector": {

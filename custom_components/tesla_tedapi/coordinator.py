@@ -54,6 +54,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     DROPPABLE_SETTINGS,
+    EVENT_FIRMWARE_UPDATED,
     EVENT_GRID_OUTAGE,
     KEY_REFUSED_POLLS,
     MODE_V1R,
@@ -63,6 +64,7 @@ from .const import (
     app_soc,
     cloud_choice,
 )
+from .firmware import FirmwareTracker, split_version
 from .fleet import FleetBackup, FleetTimeout, fleet_starting
 from .outages import OutageTracker
 
@@ -285,6 +287,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Cloud writes waiting to show up in the readings, by setting.
         self.cloud_writes: dict[str, CloudWrite] = {}
         self.outages = OutageTracker()
+        self.firmware = FirmwareTracker()
         # True while an off-grid run started here is on (set up in __init__).
         self.intentional_off_grid: Callable[[], bool] = lambda: False
         self._write_issues: set[str] = set()
@@ -909,12 +912,14 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.wanted["grid_charging"] = stored.get("grid_charging_wanted")
         self.alerts.restore(stored.get("alerts") or {})
         self.outages.restore(stored.get("outages") or {})
+        self.firmware.restore(stored.get("firmware") or {})
 
     def _state_to_save(self) -> dict[str, Any]:
         return {"export_wanted": self.wanted["grid_export"],
                 "grid_charging_wanted": self.wanted["grid_charging"],
                 "alerts": self.alerts.as_dict(),
-                "outages": self.outages.as_dict()}
+                "outages": self.outages.as_dict(),
+                "firmware": self.firmware.as_dict()}
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -956,6 +961,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data["cloud_extras"] = await self.hass.async_add_executor_job(self._cloud_extras) if self.backends else {}
         self._process_alerts(data)
         self._track_outages(data)
+        self._track_firmware(data)
         self._check_cloud_writes(data)
         self._sync_cloud_issue()
         for key in DROPPABLE_SETTINGS:
@@ -982,6 +988,44 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "duration_seconds": change.duration_seconds,
                 })
         data["outages"] = self.outages.summary(now)
+
+    def _track_firmware(self, data: dict[str, Any]) -> None:
+        """Announce a firmware update, then check signed access on it."""
+        if data.get("local_ok"):
+            change = self.firmware.update(data.get("firmware_version"), dt_util.utcnow())
+            if change is not None:
+                previous, version = split_version(change.previous)[0], split_version(change.version)[0]
+                _LOGGER.warning("Powerwall firmware updated from %s to %s", previous, version)
+                self.hass.bus.async_fire(EVENT_FIRMWARE_UPDATED, {
+                    "config_entry_id": self.config_entry.entry_id,
+                    "previous_version": previous,
+                    "version": version,
+                    "build": split_version(change.version)[1],
+                })
+            if self._conn_mode == MODE_V1R and self.firmware.previous is not None:
+                works = data.get("tedapi_mode") == "v1r"
+                if self.firmware.note_signed(works):
+                    self._sync_firmware_issue(works)
+        data["firmware"] = self.firmware.attributes()
+
+    def _sync_firmware_issue(self, works: bool) -> None:
+        issue_id = f"firmware_signed_access_{self.config_entry.entry_id}"
+        version = split_version(self.firmware.version)[0]
+        if works:
+            _LOGGER.info("Signed local access works on firmware %s", version)
+            self._write_issues.discard(issue_id)
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        _LOGGER.warning("Signed local access stopped working after the firmware update to %s", version)
+        self._write_issues.add(issue_id)
+        ir.async_create_issue(
+            self.hass, DOMAIN, issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="firmware_signed_access",
+            translation_placeholders={"version": str(version),
+                                      "previous": str(split_version(self.firmware.previous)[0])},
+        )
 
     def _check_cloud_writes(self, data: dict[str, Any]) -> None:
         """Compare cloud changes with the readings once Tesla had time to

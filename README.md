@@ -525,6 +525,7 @@ After you change a setting, the integration reads the Powerwall again straight a
 - **Get ready for a storm.** Turn on **Storm Watch**, or start a [max backup](#tesla_tedapistart_max_backup) to charge to full and hold it.
 - **Test your backup.** [Go off-grid](#tesla_tedapigo_off_grid) for a few minutes, with a battery floor, to see that the house runs on the Powerwall.
 - **Know when the power goes out.** **Grid connected** turns off within one poll of an outage. **Last grid outage**, **Grid outages this month** and **Grid outage time this month** keep the history, and the `tesla_tedapi_grid_outage` event (`phase`: `started` or `ended`, `duration_seconds`) fires on each outage. An off-grid run started here and an unreachable gateway don't count. Outages are seen only while Home Assistant and your network have power. Use it for notifications or to switch off big loads.
+- **Know when Tesla updates the firmware.** The `tesla_tedapi_firmware_updated` event (`previous_version`, `version`, `build`) fires on each update, and the Logbook shows it. **Firmware version** keeps the previous version. If signed local access stops working after an update, a repair says so.
 - **Track energy.** Add the lifetime energy sensors to the **Energy dashboard** (grid, solar, battery, home).
 - **Watch the hardware.** [Alerts](#alerts), the **Problem** sensor, battery health, temperatures and fan speeds show issues early, with the gateway's own alert codes.
 

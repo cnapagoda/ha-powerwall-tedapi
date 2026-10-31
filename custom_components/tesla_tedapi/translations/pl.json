@@ -382,7 +382,15 @@
         "name": "Ostatnie uruchomienie bramy"
       },
       "firmware_version": {
-        "name": "Wersja oprogramowania"
+        "name": "Wersja oprogramowania",
+        "state_attributes": {
+          "previous_version": {
+            "name": "Poprzednia wersja"
+          },
+          "updated_at": {
+            "name": "Zaktualizowano"
+          }
+        }
       },
       "connection": {
         "name": "Połączenie",
@@ -736,6 +744,10 @@
     "cloud_write_mismatch": {
       "title": "Zmiana przez chmurę nie została zastosowana tak, jak ustawiono",
       "description": "Ustawienie zmieniono na `{wanted}` przez {backend}, ale po 5 minutach Powerwall zgłasza `{actual}`. Tesla mogła je zmienić lub odrzucić. Sprawdź ustawienie w aplikacji Tesla i ustaw je ponownie, gdy zadziała podpisane połączenie lokalne."
+    },
+    "firmware_signed_access": {
+      "title": "Podpisany dostęp lokalny przestał działać po aktualizacji oprogramowania",
+      "description": "Powerwall zaktualizował oprogramowanie z {previous} do {version} i nie odpowiada już na podpisane połączenie lokalne. Tesla może zmienić dostęp lokalny aktualizacją.\n\nOdczyty są niedostępne; ustawienia idą przez kopię w chmurze, jeśli jest skonfigurowana. Problem zniknie sam, gdy podpisany dostęp znów zadziała. Jeśli trwa, sprawdź, czy jest aktualizacja tej integracji, albo zarejestruj klucz ponownie (**Konfiguruj → Zarejestruj nowy podpisany klucz**)."
     }
   },
   "selector": {

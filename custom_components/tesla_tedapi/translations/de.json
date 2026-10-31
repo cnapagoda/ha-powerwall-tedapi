@@ -382,7 +382,15 @@
         "name": "Gateway zuletzt gestartet"
       },
       "firmware_version": {
-        "name": "Firmware-Version"
+        "name": "Firmware-Version",
+        "state_attributes": {
+          "previous_version": {
+            "name": "Vorherige Version"
+          },
+          "updated_at": {
+            "name": "Aktualisiert am"
+          }
+        }
       },
       "connection": {
         "name": "Verbindung",
@@ -736,6 +744,10 @@
     "cloud_write_mismatch": {
       "title": "Eine Cloud-Änderung wurde nicht wie gesetzt übernommen",
       "description": "Eine Einstellung wurde über {backend} auf `{wanted}` geändert, nach 5 Minuten meldet die Powerwall aber `{actual}`. Tesla hat sie vielleicht geändert oder abgelehnt. Prüfe die Einstellung in der Tesla-App und setze sie erneut, sobald die signierte lokale Verbindung funktioniert."
+    },
+    "firmware_signed_access": {
+      "title": "Signierter lokaler Zugriff nach einem Firmware-Update gestoppt",
+      "description": "Die Powerwall wurde von Firmware {previous} auf {version} aktualisiert und antwortet nicht mehr auf die signierte lokale Verbindung. Tesla kann den lokalen Zugriff mit einem Update ändern.\n\nMesswerte sind nicht verfügbar; Einstellungen laufen über das Cloud-Backup, falls eines eingerichtet ist. Das verschwindet von selbst, sobald der signierte Zugriff wieder funktioniert. Hält es an, prüfe, ob es ein Update dieser Integration gibt, oder registriere den Schlüssel erneut (**Konfigurieren → Neuen signierten Schlüssel registrieren**)."
     }
   },
   "selector": {

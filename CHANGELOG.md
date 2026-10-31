@@ -7,6 +7,8 @@
 - pypowerwall **0.23.1** (`>=0.23.1,<0.24`): a reconnect that fails keeps the working client, and the battery level no longer goes below 0 % under the reserve.
 - Setup: the Powerwall 3 confirmation uses the **On/Off switch (left side)**.
 - **Grid outage tracking**: **Last grid outage** (with `ongoing` and `ended`), **Last grid outage duration**, **Grid outages this month** and **Grid outage time this month** (reset monthly, kept across restarts), and a `tesla_tedapi_grid_outage` event when an outage starts or ends. Off-grid runs started here and an unreachable gateway are not outages.
+- **Firmware updates**: a `tesla_tedapi_firmware_updated` event and log line when the gateway reports a new version, and **Firmware version** keeps `previous_version` and `updated_at`. On a signed connection, the first reading on the new firmware checks signed access; if it stopped working, a repair says so (and clears when it works again).
+- **Logbook** entries for firmware updates, grid outages, and the end of dispatch sessions and off-grid runs.
 - **Cloud changes are read back.** A setting changed through a cloud backup is logged as sent, then checked against the readings for up to 5 minutes. If the Powerwall reports something else, a repair says so. When Tesla's cloud caps the backup reserve at 80 %, the repair suggests a max backup or a local write.
 - **`tesla_tedapi.charge_to`** and **`tesla_tedapi.discharge_to`** actions (signed connection): charge or discharge at a set power until the battery reaches a target level, or for at most a time limit. They run as a dispatch session, end with the new reason `target_reached`, and are refused when the battery is already at the target. **Dispatch active** shows the `target_soc`.
 
