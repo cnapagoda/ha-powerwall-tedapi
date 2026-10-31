@@ -1,6 +1,6 @@
 {
   "domain": "tesla_tedapi",
-  "name": "Powerwall TEDAPI",
+  "name": "Tesla Powerwall TEDAPI",
   "codeowners": [
     "@cnapagoda"
   ],
@@ -33,5 +33,5 @@
   "requirements": [
     "pypowerwall>=0.23.1,<0.24"
   ],
-  "version": "2.4.0"
+  "version": "2.4.1"
 }

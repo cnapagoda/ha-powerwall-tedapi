@@ -1,4 +1,4 @@
-"""Data coordinator for the Powerwall TEDAPI integration.
+"""Data coordinator for the Tesla Powerwall TEDAPI integration.
 
 Readings come from the gateway over the local network. Settings are written to
 the gateway when the connection is signed (v1r) and to the Tesla cloud as a

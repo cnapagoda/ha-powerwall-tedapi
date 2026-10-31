@@ -13,3 +13,4 @@ combine-as-imports = true
 
 [tool.coverage.report]
 exclude_also = ["if TYPE_CHECKING:"]
+fail_under = 99

@@ -1,1 +1,1 @@
-"""Tests for the Powerwall TEDAPI integration."""
+"""Tests for the Tesla Powerwall TEDAPI integration."""

@@ -3,7 +3,7 @@
     "flow_title": "Powerwall ({host})",
     "step": {
       "user": {
-        "title": "Powerwall TEDAPI",
+        "title": "Tesla Powerwall TEDAPI",
         "description": "Busca la Powerwall en tu red. El acceso firmado (v1r) ofrece lecturas locales, control local y despacho de la batería; este asistente puede registrar la clave que necesita.",
         "menu_options": {
           "gateway": "Introducir la dirección de la pasarela",
@@ -172,7 +172,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Opciones de Powerwall TEDAPI",
+        "title": "Opciones de Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Ajustes",
           "cloud_backup": "Respaldo en la nube (Owner API, Tesla Fleet)",
@@ -523,7 +523,7 @@
   },
   "exceptions": {
     "entry_not_found": {
-      "message": "No se encontró ninguna entrada de Powerwall TEDAPI cargada. Comprueba que la integración está configurada y no desactivada, o indica su config_entry_id."
+      "message": "No se encontró ninguna entrada de Tesla Powerwall TEDAPI cargada. Comprueba que la integración está configurada y no desactivada, o indica su config_entry_id."
     },
     "entry_ambiguous": {
       "message": "Hay varias Powerwall configuradas: elige una con config_entry_id."
@@ -772,7 +772,7 @@
     },
     "fleet_backup": {
       "title": "El respaldo en la nube de Tesla Fleet no funciona",
-      "description": "La integración Powerwall TEDAPI usa la integración Tesla Fleet (o Teslemetry) como respaldo en la nube para los ajustes, y las últimas comprobaciones fallaron. Las lecturas y el control locales no se ven afectados.\n\nComprueba que la integración Tesla Fleet o Teslemetry está activada, cargada y con la sesión iniciada (vuelve a autenticarla si lo pide), y que esta Powerwall está en su cuenta de Tesla. Este aviso desaparece tras la siguiente comprobación correcta (aproximadamente cada hora). Para dejar de usarla, elige otro respaldo en la nube en las opciones de esta integración."
+      "description": "La integración Tesla Powerwall TEDAPI usa la integración Tesla Fleet (o Teslemetry) como respaldo en la nube para los ajustes, y las últimas comprobaciones fallaron. Las lecturas y el control locales no se ven afectados.\n\nComprueba que la integración Tesla Fleet o Teslemetry está activada, cargada y con la sesión iniciada (vuelve a autenticarla si lo pide), y que esta Powerwall está en su cuenta de Tesla. Este aviso desaparece tras la siguiente comprobación correcta (aproximadamente cada hora). Para dejar de usarla, elige otro respaldo en la nube en las opciones de esta integración."
     },
     "fleet_read_only": {
       "title": "El respaldo en la nube de Tesla Fleet no puede cambiar ajustes",
@@ -780,7 +780,7 @@
     },
     "off_grid_reconnect_failed": {
       "title": "La Powerwall no pudo volver a conectarse a la red",
-      "description": "Una desconexión de la red iniciada por la integración Powerwall TEDAPI ha terminado, pero la reconexión ha fallado. La casa sigue funcionando con la batería ({soc}%). La integración lo intenta de nuevo cada minuto; si sigue fallando, vuelve a conectar desde la app de Tesla. Este aviso desaparece cuando la Powerwall vuelve a estar en la red."
+      "description": "Una desconexión de la red iniciada por la integración Tesla Powerwall TEDAPI ha terminado, pero la reconexión ha fallado. La casa sigue funcionando con la batería ({soc}%). La integración lo intenta de nuevo cada minuto; si sigue fallando, vuelve a conectar desde la app de Tesla. Este aviso desaparece cuando la Powerwall vuelve a estar en la red."
     },
     "cloud_reserve_capped": {
       "title": "La nube de Tesla limitó la reserva de respaldo",

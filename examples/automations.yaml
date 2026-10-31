@@ -1,4 +1,4 @@
-# Example automations for Powerwall TEDAPI. Entity ids use the default
+# Example automations for Tesla Powerwall TEDAPI. Entity ids use the default
 # Entity ID format (area + device + entity) with the device in a "Garage" area;
 # replace garage_ with your area, or drop it (see the README, Entities).
 

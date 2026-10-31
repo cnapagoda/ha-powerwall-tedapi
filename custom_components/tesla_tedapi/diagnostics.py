@@ -1,4 +1,4 @@
-"""Diagnostics for the Powerwall TEDAPI integration."""
+"""Diagnostics for the Tesla Powerwall TEDAPI integration."""
 from __future__ import annotations
 
 import os
