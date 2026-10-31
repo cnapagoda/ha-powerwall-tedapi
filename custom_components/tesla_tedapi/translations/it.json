@@ -140,7 +140,7 @@
       }
     },
     "progress": {
-      "confirm_key": "La chiave (impronta `{fingerprint}…`) è registrata e attende la conferma fisica. Entro circa 10 minuti:\n\n- **Powerwall 3:** porta l'interruttore On/Off (lato sinistro, sotto lo sportellino rosso di spegnimento rapido) su OFF per circa 15 secondi, poi di nuovo su ON. Un breve scatto viene ignorato; lasciarlo spento finché l'unità si spegne chiude la finestra.\n- **Altri modelli:** spegnere l'interruttore CA della Powerwall per circa 15 secondi funzionerebbe su alcune unità.\n\nQuesta pagina controlla ogni 10 secondi e prosegue da sola appena la Powerwall conferma. Se la finestra si chiude, la chiave viene registrata di nuovo una volta in automatico."
+      "confirm_key": "La chiave (impronta `{fingerprint}…`) è registrata e attende la conferma fisica. Entro circa 10 minuti:\n\n- **Powerwall 3:** porta l'interruttore On/Off (lato sinistro) su OFF per circa 15 secondi, poi di nuovo su ON. Un breve scatto viene ignorato; lasciarlo spento finché l'unità si spegne chiude la finestra.\n- **Altri modelli:** spegnere l'interruttore CA della Powerwall per circa 15 secondi funzionerebbe su alcune unità.\n\nQuesta pagina controlla ogni 10 secondi e prosegue da sola appena la Powerwall conferma. Se la finestra si chiude, la chiave viene registrata di nuovo una volta in automatico."
     },
     "error": {
       "cannot_connect": "Impossibile raggiungere la Powerwall a quell'indirizzo. Controlla l'indirizzo (il router mostra il gateway come `teslapw_…`), che la Powerwall sia accesa e sulla stessa rete di Home Assistant, e riprova.",
@@ -522,7 +522,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Dispatch della potenza della batteria",
-      "description": "Fa funzionare la batteria a una potenza fissa per un tempo stabilito tramite la connessione locale firmata. Watt positivi scaricano, negativi caricano, 0 tiene la batteria a riposo. Ha la precedenza sull'impostazione di immissione; una scarica si ferma alla riserva di backup a meno che sia indicato `min_soc` (opzione). L'integrazione rinnova il comando ogni minuto a piccoli passi, così la Powerwall torna alla normalità entro 5 minuti se Home Assistant si ferma. Una nuova chiamata sostituisce un dispatch in corso.",
+      "description": "Fa funzionare la batteria a una potenza fissa per un tempo stabilito tramite la connessione locale firmata. Watt positivi scaricano, negativi caricano, 0 tiene la batteria a riposo. Ha la precedenza sull'impostazione di immissione; una scarica si ferma alla riserva di backup a meno che sia indicato `min_soc` (opzione). L'integrazione rinnova il comando ogni minuto a piccoli passi, così la Powerwall torna alla normalità entro 5 minuti se Home Assistant si ferma. Una nuova chiamata sostituisce un dispatch in corso. Uso a proprio rischio: comandare la batteria può influire sulla garanzia della Powerwall, che potrebbe coprire cicli illimitati solo per autoconsumo, controllo a fasce orarie e backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -548,7 +548,7 @@
     },
     "charge_to": {
       "name": "Carica fino a un livello",
-      "description": "Carica la batteria a potenza fissa tramite la connessione locale firmata fino al livello obiettivo, al massimo per il tempo limite. Carica dal solare e, se la ricarica dalla rete è consentita, dalla rete. Termina con il motivo di evento `target_reached` o `completed`.",
+      "description": "Carica la batteria a potenza fissa tramite la connessione locale firmata fino al livello obiettivo, al massimo per il tempo limite. Carica dal solare e, se la ricarica dalla rete è consentita, dalla rete. Termina con il motivo di evento `target_reached` o `completed`. Uso a proprio rischio: comandare la batteria può influire sulla garanzia della Powerwall, che potrebbe coprire cicli illimitati solo per autoconsumo, controllo a fasce orarie e backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -570,7 +570,7 @@
     },
     "discharge_to": {
       "name": "Scarica fino a un livello",
-      "description": "Scarica la batteria a potenza fissa tramite la connessione locale firmata fino al livello obiettivo, al massimo per il tempo limite. Ignora l'impostazione di esportazione, quindi la batteria può immettere in rete. Termina con il motivo di evento `target_reached` o `completed`.",
+      "description": "Scarica la batteria a potenza fissa tramite la connessione locale firmata fino al livello obiettivo, al massimo per il tempo limite. Ignora l'impostazione di esportazione, quindi la batteria può immettere in rete. Termina con il motivo di evento `target_reached` o `completed`. Uso a proprio rischio: comandare la batteria può influire sulla garanzia della Powerwall, che potrebbe coprire cicli illimitati solo per autoconsumo, controllo a fasce orarie e backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

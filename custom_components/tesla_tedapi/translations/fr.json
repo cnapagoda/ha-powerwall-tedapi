@@ -140,7 +140,7 @@
       }
     },
     "progress": {
-      "confirm_key": "La clé (empreinte `{fingerprint}…`) est enregistrée et attend une confirmation physique. Dans les 10 minutes environ :\n\n- **Powerwall 3 :** mettez l'interrupteur Marche/Arrêt (côté gauche, sous le volet rouge d'arrêt rapide) sur ARRÊT pendant environ 15 secondes, puis à nouveau sur MARCHE. Un bref basculement est ignoré ; le laisser éteint jusqu'à l'arrêt de l'appareil ferme la fenêtre.\n- **Autres modèles :** couper le disjoncteur CA de la Powerwall pendant environ 15 secondes fonctionnerait sur certains appareils.\n\nCette page vérifie toutes les 10 secondes et continue d'elle-même dès que la Powerwall confirme. Si la fenêtre se ferme, la clé est enregistrée à nouveau une fois automatiquement."
+      "confirm_key": "La clé (empreinte `{fingerprint}…`) est enregistrée et attend une confirmation physique. Dans les 10 minutes environ :\n\n- **Powerwall 3 :** mettez l'interrupteur Marche/Arrêt (côté gauche) sur ARRÊT pendant environ 15 secondes, puis à nouveau sur MARCHE. Un bref basculement est ignoré ; le laisser éteint jusqu'à l'arrêt de l'appareil ferme la fenêtre.\n- **Autres modèles :** couper le disjoncteur CA de la Powerwall pendant environ 15 secondes fonctionnerait sur certains appareils.\n\nCette page vérifie toutes les 10 secondes et continue d'elle-même dès que la Powerwall confirme. Si la fenêtre se ferme, la clé est enregistrée à nouveau une fois automatiquement."
     },
     "error": {
       "cannot_connect": "Impossible de joindre la Powerwall à cette adresse. Vérifiez l'adresse (votre routeur affiche la passerelle comme `teslapw_…`), que la Powerwall est allumée et sur le même réseau que Home Assistant, puis réessayez.",
@@ -522,7 +522,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Piloter la puissance de la batterie",
-      "description": "Fait fonctionner la batterie à une puissance fixe pendant une durée donnée via la connexion locale signée. Des watts positifs déchargent, négatifs chargent, 0 maintient la batterie au repos. Prend le pas sur le paramètre d'export ; une décharge s'arrête à la réserve de secours sauf si `min_soc` est indiqué (option). L'intégration renouvelle la commande chaque minute par petites étapes, de sorte que la Powerwall revient à la normale en 5 minutes si Home Assistant s'arrête. Un nouvel appel remplace un dispatch en cours.",
+      "description": "Fait fonctionner la batterie à une puissance fixe pendant une durée donnée via la connexion locale signée. Des watts positifs déchargent, négatifs chargent, 0 maintient la batterie au repos. Prend le pas sur le paramètre d'export ; une décharge s'arrête à la réserve de secours sauf si `min_soc` est indiqué (option). L'intégration renouvelle la commande chaque minute par petites étapes, de sorte que la Powerwall revient à la normale en 5 minutes si Home Assistant s'arrête. Un nouvel appel remplace un dispatch en cours. À vos risques et périls : piloter la batterie peut affecter la garantie de la Powerwall, qui ne couvre peut-être des cycles illimités que pour l'autoconsommation, le pilotage horaire et le secours.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -548,7 +548,7 @@
     },
     "charge_to": {
       "name": "Charger jusqu'à un niveau",
-      "description": "Charge la batterie à une puissance fixe via la connexion locale signée jusqu'au niveau cible, au plus pendant la durée limite. Charge depuis le solaire et, si la recharge depuis le réseau est autorisée, depuis le réseau. Se termine avec la raison d'événement `target_reached` ou `completed`.",
+      "description": "Charge la batterie à une puissance fixe via la connexion locale signée jusqu'au niveau cible, au plus pendant la durée limite. Charge depuis le solaire et, si la recharge depuis le réseau est autorisée, depuis le réseau. Se termine avec la raison d'événement `target_reached` ou `completed`. À vos risques et périls : piloter la batterie peut affecter la garantie de la Powerwall, qui ne couvre peut-être des cycles illimités que pour l'autoconsommation, le pilotage horaire et le secours.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -570,7 +570,7 @@
     },
     "discharge_to": {
       "name": "Décharger jusqu'à un niveau",
-      "description": "Décharge la batterie à une puissance fixe via la connexion locale signée jusqu'au niveau cible, au plus pendant la durée limite. Passe outre le réglage d'export : la batterie peut donc injecter sur le réseau. Se termine avec la raison d'événement `target_reached` ou `completed`.",
+      "description": "Décharge la batterie à une puissance fixe via la connexion locale signée jusqu'au niveau cible, au plus pendant la durée limite. Passe outre le réglage d'export : la batterie peut donc injecter sur le réseau. Se termine avec la raison d'événement `target_reached` ou `completed`. À vos risques et périls : piloter la batterie peut affecter la garantie de la Powerwall, qui ne couvre peut-être des cycles illimités que pour l'autoconsommation, le pilotage horaire et le secours.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

@@ -140,7 +140,7 @@
       }
     },
     "progress": {
-      "confirm_key": "The key (fingerprint `{fingerprint}…`) is registered and waiting for physical confirmation. Within about 10 minutes:\n\n- **Powerwall 3:** switch the On/Off switch (left side, under the red rapid-shutdown flap) OFF for about 15 seconds, then back ON. A short flick is ignored; leaving it off until the unit powers down closes the window.\n- **Other models:** toggling the Powerwall's AC breaker off for about 15 seconds is reported to work on some units.\n\nThis page checks every 10 seconds and continues on its own once the Powerwall confirms. If the window closes, the key is registered again once automatically."
+      "confirm_key": "The key (fingerprint `{fingerprint}…`) is registered and waiting for physical confirmation. Within about 10 minutes:\n\n- **Powerwall 3:** switch the On/Off switch (left side) OFF for about 15 seconds, then back ON. A short flick is ignored; leaving it off until the unit powers down closes the window.\n- **Other models:** toggling the Powerwall's AC breaker off for about 15 seconds is reported to work on some units.\n\nThis page checks every 10 seconds and continues on its own once the Powerwall confirms. If the window closes, the key is registered again once automatically."
     },
     "error": {
       "cannot_connect": "Could not reach the Powerwall at that address. Check the address (your router lists the gateway as `teslapw_…`), that the Powerwall is on and on the same network as Home Assistant, and try again.",
@@ -522,7 +522,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Dispatch battery power",
-      "description": "Run the battery at a fixed power for a set time over the signed local connection. Positive watts discharge, negative watts charge, 0 holds the battery idle. Overrides the export setting; a discharge stops at the backup reserve unless `min_soc` is given (option). The integration renews the command every minute in short steps, so the Powerwall returns to normal within 5 minutes if Home Assistant stops. A new call replaces a running dispatch.",
+      "description": "Run the battery at a fixed power for a set time over the signed local connection. Positive watts discharge, negative watts charge, 0 holds the battery idle. Overrides the export setting; a discharge stops at the backup reserve unless `min_soc` is given (option). The integration renews the command every minute in short steps, so the Powerwall returns to normal within 5 minutes if Home Assistant stops. A new call replaces a running dispatch. Use at your own risk: dispatching the battery may affect your Powerwall warranty, which may cover unlimited cycles only for self-consumption, time-based control and backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -548,7 +548,7 @@
     },
     "charge_to": {
       "name": "Charge to a battery level",
-      "description": "Charge the battery at a set power over the signed local connection until it reaches the target level, or for at most the time limit. Charges from solar and, if grid charging is allowed, from the grid. Ends with event reason `target_reached` or `completed`.",
+      "description": "Charge the battery at a set power over the signed local connection until it reaches the target level, or for at most the time limit. Charges from solar and, if grid charging is allowed, from the grid. Ends with event reason `target_reached` or `completed`. Use at your own risk: dispatching the battery may affect your Powerwall warranty, which may cover unlimited cycles only for self-consumption, time-based control and backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -570,7 +570,7 @@
     },
     "discharge_to": {
       "name": "Discharge to a battery level",
-      "description": "Discharge the battery at a set power over the signed local connection until it falls to the target level, or for at most the time limit. Overrides the export setting, so the battery may export to the grid. Ends with event reason `target_reached` or `completed`.",
+      "description": "Discharge the battery at a set power over the signed local connection until it falls to the target level, or for at most the time limit. Overrides the export setting, so the battery may export to the grid. Ends with event reason `target_reached` or `completed`. Use at your own risk: dispatching the battery may affect your Powerwall warranty, which may cover unlimited cycles only for self-consumption, time-based control and backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

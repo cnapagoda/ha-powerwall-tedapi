@@ -2,6 +2,10 @@
 
 ## 2.4.0
 
+- **Warranty warning** on battery dispatch (README Safety, and the descriptions of `dispatch_battery_power`, `charge_to` and `discharge_to`): Tesla's warranty may cover unlimited cycles only for self-consumption, time-based control and backup.
+- A dispatch session logs one warning when it starts. pypowerwall's warning for every accepted command (each renewal, every minute) is dropped.
+- pypowerwall **0.23.1** (`>=0.23.1,<0.24`): a reconnect that fails keeps the working client, and the battery level no longer goes below 0 % under the reserve.
+- Setup: the Powerwall 3 confirmation uses the **On/Off switch (left side)**.
 - **`tesla_tedapi.charge_to`** and **`tesla_tedapi.discharge_to`** actions (signed connection): charge or discharge at a set power until the battery reaches a target level, or for at most a time limit. They run as a dispatch session, end with the new reason `target_reached`, and are refused when the battery is already at the target. **Dispatch active** shows the `target_soc`.
 
 ## 2.3.1

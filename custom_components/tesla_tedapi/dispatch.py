@@ -32,6 +32,22 @@ from .const import (
 from .coordinator import TedapiCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+# pypowerwall (0.22.2+) logs a warning for every accepted dispatch command.
+PYPOWERWALL_DISPATCH_LOGGER = "pypowerwall.tedapi.tedapi_v1r"
+
+
+class RepeatDispatchFilter(logging.Filter):
+    """Drops pypowerwall's per-command warning. A session renews its command
+    every minute, and its start is logged here with the same warning."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not str(record.msg).startswith("Battery dispatch accepted")
+
+
+def quiet_dispatch_repeats() -> None:
+    logger = logging.getLogger(PYPOWERWALL_DISPATCH_LOGGER)
+    if not any(isinstance(f, RepeatDispatchFilter) for f in logger.filters):
+        logger.addFilter(RepeatDispatchFilter())
 
 
 @dataclass
@@ -158,7 +174,9 @@ class DispatchSession:
                                       timedelta(seconds=DISPATCH_RENEW_SECONDS)),
             async_track_point_in_utc_time(self.hass, self._async_at_end, state.ends),
         ]
-        _LOGGER.info("Battery dispatch started: %s W until %s", power_watts, state.ends)
+        _LOGGER.warning("Battery dispatch started: %s W until %s. A dispatch overrides the backup "
+                        "reserve and export setting and may affect the Powerwall warranty; use at "
+                        "your own risk", power_watts, state.ends)
         self._notify()
         self.hass.async_create_task(self.coordinator.async_request_refresh())
         return {**self.as_dict(), "response": result}

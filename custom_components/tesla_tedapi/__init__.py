@@ -38,7 +38,7 @@ from .const import (
     SERVICE_START_MAX_BACKUP,
 )
 from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
-from .dispatch import DispatchSession
+from .dispatch import DispatchSession, quiet_dispatch_repeats
 from .off_grid import OffGridSession, off_grid_store
 
 _LOGGER = logging.getLogger(__name__)
@@ -132,6 +132,7 @@ def _off_grid(hass: HomeAssistant, call: ServiceCall) -> OffGridSession:
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the actions once; they look up the entry per call."""
+    quiet_dispatch_repeats()
 
     async def dispatch(call: ServiceCall) -> ServiceResponse:
         return await _session(hass, call).async_start(

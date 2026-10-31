@@ -195,3 +195,29 @@ async def test_refresh_keeps_a_session(hass: HomeAssistant, fake_powerwall) -> N
     await _dispatch(hass)
     await _refresh(hass, entry)
     assert entry.runtime_data.dispatch.active
+
+
+async def test_one_warning_per_session(hass: HomeAssistant, fake_powerwall, caplog) -> None:
+    """The session start carries the warranty warning; pypowerwall's warning
+    for each accepted command (every renewal) is dropped."""
+    import logging  # noqa: PLC0415
+
+    from custom_components.tesla_tedapi.dispatch import (  # noqa: PLC0415
+        PYPOWERWALL_DISPATCH_LOGGER,
+        RepeatDispatchFilter,
+        quiet_dispatch_repeats,
+    )
+
+    await _setup(hass, V1R)
+    quiet_dispatch_repeats()  # twice: still one filter
+    pp_logger = logging.getLogger(PYPOWERWALL_DISPATCH_LOGGER)
+    assert sum(isinstance(f, RepeatDispatchFilter) for f in pp_logger.filters) == 1
+
+    with caplog.at_level(logging.WARNING):
+        await _dispatch(hass)
+        pp_logger.warning("Battery dispatch accepted: %s %g W for %d s. use at your own risk.", "discharge", 1000, 300)
+        pp_logger.warning("Something else from pypowerwall")
+    texts = [r.getMessage() for r in caplog.records]
+    assert sum("warranty" in t for t in texts) == 1
+    assert not any(t.startswith("Battery dispatch accepted") for t in texts)
+    assert "Something else from pypowerwall" in texts

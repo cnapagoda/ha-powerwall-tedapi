@@ -140,7 +140,7 @@
       }
     },
     "progress": {
-      "confirm_key": "Klucz (odcisk `{fingerprint}…`) jest zarejestrowany i czeka na fizyczne potwierdzenie. W ciągu około 10 minut:\n\n- **Powerwall 3:** przełącz włącznik (lewa strona, pod czerwoną klapką szybkiego wyłączenia) na WYŁ. na około 15 sekund, a potem z powrotem na WŁ. Krótkie przełączenie jest ignorowane; pozostawienie go wyłączonego do wyłączenia urządzenia zamyka okno.\n- **Inne modele:** według zgłoszeń na niektórych urządzeniach działa wyłączenie wyłącznika AC Powerwall na około 15 sekund.\n\nTa strona sprawdza co 10 sekund i przechodzi dalej sama, gdy Powerwall potwierdzi. Jeśli okno się zamknie, klucz zostanie raz automatycznie zarejestrowany ponownie."
+      "confirm_key": "Klucz (odcisk `{fingerprint}…`) jest zarejestrowany i czeka na fizyczne potwierdzenie. W ciągu około 10 minut:\n\n- **Powerwall 3:** przełącz włącznik (lewa strona) na WYŁ. na około 15 sekund, a potem z powrotem na WŁ. Krótkie przełączenie jest ignorowane; pozostawienie go wyłączonego do wyłączenia urządzenia zamyka okno.\n- **Inne modele:** według zgłoszeń na niektórych urządzeniach działa wyłączenie wyłącznika AC Powerwall na około 15 sekund.\n\nTa strona sprawdza co 10 sekund i przechodzi dalej sama, gdy Powerwall potwierdzi. Jeśli okno się zamknie, klucz zostanie raz automatycznie zarejestrowany ponownie."
     },
     "error": {
       "cannot_connect": "Nie można połączyć się z Powerwall pod tym adresem. Sprawdź adres (router pokazuje bramę jako `teslapw_…`), czy Powerwall jest włączona i w tej samej sieci co Home Assistant, i spróbuj ponownie.",
@@ -522,7 +522,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Steruj mocą baterii",
-      "description": "Utrzymuje baterię na stałej mocy przez określony czas przez podpisane połączenie lokalne. Dodatnie waty rozładowują, ujemne ładują, 0 utrzymuje baterię w spoczynku. Ma pierwszeństwo przed ustawieniem oddawania; rozładowanie zatrzymuje się na rezerwie awaryjnej, chyba że podano `min_soc` (opcja). Integracja odnawia polecenie co minutę krótkimi krokami, więc Powerwall wraca do normalnej pracy w ciągu 5 minut, jeśli Home Assistant się zatrzyma. Nowe wywołanie zastępuje trwające sterowanie.",
+      "description": "Utrzymuje baterię na stałej mocy przez określony czas przez podpisane połączenie lokalne. Dodatnie waty rozładowują, ujemne ładują, 0 utrzymuje baterię w spoczynku. Ma pierwszeństwo przed ustawieniem oddawania; rozładowanie zatrzymuje się na rezerwie awaryjnej, chyba że podano `min_soc` (opcja). Integracja odnawia polecenie co minutę krótkimi krokami, więc Powerwall wraca do normalnej pracy w ciągu 5 minut, jeśli Home Assistant się zatrzyma. Nowe wywołanie zastępuje trwające sterowanie. Na własne ryzyko: sterowanie baterią może wpłynąć na gwarancję Powerwall, która może obejmować nieograniczoną liczbę cykli tylko przy autokonsumpcji, sterowaniu czasowym i zasilaniu awaryjnym.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -548,7 +548,7 @@
     },
     "charge_to": {
       "name": "Naładuj do poziomu",
-      "description": "Ładuje baterię stałą mocą przez podpisane połączenie lokalne do poziomu docelowego, najdłużej przez limit czasu. Ładuje z fotowoltaiki oraz, jeśli ładowanie z sieci jest dozwolone, z sieci. Kończy się zdarzeniem z powodem `target_reached` lub `completed`.",
+      "description": "Ładuje baterię stałą mocą przez podpisane połączenie lokalne do poziomu docelowego, najdłużej przez limit czasu. Ładuje z fotowoltaiki oraz, jeśli ładowanie z sieci jest dozwolone, z sieci. Kończy się zdarzeniem z powodem `target_reached` lub `completed`. Na własne ryzyko: sterowanie baterią może wpłynąć na gwarancję Powerwall, która może obejmować nieograniczoną liczbę cykli tylko przy autokonsumpcji, sterowaniu czasowym i zasilaniu awaryjnym.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -570,7 +570,7 @@
     },
     "discharge_to": {
       "name": "Rozładuj do poziomu",
-      "description": "Rozładowuje baterię stałą mocą przez podpisane połączenie lokalne do poziomu docelowego, najdłużej przez limit czasu. Pomija ustawienie eksportu, więc bateria może oddawać energię do sieci. Kończy się zdarzeniem z powodem `target_reached` lub `completed`.",
+      "description": "Rozładowuje baterię stałą mocą przez podpisane połączenie lokalne do poziomu docelowego, najdłużej przez limit czasu. Pomija ustawienie eksportu, więc bateria może oddawać energię do sieci. Kończy się zdarzeniem z powodem `target_reached` lub `completed`. Na własne ryzyko: sterowanie baterią może wpłynąć na gwarancję Powerwall, która może obejmować nieograniczoną liczbę cykli tylko przy autokonsumpcji, sterowaniu czasowym i zasilaniu awaryjnym.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

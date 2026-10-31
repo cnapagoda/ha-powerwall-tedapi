@@ -16,7 +16,7 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 - **Setup wizard**: finds the Powerwall on your network, checks the gateway password, registers the key with your Powerwall and notices the confirmation by itself. No command line needed.
 - **Keeps your export and grid charging settings**: the Powerwall sometimes drops them from its own settings; the integration writes them back.
 
-> **Not affiliated with Tesla.** This uses undocumented interfaces that Tesla can change at any time. A dispatch overrides your export setting (and, if you ask it to, the backup reserve), and going off-grid disconnects your house from the grid, so use them with care. See [Safety](#safety).
+> **Not affiliated with Tesla.** This uses undocumented interfaces that Tesla can change at any time. A dispatch overrides your export setting (and, if you ask it to, the backup reserve) and may affect your warranty, and going off-grid disconnects your house from the grid, so use them with care. See [Safety](#safety).
 
 ---
 
@@ -123,7 +123,7 @@ If Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tes
    - **Refresh token.** Paste a refresh token from a token app instead (see [Getting a Tesla refresh token](#getting-a-tesla-refresh-token)). No developer tools needed.
 2. The energy site with this gateway is picked automatically (you choose only if it can't tell).
 3. **Confirm at the Powerwall.** The wizard makes an RSA-4096 key in `config/tesla_tedapi/` and registers it with your Powerwall. Within about **10 minutes**:
-   - **Powerwall 3:** switch the **On/Off switch** (left side, under the red rapid-shutdown flap) **OFF for about 15 seconds, then back ON**. A quick flick is ignored. Don't leave it off until the unit powers down.
+   - **Powerwall 3:** switch the **On/Off switch** (left side) **OFF for about 15 seconds, then back ON**. A quick flick is ignored. Don't leave it off until the unit powers down.
    - **Other models:** switching the Powerwall's AC breaker off for about 15 seconds is reported to work on some units.
 
    The wizard checks every 10 seconds and continues on its own once the Powerwall confirms. If the window closes, it registers the key again once by itself; after that it asks you to try again.
@@ -300,7 +300,7 @@ If the gateway can't be reached, the sensors show *unavailable* instead of stale
 
 ### `tesla_tedapi.dispatch_battery_power`
 
-Hold the battery at a fixed power for a set time.
+Hold the battery at a fixed power for a set time. Use at your own risk: see [Safety](#safety) about the warranty.
 
 | Field | |
 |---|---|
@@ -475,6 +475,7 @@ Turn this off with **Restore settings when the Powerwall drops them** if another
 ## Safety
 
 - **A dispatch ignores your grid export setting, and the Powerwall itself ignores the backup reserve.** On a Powerwall 3 a discharge exported to the grid with export set to *never*. The integration stops a discharge at the backup reserve unless you pass `min_soc` (option), and refuses calls above the largest dispatch power you set.
+- **Dispatching may affect your warranty.** Tesla's warranty may cover unlimited cycles only for self-consumption, time-based control and backup, and limit other use to a total energy throughput (37.8 MWh is quoted for some units). `dispatch_battery_power`, `charge_to` and `discharge_to` may count as other use. Check your own warranty; use them at your own risk.
 - **Your retailer or VPP may also control the Powerwall.** They can change modes or grid charging from the cloud, and their changes can fight yours.
 - The **Battery level** sensor and the limits use the Tesla app scale.
 - **Going off-grid switches the house to the battery.** If the battery runs out before the house is reconnected, the power goes off. Always set `min_soc` or `duration_minutes` high enough, and don't rely on it while Home Assistant may be down. See [`go_off_grid`](#tesla_tedapigo_off_grid).

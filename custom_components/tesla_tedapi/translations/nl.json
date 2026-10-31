@@ -140,7 +140,7 @@
       }
     },
     "progress": {
-      "confirm_key": "De sleutel (vingerafdruk `{fingerprint}…`) is geregistreerd en wacht op fysieke bevestiging. Binnen ongeveer 10 minuten:\n\n- **Powerwall 3:** zet de aan/uit-schakelaar (linkerkant, onder het rode klepje voor snelle uitschakeling) ongeveer 15 seconden UIT en daarna weer AAN. Een korte tik wordt genegeerd; als hij uit blijft tot het apparaat uitschakelt, sluit het venster.\n- **Andere modellen:** de AC-groepsschakelaar van de Powerwall ongeveer 15 seconden uitzetten werkt naar verluidt bij sommige apparaten.\n\nDeze pagina controleert elke 10 seconden en gaat vanzelf verder zodra de Powerwall bevestigt. Als het venster sluit, wordt de sleutel één keer automatisch opnieuw geregistreerd."
+      "confirm_key": "De sleutel (vingerafdruk `{fingerprint}…`) is geregistreerd en wacht op fysieke bevestiging. Binnen ongeveer 10 minuten:\n\n- **Powerwall 3:** zet de aan/uit-schakelaar (linkerkant) ongeveer 15 seconden UIT en daarna weer AAN. Een korte tik wordt genegeerd; als hij uit blijft tot het apparaat uitschakelt, sluit het venster.\n- **Andere modellen:** de AC-groepsschakelaar van de Powerwall ongeveer 15 seconden uitzetten werkt naar verluidt bij sommige apparaten.\n\nDeze pagina controleert elke 10 seconden en gaat vanzelf verder zodra de Powerwall bevestigt. Als het venster sluit, wordt de sleutel één keer automatisch opnieuw geregistreerd."
     },
     "error": {
       "cannot_connect": "Kan de Powerwall op dat adres niet bereiken. Controleer het adres (je router toont de gateway als `teslapw_…`), of de Powerwall aan staat en op hetzelfde netwerk als Home Assistant zit, en probeer het opnieuw.",
@@ -522,7 +522,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Batterijvermogen sturen",
-      "description": "Laat de batterij een vaste tijd op een vast vermogen draaien via de ondertekende lokale verbinding. Positieve watts ontladen, negatieve laden, 0 houdt de batterij stil. Gaat boven de terugleverinstelling; een ontlading stopt bij de back-upreserve, tenzij `min_soc` is opgegeven (optie). De integratie vernieuwt de opdracht elke minuut in korte stappen, zodat de Powerwall binnen 5 minuten normaal werkt als Home Assistant stopt. Een nieuwe aanroep vervangt een lopende dispatch.",
+      "description": "Laat de batterij een vaste tijd op een vast vermogen draaien via de ondertekende lokale verbinding. Positieve watts ontladen, negatieve laden, 0 houdt de batterij stil. Gaat boven de terugleverinstelling; een ontlading stopt bij de back-upreserve, tenzij `min_soc` is opgegeven (optie). De integratie vernieuwt de opdracht elke minuut in korte stappen, zodat de Powerwall binnen 5 minuten normaal werkt als Home Assistant stopt. Een nieuwe aanroep vervangt een lopende dispatch. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -548,7 +548,7 @@
     },
     "charge_to": {
       "name": "Laden tot een batterijniveau",
-      "description": "Laadt de batterij met een vast vermogen via de ondertekende lokale verbinding tot het doelniveau, hoogstens tot de tijdslimiet. Laadt uit zonne-energie en, als laden van het net is toegestaan, van het net. Eindigt met gebeurtenisreden `target_reached` of `completed`.",
+      "description": "Laadt de batterij met een vast vermogen via de ondertekende lokale verbinding tot het doelniveau, hoogstens tot de tijdslimiet. Laadt uit zonne-energie en, als laden van het net is toegestaan, van het net. Eindigt met gebeurtenisreden `target_reached` of `completed`. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -570,7 +570,7 @@
     },
     "discharge_to": {
       "name": "Ontladen tot een batterijniveau",
-      "description": "Ontlaadt de batterij met een vast vermogen via de ondertekende lokale verbinding tot het doelniveau, hoogstens tot de tijdslimiet. Gaat voor de teruglever-instelling, dus de batterij kan aan het net leveren. Eindigt met gebeurtenisreden `target_reached` of `completed`.",
+      "description": "Ontlaadt de batterij met een vast vermogen via de ondertekende lokale verbinding tot het doelniveau, hoogstens tot de tijdslimiet. Gaat voor de teruglever-instelling, dus de batterij kan aan het net leveren. Eindigt met gebeurtenisreden `target_reached` of `completed`. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

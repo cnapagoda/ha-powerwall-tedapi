@@ -140,7 +140,7 @@
       }
     },
     "progress": {
-      "confirm_key": "Der Schlüssel (Fingerabdruck `{fingerprint}…`) ist registriert und wartet auf die Bestätigung vor Ort. Innerhalb von etwa 10 Minuten:\n\n- **Powerwall 3:** den Ein/Aus-Schalter (linke Seite, unter der roten Rapid-Shutdown-Klappe) für etwa 15 Sekunden AUS und dann wieder EIN schalten. Ein kurzes Antippen wird ignoriert; bleibt er aus, bis das Gerät abschaltet, schließt sich das Fenster.\n- **Andere Modelle:** Den AC-Schutzschalter der Powerwall für etwa 15 Sekunden auszuschalten, funktioniert Berichten zufolge bei manchen Geräten.\n\nDiese Seite prüft alle 10 Sekunden und geht von selbst weiter, sobald die Powerwall bestätigt. Schließt sich das Fenster, wird der Schlüssel einmal automatisch neu registriert."
+      "confirm_key": "Der Schlüssel (Fingerabdruck `{fingerprint}…`) ist registriert und wartet auf die Bestätigung vor Ort. Innerhalb von etwa 10 Minuten:\n\n- **Powerwall 3:** den Ein/Aus-Schalter (linke Seite) für etwa 15 Sekunden AUS und dann wieder EIN schalten. Ein kurzes Antippen wird ignoriert; bleibt er aus, bis das Gerät abschaltet, schließt sich das Fenster.\n- **Andere Modelle:** Den AC-Schutzschalter der Powerwall für etwa 15 Sekunden auszuschalten, funktioniert Berichten zufolge bei manchen Geräten.\n\nDiese Seite prüft alle 10 Sekunden und geht von selbst weiter, sobald die Powerwall bestätigt. Schließt sich das Fenster, wird der Schlüssel einmal automatisch neu registriert."
     },
     "error": {
       "cannot_connect": "Die Powerwall ist unter dieser Adresse nicht erreichbar. Prüfe die Adresse (dein Router zeigt das Gateway als `teslapw_…` an), ob die Powerwall eingeschaltet und im selben Netzwerk wie Home Assistant ist, und versuche es erneut.",
@@ -522,7 +522,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Batterieleistung steuern",
-      "description": "Betreibt die Batterie über die signierte lokale Verbindung für eine festgelegte Zeit mit fester Leistung. Positive Watt entladen, negative laden, 0 hält die Batterie im Leerlauf. Übersteuert die Einspeiseeinstellung; eine Entladung stoppt bei der Backup-Reserve, außer `min_soc` ist angegeben (optional). Die Integration erneuert den Befehl jede Minute in kurzen Schritten, sodass die Powerwall innerhalb von 5 Minuten zum Normalbetrieb zurückkehrt, wenn Home Assistant stoppt. Ein neuer Aufruf ersetzt einen laufenden Dispatch.",
+      "description": "Betreibt die Batterie über die signierte lokale Verbindung für eine festgelegte Zeit mit fester Leistung. Positive Watt entladen, negative laden, 0 hält die Batterie im Leerlauf. Übersteuert die Einspeiseeinstellung; eine Entladung stoppt bei der Backup-Reserve, außer `min_soc` ist angegeben (optional). Die Integration erneuert den Befehl jede Minute in kurzen Schritten, sodass die Powerwall innerhalb von 5 Minuten zum Normalbetrieb zurückkehrt, wenn Home Assistant stoppt. Ein neuer Aufruf ersetzt einen laufenden Dispatch. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -548,7 +548,7 @@
     },
     "charge_to": {
       "name": "Bis zu einem Akkustand laden",
-      "description": "Lädt den Akku über die signierte lokale Verbindung mit fester Leistung, bis der Zielstand erreicht ist, höchstens bis zum Zeitlimit. Lädt aus Solarstrom und, wenn Netzladen erlaubt ist, aus dem Netz. Endet mit dem Ereignisgrund `target_reached` oder `completed`.",
+      "description": "Lädt den Akku über die signierte lokale Verbindung mit fester Leistung, bis der Zielstand erreicht ist, höchstens bis zum Zeitlimit. Lädt aus Solarstrom und, wenn Netzladen erlaubt ist, aus dem Netz. Endet mit dem Ereignisgrund `target_reached` oder `completed`. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -570,7 +570,7 @@
     },
     "discharge_to": {
       "name": "Bis zu einem Akkustand entladen",
-      "description": "Entlädt den Akku über die signierte lokale Verbindung mit fester Leistung, bis der Zielstand erreicht ist, höchstens bis zum Zeitlimit. Übergeht die Einspeiseeinstellung, der Akku kann also ins Netz einspeisen. Endet mit dem Ereignisgrund `target_reached` oder `completed`.",
+      "description": "Entlädt den Akku über die signierte lokale Verbindung mit fester Leistung, bis der Zielstand erreicht ist, höchstens bis zum Zeitlimit. Übergeht die Einspeiseeinstellung, der Akku kann also ins Netz einspeisen. Endet mit dem Ereignisgrund `target_reached` oder `completed`. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
