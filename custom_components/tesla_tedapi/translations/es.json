@@ -502,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Alerta de tormenta"
+      },
+      "solar_curtailment": {
+        "name": "Limitación solar con red (experimental)"
       }
     },
     "event": {
@@ -584,6 +587,9 @@
     },
     "target_reached": {
       "message": "La batería ya está al {soc} %, más allá del objetivo del {target} %."
+    },
+    "curtailment_needs_v1r": {
+      "message": "La limitación solar necesita la conexión firmada (v1r) con la puerta de enlace."
     }
   },
   "services": {

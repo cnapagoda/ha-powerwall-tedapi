@@ -502,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Surveillance tempête"
+      },
+      "solar_curtailment": {
+        "name": "Écrêtement solaire sur réseau (expérimental)"
       }
     },
     "event": {
@@ -584,6 +587,9 @@
     },
     "target_reached": {
       "message": "La batterie est déjà à {soc} %, au-delà de la cible de {target} %."
+    },
+    "curtailment_needs_v1r": {
+      "message": "L'écrêtement solaire nécessite la connexion signée (v1r) à la passerelle."
     }
   },
   "services": {

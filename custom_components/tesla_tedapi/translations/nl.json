@@ -502,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Storm Watch"
+      },
+      "solar_curtailment": {
+        "name": "Zonnestroombegrenzing op het net (experimenteel)"
       }
     },
     "event": {
@@ -584,6 +587,9 @@
     },
     "target_reached": {
       "message": "De batterij staat al op {soc}%, voorbij het doel van {target}%."
+    },
+    "curtailment_needs_v1r": {
+      "message": "Zonnestroombegrenzing heeft de ondertekende (v1r) verbinding met de gateway nodig."
     }
   },
   "services": {

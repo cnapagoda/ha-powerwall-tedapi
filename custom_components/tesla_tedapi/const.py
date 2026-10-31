@@ -84,6 +84,8 @@ DROPPABLE_SETTINGS = {
     "grid_export": ("customer_preferred_export_rule", "battery_ok"),
     "grid_charging": ("disallow_charge_from_grid_with_solar_installed", True),
 }
+# Experimental: Tesla's on-grid solar curtailment flag in the gateway's site_info.
+SOLAR_CURTAILMENT_KEY = "on_grid_solar_curtailment_enabled"
 # A restore of each setting is written at most this often.
 RESTORE_MIN_SECONDS = 120
 

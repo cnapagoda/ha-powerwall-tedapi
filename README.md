@@ -521,6 +521,8 @@ After you change a setting, the integration reads the Powerwall again straight a
 
 - **Charge from the grid when power is cheap or free.** Set the operation mode, backup reserve and grid charging from your tariff (for example Amber prices or a free-power window), and switch back afterwards. See [`examples/automations.yaml`](examples/automations.yaml).
 - **Export on a price spike.** Use [`dispatch_battery_power`](#tesla_tedapidispatch_battery_power) to discharge at a set power while the price is high, and stop when it falls.
+- **Negative feed-in prices.** With solar on the Powerwall 3's own inputs, set **Grid export** to *never*: the Powerwall then limits its solar instead of exporting. A separate solar inverter has to be limited through its own integration.
+- **Experimental: On-grid solar curtailment.** A switch (disabled by default, signed connection only) for Tesla's `on_grid_solar_curtailment_enabled` flag in the gateway's config. Tesla doesn't document what it does, and it has not been tested on a real Powerwall: enable it only to experiment, and watch the solar output.
 - **Keep the settings you chose.** The [dropped settings](#dropped-settings) restore keeps your export rule and grid charging in place, even when the Powerwall drops them.
 - **Get ready for a storm.** Turn on **Storm Watch**, or start a [max backup](#tesla_tedapistart_max_backup) to charge to full and hold it.
 - **Test your backup.** [Go off-grid](#tesla_tedapigo_off_grid) for a few minutes, with a battery floor, to see that the house runs on the Powerwall.

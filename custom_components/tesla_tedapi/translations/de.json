@@ -502,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Sturmwarnung"
+      },
+      "solar_curtailment": {
+        "name": "Solarabregelung am Netz (experimentell)"
       }
     },
     "event": {
@@ -584,6 +587,9 @@
     },
     "target_reached": {
       "message": "Der Akku steht schon bei {soc} % und damit jenseits des Ziels von {target} %."
+    },
+    "curtailment_needs_v1r": {
+      "message": "Die Solarabregelung braucht die signierte (v1r) Verbindung zum Gateway."
     }
   },
   "services": {

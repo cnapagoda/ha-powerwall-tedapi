@@ -502,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Storm Watch"
+      },
+      "solar_curtailment": {
+        "name": "On-grid solar curtailment (experimental)"
       }
     },
     "event": {
@@ -584,6 +587,9 @@
     },
     "target_reached": {
       "message": "The battery is already at {soc}%, past the target of {target}%."
+    },
+    "curtailment_needs_v1r": {
+      "message": "Solar curtailment needs the signed (v1r) connection to the gateway."
     }
   },
   "services": {

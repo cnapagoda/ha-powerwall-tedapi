@@ -502,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Storm Watch"
+      },
+      "solar_curtailment": {
+        "name": "Ograniczanie PV przy sieci (eksperymentalne)"
       }
     },
     "event": {
@@ -584,6 +587,9 @@
     },
     "target_reached": {
       "message": "Bateria ma już {soc}%, poza celem {target}%."
+    },
+    "curtailment_needs_v1r": {
+      "message": "Ograniczanie PV wymaga podpisanego (v1r) połączenia z bramą."
     }
   },
   "services": {

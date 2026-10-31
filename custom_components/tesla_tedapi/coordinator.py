@@ -61,6 +61,7 @@ from .const import (
     OWNER_EXTRAS_SECONDS,
     PASSWORD_REFUSED_POLLS,
     RESTORE_MIN_SECONDS,
+    SOLAR_CURTAILMENT_KEY,
     app_soc,
     cloud_choice,
 )
@@ -445,7 +446,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise RuntimeError("no DIN from the gateway, reconnecting")
 
         control = self._read_control(pw) if self.control_enabled else {}
-        missing = self._check_dropped(pw, control) if self.control_enabled else {}
+        site_info = self._read_site_info(pw) if self.control_enabled else None
+        missing = self._check_dropped(pw, control, site_info) if site_info is not None else {}
         soe_value = round(soe, 1) if isinstance(soe, (int, float)) else None
 
         return {
@@ -470,6 +472,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "control_source": control.get("source"),
             "control_backend": control.get("backend"),
             **{f"{key}_missing": missing.get(key, False) for key in DROPPABLE_SETTINGS},
+            # Experimental: a site_info flag the gateway keeps only while it is on.
+            "solar_curtailment": bool(site_info.get(SOLAR_CURTAILMENT_KEY)) if site_info is not None else None,
         }
 
     @staticmethod
@@ -555,13 +559,17 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if backend.name == BACKEND_OWNER:
                 self._token_expiry = None  # re-read: the refresh rewrites the file
 
-    def _check_dropped(self, pw, control: dict[str, Any]) -> dict[str, bool]:
+    @staticmethod
+    def _read_site_info(pw) -> dict[str, Any] | None:
+        """The gateway's own config ("site_info"), or None if it can't be read."""
+        try:
+            return (pw.client.tedapi.get_config() or {}).get("site_info") or {}
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _check_dropped(self, pw, control: dict[str, Any], site_info: dict[str, Any]) -> dict[str, bool]:
         """Which settings in DROPPABLE_SETTINGS are missing from the gateway's
         own config, after writing them back where possible."""
-        try:
-            site_info = (pw.client.tedapi.get_config() or {}).get("site_info") or {}
-        except Exception:  # noqa: BLE001
-            return {}
         return {key: self._check_setting(pw, control, key, site_info) for key in DROPPABLE_SETTINGS}
 
     def _check_setting(self, pw, control: dict[str, Any], key: str, site_info: dict) -> bool:
@@ -782,6 +790,25 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._write_setting("grid_export", f"Grid export set to {mode}", mode,
                             lambda pw: pw.set_grid_export(mode))
         self.wanted["grid_export"] = mode
+
+    def _set_solar_curtailment(self, enabled: bool) -> None:
+        """Experimental: Tesla's on-grid solar curtailment flag in the gateway's
+        config, over the signed connection only (no cloud equivalent). What the
+        Powerwall does with it is not documented."""
+        if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="curtailment_needs_v1r")
+        try:
+            ok = bool(self._pw.client.tedapi._write_config({f"site_info.{SOLAR_CURTAILMENT_KEY}": bool(enabled)}))  # noqa: SLF001
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Solar curtailment write error: %s", err)
+            ok = False
+        if not ok:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_failed")
+        _LOGGER.warning("On-grid solar curtailment (experimental) set to %s (local)", "on" if enabled else "off")
+
+    async def async_set_solar_curtailment(self, enabled: bool) -> None:
+        await self.hass.async_add_executor_job(self._set_solar_curtailment, enabled)
+        await self.async_request_refresh()
 
     def _set_storm_watch(self, enabled: bool) -> None:
         # Tesla's Storm Watch service is a cloud setting: no local write.

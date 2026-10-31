@@ -1,13 +1,20 @@
-"""Grid charging setting."""
+"""Grid charging, Storm Watch and (experimental) on-grid solar curtailment."""
 from __future__ import annotations
 
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
-from .entity import AddConfigEntryEntitiesCallback, TedapiCloudEntity, TedapiControlEntity, add_when_reported
+from .entity import (
+    AddConfigEntryEntitiesCallback,
+    TedapiCloudEntity,
+    TedapiControlEntity,
+    TedapiEntity,
+    add_when_reported,
+)
 
 # One setting change at a time per platform.
 PARALLEL_UPDATES = 1
@@ -21,6 +28,8 @@ async def async_setup_entry(
     coordinator = entry.runtime_data.coordinator
     if coordinator.control_enabled:
         async_add_entities([GridChargingSwitch(coordinator)])
+    if coordinator.dispatch_supported:
+        async_add_entities([SolarCurtailmentSwitch(coordinator)])
     if coordinator.cloud_enabled:
         add_when_reported(entry, coordinator, async_add_entities,
                           [("storm_watch_capable", lambda: StormWatchSwitch(coordinator))])
@@ -65,3 +74,30 @@ class StormWatchSwitch(TedapiCloudEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.async_set_storm_watch(False)
+
+
+class SolarCurtailmentSwitch(TedapiEntity, SwitchEntity):
+    """Experimental: Tesla's on-grid solar curtailment flag in the gateway's
+    config, read and written over the signed local connection. Disabled by
+    default: what the Powerwall does with it is not documented."""
+
+    _attr_translation_key = "solar_curtailment"
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, coordinator: TedapiCoordinator) -> None:
+        super().__init__(coordinator, "solar_curtailment")
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.data.get("local_ok")) and self.data.get("solar_curtailment") is not None
+
+    @property
+    def is_on(self) -> bool | None:
+        return self.data.get("solar_curtailment")
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self.coordinator.async_set_solar_curtailment(True)
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self.coordinator.async_set_solar_curtailment(False)

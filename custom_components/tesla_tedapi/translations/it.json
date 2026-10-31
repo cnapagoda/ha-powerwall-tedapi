@@ -502,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Allerta tempesta"
+      },
+      "solar_curtailment": {
+        "name": "Limitazione solare in rete (sperimentale)"
       }
     },
     "event": {
@@ -584,6 +587,9 @@
     },
     "target_reached": {
       "message": "La batteria è già al {soc}%, oltre l'obiettivo del {target}%."
+    },
+    "curtailment_needs_v1r": {
+      "message": "La limitazione solare richiede la connessione firmata (v1r) al gateway."
     }
   },
   "services": {

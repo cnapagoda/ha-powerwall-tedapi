@@ -37,6 +37,9 @@ class FakePowerwall:
     storm_capable = True
     backup_events: dict | None = None
     extra_packs: dict[str, dict] = {}
+    # on_grid_solar_curtailment_enabled: kept in site_info only while on.
+    curtailment = False
+    config_writes_ok = True
     grid = "UP"
     # Grid commands: answered by the gateway, and the contactor actually moves.
     contactor_answers = True
@@ -48,7 +51,8 @@ class FakePowerwall:
         if not cloudmode and kwargs.get("rsa_key_path") and not (kwargs.get("password") or kwargs.get("gw_pwd")):
             # pypowerwall: connect() logs this and leaves no client.
             raise ValueError("v1r mode requires password or gw_pwd")
-        self.client = SimpleNamespace(tedapi=SimpleNamespace(get_config=self._config),
+        self.client = SimpleNamespace(tedapi=SimpleNamespace(get_config=self._config,
+                                                             _write_config=self._write_config),
                                       get_site_config=self._site_config,
                                       get_site_power=self._site_power,
                                       site=SimpleNamespace(api=self._site_api),
@@ -80,7 +84,18 @@ class FakePowerwall:
             site_info["customer_preferred_export_rule"] = FakePowerwall.export_rule
         if FakePowerwall.grid_charging_disallow is not None:
             site_info["disallow_charge_from_grid_with_solar_installed"] = FakePowerwall.grid_charging_disallow
+        if FakePowerwall.curtailment:
+            site_info["on_grid_solar_curtailment_enabled"] = True
         return {"site_info": site_info, "default_real_mode": "self_consumption"}
+
+    def _write_config(self, updates):
+        """pypowerwall's signed read-modify-write of config.json."""
+        self.writes.append(("config", updates))
+        if not FakePowerwall.config_writes_ok:
+            return False
+        if "site_info.on_grid_solar_curtailment_enabled" in updates:
+            FakePowerwall.curtailment = bool(updates["site_info.on_grid_solar_curtailment_enabled"])
+        return True
 
     def _site_config(self, force=False):
         """pypowerwall cloud client: the Owner API site_info."""
@@ -257,6 +272,8 @@ def fake_powerwall():
     FakePowerwall.storm_capable = True
     FakePowerwall.backup_events = {"manual_backup": None, "backup_events": []}
     FakePowerwall.extra_packs = {}
+    FakePowerwall.curtailment = False
+    FakePowerwall.config_writes_ok = True
     FakePowerwall.grid = "UP"
     FakePowerwall.contactor_answers = True
     FakePowerwall.contactor_moves = True
