@@ -427,6 +427,26 @@
       },
       "fan_speed": {
         "name": "Fan {fan} speed"
+      },
+      "last_grid_outage": {
+        "name": "Last grid outage",
+        "state_attributes": {
+          "ended": {
+            "name": "Ended"
+          },
+          "ongoing": {
+            "name": "Ongoing"
+          }
+        }
+      },
+      "last_grid_outage_duration": {
+        "name": "Last grid outage duration"
+      },
+      "grid_outages_month": {
+        "name": "Grid outages this month"
+      },
+      "grid_outage_time_month": {
+        "name": "Grid outage time this month"
       }
     },
     "switch": {

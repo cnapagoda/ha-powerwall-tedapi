@@ -56,8 +56,16 @@ class OffGridSession:
         self._store = off_grid_store(hass, coordinator.config_entry.entry_id)
         self._unsubs: list[CALLBACK_TYPE] = []
         self._busy = False
+        # Set from the go off-grid command until the run is saved, so a poll in
+        # between doesn't count the switch as a grid outage.
+        self.starting = False
         self._retry_at: float | None = None
         self._issue = False
+
+    @property
+    def intentional(self) -> bool:
+        """An off-grid run started here is on (or being started)."""
+        return self.starting or self.state is not None
 
     @property
     def _issue_id(self) -> str:
@@ -104,8 +112,12 @@ class OffGridSession:
                 translation_placeholders={"soc": str(soc), "limit": str(min_soc)},
             )
 
-        result = await self.coordinator.async_send_island(True)
-        status = await self._async_wait(lambda s: s != "UP")
+        self.starting = True
+        try:
+            result = await self.coordinator.async_send_island(True)
+            status = await self._async_wait(lambda s: s != "UP")
+        finally:
+            self.starting = False
         if status is None:
             # Take the request back, so the contactor doesn't open later on.
             try:

@@ -427,6 +427,26 @@
       },
       "fan_speed": {
         "name": "Velocidad del ventilador {fan}"
+      },
+      "last_grid_outage": {
+        "name": "Último corte de red",
+        "state_attributes": {
+          "ended": {
+            "name": "Terminado"
+          },
+          "ongoing": {
+            "name": "En curso"
+          }
+        }
+      },
+      "last_grid_outage_duration": {
+        "name": "Duración del último corte de red"
+      },
+      "grid_outages_month": {
+        "name": "Cortes de red este mes"
+      },
+      "grid_outage_time_month": {
+        "name": "Tiempo de cortes de red este mes"
       }
     },
     "switch": {

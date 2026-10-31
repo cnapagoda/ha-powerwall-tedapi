@@ -6,6 +6,7 @@ backup: a Tesla account linked here (Owner API), the Tesla Fleet integration's
 sign-in (Fleet API), or both in the chosen order."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
@@ -53,6 +54,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     DROPPABLE_SETTINGS,
+    EVENT_GRID_OUTAGE,
     KEY_REFUSED_POLLS,
     MODE_V1R,
     OWNER_EXTRAS_SECONDS,
@@ -62,6 +64,7 @@ from .const import (
     cloud_choice,
 )
 from .fleet import FleetBackup, FleetTimeout, fleet_starting
+from .outages import OutageTracker
 
 if TYPE_CHECKING:
     from .dispatch import DispatchSession
@@ -281,6 +284,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._restore_at: dict[str, float] = {}
         # Cloud writes waiting to show up in the readings, by setting.
         self.cloud_writes: dict[str, CloudWrite] = {}
+        self.outages = OutageTracker()
+        # True while an off-grid run started here is on (set up in __init__).
+        self.intentional_off_grid: Callable[[], bool] = lambda: False
         self._write_issues: set[str] = set()
         # Consecutive polls where the gateway refused the password or the key.
         self._password_refused = 0
@@ -902,11 +908,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.wanted["grid_export"] = stored.get("export_wanted")
         self.wanted["grid_charging"] = stored.get("grid_charging_wanted")
         self.alerts.restore(stored.get("alerts") or {})
+        self.outages.restore(stored.get("outages") or {})
 
     def _state_to_save(self) -> dict[str, Any]:
         return {"export_wanted": self.wanted["grid_export"],
                 "grid_charging_wanted": self.wanted["grid_charging"],
-                "alerts": self.alerts.as_dict()}
+                "alerts": self.alerts.as_dict(),
+                "outages": self.outages.as_dict()}
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -947,6 +955,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self.hass.async_add_executor_job(self._check_cloud, due)
         data["cloud_extras"] = await self.hass.async_add_executor_job(self._cloud_extras) if self.backends else {}
         self._process_alerts(data)
+        self._track_outages(data)
         self._check_cloud_writes(data)
         self._sync_cloud_issue()
         for key in DROPPABLE_SETTINGS:
@@ -955,6 +964,24 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data["health"] = await self._async_health(data)
         self._store.async_delay_save(self._state_to_save, 10)
         return data
+
+    def _track_outages(self, data: dict[str, Any]) -> None:
+        """Only the gateway's own readings count: unreachable is not an outage."""
+        now = dt_util.utcnow()
+        if data.get("local_ok"):
+            change = self.outages.update(data.get("grid_status"), now, self.intentional_off_grid())
+            if change is not None:
+                if change.phase == "started":
+                    _LOGGER.warning("Grid outage: the Powerwall reports the grid %s", data.get("grid_status"))
+                else:
+                    _LOGGER.warning("Grid back after an outage of %.0f minutes", change.duration_seconds / 60)
+                self.hass.bus.async_fire(EVENT_GRID_OUTAGE, {
+                    "config_entry_id": self.config_entry.entry_id,
+                    "phase": change.phase,
+                    "start": change.start.isoformat(),
+                    "duration_seconds": change.duration_seconds,
+                })
+        data["outages"] = self.outages.summary(now)
 
     def _check_cloud_writes(self, data: dict[str, Any]) -> None:
         """Compare cloud changes with the readings once Tesla had time to

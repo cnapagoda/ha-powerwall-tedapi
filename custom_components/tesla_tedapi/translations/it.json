@@ -427,6 +427,26 @@
       },
       "fan_speed": {
         "name": "Velocità ventola {fan}"
+      },
+      "last_grid_outage": {
+        "name": "Ultima interruzione di rete",
+        "state_attributes": {
+          "ended": {
+            "name": "Terminata"
+          },
+          "ongoing": {
+            "name": "In corso"
+          }
+        }
+      },
+      "last_grid_outage_duration": {
+        "name": "Durata dell'ultima interruzione di rete"
+      },
+      "grid_outages_month": {
+        "name": "Interruzioni di rete questo mese"
+      },
+      "grid_outage_time_month": {
+        "name": "Tempo di interruzione di rete questo mese"
       }
     },
     "switch": {

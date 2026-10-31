@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -28,6 +29,7 @@ from homeassistant.core import HomeAssistant, callback
 from .alerts import LEVELS
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
+from .outages import month_start
 
 # Coordinator-based: no limit on parallel updates.
 PARALLEL_UPDATES = 0
@@ -40,7 +42,25 @@ NOMINAL_PACK_KWH = 13.5
 class TedapiSensorEntityDescription(SensorEntityDescription):
     value_fn: Callable[[dict[str, Any]], Any]
     attrs_fn: Callable[[dict[str, Any]], dict[str, Any] | None] | None = None
+    last_reset_fn: Callable[[dict[str, Any]], datetime | None] | None = None
     always_available: bool = False
+
+
+def _outages(d: dict[str, Any]) -> dict[str, Any]:
+    return d.get("outages") or {}
+
+
+def _minutes(seconds: float | None) -> float | None:
+    return round(seconds / 60, 1) if isinstance(seconds, (int, float)) else None
+
+
+def _iso(value: datetime | None) -> str | None:
+    return value.isoformat() if value else None
+
+
+def _month_start(d: dict[str, Any]) -> datetime | None:
+    month = _outages(d).get("month")
+    return month_start(month) if month else None
 
 
 def _health(d: dict[str, Any]) -> float | None:
@@ -276,6 +296,43 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
         value_fn=lambda d: "v1r" if d.get("tedapi_mode") == "v1r" else ("wifi" if d.get("tedapi_mode") else None),
     ),
+    # Grid outages (kept while the gateway is unreachable; counts per month)
+    TedapiSensorEntityDescription(
+        key="last_grid_outage",
+        translation_key="last_grid_outage",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        always_available=True,
+        value_fn=lambda d: _outages(d).get("last_start"),
+        attrs_fn=lambda d: {"ended": _iso(_outages(d).get("last_end")), "ongoing": _outages(d).get("ongoing")},
+    ),
+    TedapiSensorEntityDescription(
+        key="last_grid_outage_duration",
+        translation_key="last_grid_outage_duration",
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
+        suggested_display_precision=0,
+        always_available=True,
+        value_fn=lambda d: _minutes(_outages(d).get("last_duration")),
+    ),
+    TedapiSensorEntityDescription(
+        key="grid_outages_month",
+        translation_key="grid_outages_month",
+        state_class=SensorStateClass.TOTAL,
+        always_available=True,
+        value_fn=lambda d: _outages(d).get("month_count"),
+        last_reset_fn=_month_start,
+    ),
+    TedapiSensorEntityDescription(
+        key="grid_outage_time_month",
+        translation_key="grid_outage_time_month",
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=0,
+        always_available=True,
+        value_fn=lambda d: _minutes(_outages(d).get("month_seconds")),
+        last_reset_fn=_month_start,
+    ),
 )
 
 
@@ -444,6 +501,12 @@ class TedapiSensor(TedapiEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         return self.entity_description.value_fn(self.data)
+
+    @property
+    def last_reset(self) -> datetime | None:
+        if self.entity_description.last_reset_fn and self.data:
+            return self.entity_description.last_reset_fn(self.data)
+        return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:

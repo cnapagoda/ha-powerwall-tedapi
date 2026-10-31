@@ -427,6 +427,26 @@
       },
       "fan_speed": {
         "name": "Obroty wentylatora {fan}"
+      },
+      "last_grid_outage": {
+        "name": "Ostatnia awaria sieci",
+        "state_attributes": {
+          "ended": {
+            "name": "Zakończona"
+          },
+          "ongoing": {
+            "name": "Trwa"
+          }
+        }
+      },
+      "last_grid_outage_duration": {
+        "name": "Czas ostatniej awarii sieci"
+      },
+      "grid_outages_month": {
+        "name": "Awarie sieci w tym miesiącu"
+      },
+      "grid_outage_time_month": {
+        "name": "Czas awarii sieci w tym miesiącu"
       }
     },
     "switch": {

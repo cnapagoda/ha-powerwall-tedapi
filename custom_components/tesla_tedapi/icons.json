@@ -155,6 +155,18 @@
       },
       "fan_speed": {
         "default": "mdi:fan"
+      },
+      "last_grid_outage": {
+        "default": "mdi:transmission-tower-off"
+      },
+      "last_grid_outage_duration": {
+        "default": "mdi:timer-outline"
+      },
+      "grid_outages_month": {
+        "default": "mdi:counter"
+      },
+      "grid_outage_time_month": {
+        "default": "mdi:timer-sand"
       }
     },
     "switch": {

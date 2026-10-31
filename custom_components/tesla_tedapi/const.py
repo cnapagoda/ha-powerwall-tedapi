@@ -140,6 +140,8 @@ CONTACTOR_POLL_SECONDS = 5
 # An automatic reconnect that fails is tried again this often.
 RECONNECT_RETRY_SECONDS = 60
 EVENT_OFF_GRID_ENDED = f"{DOMAIN}_off_grid_ended"
+# A grid outage started or ended (not an off-grid run started here).
+EVENT_GRID_OUTAGE = f"{DOMAIN}_grid_outage"
 
 SERVICE_DISPATCH = "dispatch_battery_power"
 SERVICE_RESUME = "resume_battery_operation"

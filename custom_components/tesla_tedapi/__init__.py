@@ -221,8 +221,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         dispatch=DispatchSession(hass, coordinator) if coordinator.dispatch_supported else None,
         off_grid=OffGridSession(hass, coordinator) if coordinator.dispatch_supported else None,
     )
-    if entry.runtime_data.off_grid is not None:
-        await entry.runtime_data.off_grid.async_load()
+    if (off_grid := entry.runtime_data.off_grid) is not None:
+        await off_grid.async_load()
+        coordinator.intentional_off_grid = lambda: off_grid.intentional
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     _LOGGER.debug("Powerwall %s loaded (firmware %s, %s, settings %s)",

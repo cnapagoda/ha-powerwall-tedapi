@@ -427,6 +427,26 @@
       },
       "fan_speed": {
         "name": "Lüfter {fan} Drehzahl"
+      },
+      "last_grid_outage": {
+        "name": "Letzter Netzausfall",
+        "state_attributes": {
+          "ended": {
+            "name": "Beendet"
+          },
+          "ongoing": {
+            "name": "Läuft"
+          }
+        }
+      },
+      "last_grid_outage_duration": {
+        "name": "Dauer des letzten Netzausfalls"
+      },
+      "grid_outages_month": {
+        "name": "Netzausfälle diesen Monat"
+      },
+      "grid_outage_time_month": {
+        "name": "Netzausfallzeit diesen Monat"
       }
     },
     "switch": {

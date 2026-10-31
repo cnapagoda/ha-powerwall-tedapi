@@ -427,6 +427,26 @@
       },
       "fan_speed": {
         "name": "Ventilator {fan} toerental"
+      },
+      "last_grid_outage": {
+        "name": "Laatste netstoring",
+        "state_attributes": {
+          "ended": {
+            "name": "Beëindigd"
+          },
+          "ongoing": {
+            "name": "Bezig"
+          }
+        }
+      },
+      "last_grid_outage_duration": {
+        "name": "Duur laatste netstoring"
+      },
+      "grid_outages_month": {
+        "name": "Netstoringen deze maand"
+      },
+      "grid_outage_time_month": {
+        "name": "Duur netstoringen deze maand"
       }
     },
     "switch": {
