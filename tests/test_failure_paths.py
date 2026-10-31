@@ -68,7 +68,8 @@ async def test_restore_that_fails_is_logged(hass: HomeAssistant, fake_powerwall,
     with patch.object(FakePowerwall, "set_grid_export", setter), caplog.at_level(logging.WARNING):
         await entry.runtime_data.coordinator.async_refresh()
         await hass.async_block_till_done()
-    assert "dropped its grid export setting; restoring pv_only failed" in caplog.text
+    assert any(r.levelno == logging.WARNING and "restoring pv_only failed" in r.getMessage()
+               for r in caplog.records)
     state = hass.states.get(_eid(hass, "select", "grid_export"))
     assert state.state == "pv_only"
     assert state.attributes["restored_count"] == 0
@@ -114,3 +115,17 @@ async def test_no_password_counts_as_password_problem(hass: HomeAssistant, fake_
     coordinator = entry.runtime_data.coordinator
     coordinator._gw_pwd = ""
     assert coordinator._classify_failure() == "password"
+
+
+async def test_successful_restore_is_info_not_warning(hass: HomeAssistant, fake_powerwall, caplog) -> None:
+    """The hourly drop is normal: a successful restore logs at INFO only."""
+    entry = await _setup(hass, V1R)
+    fake_powerwall.export_rule = None
+    with caplog.at_level(logging.DEBUG, logger="custom_components.tesla_tedapi"):
+        await entry.runtime_data.coordinator.async_refresh()
+        await hass.async_block_till_done()
+    restored = [r for r in caplog.records if "restored it to pv_only" in r.getMessage()]
+    assert restored and all(r.levelno == logging.INFO for r in restored)
+    assert not [r for r in caplog.records
+                if r.levelno >= logging.WARNING and r.name.startswith("custom_components.tesla_tedapi")]
+    assert hass.states.get(_eid(hass, "select", "grid_export")).attributes["restored_count"] == 1

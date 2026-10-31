@@ -468,7 +468,7 @@ The Powerwall sometimes drops two settings from its own configuration: the grid 
 The integration reads the gateway's own settings on every poll. When a value you set (or the one the cloud has) is missing:
 
 - **Grid export mode** or **Grid charging** keeps showing your value, with `missing_on_powerwall: true`.
-- Over a signed connection the value is written back (at most every 2 minutes) and logged as a warning; `restored_count` and `last_restored` record it.
+- Over a signed connection the value is written back (at most every 2 minutes) and logged at info level (a warning only if writing it back fails); `restored_count` and `last_restored` record it.
 
 Turn this off with **Restore settings when the Powerwall drops them** if another app is meant to manage these settings. A value that is the same as Tesla's default is left alone.
 

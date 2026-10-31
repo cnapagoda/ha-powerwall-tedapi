@@ -606,7 +606,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if ok:
                 self.restores[key] += 1
                 self.last_restored[key] = dt_util.utcnow()
-                _LOGGER.warning("The Powerwall dropped its %s setting; restored it to %s", name, wanted)
+                # Normal: the gateway drops these about hourly. Only a failed
+                # restore is worth a warning.
+                _LOGGER.info("The Powerwall dropped its %s setting; restored it to %s", name, wanted)
                 return False
             _LOGGER.warning("The Powerwall dropped its %s setting; restoring %s failed", name, wanted)
         return True

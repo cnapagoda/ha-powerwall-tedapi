@@ -3,6 +3,7 @@
 ## 2.4.2
 
 - **charge_to / discharge_to** stop on the reading that reaches the target, instead of at the next 60-second renewal.
+- The hourly restore of a dropped export rule or grid-charging setting is logged at info level; a warning only when the restore fails.
 
 ## 2.4.1
 
