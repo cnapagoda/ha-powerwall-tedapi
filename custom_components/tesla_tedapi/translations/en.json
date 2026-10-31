@@ -189,14 +189,16 @@
           "status_alert_events": "Alert events for status alerts too",
           "problem_minutes": "Problem delay",
           "dispatch_floor_reserve": "Discharges stop at the backup reserve",
-          "dispatch_max_watts": "Largest dispatch power"
+          "dispatch_max_watts": "Largest dispatch power",
+          "tesla_tariff": "Tesla tariff (cloud)"
         },
         "data_description": {
           "restore_export": "The Powerwall sometimes loses its grid export rule and its grid charging setting from its own settings (seen hourly on a Powerwall 3); grid charging then turns on. When on, the setting you chose is written back within a minute or two (signed connection only).",
           "status_alert_events": "Status alerts such as \"Export limited\" describe normal operation and some come and go every few minutes; by default only notices, warnings and faults create Alert events.",
           "problem_minutes": "How long a warning or fault must last before the Problem sensor turns on and a repair is raised.",
           "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",
-          "dispatch_max_watts": "Dispatch calls above this power are refused."
+          "dispatch_max_watts": "Dispatch calls above this power are refused.",
+          "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensor and get/set tariff actions). Cloud only."
         }
       },
       "cloud_backup": {
@@ -494,6 +496,9 @@
             "name": "Over-discharges"
           }
         }
+      },
+      "tesla_tariff": {
+        "name": "Tesla tariff"
       }
     },
     "switch": {
@@ -590,6 +595,33 @@
     },
     "curtailment_needs_v1r": {
       "message": "Solar curtailment needs the signed (v1r) connection to the gateway."
+    },
+    "tariff_needs_cloud": {
+      "message": "The Tesla tariff needs a cloud backup (Owner API or Tesla Fleet)."
+    },
+    "tariff_read_failed": {
+      "message": "Could not read the Tesla tariff: {errors}"
+    },
+    "tariff_write_failed": {
+      "message": "Tesla did not accept the tariff: {errors}"
+    },
+    "tariff_invalid": {
+      "message": "These time-of-use settings can't be sent: {errors}"
+    },
+    "tariff_disabled": {
+      "message": "Turn on the Tesla tariff option first (it needs a cloud backup)."
+    },
+    "history_no_source": {
+      "message": "No Tesla Fleet or Teslemetry sensor found for {sensor}; choose it with the source fields."
+    },
+    "history_no_target": {
+      "message": "This Powerwall has no battery energy statistics yet ({sensor}); try again after a few hours."
+    },
+    "history_nothing_to_import": {
+      "message": "{sensor} has no history before this Powerwall's own."
+    },
+    "history_already_imported": {
+      "message": "{sensor} already has history from that time: it was imported before."
     }
   },
   "services": {
@@ -728,6 +760,56 @@
           "description": "Only needed when more than one Powerwall is set up."
         }
       }
+    },
+    "get_tariff": {
+      "name": "Get Tesla tariff",
+      "description": "Read the tariff Tesla uses for Time-Based Control from the cloud backup, as raw JSON.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        }
+      }
+    },
+    "set_tariff": {
+      "name": "Set Tesla tariff",
+      "description": "Send time-of-use settings to Tesla through the cloud backup. They change how Time-Based Control charges and discharges.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "tou_settings": {
+          "name": "Time-of-use settings",
+          "description": "Tesla's write format: an object with tariff_content_v2 (not the format get_tariff returns; see the wiki)."
+        },
+        "dry_run": {
+          "name": "Dry run",
+          "description": "Only check the settings and show what would be sent (on by default)."
+        }
+      }
+    },
+    "import_battery_history": {
+      "name": "Import battery history",
+      "description": "One-off: copy Tesla Fleet or Teslemetry's battery charged and discharged history into this Powerwall's battery energy statistics, for the time before their own history starts.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "dry_run": {
+          "name": "Dry run",
+          "description": "Only show what would be imported (on by default)."
+        },
+        "source_charged": {
+          "name": "Charged source",
+          "description": "Optional: the cloud sensor to copy charged energy from, if it isn't found automatically."
+        },
+        "source_discharged": {
+          "name": "Discharged source",
+          "description": "Optional: the cloud sensor to copy discharged energy from, if it isn't found automatically."
+        }
+      }
     }
   },
   "issues": {
@@ -793,6 +875,10 @@
     "firmware_signed_access": {
       "title": "Signed local access stopped after a firmware update",
       "description": "The Powerwall was updated from firmware {previous} to {version}, and it no longer answers the signed local connection. Tesla can change local access with an update.\n\nReadings are unavailable; settings use the cloud backup if one is set up. This clears by itself when signed access works again. If it lasts, check for an update of this integration, or register the key again (**Configure → Register a new signed key**)."
+    },
+    "tariff_write_mismatch": {
+      "title": "Tesla stored a different tariff",
+      "description": "The tariff was sent through {backend}, but the rates Tesla returns differ from the ones sent. Check the tariff in the Tesla app; this notice clears after the next tariff write that matches."
     }
   },
   "selector": {

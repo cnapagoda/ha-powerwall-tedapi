@@ -6,6 +6,7 @@ pypowerwall's PVAC_*_A..F field names, and an unset export rule in the gateway
 config reads as "battery_ok"."""
 from __future__ import annotations
 
+import copy
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
@@ -13,6 +14,24 @@ from unittest.mock import patch
 import pytest
 
 DIN = "1707000-11-J--TG0123456789AB"
+
+# A Tesla tariff as get_tariff returns it (read format, "v1"): free 11-14,
+# peak 16-23, shoulder otherwise; 2c feed-in at peak.
+TARIFF = {
+    "name": "ZeroHero", "utility": "GloBird", "code": "GB-ZH",
+    "seasons": {"Year": {"fromMonth": 1, "toMonth": 12, "fromDay": 1, "toDay": 31, "tou_periods": {
+        "OFF_PEAK": [{"fromDayOfWeek": 0, "toDayOfWeek": 6, "fromHour": 11, "fromMinute": 0,
+                      "toHour": 14, "toMinute": 0}],
+        "ON_PEAK": [{"fromDayOfWeek": 0, "toDayOfWeek": 6, "fromHour": 16, "fromMinute": 0,
+                     "toHour": 23, "toMinute": 0}],
+        "PARTIAL_PEAK": [{"fromDayOfWeek": 0, "toDayOfWeek": 6, "fromHour": 23, "fromMinute": 0,
+                          "toHour": 11, "toMinute": 0},
+                         {"fromDayOfWeek": 0, "toDayOfWeek": 6, "fromHour": 14, "fromMinute": 0,
+                          "toHour": 16, "toMinute": 0}]}}},
+    "energy_charges": {"ALL": {"ALL": 0}, "Year": {"OFF_PEAK": 0.0, "ON_PEAK": 0.583, "PARTIAL_PEAK": 0.44}},
+    "sell_tariff": {"energy_charges": {"ALL": {"ALL": 0},
+                                       "Year": {"OFF_PEAK": 0.0, "ON_PEAK": 0.02, "PARTIAL_PEAK": 0.0}}},
+}
 
 
 class FakePowerwall:
@@ -44,6 +63,11 @@ class FakePowerwall:
     # Grid commands: answered by the gateway, and the contactor actually moves.
     contactor_answers = True
     contactor_moves = True
+    # Cloud tariff: what get_tariff returns; tariff_applied (if set) is what
+    # Tesla stores after a write instead of the written tariff.
+    tariff: dict | None = None
+    tariff_applied: dict | None = None
+    tariff_writes_ok = True
 
     def __init__(self, host: str = "", cloudmode: bool = False, **kwargs: Any) -> None:
         self.kwargs = {"host": host, "cloudmode": cloudmode, **kwargs}
@@ -206,6 +230,21 @@ class FakePowerwall:
             return None if self._cloud_down() else self.settings["grid_export"]
         return FakePowerwall.export_rule or "battery_ok"
 
+    def get_tariff(self, force=False):
+        if self.mode != "cloud":
+            return {}  # pypowerwall's TEDAPI mock
+        if FakePowerwall.cloud_reads_fail:
+            return None
+        import copy  # noqa: PLC0415
+        return copy.deepcopy(FakePowerwall.tariff)
+
+    def set_tariff(self, tou_settings, jsonformat=False):
+        self.writes.append(("tariff", tou_settings))
+        if self.mode != "cloud" or not FakePowerwall.tariff_writes_ok:
+            return None
+        FakePowerwall.tariff = FakePowerwall.tariff_applied or tou_settings["tariff_content_v2"]
+        return {"Message": "Updated", "Code": 201}
+
     # writes
     def set_mode(self, mode):
         self.writes.append(("mode", mode))
@@ -277,6 +316,9 @@ def fake_powerwall():
     FakePowerwall.grid = "UP"
     FakePowerwall.contactor_answers = True
     FakePowerwall.contactor_moves = True
+    FakePowerwall.tariff = copy.deepcopy(TARIFF)
+    FakePowerwall.tariff_applied = None
+    FakePowerwall.tariff_writes_ok = True
     with patch("pypowerwall.Powerwall", FakePowerwall):
         yield FakePowerwall
 

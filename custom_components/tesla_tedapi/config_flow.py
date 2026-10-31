@@ -50,6 +50,7 @@ from .const import (
     BACKEND_FLEET,
     BACKEND_OWNER,
     CLOUD_CHOICES,
+    CLOUD_NONE,
     CLOUD_WITH_OWNER,
     CLOUD_WITHOUT_FLEET,
     CLOUD_WITHOUT_OWNER,
@@ -67,6 +68,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SITE_ID,
     CONF_STATUS_EVENTS,
+    CONF_TESLA_TARIFF,
     CONF_WIFI_HOST,
     DEFAULT_HOST_WIFI,
     DEFAULT_PROBLEM_MINUTES,
@@ -780,6 +782,9 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                 vol.Required(CONF_DISPATCH_MAX_WATTS, default=opts.get(
                     CONF_DISPATCH_MAX_WATTS, DISPATCH_MAX_WATTS)): vol.All(
                         box(100, DISPATCH_MAX_WATTS, 100, "W"), vol.Coerce(int)),
+                # Tesla tariff (cloud only): offered once a cloud backup is set up.
+                **({vol.Required(CONF_TESLA_TARIFF, default=opts.get(CONF_TESLA_TARIFF, False)): bool}
+                   if cloud_choice(self.config_entry.data, opts) != CLOUD_NONE else {}),
             }),
         )
 

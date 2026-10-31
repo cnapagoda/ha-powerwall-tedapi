@@ -159,3 +159,12 @@ class OwnerSettings:
     def set_off_grid_reserve(self, percent: int) -> Any:
         return self._site_command("OFF_GRID_VEHICLE_CHARGING_RESERVE",
                                   off_grid_vehicle_charging_reserve_percent=int(percent))
+
+    def get_tariff(self) -> dict[str, Any] | None:
+        """The site's tariff from the Owner API (Tesla's SITE_TARIFF)."""
+        tariff = self._pw.get_tariff(force=True)
+        return tariff if isinstance(tariff, dict) and tariff else None
+
+    def set_tariff(self, tou_settings: dict[str, Any]) -> Any:
+        """Write time-of-use settings ({"tariff_content_v2": ...}); None on failure."""
+        return self._pw.set_tariff(tou_settings)

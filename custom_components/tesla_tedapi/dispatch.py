@@ -173,6 +173,9 @@ class DispatchSession:
             async_track_time_interval(self.hass, self._async_tick,
                                       timedelta(seconds=DISPATCH_RENEW_SECONDS)),
             async_track_point_in_utc_time(self.hass, self._async_at_end, state.ends),
+            # Check the SOC limit on every reading too, not just at renewals,
+            # so a target stops on the reading that reaches it.
+            self.coordinator.async_add_listener(self._on_reading),
         ]
         _LOGGER.warning("Battery dispatch started: %s W until %s. A dispatch overrides the backup "
                         "reserve and export setting and may affect the Powerwall warranty; use at "
@@ -254,16 +257,28 @@ class DispatchSession:
         if self.state is not None:
             await self._async_resume_quietly("completed")
 
+    @callback
+    def _on_reading(self) -> None:
+        state = self.state
+        if state is not None and self._limit_hit(state):
+            self.hass.async_create_task(self._async_stop_at_limit(state))
+
+    async def _async_stop_at_limit(self, state: DispatchState) -> bool:
+        """End the session if the SOC limit is reached; True if it ended."""
+        if self.state is not state:
+            return False  # already ended (tick and reading can both see it)
+        reason = self._limit_hit(state)
+        if not reason:
+            return False
+        _LOGGER.info("Battery dispatch stopped: %s limit reached", reason)
+        await self._async_resume_quietly("target_reached" if state.target else reason)
+        return True
+
     async def _async_tick(self, _now: datetime) -> None:
         state = self.state
         if state is None:
             return
-        reason = self._limit_hit(state)
-        if reason:
-            _LOGGER.info("Battery dispatch stopped: %s limit reached", reason)
-            if state.target:
-                reason = "target_reached"
-            await self._async_resume_quietly(reason)
+        if await self._async_stop_at_limit(state):
             return
         if (state.ends - dt_util.utcnow()).total_seconds() < 1:
             return  # the end timer handles it

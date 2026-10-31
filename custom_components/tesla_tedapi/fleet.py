@@ -197,6 +197,28 @@ class FleetBackup:
             raise FleetTimeout("Tesla did not answer in time") from err
         return result if isinstance(result, dict) and result else {"ok": True}
 
+    def _read(self, call: Callable[[Any], Any]) -> Any:
+        """Run an API read on the event loop (no command scope needed)."""
+        _, site = self._site()
+        future = asyncio.run_coroutine_threadsafe(call(site.api), self._hass.loop)
+        try:
+            return future.result(CALL_TIMEOUT)
+        except TimeoutError as err:
+            future.cancel()
+            raise FleetTimeout("Tesla did not answer in time") from err
+
+    def get_tariff(self) -> dict[str, Any] | None:
+        """The site's tariff from site_info (tariff_content, else tariff_content_v2)."""
+        resp = self._read(lambda api: api.site_info())
+        info = (resp or {}).get("response") if isinstance(resp, dict) else None
+        if not isinstance(info, dict):
+            return None
+        tariff = info.get("tariff_content") or info.get("tariff_content_v2")
+        return tariff if isinstance(tariff, dict) and tariff else None
+
+    def set_tariff(self, tou_settings: dict[str, Any]) -> dict[str, Any]:
+        return self._command(lambda api: api.time_of_use_settings(tou_settings))
+
     def set_mode(self, mode: str) -> dict[str, Any]:
         return self._command(lambda api: api.operation(mode))
 

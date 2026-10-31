@@ -189,14 +189,16 @@
           "status_alert_events": "Alarm-Ereignisse auch für Statusmeldungen",
           "problem_minutes": "Problem-Verzögerung",
           "dispatch_floor_reserve": "Entladungen stoppen bei der Backup-Reserve",
-          "dispatch_max_watts": "Größte Dispatch-Leistung"
+          "dispatch_max_watts": "Größte Dispatch-Leistung",
+          "tesla_tariff": "Tesla-Tarif (Cloud)"
         },
         "data_description": {
           "restore_export": "Die Powerwall verliert manchmal ihre Netzeinspeiseregel und ihre Einstellung zum Laden aus dem Netz (stündlich bei einer Powerwall 3 beobachtet); das Laden aus dem Netz schaltet sich dann ein. Wenn aktiv, wird die gewählte Einstellung innerhalb von ein bis zwei Minuten zurückgeschrieben (nur signierte Verbindung).",
           "status_alert_events": "Statusmeldungen wie \"Export limited\" beschreiben den normalen Betrieb, und manche kommen und gehen alle paar Minuten; standardmäßig erzeugen nur Hinweise, Warnungen und Fehler Alarm-Ereignisse.",
           "problem_minutes": "Wie lange eine Warnung oder ein Fehler bestehen muss, bevor der Problem-Sensor einschaltet und eine Reparatur gemeldet wird.",
           "dispatch_floor_reserve": "Eine ohne `min_soc` gestartete Entladung stoppt, wenn die Batterie die Backup-Reserve erreicht.",
-          "dispatch_max_watts": "Dispatch-Aufrufe über dieser Leistung werden abgelehnt."
+          "dispatch_max_watts": "Dispatch-Aufrufe über dieser Leistung werden abgelehnt.",
+          "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensor und Aktionen zum Lesen/Setzen). Nur Cloud."
         }
       },
       "cloud_backup": {
@@ -494,6 +496,9 @@
             "name": "Tiefentladungen"
           }
         }
+      },
+      "tesla_tariff": {
+        "name": "Tesla-Tarif"
       }
     },
     "switch": {
@@ -590,6 +595,33 @@
     },
     "curtailment_needs_v1r": {
       "message": "Die Solarabregelung braucht die signierte (v1r) Verbindung zum Gateway."
+    },
+    "tariff_needs_cloud": {
+      "message": "Der Tesla-Tarif braucht ein Cloud-Backup (Owner API oder Tesla Fleet)."
+    },
+    "tariff_read_failed": {
+      "message": "Der Tesla-Tarif konnte nicht gelesen werden: {errors}"
+    },
+    "tariff_write_failed": {
+      "message": "Tesla hat den Tarif nicht angenommen: {errors}"
+    },
+    "tariff_invalid": {
+      "message": "Diese Zeittarif-Einstellungen können nicht gesendet werden: {errors}"
+    },
+    "tariff_disabled": {
+      "message": "Schalte zuerst die Option Tesla-Tarif ein (sie braucht ein Cloud-Backup)."
+    },
+    "history_no_source": {
+      "message": "Kein Tesla-Fleet- oder Teslemetry-Sensor für {sensor} gefunden; wähle ihn in den Quellfeldern."
+    },
+    "history_no_target": {
+      "message": "Diese Powerwall hat noch keine Batterie-Energiestatistik ({sensor}); versuche es in ein paar Stunden erneut."
+    },
+    "history_nothing_to_import": {
+      "message": "{sensor} hat keinen Verlauf vor dem der Powerwall."
+    },
+    "history_already_imported": {
+      "message": "{sensor} hat bereits Verlauf aus dieser Zeit: er wurde schon importiert."
     }
   },
   "services": {
@@ -728,6 +760,56 @@
           "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
         }
       }
+    },
+    "get_tariff": {
+      "name": "Tesla-Tarif lesen",
+      "description": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, als JSON aus dem Cloud-Backup lesen.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        }
+      }
+    },
+    "set_tariff": {
+      "name": "Tesla-Tarif setzen",
+      "description": "Zeittarif-Einstellungen über das Cloud-Backup an Tesla senden. Sie ändern, wie die zeitbasierte Steuerung lädt und entlädt.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "tou_settings": {
+          "name": "Zeittarif-Einstellungen",
+          "description": "Teslas Schreibformat: ein Objekt mit tariff_content_v2 (nicht das Format von get_tariff; siehe Wiki)."
+        },
+        "dry_run": {
+          "name": "Probelauf",
+          "description": "Nur die Einstellungen prüfen und zeigen, was gesendet würde (standardmäßig an)."
+        }
+      }
+    },
+    "import_battery_history": {
+      "name": "Batterieverlauf importieren",
+      "description": "Einmalig: den Lade- und Entladeverlauf der Batterie aus Tesla Fleet oder Teslemetry in die Batterie-Energiestatistik dieser Powerwall kopieren, für die Zeit vor deren eigenem Verlauf.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "dry_run": {
+          "name": "Probelauf",
+          "description": "Nur zeigen, was importiert würde (standardmäßig an)."
+        },
+        "source_charged": {
+          "name": "Quelle geladen",
+          "description": "Optional: der Cloud-Sensor für geladene Energie, falls er nicht automatisch gefunden wird."
+        },
+        "source_discharged": {
+          "name": "Quelle entladen",
+          "description": "Optional: der Cloud-Sensor für entladene Energie, falls er nicht automatisch gefunden wird."
+        }
+      }
     }
   },
   "issues": {
@@ -793,6 +875,10 @@
     "firmware_signed_access": {
       "title": "Signierter lokaler Zugriff nach einem Firmware-Update gestoppt",
       "description": "Die Powerwall wurde von Firmware {previous} auf {version} aktualisiert und antwortet nicht mehr auf die signierte lokale Verbindung. Tesla kann den lokalen Zugriff mit einem Update ändern.\n\nMesswerte sind nicht verfügbar; Einstellungen laufen über das Cloud-Backup, falls eines eingerichtet ist. Das verschwindet von selbst, sobald der signierte Zugriff wieder funktioniert. Hält es an, prüfe, ob es ein Update dieser Integration gibt, oder registriere den Schlüssel erneut (**Konfigurieren → Neuen signierten Schlüssel registrieren**)."
+    },
+    "tariff_write_mismatch": {
+      "title": "Tesla hat einen anderen Tarif gespeichert",
+      "description": "Der Tarif wurde über {backend} gesendet, aber die von Tesla zurückgegebenen Preise weichen ab. Prüfe den Tarif in der Tesla-App; dieser Hinweis verschwindet beim nächsten passenden Tarif-Schreibvorgang."
     }
   },
   "selector": {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.4.2
+
+- **charge_to / discharge_to** stop on the reading that reaches the target, instead of at the next 60-second renewal.
+- The hourly restore of a dropped export rule or grid-charging setting is logged at info level; a warning only when the restore fails.
+- **Backup check failed** (shown for a few minutes most days when the battery fills, and after restarts) only becomes a Problem and repair after 30 minutes; it still shows in the alerts meanwhile.
+- **Tesla tariff (cloud, optional, off by default):** a sensor with the tariff Tesla uses for Time-Based Control (current period and rates), and `get_tariff` / `set_tariff` actions (dry run by default, rates read back after a write). Needs a cloud backup.
+- **`import_battery_history`:** one-off copy of Tesla Fleet or Teslemetry's earlier battery charged/discharged history into the battery energy statistics, joined seamlessly (dry run by default).
+
 ## 2.4.1
 
 - Renamed to **Tesla Powerwall TEDAPI** (HACS, the integration list, setup and notices). The device keeps its name, so entity names and ids don't change.

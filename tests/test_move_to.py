@@ -72,6 +72,47 @@ async def test_discharge_to_target(hass: HomeAssistant, fake_powerwall) -> None:
     assert ended[-1].data["reason"] == "target_reached"
 
 
+async def test_target_stops_on_the_reading(hass: HomeAssistant, fake_powerwall) -> None:
+    """The reading that reaches the target ends the session at once, without
+    waiting for the next 60 s renewal."""
+    entry = await _setup(hass, V1R)
+    ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)
+    await _call(hass, "charge_to", target_soc=80, power_watts=3000, max_minutes=120)
+    pw = local(fake_powerwall)
+
+    fake_powerwall.soe = _soe(70)
+    await _refresh(hass, entry)
+    assert not ended and pw.resumes == 0
+
+    fake_powerwall.soe = _soe(80.2)
+    await _refresh(hass, entry)
+    await hass.async_block_till_done()
+    assert pw.resumes == 1
+    assert ended[-1].data["reason"] == "target_reached"
+    assert len(ended) == 1
+    assert pw.dispatches == [(-3000.0, 300)]  # no renewal was sent
+
+    await _tick(hass, 61)  # the old renewal tick finds nothing to do
+    assert pw.resumes == 1 and len(ended) == 1
+
+
+async def test_renewal_still_catches_the_target(hass: HomeAssistant, fake_powerwall) -> None:
+    """If the level crossed the target without a listener update (data set
+    directly), the 60 s renewal tick still ends the session; a second stop
+    for the same session is ignored."""
+    entry = await _setup(hass, V1R)
+    ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)
+    await _call(hass, "discharge_to", target_soc=30, power_watts=5000, max_minutes=60)
+    coordinator = entry.runtime_data.coordinator
+    manager = entry.runtime_data.dispatch
+    session = manager.state
+    coordinator.data = {**coordinator.data, "battery_level": 29.0}  # no listener call
+    await _tick(hass, 61)
+    assert ended[-1].data["reason"] == "target_reached" and len(ended) == 1
+    assert await manager._async_stop_at_limit(session) is False  # already ended
+    assert len(ended) == 1
+
+
 async def test_time_limit_ends_it(hass: HomeAssistant, fake_powerwall) -> None:
     await _setup(hass, V1R)
     ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)

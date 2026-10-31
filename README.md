@@ -422,7 +422,7 @@ Where they appear:
 
 - **Alert level** (sensor) shows the most serious active alert: `OK` (status alerts only), `Notice`, `Warning` or `Fault`.
 - **Active alerts** (sensor) lists the active alerts as short text, most serious first, for example "Built-in solar inputs off · Connected to the grid · Firmware update succeeded".
-- **Problem** (binary sensor) turns on when a warning or fault has lasted **10 minutes or more** (option). Its `problems` attribute lists them.
+- **Problem** (binary sensor) turns on when a warning or fault has lasted **10 minutes or more** (option; at least 30 minutes for "Backup check failed", which is often brief). Its `problems` attribute lists them.
 - **Alert** (event entity) records every notice, warning or fault raised or cleared, with its description. The changes appear in the device's activity log and the logbook, and automations can trigger on them. Status alerts are left out by default because some (such as *Export limited*) come and go every few minutes; turn on **Alert events for status alerts too** to include them.
 - **Settings → Repairs** shows each lasting warning or fault with an explanation. The entry disappears when the alert clears.
 - **Alerts** (sensor) shows the number of alerts. Its `details` attribute lists each alert's severity, description, start time and source (gateway or battery pack). The gateway doesn't report when an alert started, so the start time is when Home Assistant first saw it. It is kept across restarts.
@@ -468,7 +468,7 @@ The Powerwall sometimes drops two settings from its own configuration: the grid 
 The integration reads the gateway's own settings on every poll. When a value you set (or the one the cloud has) is missing:
 
 - **Grid export mode** or **Grid charging** keeps showing your value, with `missing_on_powerwall: true`.
-- Over a signed connection the value is written back (at most every 2 minutes) and logged as a warning; `restored_count` and `last_restored` record it.
+- Over a signed connection the value is written back (at most every 2 minutes) and logged at info level (a warning only if writing it back fails); `restored_count` and `last_restored` record it.
 
 Turn this off with **Restore settings when the Powerwall drops them** if another app is meant to manage these settings. A value that is the same as Tesla's default is left alone.
 
@@ -492,6 +492,10 @@ When the local connection can't read or change a setting (the gateway is unreach
 | Token | Kept and refreshed here (`config/tesla_tedapi/.pypowerwall.auth`) | That integration's own; used, never refreshed here, so it stays signed in |
 | Cost | None | A change of setting is a command on your Tesla developer account (Tesla Fleet) or Teslemetry subscription |
 | Risk | Tesla may refuse Owner API tokens altogether one day | Tesla Fleet needs the developer app and key hosting described in path B |
+
+`tesla_tedapi.import_battery_history` copies Tesla Fleet or Teslemetry's earlier battery history into this integration's battery energy statistics (dry run by default).
+
+With a cloud backup, the optional **Tesla tariff (cloud)** setting adds a tariff sensor and `get_tariff` / `set_tariff` actions ([wiki](https://github.com/cnapagoda/ha-powerwall-tedapi/wiki/Tesla-tariff)).
 
 **Configure → Cloud backup** offers the choices that are set up: *None*, *Owner API*, *Tesla Fleet (or Teslemetry)*, *Tesla Fleet, then Owner API* and *Owner API, then Tesla Fleet*. Tesla Fleet is offered only when a loaded Tesla Fleet or Teslemetry entry has this Powerwall's site (matched by the gateway serial; a single site with no serials listed is used as well). Without a choice, a linked Tesla account is the backup, as in 2.2.
 
