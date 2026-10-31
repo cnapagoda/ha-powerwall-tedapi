@@ -364,7 +364,21 @@
         "name": "Resterende batterij-energie"
       },
       "battery_health": {
-        "name": "Batterijgezondheid"
+        "name": "Batterijgezondheid",
+        "state_attributes": {
+          "nominal_kwh_per_pack": {
+            "name": "Nominaal per batterij"
+          },
+          "packs": {
+            "name": "Batterijen"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrens"
+          },
+          "lifetime_discharged_kwh": {
+            "name": "Totale ontlading"
+          }
+        }
       },
       "backup_time_remaining": {
         "name": "Resterende back-uptijd"
@@ -455,6 +469,31 @@
       },
       "grid_outage_time_month": {
         "name": "Duur netstoringen deze maand"
+      },
+      "pack_health": {
+        "name": "{pack} conditie",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Nominale capaciteit"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrens"
+          }
+        }
+      },
+      "pack_discharged": {
+        "name": "{pack} totale ontlading"
+      },
+      "pack_cycles": {
+        "name": "{pack} cycli",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Volle cycli (batterij)"
+          },
+          "over_discharges": {
+            "name": "Diepontladingen"
+          }
+        }
       }
     },
     "switch": {

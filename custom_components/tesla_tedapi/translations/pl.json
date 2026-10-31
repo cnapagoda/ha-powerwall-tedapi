@@ -364,7 +364,21 @@
         "name": "Pozostała energia baterii"
       },
       "battery_health": {
-        "name": "Kondycja baterii"
+        "name": "Kondycja baterii",
+        "state_attributes": {
+          "nominal_kwh_per_pack": {
+            "name": "Nominalnie na baterię"
+          },
+          "packs": {
+            "name": "Baterie"
+          },
+          "warranty_kwh": {
+            "name": "Próg gwarancji"
+          },
+          "lifetime_discharged_kwh": {
+            "name": "Rozładowanie łączne"
+          }
+        }
       },
       "backup_time_remaining": {
         "name": "Pozostały czas zasilania awaryjnego"
@@ -455,6 +469,31 @@
       },
       "grid_outage_time_month": {
         "name": "Czas awarii sieci w tym miesiącu"
+      },
+      "pack_health": {
+        "name": "{pack} kondycja",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Pojemność znamionowa"
+          },
+          "warranty_kwh": {
+            "name": "Próg gwarancji"
+          }
+        }
+      },
+      "pack_discharged": {
+        "name": "{pack} rozładowanie łączne"
+      },
+      "pack_cycles": {
+        "name": "{pack} cykle",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Pełne cykle (bateria)"
+          },
+          "over_discharges": {
+            "name": "Nadmierne rozładowania"
+          }
+        }
       }
     },
     "switch": {

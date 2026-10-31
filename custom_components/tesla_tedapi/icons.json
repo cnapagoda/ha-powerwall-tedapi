@@ -167,6 +167,15 @@
       },
       "grid_outage_time_month": {
         "default": "mdi:timer-sand"
+      },
+      "pack_health": {
+        "default": "mdi:battery-heart-variant"
+      },
+      "pack_discharged": {
+        "default": "mdi:battery-arrow-down-outline"
+      },
+      "pack_cycles": {
+        "default": "mdi:battery-sync-outline"
       }
     },
     "switch": {

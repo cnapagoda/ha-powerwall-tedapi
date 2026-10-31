@@ -186,6 +186,9 @@ def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
     def temp(v):
         return round(float(v), 1) if isinstance(v, (int, float)) else None
 
+    def count(v):
+        return int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
     packs: dict[str, dict[str, Any]] = {}
     for device_key, d in (vitals or {}).items():
         if not device_key.startswith("TEPOD--") or not isinstance(d, dict):
@@ -200,6 +203,11 @@ def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
             "temp_max": temp(d.get("HVP_PackTempMax")),
             "temp_min": temp(d.get("HVP_PackTempMin")),
             "shunt_temp": temp(d.get("HVP_ShuntTemperature")),
+            # Wear (Powerwall 3, pypowerwall 0.23+): already in kWh.
+            "discharged_kwh": round(float(d["BMS_kwhDischargeTotal"]), 1)
+            if isinstance(d.get("BMS_kwhDischargeTotal"), (int, float)) else None,
+            "bms_cycles": count(d.get("BMS_LOG_numFullBattCycles")),
+            "over_discharges": count(d.get("BMS_LOG_overDischargeCounter")),
             "alerts": list(d.get("alerts") or []),
         }
     return packs

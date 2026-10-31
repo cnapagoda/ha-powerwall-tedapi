@@ -364,7 +364,21 @@
         "name": "Battery energy remaining"
       },
       "battery_health": {
-        "name": "Battery health"
+        "name": "Battery health",
+        "state_attributes": {
+          "nominal_kwh_per_pack": {
+            "name": "Nominal per pack"
+          },
+          "packs": {
+            "name": "Packs"
+          },
+          "warranty_kwh": {
+            "name": "Warranty level"
+          },
+          "lifetime_discharged_kwh": {
+            "name": "Lifetime discharge"
+          }
+        }
       },
       "backup_time_remaining": {
         "name": "Backup time remaining"
@@ -455,6 +469,31 @@
       },
       "grid_outage_time_month": {
         "name": "Grid outage time this month"
+      },
+      "pack_health": {
+        "name": "{pack} health",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Rated capacity"
+          },
+          "warranty_kwh": {
+            "name": "Warranty level"
+          }
+        }
+      },
+      "pack_discharged": {
+        "name": "{pack} lifetime discharge"
+      },
+      "pack_cycles": {
+        "name": "{pack} cycles",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Full cycles (battery)"
+          },
+          "over_discharges": {
+            "name": "Over-discharges"
+          }
+        }
       }
     },
     "switch": {

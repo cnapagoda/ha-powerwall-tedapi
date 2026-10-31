@@ -364,7 +364,21 @@
         "name": "Verbleibende Batterieenergie"
       },
       "battery_health": {
-        "name": "Batteriezustand"
+        "name": "Batteriezustand",
+        "state_attributes": {
+          "nominal_kwh_per_pack": {
+            "name": "Nennwert pro Akku"
+          },
+          "packs": {
+            "name": "Akkus"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrenze"
+          },
+          "lifetime_discharged_kwh": {
+            "name": "Entladung gesamt"
+          }
+        }
       },
       "backup_time_remaining": {
         "name": "Verbleibende Backup-Zeit"
@@ -455,6 +469,31 @@
       },
       "grid_outage_time_month": {
         "name": "Netzausfallzeit diesen Monat"
+      },
+      "pack_health": {
+        "name": "{pack} Zustand",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Nennkapazität"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrenze"
+          }
+        }
+      },
+      "pack_discharged": {
+        "name": "{pack} Entladung gesamt"
+      },
+      "pack_cycles": {
+        "name": "{pack} Zyklen",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Vollzyklen (Akku)"
+          },
+          "over_discharges": {
+            "name": "Tiefentladungen"
+          }
+        }
       }
     },
     "switch": {

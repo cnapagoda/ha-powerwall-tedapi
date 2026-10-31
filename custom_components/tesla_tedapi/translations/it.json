@@ -364,7 +364,21 @@
         "name": "Energia residua della batteria"
       },
       "battery_health": {
-        "name": "Salute della batteria"
+        "name": "Salute della batteria",
+        "state_attributes": {
+          "nominal_kwh_per_pack": {
+            "name": "Nominale per batteria"
+          },
+          "packs": {
+            "name": "Batterie"
+          },
+          "warranty_kwh": {
+            "name": "Soglia di garanzia"
+          },
+          "lifetime_discharged_kwh": {
+            "name": "Scarica totale"
+          }
+        }
       },
       "backup_time_remaining": {
         "name": "Autonomia di backup residua"
@@ -455,6 +469,31 @@
       },
       "grid_outage_time_month": {
         "name": "Tempo di interruzione di rete questo mese"
+      },
+      "pack_health": {
+        "name": "Salute {pack}",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Capacità nominale"
+          },
+          "warranty_kwh": {
+            "name": "Soglia di garanzia"
+          }
+        }
+      },
+      "pack_discharged": {
+        "name": "Scarica totale {pack}"
+      },
+      "pack_cycles": {
+        "name": "Cicli {pack}",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Cicli completi (batteria)"
+          },
+          "over_discharges": {
+            "name": "Sovrascariche"
+          }
+        }
       }
     },
     "switch": {

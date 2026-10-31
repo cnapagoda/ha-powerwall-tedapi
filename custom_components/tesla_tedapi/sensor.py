@@ -37,6 +37,8 @@ PARALLEL_UPDATES = 0
 
 # Usable energy per pack in Tesla's spec (Powerwall 2/3 and the expansion pack).
 NOMINAL_PACK_KWH = 13.5
+# The warranty commonly quoted for a pack: 70 % of that after 10 years.
+WARRANTY_SHARE = 0.7
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -64,12 +66,30 @@ def _month_start(d: dict[str, Any]) -> datetime | None:
     return month_start(month) if month else None
 
 
-def _health(d: dict[str, Any]) -> float | None:
-    full = d.get("battery_full_kwh")
-    packs = d.get("packs") or {}
-    if not full or not packs:
+def _pct(part: float | None, whole: float | None) -> float | None:
+    if not isinstance(part, (int, float)) or not isinstance(whole, (int, float)) or whole <= 0:
         return None
-    return round(full / (NOMINAL_PACK_KWH * len(packs)) * 100, 1)
+    return round(part / whole * 100, 1)
+
+
+def _health(d: dict[str, Any]) -> float | None:
+    """Full energy against the rated 13.5 kWh per pack. A new pack reads
+    above 100 %: Tesla builds in more capacity than it rates."""
+    packs = d.get("packs") or {}
+    if not packs:
+        return None
+    return _pct(d.get("battery_full_kwh"), NOMINAL_PACK_KWH * len(packs))
+
+
+def _health_attrs(d: dict[str, Any]) -> dict[str, Any]:
+    packs = list((d.get("packs") or {}).values())
+    discharged = [p["discharged_kwh"] for p in packs if p.get("discharged_kwh") is not None]
+    return {
+        "nominal_kwh_per_pack": NOMINAL_PACK_KWH,
+        "packs": len(packs),
+        "warranty_kwh": round(NOMINAL_PACK_KWH * WARRANTY_SHARE * len(packs), 2),
+        "lifetime_discharged_kwh": round(sum(discharged), 1) if discharged else None,
+    }
 
 
 def _firmware(d: dict[str, Any]) -> tuple[str | None, str | None]:
@@ -197,7 +217,7 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=_health,
-        attrs_fn=lambda d: {"nominal_kwh_per_pack": NOMINAL_PACK_KWH, "packs": len(d.get("packs") or {})},
+        attrs_fn=_health_attrs,
     ),
     TedapiSensorEntityDescription(
         key="backup_time_remaining",
@@ -408,8 +428,55 @@ def _pack(d: dict[str, Any], serial: str) -> dict[str, Any]:
     return (d.get("packs") or {}).get(serial) or {}
 
 
+def _pack_wear_sensors(serial: str, name: str) -> list[TedapiSensorEntityDescription]:
+    """Powerwall 3 battery counters (pypowerwall 0.23+); not on every model."""
+    return [
+        TedapiSensorEntityDescription(
+            key=f"pack_{serial}_discharged",
+            translation_key="pack_discharged",
+            translation_placeholders={"pack": name},
+            native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+            device_class=SensorDeviceClass.ENERGY,
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            value_fn=lambda d, sn=serial: _pack(d, sn).get("discharged_kwh"),
+        ),
+        TedapiSensorEntityDescription(
+            key=f"pack_{serial}_cycles",
+            translation_key="pack_cycles",
+            translation_placeholders={"pack": name},
+            state_class=SensorStateClass.TOTAL_INCREASING,
+            suggested_display_precision=0,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            # Equivalent full cycles: lifetime discharge over the usable 13.5 kWh.
+            value_fn=lambda d, sn=serial: _cycles(_pack(d, sn).get("discharged_kwh")),
+            attrs_fn=lambda d, sn=serial: {
+                "bms_full_cycles": _pack(d, sn).get("bms_cycles"),
+                "over_discharges": _pack(d, sn).get("over_discharges"),
+            },
+        ),
+    ]
+
+
+def _cycles(discharged: float | None) -> float | None:
+    return round(discharged / NOMINAL_PACK_KWH, 1) if isinstance(discharged, (int, float)) else None
+
+
 def _pack_sensors(serial: str, name: str) -> list[TedapiSensorEntityDescription]:
     return [
+        TedapiSensorEntityDescription(
+            key=f"pack_{serial}_health",
+            translation_key="pack_health",
+            translation_placeholders={"pack": name},
+            native_unit_of_measurement=PERCENTAGE,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            value_fn=lambda d, sn=serial: _pct(_pack(d, sn).get("full_kwh"), NOMINAL_PACK_KWH),
+            attrs_fn=lambda d, sn=serial: {
+                "nominal_kwh": NOMINAL_PACK_KWH,
+                "warranty_kwh": round(NOMINAL_PACK_KWH * WARRANTY_SHARE, 2),
+            },
+        ),
         TedapiSensorEntityDescription(
             key=f"pack_{serial}_capacity",
             translation_key="pack_capacity",
@@ -473,6 +540,9 @@ async def async_setup_entry(
             if f"pack_{serial}" not in known:
                 known.add(f"pack_{serial}")
                 new += _pack_sensors(serial, pack["name"])
+            if f"pack_{serial}_wear" not in known and pack.get("discharged_kwh") is not None:
+                known.add(f"pack_{serial}_wear")
+                new += _pack_wear_sensors(serial, pack["name"])
         if new:
             async_add_entities(TedapiSensor(coordinator, d) for d in new)
 
