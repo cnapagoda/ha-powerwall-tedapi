@@ -38,7 +38,10 @@ CATALOGUE: dict[str, tuple[str, str]] = {
     # Notices
     "EnergyAccumulatorIrrational": (SEVERITY_NOTICE, "An energy counter jumped implausibly"),
     # Warnings: expected during restarts or switch toggles, a problem if they last
-    "IslandChecksFailed": (SEVERITY_WARNING, "Backup readiness check failed"),
+    "IslandChecksFailed": (
+        SEVERITY_WARNING,
+        "Backup readiness check failed (normal for a few minutes when the battery fills or after a restart)",
+    ),
     "PVInverterComms": (SEVERITY_WARNING, "Lost communication with the solar inverter"),
     "IEEE1547Trip": (SEVERITY_WARNING, "Grid-connection protection tripped (grid voltage or frequency out of range)"),
     "DisallowService": (SEVERITY_WARNING, "Gateway is not ready for service"),
@@ -88,6 +91,18 @@ SHORT: dict[str, str] = {
 # Alert level sensor states: the most serious active alert ("ok" when only
 # status alerts are active).
 LEVELS = ("ok", SEVERITY_NOTICE, SEVERITY_WARNING, SEVERITY_FAULT)
+
+# Warnings that are routinely brief need to last longer before they become a
+# Problem/repair: "Backup check failed" shows for a few minutes most days when
+# the battery reaches full while charging hard, and after restarts.
+MIN_PROBLEM_AFTER: dict[str, timedelta] = {
+    "IslandChecksFailed": timedelta(minutes=30),
+}
+
+
+def problem_after(name: str, after: timedelta) -> timedelta:
+    """How long an alert must last before it counts as a Problem."""
+    return max(after, MIN_PROBLEM_AFTER.get(name, timedelta(0)))
 MAX_STATE_LENGTH = 255
 
 
@@ -193,8 +208,9 @@ class AlertTracker:
         return sorted(rows, key=lambda r: (order[r["severity"]], r["alert"]))
 
     def problems(self, now: datetime, after: timedelta = PROBLEM_AFTER) -> list[str]:
-        """Warnings and faults that have lasted at least `after`."""
+        """Warnings and faults that have lasted at least `after` (longer for
+        alerts in MIN_PROBLEM_AFTER)."""
         return sorted(
             name for name, since in self.since.items()
-            if describe(name)[0] in PROBLEM_SEVERITIES and now - since >= after
+            if describe(name)[0] in PROBLEM_SEVERITIES and now - since >= problem_after(name, after)
         )

@@ -422,7 +422,7 @@ Where they appear:
 
 - **Alert level** (sensor) shows the most serious active alert: `OK` (status alerts only), `Notice`, `Warning` or `Fault`.
 - **Active alerts** (sensor) lists the active alerts as short text, most serious first, for example "Built-in solar inputs off · Connected to the grid · Firmware update succeeded".
-- **Problem** (binary sensor) turns on when a warning or fault has lasted **10 minutes or more** (option). Its `problems` attribute lists them.
+- **Problem** (binary sensor) turns on when a warning or fault has lasted **10 minutes or more** (option; at least 30 minutes for "Backup check failed", which is often brief). Its `problems` attribute lists them.
 - **Alert** (event entity) records every notice, warning or fault raised or cleared, with its description. The changes appear in the device's activity log and the logbook, and automations can trigger on them. Status alerts are left out by default because some (such as *Export limited*) come and go every few minutes; turn on **Alert events for status alerts too** to include them.
 - **Settings → Repairs** shows each lasting warning or fault with an explanation. The entry disappears when the alert clears.
 - **Alerts** (sensor) shows the number of alerts. Its `details` attribute lists each alert's severity, description, start time and source (gateway or battery pack). The gateway doesn't report when an alert started, so the start time is when Home Assistant first saw it. It is kept across restarts.

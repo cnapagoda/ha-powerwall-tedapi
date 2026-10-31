@@ -23,7 +23,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from . import gateway, tesla_cloud
-from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, summary
+from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, problem_after, summary
 from .cloud import CloudBackend, OwnerSettings
 from .const import (
     AUTH_FILE,
@@ -1273,7 +1273,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "alert": name,
                     "description": description,
                     "since": self.alerts.since[name].isoformat(timespec="minutes"),
-                    "minutes": str(int(self.problem_after.total_seconds() // 60)),
+                    "minutes": str(int(problem_after(name, self.problem_after).total_seconds() // 60)),
                 },
             )
         for issue_id in self._issues - wanted.keys():

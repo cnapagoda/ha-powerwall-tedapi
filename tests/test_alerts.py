@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
@@ -53,6 +54,42 @@ def test_tracker() -> None:
     changes = t.update(["SystemConnectedToGrid"], {}, now + timedelta(minutes=11))
     assert [(c.kind, c.name) for c in changes] == [("cleared", "BatteryFault")]
     assert t.problems(now + timedelta(minutes=11)) == []
+
+
+def test_backup_check_failed_needs_30_minutes() -> None:
+    """"Backup check failed" is routinely brief: it only becomes a Problem
+    after 30 minutes, even with a shorter problem time configured."""
+    t = AlertTracker()
+    now = dt_util.utcnow()
+    t.update(["SystemConnectedToGrid"], {}, now)
+    t.update(["SystemConnectedToGrid", "IslandChecksFailed", "BatteryFault"], {}, now)
+    assert t.problems(now + timedelta(minutes=10)) == ["BatteryFault"]
+    assert t.problems(now + timedelta(minutes=29)) == ["BatteryFault"]
+    assert t.problems(now + timedelta(minutes=30)) == ["BatteryFault", "IslandChecksFailed"]
+    assert t.problems(now + timedelta(minutes=45), timedelta(minutes=60)) == []  # a longer option wins
+    assert level(["IslandChecksFailed"]) == "warning"  # still shown as a warning meanwhile
+
+
+async def test_brief_backup_check_failed_raises_no_repair(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R, title="Powerwall")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    coordinator = entry.runtime_data.coordinator
+    fake_powerwall.alert_list = ["SystemConnectedToGrid", "IslandChecksFailed"]
+    await coordinator.async_refresh()
+    raised = coordinator.alerts.since["IslandChecksFailed"]
+    issue_id = f"alert_{DIN}_IslandChecksFailed"
+    registry = ir.async_get(hass)
+    with patch("custom_components.tesla_tedapi.coordinator.dt_util.utcnow",
+               return_value=raised + timedelta(minutes=12)):
+        await coordinator.async_refresh()
+    assert registry.async_get_issue(DOMAIN, issue_id) is None  # past the 10 min option, under 30
+    with patch("custom_components.tesla_tedapi.coordinator.dt_util.utcnow",
+               return_value=raised + timedelta(minutes=31)):
+        await coordinator.async_refresh()
+    issue = registry.async_get_issue(DOMAIN, issue_id)
+    assert issue is not None and issue.translation_placeholders["minutes"] == "30"
 
 
 def _eid(hass: HomeAssistant, platform: str, key: str) -> str:
