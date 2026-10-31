@@ -136,6 +136,8 @@ EVENT_OFF_GRID_ENDED = f"{DOMAIN}_off_grid_ended"
 
 SERVICE_DISPATCH = "dispatch_battery_power"
 SERVICE_RESUME = "resume_battery_operation"
+SERVICE_CHARGE_TO = "charge_to"
+SERVICE_DISCHARGE_TO = "discharge_to"
 SERVICE_START_MAX_BACKUP = "start_max_backup"
 SERVICE_CANCEL_MAX_BACKUP = "cancel_max_backup"
 SERVICE_GO_OFF_GRID = "go_off_grid"
@@ -148,6 +150,8 @@ ATTR_MIN_SOC = "min_soc"
 ATTR_MAX_SOC = "max_soc"
 ATTR_DURATION_MINUTES = "duration_minutes"
 ATTR_CONFIRM = "confirm"
+ATTR_TARGET_SOC = "target_soc"
+ATTR_MAX_MINUTES = "max_minutes"
 
 
 def app_soc(raw: float | None) -> float | None:

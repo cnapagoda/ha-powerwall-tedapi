@@ -514,6 +514,9 @@
     },
     "reconnect_not_confirmed": {
       "message": "La Powerwall ha accettato il comando ma non ha iniziato a sincronizzarsi con la rete entro 90 secondi. Controlla che la rete sia presente, e l'app Tesla."
+    },
+    "target_reached": {
+      "message": "La batteria è già al {soc}%, oltre l'obiettivo del {target}%."
     }
   },
   "services": {
@@ -540,6 +543,50 @@
         "max_soc": {
           "name": "Ferma la carica a",
           "description": "Termina una carica quando il livello della batteria (scala dell'app Tesla) raggiunge questa percentuale."
+        }
+      }
+    },
+    "charge_to": {
+      "name": "Carica fino a un livello",
+      "description": "Carica la batteria a potenza fissa tramite la connessione locale firmata fino al livello obiettivo, al massimo per il tempo limite. Carica dal solare e, se la ricarica dalla rete è consentita, dalla rete. Termina con il motivo di evento `target_reached` o `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurata più di una Powerwall."
+        },
+        "target_soc": {
+          "name": "Livello obiettivo",
+          "description": "Livello della batteria (scala dell'app Tesla) a cui fermarsi."
+        },
+        "power_watts": {
+          "name": "Potenza",
+          "description": "Potenza di carica o scarica in watt (da 100 a 10.000)."
+        },
+        "max_minutes": {
+          "name": "Tempo limite",
+          "description": "Fermarsi dopo questi minuti anche se l'obiettivo non è raggiunto (fino a 24 ore)."
+        }
+      }
+    },
+    "discharge_to": {
+      "name": "Scarica fino a un livello",
+      "description": "Scarica la batteria a potenza fissa tramite la connessione locale firmata fino al livello obiettivo, al massimo per il tempo limite. Ignora l'impostazione di esportazione, quindi la batteria può immettere in rete. Termina con il motivo di evento `target_reached` o `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurata più di una Powerwall."
+        },
+        "target_soc": {
+          "name": "Livello obiettivo",
+          "description": "Livello della batteria (scala dell'app Tesla) a cui fermarsi."
+        },
+        "power_watts": {
+          "name": "Potenza",
+          "description": "Potenza di carica o scarica in watt (da 100 a 10.000)."
+        },
+        "max_minutes": {
+          "name": "Tempo limite",
+          "description": "Fermarsi dopo questi minuti anche se l'obiettivo non è raggiunto (fino a 24 ore)."
         }
       }
     },

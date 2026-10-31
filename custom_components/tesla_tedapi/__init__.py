@@ -18,15 +18,19 @@ from .const import (
     ATTR_CONFIRM,
     ATTR_DURATION_MINUTES,
     ATTR_DURATION_SECONDS,
+    ATTR_MAX_MINUTES,
     ATTR_MAX_SOC,
     ATTR_MIN_SOC,
     ATTR_POWER_WATTS,
+    ATTR_TARGET_SOC,
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
     DOMAIN,
     MAX_BACKUP_MAX_MINUTES,
     OFF_GRID_MAX_MINUTES,
     SERVICE_CANCEL_MAX_BACKUP,
+    SERVICE_CHARGE_TO,
+    SERVICE_DISCHARGE_TO,
     SERVICE_DISPATCH,
     SERVICE_GO_OFF_GRID,
     SERVICE_RECONNECT_GRID,
@@ -52,6 +56,13 @@ DISPATCH_SCHEMA = vol.Schema({
         vol.Coerce(int), vol.Range(min=1, max=DISPATCH_MAX_SECONDS)),
     vol.Optional(ATTR_MIN_SOC): _SOC,
     vol.Optional(ATTR_MAX_SOC): _SOC,
+})
+MOVE_TO_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    vol.Required(ATTR_TARGET_SOC): vol.All(vol.Coerce(float), vol.Range(min=1, max=100)),
+    # A size, not a direction: the action gives the sign.
+    vol.Required(ATTR_POWER_WATTS): vol.All(vol.Coerce(float), vol.Range(min=100, max=DISPATCH_MAX_WATTS)),
+    vol.Required(ATTR_MAX_MINUTES): vol.All(vol.Coerce(int), vol.Range(min=1, max=DISPATCH_MAX_SECONDS // 60)),
 })
 RESUME_SCHEMA = vol.Schema({vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string})
 START_MAX_BACKUP_SCHEMA = vol.Schema({
@@ -130,6 +141,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             call.data.get(ATTR_MAX_SOC),
         )
 
+    async def charge_to(call: ServiceCall) -> ServiceResponse:
+        return await _session(hass, call).async_move_to(
+            call.data[ATTR_TARGET_SOC], call.data[ATTR_POWER_WATTS], call.data[ATTR_MAX_MINUTES], charge=True)
+
+    async def discharge_to(call: ServiceCall) -> ServiceResponse:
+        return await _session(hass, call).async_move_to(
+            call.data[ATTR_TARGET_SOC], call.data[ATTR_POWER_WATTS], call.data[ATTR_MAX_MINUTES], charge=False)
+
     async def resume(call: ServiceCall) -> ServiceResponse:
         result = await _session(hass, call).async_stop()
         return {"response": result}
@@ -160,6 +179,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                                  schema=START_MAX_BACKUP_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_CANCEL_MAX_BACKUP, cancel_max_backup, schema=RESUME_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_DISPATCH, dispatch, schema=DISPATCH_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_CHARGE_TO, charge_to, schema=MOVE_TO_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_DISCHARGE_TO, discharge_to, schema=MOVE_TO_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_RESUME, resume, schema=RESUME_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)

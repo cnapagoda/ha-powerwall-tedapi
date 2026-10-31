@@ -514,6 +514,9 @@
     },
     "reconnect_not_confirmed": {
       "message": "De Powerwall accepteerde het commando maar begon niet binnen 90 seconden te synchroniseren met het net. Controleer of er netstroom is, en de Tesla-app."
+    },
+    "target_reached": {
+      "message": "De batterij staat al op {soc}%, voorbij het doel van {target}%."
     }
   },
   "services": {
@@ -540,6 +543,50 @@
         "max_soc": {
           "name": "Stop laden bij",
           "description": "Beëindig het laden als het batterijniveau (schaal van de Tesla-app) dit percentage bereikt."
+        }
+      }
+    },
+    "charge_to": {
+      "name": "Laden tot een batterijniveau",
+      "description": "Laadt de batterij met een vast vermogen via de ondertekende lokale verbinding tot het doelniveau, hoogstens tot de tijdslimiet. Laadt uit zonne-energie en, als laden van het net is toegestaan, van het net. Eindigt met gebeurtenisreden `target_reached` of `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "target_soc": {
+          "name": "Doelniveau",
+          "description": "Batterijniveau (schaal van de Tesla-app) waarop gestopt wordt."
+        },
+        "power_watts": {
+          "name": "Vermogen",
+          "description": "Laad- of ontlaadvermogen in watt (100 tot 10.000)."
+        },
+        "max_minutes": {
+          "name": "Tijdslimiet",
+          "description": "Stop na zoveel minuten, ook als het doel niet is bereikt (tot 24 uur)."
+        }
+      }
+    },
+    "discharge_to": {
+      "name": "Ontladen tot een batterijniveau",
+      "description": "Ontlaadt de batterij met een vast vermogen via de ondertekende lokale verbinding tot het doelniveau, hoogstens tot de tijdslimiet. Gaat voor de teruglever-instelling, dus de batterij kan aan het net leveren. Eindigt met gebeurtenisreden `target_reached` of `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "target_soc": {
+          "name": "Doelniveau",
+          "description": "Batterijniveau (schaal van de Tesla-app) waarop gestopt wordt."
+        },
+        "power_watts": {
+          "name": "Vermogen",
+          "description": "Laad- of ontlaadvermogen in watt (100 tot 10.000)."
+        },
+        "max_minutes": {
+          "name": "Tijdslimiet",
+          "description": "Stop na zoveel minuten, ook als het doel niet is bereikt (tot 24 uur)."
         }
       }
     },

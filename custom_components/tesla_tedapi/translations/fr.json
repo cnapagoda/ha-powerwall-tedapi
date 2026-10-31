@@ -514,6 +514,9 @@
     },
     "reconnect_not_confirmed": {
       "message": "La Powerwall a accepté la commande mais n'a pas commencé à se synchroniser avec le réseau en 90 secondes. Vérifiez que le réseau est présent, et l'application Tesla."
+    },
+    "target_reached": {
+      "message": "La batterie est déjà à {soc} %, au-delà de la cible de {target} %."
     }
   },
   "services": {
@@ -540,6 +543,50 @@
         "max_soc": {
           "name": "Arrêter la charge à",
           "description": "Termine une charge quand le niveau de la batterie (échelle de l'application Tesla) atteint ce pourcentage."
+        }
+      }
+    },
+    "charge_to": {
+      "name": "Charger jusqu'à un niveau",
+      "description": "Charge la batterie à une puissance fixe via la connexion locale signée jusqu'au niveau cible, au plus pendant la durée limite. Charge depuis le solaire et, si la recharge depuis le réseau est autorisée, depuis le réseau. Se termine avec la raison d'événement `target_reached` ou `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "target_soc": {
+          "name": "Niveau cible",
+          "description": "Niveau de batterie (échelle de l'app Tesla) auquel s'arrêter."
+        },
+        "power_watts": {
+          "name": "Puissance",
+          "description": "Puissance de charge ou de décharge en watts (100 à 10 000)."
+        },
+        "max_minutes": {
+          "name": "Durée limite",
+          "description": "S'arrêter après ce nombre de minutes même si la cible n'est pas atteinte (jusqu'à 24 heures)."
+        }
+      }
+    },
+    "discharge_to": {
+      "name": "Décharger jusqu'à un niveau",
+      "description": "Décharge la batterie à une puissance fixe via la connexion locale signée jusqu'au niveau cible, au plus pendant la durée limite. Passe outre le réglage d'export : la batterie peut donc injecter sur le réseau. Se termine avec la raison d'événement `target_reached` ou `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "target_soc": {
+          "name": "Niveau cible",
+          "description": "Niveau de batterie (échelle de l'app Tesla) auquel s'arrêter."
+        },
+        "power_watts": {
+          "name": "Puissance",
+          "description": "Puissance de charge ou de décharge en watts (100 à 10 000)."
+        },
+        "max_minutes": {
+          "name": "Durée limite",
+          "description": "S'arrêter après ce nombre de minutes même si la cible n'est pas atteinte (jusqu'à 24 heures)."
         }
       }
     },

@@ -514,6 +514,9 @@
     },
     "reconnect_not_confirmed": {
       "message": "Die Powerwall hat den Befehl angenommen, aber nicht innerhalb von 90 Sekunden mit der Netzsynchronisierung begonnen. Prüfe, ob Netzstrom da ist, und die Tesla-App."
+    },
+    "target_reached": {
+      "message": "Der Akku steht schon bei {soc} % und damit jenseits des Ziels von {target} %."
     }
   },
   "services": {
@@ -540,6 +543,50 @@
         "max_soc": {
           "name": "Laden stoppen bei",
           "description": "Beendet ein Laden, wenn der Batteriestand (Skala der Tesla-App) diesen Prozentwert erreicht."
+        }
+      }
+    },
+    "charge_to": {
+      "name": "Bis zu einem Akkustand laden",
+      "description": "Lädt den Akku über die signierte lokale Verbindung mit fester Leistung, bis der Zielstand erreicht ist, höchstens bis zum Zeitlimit. Lädt aus Solarstrom und, wenn Netzladen erlaubt ist, aus dem Netz. Endet mit dem Ereignisgrund `target_reached` oder `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "target_soc": {
+          "name": "Zielstand",
+          "description": "Akkustand (Skala der Tesla-App), bei dem gestoppt wird."
+        },
+        "power_watts": {
+          "name": "Leistung",
+          "description": "Lade- oder Entladeleistung in Watt (100 bis 10.000)."
+        },
+        "max_minutes": {
+          "name": "Zeitlimit",
+          "description": "Nach so vielen Minuten stoppen, auch wenn das Ziel nicht erreicht ist (bis zu 24 Stunden)."
+        }
+      }
+    },
+    "discharge_to": {
+      "name": "Bis zu einem Akkustand entladen",
+      "description": "Entlädt den Akku über die signierte lokale Verbindung mit fester Leistung, bis der Zielstand erreicht ist, höchstens bis zum Zeitlimit. Übergeht die Einspeiseeinstellung, der Akku kann also ins Netz einspeisen. Endet mit dem Ereignisgrund `target_reached` oder `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "target_soc": {
+          "name": "Zielstand",
+          "description": "Akkustand (Skala der Tesla-App), bei dem gestoppt wird."
+        },
+        "power_watts": {
+          "name": "Leistung",
+          "description": "Lade- oder Entladeleistung in Watt (100 bis 10.000)."
+        },
+        "max_minutes": {
+          "name": "Zeitlimit",
+          "description": "Nach so vielen Minuten stoppen, auch wenn das Ziel nicht erreicht ist (bis zu 24 Stunden)."
         }
       }
     },

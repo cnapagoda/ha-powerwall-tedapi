@@ -514,6 +514,9 @@
     },
     "reconnect_not_confirmed": {
       "message": "The Powerwall accepted the command but didn't start syncing to the grid within 90 seconds. Check that the grid supply is on, and the Tesla app."
+    },
+    "target_reached": {
+      "message": "The battery is already at {soc}%, past the target of {target}%."
     }
   },
   "services": {
@@ -540,6 +543,50 @@
         "max_soc": {
           "name": "Stop charging at",
           "description": "End a charge when the battery level (Tesla app scale) reaches this percentage."
+        }
+      }
+    },
+    "charge_to": {
+      "name": "Charge to a battery level",
+      "description": "Charge the battery at a set power over the signed local connection until it reaches the target level, or for at most the time limit. Charges from solar and, if grid charging is allowed, from the grid. Ends with event reason `target_reached` or `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "target_soc": {
+          "name": "Target level",
+          "description": "Battery level (Tesla app scale) at which to stop."
+        },
+        "power_watts": {
+          "name": "Power",
+          "description": "Charge or discharge power in watts (100 to 10,000)."
+        },
+        "max_minutes": {
+          "name": "Time limit",
+          "description": "Stop after this many minutes even if the target isn't reached (up to 24 hours)."
+        }
+      }
+    },
+    "discharge_to": {
+      "name": "Discharge to a battery level",
+      "description": "Discharge the battery at a set power over the signed local connection until it falls to the target level, or for at most the time limit. Overrides the export setting, so the battery may export to the grid. Ends with event reason `target_reached` or `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "target_soc": {
+          "name": "Target level",
+          "description": "Battery level (Tesla app scale) at which to stop."
+        },
+        "power_watts": {
+          "name": "Power",
+          "description": "Charge or discharge power in watts (100 to 10,000)."
+        },
+        "max_minutes": {
+          "name": "Time limit",
+          "description": "Stop after this many minutes even if the target isn't reached (up to 24 hours)."
         }
       }
     },

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.0
+
+- **`tesla_tedapi.charge_to`** and **`tesla_tedapi.discharge_to`** actions (signed connection): charge or discharge at a set power until the battery reaches a target level, or for at most a time limit. They run as a dispatch session, end with the new reason `target_reached`, and are refused when the battery is already at the target. **Dispatch active** shows the `target_soc`.
+
 ## 2.3.1
 
 - **`tesla_tedapi.go_off_grid`** and **`tesla_tedapi.reconnect_grid`** actions (signed connection): disconnect the house from the grid and reconnect it, the same command as *Go off-grid* in the Tesla app (Tesla's `setIslandMode`, through pypowerwall).

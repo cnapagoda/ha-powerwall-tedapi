@@ -514,6 +514,9 @@
     },
     "reconnect_not_confirmed": {
       "message": "Powerwall przyjęła polecenie, ale nie zaczęła synchronizacji z siecią w ciągu 90 sekund. Sprawdź, czy jest zasilanie z sieci, oraz aplikację Tesla."
+    },
+    "target_reached": {
+      "message": "Bateria ma już {soc}%, poza celem {target}%."
     }
   },
   "services": {
@@ -540,6 +543,50 @@
         "max_soc": {
           "name": "Zatrzymaj ładowanie przy",
           "description": "Kończy ładowanie, gdy poziom baterii (skala aplikacji Tesla) osiągnie ten procent."
+        }
+      }
+    },
+    "charge_to": {
+      "name": "Naładuj do poziomu",
+      "description": "Ładuje baterię stałą mocą przez podpisane połączenie lokalne do poziomu docelowego, najdłużej przez limit czasu. Ładuje z fotowoltaiki oraz, jeśli ładowanie z sieci jest dozwolone, z sieci. Kończy się zdarzeniem z powodem `target_reached` lub `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "target_soc": {
+          "name": "Poziom docelowy",
+          "description": "Poziom baterii (skala aplikacji Tesla), przy którym zatrzymać."
+        },
+        "power_watts": {
+          "name": "Moc",
+          "description": "Moc ładowania lub rozładowania w watach (od 100 do 10 000)."
+        },
+        "max_minutes": {
+          "name": "Limit czasu",
+          "description": "Zatrzymaj po tylu minutach, nawet jeśli cel nie został osiągnięty (do 24 godzin)."
+        }
+      }
+    },
+    "discharge_to": {
+      "name": "Rozładuj do poziomu",
+      "description": "Rozładowuje baterię stałą mocą przez podpisane połączenie lokalne do poziomu docelowego, najdłużej przez limit czasu. Pomija ustawienie eksportu, więc bateria może oddawać energię do sieci. Kończy się zdarzeniem z powodem `target_reached` lub `completed`.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "target_soc": {
+          "name": "Poziom docelowy",
+          "description": "Poziom baterii (skala aplikacji Tesla), przy którym zatrzymać."
+        },
+        "power_watts": {
+          "name": "Moc",
+          "description": "Moc ładowania lub rozładowania w watach (od 100 do 10 000)."
+        },
+        "max_minutes": {
+          "name": "Limit czasu",
+          "description": "Zatrzymaj po tylu minutach, nawet jeśli cel nie został osiągnięty (do 24 godzin)."
         }
       }
     },

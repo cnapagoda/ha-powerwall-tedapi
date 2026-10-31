@@ -178,6 +178,12 @@
     "dispatch_battery_power": {
       "service": "mdi:battery-sync"
     },
+    "charge_to": {
+      "service": "mdi:battery-arrow-up"
+    },
+    "discharge_to": {
+      "service": "mdi:battery-arrow-down"
+    },
     "resume_battery_operation": {
       "service": "mdi:battery-check"
     },

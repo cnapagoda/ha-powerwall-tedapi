@@ -41,6 +41,8 @@ class DispatchState:
     ends: datetime
     min_soc: float | None
     max_soc: float | None
+    # Started by charge_to / discharge_to: reaching the limit is the goal.
+    target: bool = False
 
 
 class DispatchSession:
@@ -109,12 +111,14 @@ class DispatchSession:
             "ends": s.ends.isoformat(),
             "min_soc": s.min_soc,
             "max_soc": s.max_soc,
+            "target_soc": (s.max_soc if s.power_watts < 0 else s.min_soc) if s.target else None,
         }
 
     # ---- control ----
 
     async def async_start(self, power_watts: float, duration_seconds: int,
-                          min_soc: float | None, max_soc: float | None) -> dict[str, Any]:
+                          min_soc: float | None, max_soc: float | None,
+                          target: bool = False) -> dict[str, Any]:
         if not self.coordinator.dispatch_supported:
             raise ServiceValidationError(
                 "Battery dispatch needs the signed (v1r) connection",
@@ -136,7 +140,7 @@ class DispatchSession:
                 min_soc = float(reserve)
         now = dt_util.utcnow()
         state = DispatchState(power_watts, now, now + timedelta(seconds=duration_seconds),
-                              min_soc, max_soc)
+                              min_soc, max_soc, target)
         reason = self._limit_hit(state)
         if reason:
             raise ServiceValidationError(
@@ -181,6 +185,22 @@ class DispatchSession:
         except HomeAssistantError as err:
             _LOGGER.warning("Could not resume the battery while unloading: %s", err)
 
+    async def async_move_to(self, target_soc: float, power_watts: float, minutes: int,
+                            charge: bool) -> dict[str, Any]:
+        """Charge (or discharge) at power_watts until the battery reaches
+        target_soc, or for at most `minutes`."""
+        soc = self._soc()
+        if soc is not None and (soc >= target_soc if charge else soc <= target_soc):
+            raise ServiceValidationError(
+                f"The battery is already at {soc}%",
+                translation_domain=DOMAIN, translation_key="target_reached",
+                translation_placeholders={"soc": str(soc), "target": str(target_soc)},
+            )
+        power = -abs(power_watts) if charge else abs(power_watts)
+        return await self.async_start(power, minutes * 60,
+                                      None if charge else target_soc,
+                                      target_soc if charge else None, target=True)
+
     # ---- internals ----
 
     def _cancel_timers(self) -> None:
@@ -223,6 +243,8 @@ class DispatchSession:
         reason = self._limit_hit(state)
         if reason:
             _LOGGER.info("Battery dispatch stopped: %s limit reached", reason)
+            if state.target:
+                reason = "target_reached"
             await self._async_resume_quietly(reason)
             return
         if (state.ends - dt_util.utcnow()).total_seconds() < 1:

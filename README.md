@@ -313,7 +313,7 @@ Hold the battery at a fixed power for a set time.
 How a dispatch runs:
 
 - The integration sends the command in steps of at most **5 minutes** and renews it every minute. If Home Assistant stops, the Powerwall goes back to normal within 5 minutes.
-- When the time is up or a limit is reached, it hands the battery back. The `tesla_tedapi_dispatch_ended` event carries a `reason`: `completed`, `min_soc`, `max_soc`, `stopped`, `connection_lost` or `unloaded`.
+- When the time is up or a limit is reached, it hands the battery back. The `tesla_tedapi_dispatch_ended` event carries a `reason`: `completed`, `min_soc`, `max_soc`, `target_reached`, `stopped`, `connection_lost` or `unloaded`.
 - A new call replaces the running dispatch.
 - Charging from the grid may need **Grid charging** switched on.
 
@@ -324,6 +324,26 @@ data:
   power_watts: -5000
   duration_seconds: 7200
   max_soc: 90
+```
+
+### `tesla_tedapi.charge_to` / `tesla_tedapi.discharge_to`
+
+Charge or discharge at a set power until the **Battery level** reaches `target_soc`, or until `max_minutes` pass. They run as a dispatch (above) and end with reason `target_reached` or `completed`. They are refused when the battery is already at the target.
+
+| Field | |
+|---|---|
+| `target_soc` | 1–100 %. |
+| `power_watts` | 100–10,000 W, without a sign. |
+| `max_minutes` | 1–1440. |
+| `config_entry_id` | Only needed with more than one Powerwall. |
+
+```yaml
+# Charge to 80 % at 3 kW, for at most 2 hours
+action: tesla_tedapi.charge_to
+data:
+  target_soc: 80
+  power_watts: 3000
+  max_minutes: 120
 ```
 
 ### `tesla_tedapi.resume_battery_operation`
