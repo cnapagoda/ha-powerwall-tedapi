@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.2
+
+- **charge_to / discharge_to** stop on the reading that reaches the target, instead of at the next 60-second renewal.
+
 ## 2.4.1
 
 - Renamed to **Tesla Powerwall TEDAPI** (HACS, the integration list, setup and notices). The device keeps its name, so entity names and ids don't change.
