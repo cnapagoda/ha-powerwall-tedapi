@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.4.3
+
+- **`set_tariff` through Tesla Fleet / Teslemetry** sent the tariff wrapped twice (`tariff_content_v2` inside `tariff_content_v2`). It now sends it once, and never sends an empty tariff. The Owner API path was not affected.
+- **Tesla tariff sensor:** fields Tesla leaves out of a tariff now count as 0, as Tesla means them. A period ending on Monday no longer matches the rest of the week, and an empty season is no longer active all year.
+- **Read-back after `set_tariff`:** Tesla is given about 25 seconds to show the new tariff, and rates are compared the way Tesla stores them, so it no longer raises false repairs. On the Owner API, a write Tesla doesn't show yet is reported as `pending` and checked again in 35 minutes. The response has a new `status`: `confirmed`, `pending` or `mismatch`.
+- **`set_tariff` dry run** lists what Tesla would change or leave unpriced (`warnings`). Only `tariff_content_v2` can be sent.
+- **`import_battery_history`:** its description now suggests a backup first.
+
 ## 2.4.2
 
 - **charge_to / discharge_to** stop on the reading that reaches the target, instead of at the next 60-second renewal.

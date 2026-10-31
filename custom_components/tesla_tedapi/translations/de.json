@@ -785,13 +785,13 @@
         },
         "dry_run": {
           "name": "Probelauf",
-          "description": "Nur die Einstellungen prüfen und zeigen, was gesendet würde (standardmäßig an)."
+          "description": "Nur die Einstellungen prüfen, auflisten, was Tesla ändern würde, und zeigen, was gesendet würde (standardmäßig an)."
         }
       }
     },
     "import_battery_history": {
       "name": "Batterieverlauf importieren",
-      "description": "Einmalig: den Lade- und Entladeverlauf der Batterie aus Tesla Fleet oder Teslemetry in die Batterie-Energiestatistik dieser Powerwall kopieren, für die Zeit vor deren eigenem Verlauf.",
+      "description": "Einmalig: den Lade- und Entladeverlauf der Batterie aus Tesla Fleet oder Teslemetry in die Batterie-Energiestatistik dieser Powerwall kopieren, für die Zeit vor deren eigenem Verlauf. Erstelle vorher ein Home-Assistant-Backup: der Import lässt sich nur schwer rückgängig machen.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -878,7 +878,7 @@
     },
     "tariff_write_mismatch": {
       "title": "Tesla hat einen anderen Tarif gespeichert",
-      "description": "Der Tarif wurde über {backend} gesendet, aber die von Tesla zurückgegebenen Preise weichen ab. Prüfe den Tarif in der Tesla-App; dieser Hinweis verschwindet beim nächsten passenden Tarif-Schreibvorgang."
+      "description": "Der Tarif wurde über {backend} gesendet, aber die von Tesla zurückgegebenen Preise weichen ab. Prüfe den Tarif in der Tesla-App; dieser Hinweis verschwindet, sobald Tesla die gesendeten Preise zeigt."
     }
   },
   "selector": {

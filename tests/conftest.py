@@ -299,6 +299,13 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 
 @pytest.fixture(autouse=True)
+def no_tariff_readback_waits():
+    """Read a written tariff back twice, without the real 25 s of waits."""
+    with patch("custom_components.tesla_tedapi.coordinator.TARIFF_READBACK_WAITS", (0, 0)):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def fake_powerwall():
     FakePowerwall.instances = []
     FakePowerwall.fail_local = False

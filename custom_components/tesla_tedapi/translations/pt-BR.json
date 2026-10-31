@@ -785,13 +785,13 @@
         },
         "dry_run": {
           "name": "Teste",
-          "description": "Apenas verificar as configurações e mostrar o que seria enviado (ligado por padrão)."
+          "description": "Apenas verificar as configurações, listar o que a Tesla mudaria e mostrar o que seria enviado (ligado por padrão)."
         }
       }
     },
     "import_battery_history": {
       "name": "Importar histórico da bateria",
-      "description": "Uma única vez: copiar o histórico de carga e descarga da bateria do Tesla Fleet ou Teslemetry para as estatísticas de energia da bateria deste Powerwall, para o período anterior ao próprio histórico.",
+      "description": "Uma única vez: copiar o histórico de carga e descarga da bateria do Tesla Fleet ou Teslemetry para as estatísticas de energia da bateria deste Powerwall, para o período anterior ao próprio histórico. Faça antes um backup do Home Assistant: a importação é difícil de desfazer.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -878,7 +878,7 @@
     },
     "tariff_write_mismatch": {
       "title": "A Tesla salvou outra tarifa",
-      "description": "A tarifa foi enviada por {backend}, mas os preços que a Tesla retorna são diferentes. Confira a tarifa no app da Tesla; este aviso some após a próxima gravação de tarifa que coincidir."
+      "description": "A tarifa foi enviada por {backend}, mas os preços que a Tesla retorna são diferentes. Confira a tarifa no app da Tesla; este aviso some quando a Tesla mostrar os preços enviados."
     }
   },
   "selector": {

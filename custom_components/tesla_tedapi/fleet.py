@@ -217,7 +217,14 @@ class FleetBackup:
         return tariff if isinstance(tariff, dict) and tariff else None
 
     def set_tariff(self, tou_settings: dict[str, Any]) -> dict[str, Any]:
-        return self._command(lambda api: api.time_of_use_settings(tou_settings))
+        """Write {"tariff_content_v2": ...}. tesla-fleet-api wraps its argument
+        in {"tou_settings": {"tariff_content_v2": ...}} itself, so it gets the
+        inner tariff. Never send an empty one: Tesla has been seen to accept
+        that and delete the site's time-of-use settings."""
+        content = tou_settings.get("tariff_content_v2")
+        if not isinstance(content, dict) or not content:
+            raise ValueError("tariff_content_v2 must be a non-empty object")
+        return self._command(lambda api: api.time_of_use_settings(content))
 
     def set_mode(self, mode: str) -> dict[str, Any]:
         return self._command(lambda api: api.operation(mode))
