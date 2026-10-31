@@ -151,11 +151,13 @@ def validate_write(tou_settings: Any) -> list[str]:
         if not isinstance(content.get(key), dict) or not content.get(key):
             errors.append(f"tariff_content_v2.{key} must be a non-empty object")
     if not errors:
+        # An empty season ({}) is a shape Tesla accepts: it leaves zero-valued
+        # fields out, so a season with nothing in it has nothing to check.
         for season, value in content["energy_charges"].items():
-            if not isinstance(value, dict) or not isinstance(value.get("rates"), dict):
+            if not isinstance(value, dict) or (value and not isinstance(value.get("rates"), dict)):
                 errors.append(f"tariff_content_v2.energy_charges.{season} needs a \"rates\" object")
         for season, value in content["seasons"].items():
-            if not isinstance(value, dict) or not isinstance(value.get("tou_periods"), dict):
+            if not isinstance(value, dict) or not isinstance(value.get("tou_periods", {}), dict):
                 errors.append(f"tariff_content_v2.seasons.{season} needs a \"tou_periods\" object")
     return errors
 

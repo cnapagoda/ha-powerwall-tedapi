@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.4
+
+- **`set_tariff`** no longer refuses a tariff with an empty season written as `{}`, a shape Tesla accepts. The dry run still warns that an empty season is inactive.
+
 ## 2.4.3
 
 - **`set_tariff` through Tesla Fleet / Teslemetry** sent the tariff wrapped twice (`tariff_content_v2` inside `tariff_content_v2`). It now sends it once, and never sends an empty tariff. The Owner API path was not affected.
