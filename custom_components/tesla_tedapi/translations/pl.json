@@ -189,14 +189,16 @@
           "status_alert_events": "Zdarzenia alertów także dla alertów stanu",
           "problem_minutes": "Opóźnienie problemu",
           "dispatch_floor_reserve": "Rozładowanie zatrzymuje się na rezerwie awaryjnej",
-          "dispatch_max_watts": "Największa moc sterowania"
+          "dispatch_max_watts": "Największa moc sterowania",
+          "tesla_tariff": "Taryfa Tesla (chmura)"
         },
         "data_description": {
           "restore_export": "Powerwall czasem gubi swoją regułę oddawania do sieci i ustawienie ładowania z sieci (co godzinę na Powerwall 3); ładowanie z sieci się wtedy włącza. Gdy włączone, wybrane ustawienie jest zapisywane z powrotem w ciągu minuty lub dwóch (tylko połączenie podpisane).",
           "status_alert_events": "Alerty stanu, takie jak \"Export limited\", opisują normalną pracę, a niektóre pojawiają się i znikają co kilka minut; domyślnie zdarzenia alertów tworzą tylko powiadomienia, ostrzeżenia i usterki.",
           "problem_minutes": "Jak długo ostrzeżenie lub usterka musi trwać, zanim czujnik Problem się włączy i zostanie zgłoszona naprawa.",
           "dispatch_floor_reserve": "Rozładowanie uruchomione bez `min_soc` zatrzymuje się, gdy bateria osiągnie rezerwę awaryjną.",
-          "dispatch_max_watts": "Wywołania sterowania powyżej tej mocy są odrzucane."
+          "dispatch_max_watts": "Wywołania sterowania powyżej tej mocy są odrzucane.",
+          "tesla_tariff": "Odczytuj z kopii w chmurze taryfę, której Tesla używa do sterowania czasowego (czujnik i akcje odczytu/ustawienia). Tylko chmura."
         }
       },
       "cloud_backup": {
@@ -494,6 +496,9 @@
             "name": "Nadmierne rozładowania"
           }
         }
+      },
+      "tesla_tariff": {
+        "name": "Taryfa Tesla"
       }
     },
     "switch": {
@@ -590,6 +595,21 @@
     },
     "curtailment_needs_v1r": {
       "message": "Ograniczanie PV wymaga podpisanego (v1r) połączenia z bramą."
+    },
+    "tariff_needs_cloud": {
+      "message": "Taryfa Tesla wymaga kopii w chmurze (Owner API lub Tesla Fleet)."
+    },
+    "tariff_read_failed": {
+      "message": "Nie udało się odczytać taryfy Tesla: {errors}"
+    },
+    "tariff_write_failed": {
+      "message": "Tesla nie przyjęła taryfy: {errors}"
+    },
+    "tariff_invalid": {
+      "message": "Tych ustawień taryfy czasowej nie można wysłać: {errors}"
+    },
+    "tariff_disabled": {
+      "message": "Najpierw włącz opcję Taryfa Tesla (wymaga kopii w chmurze)."
     }
   },
   "services": {
@@ -728,6 +748,34 @@
           "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
         }
       }
+    },
+    "get_tariff": {
+      "name": "Odczytaj taryfę Tesla",
+      "description": "Odczytaj jako JSON, z kopii w chmurze, taryfę, której Tesla używa do sterowania czasowego.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jeden Powerwall."
+        }
+      }
+    },
+    "set_tariff": {
+      "name": "Ustaw taryfę Tesla",
+      "description": "Wyślij ustawienia taryfy czasowej do Tesli przez kopię w chmurze. Zmieniają one sposób ładowania i rozładowania przy sterowaniu czasowym.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jeden Powerwall."
+        },
+        "tou_settings": {
+          "name": "Ustawienia taryfy czasowej",
+          "description": "Format zapisu Tesli: obiekt z tariff_content_v2 (nie format zwracany przez get_tariff; zobacz wiki)."
+        },
+        "dry_run": {
+          "name": "Próba",
+          "description": "Tylko sprawdź ustawienia i pokaż, co zostałoby wysłane (domyślnie włączone)."
+        }
+      }
     }
   },
   "issues": {
@@ -793,6 +841,10 @@
     "firmware_signed_access": {
       "title": "Podpisany dostęp lokalny przestał działać po aktualizacji oprogramowania",
       "description": "Powerwall zaktualizował oprogramowanie z {previous} do {version} i nie odpowiada już na podpisane połączenie lokalne. Tesla może zmienić dostęp lokalny aktualizacją.\n\nOdczyty są niedostępne; ustawienia idą przez kopię w chmurze, jeśli jest skonfigurowana. Problem zniknie sam, gdy podpisany dostęp znów zadziała. Jeśli trwa, sprawdź, czy jest aktualizacja tej integracji, albo zarejestruj klucz ponownie (**Konfiguruj → Zarejestruj nowy podpisany klucz**)."
+    },
+    "tariff_write_mismatch": {
+      "title": "Tesla zapisała inną taryfę",
+      "description": "Taryfę wysłano przez {backend}, ale ceny zwracane przez Teslę są inne. Sprawdź taryfę w aplikacji Tesla; to powiadomienie zniknie po następnym zgodnym zapisie taryfy."
     }
   },
   "selector": {

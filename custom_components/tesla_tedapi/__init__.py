@@ -16,6 +16,7 @@ import voluptuous as vol
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
     ATTR_CONFIRM,
+    ATTR_DRY_RUN,
     ATTR_DURATION_MINUTES,
     ATTR_DURATION_SECONDS,
     ATTR_MAX_MINUTES,
@@ -23,6 +24,7 @@ from .const import (
     ATTR_MIN_SOC,
     ATTR_POWER_WATTS,
     ATTR_TARGET_SOC,
+    ATTR_TOU_SETTINGS,
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
     DOMAIN,
@@ -32,9 +34,11 @@ from .const import (
     SERVICE_CHARGE_TO,
     SERVICE_DISCHARGE_TO,
     SERVICE_DISPATCH,
+    SERVICE_GET_TARIFF,
     SERVICE_GO_OFF_GRID,
     SERVICE_RECONNECT_GRID,
     SERVICE_RESUME,
+    SERVICE_SET_TARIFF,
     SERVICE_START_MAX_BACKUP,
 )
 from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
@@ -65,6 +69,11 @@ MOVE_TO_SCHEMA = vol.Schema({
     vol.Required(ATTR_MAX_MINUTES): vol.All(vol.Coerce(int), vol.Range(min=1, max=DISPATCH_MAX_SECONDS // 60)),
 })
 RESUME_SCHEMA = vol.Schema({vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string})
+SET_TARIFF_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    vol.Required(ATTR_TOU_SETTINGS): dict,
+    vol.Optional(ATTR_DRY_RUN, default=True): cv.boolean,
+})
 START_MAX_BACKUP_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
     vol.Required(ATTR_DURATION_MINUTES): vol.All(
@@ -116,6 +125,16 @@ def _max_backup_coordinator(hass: HomeAssistant, call: ServiceCall) -> TedapiCoo
         raise ServiceValidationError(
             "A max backup needs the signed (v1r) connection",
             translation_domain=DOMAIN, translation_key="max_backup_needs_v1r",
+        )
+    return coordinator
+
+
+def _tariff_coordinator(hass: HomeAssistant, call: ServiceCall) -> TedapiCoordinator:
+    coordinator = _entry(hass, call).runtime_data.coordinator
+    if not coordinator.tariff_enabled:
+        raise ServiceValidationError(
+            "Turn on the Tesla tariff option (it needs a cloud backup)",
+            translation_domain=DOMAIN, translation_key="tariff_disabled",
         )
     return coordinator
 
@@ -172,6 +191,16 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     async def reconnect_grid(call: ServiceCall) -> ServiceResponse:
         return await _off_grid(hass, call).async_reconnect()
 
+    async def get_tariff(call: ServiceCall) -> ServiceResponse:
+        coordinator = _tariff_coordinator(hass, call)
+        tariff = await coordinator.async_read_tariff()
+        coordinator.async_update_listeners()
+        return {"backend": coordinator.tariff_backend, "tariff": tariff}
+
+    async def set_tariff(call: ServiceCall) -> ServiceResponse:
+        return await _tariff_coordinator(hass, call).async_set_tariff(
+            call.data[ATTR_TOU_SETTINGS], call.data[ATTR_DRY_RUN])
+
     hass.services.async_register(DOMAIN, SERVICE_GO_OFF_GRID, go_off_grid, schema=GO_OFF_GRID_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_RECONNECT_GRID, reconnect_grid, schema=RESUME_SCHEMA,
@@ -184,6 +213,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     hass.services.async_register(DOMAIN, SERVICE_CHARGE_TO, charge_to, schema=MOVE_TO_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_DISCHARGE_TO, discharge_to, schema=MOVE_TO_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_GET_TARIFF, get_tariff, schema=RESUME_SCHEMA,
+                                 supports_response=SupportsResponse.ONLY)
+    hass.services.async_register(DOMAIN, SERVICE_SET_TARIFF, set_tariff, schema=SET_TARIFF_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_RESUME, resume, schema=RESUME_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)

@@ -16,13 +16,13 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from . import gateway, tesla_cloud
+from . import gateway, tariff as tariff_mod, tesla_cloud
 from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, problem_after, summary
 from .cloud import CloudBackend, OwnerSettings
 from .const import (
@@ -48,6 +48,7 @@ from .const import (
     CONF_RSA_KEY_PATH,
     CONF_SCAN_INTERVAL,
     CONF_SITE_ID,
+    CONF_TESLA_TARIFF,
     CONF_WIFI_HOST,
     DEFAULT_HOST_WIFI,
     DEFAULT_PROBLEM_MINUTES,
@@ -62,6 +63,7 @@ from .const import (
     PASSWORD_REFUSED_POLLS,
     RESTORE_MIN_SECONDS,
     SOLAR_CURTAILMENT_KEY,
+    TARIFF_SECONDS,
     app_soc,
     cloud_choice,
 )
@@ -273,6 +275,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         self.backends: list[CloudBackend] = self._make_backends(hass, data, options)
         self.cloud_enabled: bool = bool(self.backends)
+        # Tesla tariff (optional, cloud only): raw tariff, the backup it came
+        # from, and when it was last read (monotonic).
+        self.tariff_enabled: bool = self.cloud_enabled and bool(options.get(CONF_TESLA_TARIFF, False))
+        self.tariff: dict[str, Any] | None = None
+        self.tariff_backend: str | None = None
+        self._tariff_at: float | None = None
         # Settings can be changed over a signed connection, or through the cloud.
         self.control_enabled: bool = self._conn_mode == MODE_V1R or self.cloud_enabled
 
@@ -821,6 +829,83 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._write(f"Off-grid vehicle charging reserve set to {int(percent)}%",
                     lambda pw: pw.set_off_grid_reserve(int(percent)), local=False)
 
+    # -- Tesla tariff (optional, cloud only) ------------------------------
+
+    def _tariff_backends(self) -> list[CloudBackend]:
+        if not self.cloud_enabled:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="tariff_needs_cloud")
+        return [b for b in self.backends if not b.failing and not b.starting()]
+
+    def _read_tariff(self) -> tuple[dict[str, Any], str]:
+        """The tariff from the first cloud backup (in order) that gives one."""
+        errors: list[str] = []
+        for backend in self._tariff_backends():
+            try:
+                tariff = backend.get_client().get_tariff()
+            except Exception as err:  # noqa: BLE001
+                errors.append(f"{backend.label}: {err}")
+                continue
+            if isinstance(tariff, dict) and tariff:
+                return tariff, backend.label
+            errors.append(f"{backend.label}: no tariff")
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="tariff_read_failed",
+                                 translation_placeholders={"errors": "; ".join(errors) or "no cloud backup"})
+
+    async def async_read_tariff(self) -> dict[str, Any]:
+        tariff, backend = await self.hass.async_add_executor_job(self._read_tariff)
+        self.tariff, self.tariff_backend = tariff, backend
+        return tariff
+
+    def _write_tariff(self, tou_settings: dict[str, Any]) -> str:
+        errors: list[str] = []
+        for backend in self._tariff_backends():
+            try:
+                result = backend.get_client().set_tariff(tou_settings)
+            except FleetTimeout as err:
+                raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_cloud_timeout",
+                                         translation_placeholders={"backend": backend.label}) from err
+            except Exception as err:  # noqa: BLE001
+                errors.append(f"{backend.label}: {err}")
+                continue
+            if self._write_ok(result):
+                return backend.label
+            errors.append(f"{backend.label} did not accept it")
+        raise HomeAssistantError(translation_domain=DOMAIN, translation_key="tariff_write_failed",
+                                 translation_placeholders={"errors": "; ".join(errors) or "no cloud backup"})
+
+    async def async_set_tariff(self, tou_settings: dict[str, Any], dry_run: bool) -> dict[str, Any]:
+        """Validate, then (unless dry_run) write through the cloud backup and
+        read the tariff back; a repair says so if Tesla stored other rates."""
+        errors = tariff_mod.validate_write(tou_settings)
+        if errors:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="tariff_invalid",
+                                         translation_placeholders={"errors": "; ".join(errors)})
+        if dry_run:
+            backends = self._tariff_backends()
+            return {"dry_run": True, "would_send": tou_settings,
+                    "backend": backends[0].label if backends else None}
+        backend = await self.hass.async_add_executor_job(self._write_tariff, tou_settings)
+        _LOGGER.info("Tesla tariff written through %s, reading it back", backend)
+        wanted = tariff_mod.normalize(tou_settings["tariff_content_v2"])
+        try:
+            actual = tariff_mod.normalize(await self.async_read_tariff())
+        except HomeAssistantError:
+            actual = None
+        confirmed = tariff_mod.same_rates(wanted, actual)
+        issue_id = f"tariff_write_{self.config_entry.entry_id}"
+        if confirmed:
+            if issue_id in self._write_issues:
+                self._write_issues.discard(issue_id)
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+        else:
+            _LOGGER.warning("Tesla tariff written through %s, but the rates read back differ", backend)
+            self._write_issues.add(issue_id)
+            ir.async_create_issue(self.hass, DOMAIN, issue_id, is_fixable=False,
+                                  severity=ir.IssueSeverity.WARNING, translation_key="tariff_write_mismatch",
+                                  translation_placeholders={"backend": backend})
+        self.async_update_listeners()
+        return {"dry_run": False, "backend": backend, "confirmed": confirmed}
+
     def _cloud_extras(self) -> dict[str, Any]:
         """Storm Watch and other cloud-only values from the first backup (in
         order) that gives them; "backend" names it."""
@@ -996,6 +1081,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 backend.check_at = time.monotonic()
             await self.hass.async_add_executor_job(self._check_cloud, due)
         data["cloud_extras"] = await self.hass.async_add_executor_job(self._cloud_extras) if self.backends else {}
+        if self.tariff_enabled and (self._tariff_at is None or time.monotonic() - self._tariff_at >= TARIFF_SECONDS):
+            self._tariff_at = time.monotonic()
+            try:
+                await self.async_read_tariff()
+            except HomeAssistantError as err:
+                _LOGGER.debug("Tesla tariff read failed: %s", err)
         self._process_alerts(data)
         self._track_outages(data)
         self._track_firmware(data)

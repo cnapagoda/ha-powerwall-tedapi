@@ -25,12 +25,14 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.util import dt as dt_util
 
 from .alerts import LEVELS
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
 from .firmware import split_version
 from .outages import month_start
+from .tariff import current as tariff_now, normalize as tariff_normalize
 
 # Coordinator-based: no limit on parallel updates.
 PARALLEL_UPDATES = 0
@@ -549,6 +551,9 @@ async def async_setup_entry(
     add_new()
     entry.async_on_unload(coordinator.async_add_listener(add_new))
 
+    if coordinator.tariff_enabled:
+        async_add_entities([TeslaTariffSensor(coordinator)])
+
 
 class TedapiSensor(TedapiEntity, SensorEntity):
     entity_description: TedapiSensorEntityDescription
@@ -580,3 +585,38 @@ class TedapiSensor(TedapiEntity, SensorEntity):
         if self.entity_description.attrs_fn and self.data:
             return self.entity_description.attrs_fn(self.data)
         return None
+
+
+class TeslaTariffSensor(TedapiEntity, SensorEntity):
+    """Tesla tariff (optional, cloud only): the name as state, the current
+    period and rates as attributes, and the raw tariff kept out of the
+    recorder."""
+
+    _attr_translation_key = "tesla_tariff"
+    _attr_icon = "mdi:cash-clock"
+    _unrecorded_attributes = frozenset({"tariff"})
+
+    def __init__(self, coordinator: TedapiCoordinator) -> None:
+        super().__init__(coordinator, "tesla_tariff")
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.tariff is not None
+
+    @property
+    def native_value(self) -> str | None:
+        norm = tariff_normalize(self.coordinator.tariff)
+        return str(norm["name"])[:255] if norm and norm["name"] else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        tariff = self.coordinator.tariff
+        norm = tariff_normalize(tariff)
+        if norm is None:
+            return None
+        return {
+            "utility": norm["utility"],
+            **tariff_now(norm, dt_util.now()),
+            "backend": self.coordinator.tariff_backend,
+            "tariff": tariff,
+        }

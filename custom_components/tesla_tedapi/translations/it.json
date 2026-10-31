@@ -189,14 +189,16 @@
           "status_alert_events": "Eventi di avviso anche per gli avvisi di stato",
           "problem_minutes": "Ritardo del problema",
           "dispatch_floor_reserve": "Le scariche si fermano alla riserva di backup",
-          "dispatch_max_watts": "Potenza massima di dispatch"
+          "dispatch_max_watts": "Potenza massima di dispatch",
+          "tesla_tariff": "Tariffa Tesla (cloud)"
         },
         "data_description": {
           "restore_export": "La Powerwall a volte perde la regola di immissione in rete e l'impostazione di carica dalla rete (visto ogni ora su una Powerwall 3); la carica dalla rete allora si attiva. Se attivo, l'impostazione scelta viene riscritta entro uno o due minuti (solo connessione firmata).",
           "status_alert_events": "Gli avvisi di stato come \"Export limited\" descrivono il normale funzionamento e alcuni vanno e vengono ogni pochi minuti; per impostazione predefinita solo notifiche, avvertenze e guasti creano eventi di avviso.",
           "problem_minutes": "Quanto deve durare un'avvertenza o un guasto prima che il sensore Problema si attivi e venga segnalata una riparazione.",
           "dispatch_floor_reserve": "Una scarica avviata senza `min_soc` si ferma quando la batteria raggiunge la riserva di backup.",
-          "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate."
+          "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate.",
+          "tesla_tariff": "Leggere dal backup cloud la tariffa che Tesla usa per il controllo a fasce orarie (sensore e azioni di lettura/impostazione). Solo cloud."
         }
       },
       "cloud_backup": {
@@ -494,6 +496,9 @@
             "name": "Sovrascariche"
           }
         }
+      },
+      "tesla_tariff": {
+        "name": "Tariffa Tesla"
       }
     },
     "switch": {
@@ -590,6 +595,21 @@
     },
     "curtailment_needs_v1r": {
       "message": "La limitazione solare richiede la connessione firmata (v1r) al gateway."
+    },
+    "tariff_needs_cloud": {
+      "message": "La tariffa Tesla richiede un backup cloud (Owner API o Tesla Fleet)."
+    },
+    "tariff_read_failed": {
+      "message": "Impossibile leggere la tariffa Tesla: {errors}"
+    },
+    "tariff_write_failed": {
+      "message": "Tesla non ha accettato la tariffa: {errors}"
+    },
+    "tariff_invalid": {
+      "message": "Queste impostazioni orarie non possono essere inviate: {errors}"
+    },
+    "tariff_disabled": {
+      "message": "Attiva prima l'opzione Tariffa Tesla (richiede un backup cloud)."
     }
   },
   "services": {
@@ -728,6 +748,34 @@
           "description": "Necessario solo se è configurata più di una Powerwall."
         }
       }
+    },
+    "get_tariff": {
+      "name": "Leggi tariffa Tesla",
+      "description": "Leggere in JSON, dal backup cloud, la tariffa che Tesla usa per il controllo a fasce orarie.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurato più di un Powerwall."
+        }
+      }
+    },
+    "set_tariff": {
+      "name": "Imposta tariffa Tesla",
+      "description": "Inviare impostazioni orarie a Tesla tramite il backup cloud. Cambiano come il controllo a fasce orarie carica e scarica.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurato più di un Powerwall."
+        },
+        "tou_settings": {
+          "name": "Impostazioni orarie",
+          "description": "Formato di scrittura di Tesla: un oggetto con tariff_content_v2 (non il formato restituito da get_tariff; vedi il wiki)."
+        },
+        "dry_run": {
+          "name": "Prova",
+          "description": "Solo verificare le impostazioni e mostrare cosa verrebbe inviato (attivo per impostazione predefinita)."
+        }
+      }
     }
   },
   "issues": {
@@ -793,6 +841,10 @@
     "firmware_signed_access": {
       "title": "L'accesso locale firmato si è fermato dopo un aggiornamento del firmware",
       "description": "La Powerwall è passata dal firmware {previous} al {version} e non risponde più alla connessione locale firmata. Tesla può cambiare l'accesso locale con un aggiornamento.\n\nLe letture non sono disponibili; le impostazioni passano dal backup cloud se configurato. Il problema sparisce da solo quando l'accesso firmato torna a funzionare. Se persiste, controlla se c'è un aggiornamento di questa integrazione, oppure registra di nuovo la chiave (**Configura → Registra una nuova chiave firmata**)."
+    },
+    "tariff_write_mismatch": {
+      "title": "Tesla ha salvato una tariffa diversa",
+      "description": "La tariffa è stata inviata tramite {backend}, ma i prezzi restituiti da Tesla sono diversi. Controlla la tariffa nell'app Tesla; questo avviso scompare alla prossima scrittura di tariffa corrispondente."
     }
   },
   "selector": {

@@ -189,14 +189,16 @@
           "status_alert_events": "Eventos de alerta também para alertas de status",
           "problem_minutes": "Atraso de problema",
           "dispatch_floor_reserve": "Descargas param na reserva de backup",
-          "dispatch_max_watts": "Maior potência de despacho"
+          "dispatch_max_watts": "Maior potência de despacho",
+          "tesla_tariff": "Tarifa da Tesla (nuvem)"
         },
         "data_description": {
           "restore_export": "A Powerwall às vezes perde a regra de exportação para a rede e a configuração de carga pela rede (visto de hora em hora em uma Powerwall 3); a carga pela rede então liga. Quando ativado, a configuração escolhida é regravada em um ou dois minutos (só conexão assinada).",
           "status_alert_events": "Alertas de status como \"Export limited\" descrevem o funcionamento normal e alguns vão e vêm a cada poucos minutos; por padrão, só avisos, advertências e falhas criam eventos de alerta.",
           "problem_minutes": "Quanto tempo uma advertência ou falha precisa durar antes que o sensor de problema ligue e um reparo seja aberto.",
           "dispatch_floor_reserve": "Uma descarga iniciada sem `min_soc` para quando a bateria chega à reserva de backup.",
-          "dispatch_max_watts": "Chamadas de despacho acima desta potência são recusadas."
+          "dispatch_max_watts": "Chamadas de despacho acima desta potência são recusadas.",
+          "tesla_tariff": "Ler da reserva na nuvem a tarifa que a Tesla usa no controle por horário (sensor e ações de ler/definir). Somente nuvem."
         }
       },
       "cloud_backup": {
@@ -494,6 +496,9 @@
             "name": "Descargas profundas"
           }
         }
+      },
+      "tesla_tariff": {
+        "name": "Tarifa da Tesla"
       }
     },
     "switch": {
@@ -590,6 +595,21 @@
     },
     "curtailment_needs_v1r": {
       "message": "A limitação solar precisa da conexão assinada (v1r) com o gateway."
+    },
+    "tariff_needs_cloud": {
+      "message": "A tarifa da Tesla precisa de uma reserva na nuvem (Owner API ou Tesla Fleet)."
+    },
+    "tariff_read_failed": {
+      "message": "Não foi possível ler a tarifa da Tesla: {errors}"
+    },
+    "tariff_write_failed": {
+      "message": "A Tesla não aceitou a tarifa: {errors}"
+    },
+    "tariff_invalid": {
+      "message": "Estas configurações de horário não podem ser enviadas: {errors}"
+    },
+    "tariff_disabled": {
+      "message": "Ative primeiro a opção Tarifa da Tesla (ela precisa de uma reserva na nuvem)."
     }
   },
   "services": {
@@ -728,6 +748,34 @@
           "description": "Necessário só quando há mais de uma Powerwall configurada."
         }
       }
+    },
+    "get_tariff": {
+      "name": "Ler tarifa da Tesla",
+      "description": "Ler em JSON, da reserva na nuvem, a tarifa que a Tesla usa no controle por horário.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessário apenas quando há mais de um Powerwall configurado."
+        }
+      }
+    },
+    "set_tariff": {
+      "name": "Definir tarifa da Tesla",
+      "description": "Enviar configurações de horário à Tesla pela reserva na nuvem. Elas mudam como o controle por horário carrega e descarrega.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessário apenas quando há mais de um Powerwall configurado."
+        },
+        "tou_settings": {
+          "name": "Configurações de horário",
+          "description": "Formato de gravação da Tesla: um objeto com tariff_content_v2 (não o formato retornado por get_tariff; veja a wiki)."
+        },
+        "dry_run": {
+          "name": "Teste",
+          "description": "Apenas verificar as configurações e mostrar o que seria enviado (ligado por padrão)."
+        }
+      }
     }
   },
   "issues": {
@@ -793,6 +841,10 @@
     "firmware_signed_access": {
       "title": "O acesso local assinado parou após uma atualização de firmware",
       "description": "A Powerwall foi atualizada do firmware {previous} para o {version} e não responde mais à conexão local assinada. A Tesla pode mudar o acesso local com uma atualização.\n\nAs leituras ficam indisponíveis; as configurações usam o backup na nuvem, se houver um configurado. Isso some sozinho quando o acesso assinado voltar a funcionar. Se continuar, veja se há uma atualização desta integração, ou registre a chave de novo (**Configurar → Registrar uma nova chave assinada**)."
+    },
+    "tariff_write_mismatch": {
+      "title": "A Tesla salvou outra tarifa",
+      "description": "A tarifa foi enviada por {backend}, mas os preços que a Tesla retorna são diferentes. Confira a tarifa no app da Tesla; este aviso some após a próxima gravação de tarifa que coincidir."
     }
   },
   "selector": {

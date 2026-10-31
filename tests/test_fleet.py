@@ -57,6 +57,7 @@ class FakeFleetApi:
         self.calls: list[tuple[str, dict]] = []
         self.fail = False
         self.hang = False
+        self.tariff: dict | None = None
 
     async def _call(self, name: str, **kwargs):
         self.calls.append((name, kwargs))
@@ -77,6 +78,17 @@ class FakeFleetApi:
 
     async def storm_mode(self, enabled):
         return await self._call("storm_mode", enabled=enabled)
+
+    async def site_info(self):
+        self.calls.append(("site_info", {}))
+        if self.fail:
+            raise RuntimeError("401 token expired")
+        return {"response": {"id": DIN, **({"tariff_content_v2": self.tariff} if self.tariff else {})}}
+
+    async def time_of_use_settings(self, settings):
+        result = await self._call("time_of_use_settings", settings=settings)
+        self.tariff = settings["tariff_content_v2"]
+        return result
 
     async def off_grid_vehicle_charging_reserve(self, off_grid_vehicle_charging_reserve_percent):
         return await self._call("off_grid_vehicle_charging_reserve",
@@ -516,3 +528,38 @@ async def test_menu_offers_link_and_unlink_with_only_tesla_fleet(hass: HomeAssis
     assert entry.options["cloud_backends"] == "none"
     result = await _unlink(hass, entry, None)
     assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "new_key"]
+
+
+async def test_tesla_tariff_through_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    """Tesla Fleet: the tariff from site_info, written with time_of_use_settings."""
+    from .test_tariff import V2  # noqa: PLC0415
+
+    fleet.api.tariff = V2
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R, minor_version=2,
+                            options={"cloud_backends": "tesla_fleet", "tesla_tariff": True}, title="Powerwall")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    sensor = er.async_get(hass).async_get_entity_id("sensor", DOMAIN, f"{DIN}_tesla_tariff")
+    assert hass.states.get(sensor).state == "ZeroHero"
+    assert hass.states.get(sensor).attributes["backend"] == "Tesla Fleet"
+
+    new = {**V2, "name": "ZeroHero 2"}
+    resp = await hass.services.async_call(DOMAIN, "set_tariff", {"tou_settings": {"tariff_content_v2": new},
+                                                                 "dry_run": False},
+                                          blocking=True, return_response=True)
+    assert resp == {"dry_run": False, "backend": "Tesla Fleet", "confirmed": True}
+    assert ("time_of_use_settings", {"settings": {"tariff_content_v2": new}}) in fleet.api.calls
+
+    # A site_info without a tariff, a failing read and a hanging read.
+    fleet.api.tariff = None
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(DOMAIN, "get_tariff", {}, blocking=True, return_response=True)
+    client = entry.runtime_data.coordinator.backends[0].get_client()
+    with patch.object(fleet.api, "site_info", return_value=None):
+        assert await hass.async_add_executor_job(client.get_tariff) is None
+    fleet.api.hang = True
+    from custom_components.tesla_tedapi.fleet import FleetTimeout  # noqa: PLC0415
+
+    with patch("custom_components.tesla_tedapi.fleet.CALL_TIMEOUT", 0.05), pytest.raises(FleetTimeout):
+        await hass.async_add_executor_job(client._read, lambda api: api._call("x"))

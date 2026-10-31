@@ -189,14 +189,16 @@
           "status_alert_events": "Événements d'alerte aussi pour les alertes d'état",
           "problem_minutes": "Délai avant problème",
           "dispatch_floor_reserve": "Les décharges s'arrêtent à la réserve de secours",
-          "dispatch_max_watts": "Puissance de dispatch maximale"
+          "dispatch_max_watts": "Puissance de dispatch maximale",
+          "tesla_tariff": "Tarif Tesla (cloud)"
         },
         "data_description": {
           "restore_export": "La Powerwall perd parfois sa règle d'export vers le réseau et son paramètre de charge depuis le réseau (observé toutes les heures sur une Powerwall 3) ; la charge depuis le réseau s'active alors. Si activé, le paramètre choisi est réécrit en une ou deux minutes (connexion signée uniquement).",
           "status_alert_events": "Les alertes d'état comme \"Export limited\" décrivent un fonctionnement normal et certaines vont et viennent toutes les quelques minutes ; par défaut, seuls les avis, avertissements et défauts créent des événements d'alerte.",
           "problem_minutes": "Durée pendant laquelle un avertissement ou un défaut doit persister avant que le capteur Problème s'active et qu'une réparation soit signalée.",
           "dispatch_floor_reserve": "Une décharge lancée sans `min_soc` s'arrête quand la batterie atteint la réserve de secours.",
-          "dispatch_max_watts": "Les appels de dispatch au-delà de cette puissance sont refusés."
+          "dispatch_max_watts": "Les appels de dispatch au-delà de cette puissance sont refusés.",
+          "tesla_tariff": "Lire le tarif utilisé par Tesla pour le contrôle selon l'heure via la sauvegarde cloud (capteur et actions de lecture/écriture). Cloud uniquement."
         }
       },
       "cloud_backup": {
@@ -494,6 +496,9 @@
             "name": "Décharges profondes"
           }
         }
+      },
+      "tesla_tariff": {
+        "name": "Tarif Tesla"
       }
     },
     "switch": {
@@ -590,6 +595,21 @@
     },
     "curtailment_needs_v1r": {
       "message": "L'écrêtement solaire nécessite la connexion signée (v1r) à la passerelle."
+    },
+    "tariff_needs_cloud": {
+      "message": "Le tarif Tesla nécessite une sauvegarde cloud (Owner API ou Tesla Fleet)."
+    },
+    "tariff_read_failed": {
+      "message": "Impossible de lire le tarif Tesla : {errors}"
+    },
+    "tariff_write_failed": {
+      "message": "Tesla n'a pas accepté le tarif : {errors}"
+    },
+    "tariff_invalid": {
+      "message": "Ces réglages horaires ne peuvent pas être envoyés : {errors}"
+    },
+    "tariff_disabled": {
+      "message": "Activez d'abord l'option Tarif Tesla (elle nécessite une sauvegarde cloud)."
     }
   },
   "services": {
@@ -728,6 +748,34 @@
           "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
         }
       }
+    },
+    "get_tariff": {
+      "name": "Lire le tarif Tesla",
+      "description": "Lire en JSON le tarif utilisé par Tesla pour le contrôle selon l'heure, via la sauvegarde cloud.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire seulement si plusieurs Powerwall sont configurés."
+        }
+      }
+    },
+    "set_tariff": {
+      "name": "Définir le tarif Tesla",
+      "description": "Envoyer des réglages horaires à Tesla via la sauvegarde cloud. Ils modifient la charge et la décharge du contrôle selon l'heure.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire seulement si plusieurs Powerwall sont configurés."
+        },
+        "tou_settings": {
+          "name": "Réglages horaires",
+          "description": "Format d'écriture de Tesla : un objet avec tariff_content_v2 (pas le format renvoyé par get_tariff ; voir le wiki)."
+        },
+        "dry_run": {
+          "name": "Essai à blanc",
+          "description": "Vérifier seulement les réglages et montrer ce qui serait envoyé (activé par défaut)."
+        }
+      }
     }
   },
   "issues": {
@@ -793,6 +841,10 @@
     "firmware_signed_access": {
       "title": "L'accès local signé s'est arrêté après une mise à jour du firmware",
       "description": "La Powerwall est passée du firmware {previous} au {version} et ne répond plus à la connexion locale signée. Tesla peut modifier l'accès local avec une mise à jour.\n\nLes mesures sont indisponibles ; les réglages passent par la sauvegarde cloud si elle est configurée. Ce problème disparaît de lui-même quand l'accès signé fonctionne à nouveau. S'il persiste, vérifiez s'il existe une mise à jour de cette intégration, ou enregistrez à nouveau la clé (**Configurer → Enregistrer une nouvelle clé signée**)."
+    },
+    "tariff_write_mismatch": {
+      "title": "Tesla a enregistré un autre tarif",
+      "description": "Le tarif a été envoyé via {backend}, mais les prix renvoyés par Tesla diffèrent. Vérifiez le tarif dans l'application Tesla ; cet avis disparaît à la prochaine écriture de tarif conforme."
     }
   },
   "selector": {

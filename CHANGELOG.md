@@ -5,6 +5,7 @@
 - **charge_to / discharge_to** stop on the reading that reaches the target, instead of at the next 60-second renewal.
 - The hourly restore of a dropped export rule or grid-charging setting is logged at info level; a warning only when the restore fails.
 - **Backup check failed** (shown for a few minutes most days when the battery fills, and after restarts) only becomes a Problem and repair after 30 minutes; it still shows in the alerts meanwhile.
+- **Tesla tariff (cloud, optional, off by default):** a sensor with the tariff Tesla uses for Time-Based Control (current period and rates), and `get_tariff` / `set_tariff` actions (dry run by default, rates read back after a write). Needs a cloud backup.
 
 ## 2.4.1
 

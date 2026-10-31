@@ -21,6 +21,7 @@ CONF_SITE_ID = "site_id"
 CONF_RESTORE_EXPORT = "restore_export"
 CONF_STATUS_EVENTS = "status_alert_events"
 CONF_PROBLEM_MINUTES = "problem_minutes"
+CONF_TESLA_TARIFF = "tesla_tariff"
 CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
 CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
 # Which cloud backup to use and in what order (one of CLOUD_CHOICES).
@@ -113,6 +114,8 @@ OWNER_RENEW_RETRY_SECONDS = 300
 # Storm Watch and other cloud-only values from the Owner API are read this
 # often (two Tesla calls); Tesla Fleet's are read from its data every poll.
 OWNER_EXTRAS_SECONDS = 1800
+# Tesla tariff (cloud, optional): read every 6 hours.
+TARIFF_SECONDS = 6 * 3600
 # Backup events (Storm Watch, manual backup) are read from the gateway this
 # often, and right after one is started or cancelled here.
 BACKUP_EVENTS_SECONDS = 300
@@ -149,6 +152,10 @@ EVENT_FIRMWARE_UPDATED = f"{DOMAIN}_firmware_updated"
 
 SERVICE_DISPATCH = "dispatch_battery_power"
 SERVICE_RESUME = "resume_battery_operation"
+SERVICE_GET_TARIFF = "get_tariff"
+SERVICE_SET_TARIFF = "set_tariff"
+ATTR_TOU_SETTINGS = "tou_settings"
+ATTR_DRY_RUN = "dry_run"
 SERVICE_CHARGE_TO = "charge_to"
 SERVICE_DISCHARGE_TO = "discharge_to"
 SERVICE_START_MAX_BACKUP = "start_max_backup"

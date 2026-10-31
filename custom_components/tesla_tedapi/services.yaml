@@ -179,3 +179,27 @@ reconnect_grid:
       selector:
         config_entry:
           integration: tesla_tedapi
+get_tariff:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+set_tariff:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    tou_settings:
+      required: true
+      example: '{"tariff_content_v2": {"name": "My plan", "seasons": {}, "energy_charges": {}}}'
+      selector:
+        object:
+    dry_run:
+      required: false
+      default: true
+      selector:
+        boolean:

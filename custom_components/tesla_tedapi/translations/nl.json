@@ -189,14 +189,16 @@
           "status_alert_events": "Waarschuwingsgebeurtenissen ook voor statusmeldingen",
           "problem_minutes": "Probleemvertraging",
           "dispatch_floor_reserve": "Ontladen stopt bij de back-upreserve",
-          "dispatch_max_watts": "Grootste dispatch-vermogen"
+          "dispatch_max_watts": "Grootste dispatch-vermogen",
+          "tesla_tariff": "Tesla-tarief (cloud)"
         },
         "data_description": {
           "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding).",
           "status_alert_events": "Statusmeldingen zoals \"Export limited\" beschrijven normale werking en sommige komen en gaan om de paar minuten; standaard maken alleen mededelingen, waarschuwingen en storingen waarschuwingsgebeurtenissen aan.",
           "problem_minutes": "Hoe lang een waarschuwing of storing moet duren voordat de probleemsensor aangaat en een reparatie wordt gemeld.",
           "dispatch_floor_reserve": "Een ontlading die zonder `min_soc` is gestart, stopt als de batterij de back-upreserve bereikt.",
-          "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd."
+          "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd.",
+          "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensor en acties om te lezen/instellen). Alleen cloud."
         }
       },
       "cloud_backup": {
@@ -494,6 +496,9 @@
             "name": "Diepontladingen"
           }
         }
+      },
+      "tesla_tariff": {
+        "name": "Tesla-tarief"
       }
     },
     "switch": {
@@ -590,6 +595,21 @@
     },
     "curtailment_needs_v1r": {
       "message": "Zonnestroombegrenzing heeft de ondertekende (v1r) verbinding met de gateway nodig."
+    },
+    "tariff_needs_cloud": {
+      "message": "Het Tesla-tarief heeft een cloud-back-up nodig (Owner API of Tesla Fleet)."
+    },
+    "tariff_read_failed": {
+      "message": "Kon het Tesla-tarief niet lezen: {errors}"
+    },
+    "tariff_write_failed": {
+      "message": "Tesla heeft het tarief niet geaccepteerd: {errors}"
+    },
+    "tariff_invalid": {
+      "message": "Deze tijdtarief-instellingen kunnen niet worden verzonden: {errors}"
+    },
+    "tariff_disabled": {
+      "message": "Zet eerst de optie Tesla-tarief aan (die heeft een cloud-back-up nodig)."
     }
   },
   "services": {
@@ -728,6 +748,34 @@
           "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
         }
       }
+    },
+    "get_tariff": {
+      "name": "Tesla-tarief lezen",
+      "description": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt als JSON uit de cloud-back-up lezen.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        }
+      }
+    },
+    "set_tariff": {
+      "name": "Tesla-tarief instellen",
+      "description": "Tijdtarief-instellingen via de cloud-back-up naar Tesla sturen. Ze veranderen hoe tijdgestuurde regeling laadt en ontlaadt.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "tou_settings": {
+          "name": "Tijdtarief-instellingen",
+          "description": "Het schrijfformaat van Tesla: een object met tariff_content_v2 (niet het formaat van get_tariff; zie de wiki)."
+        },
+        "dry_run": {
+          "name": "Proefrun",
+          "description": "Alleen de instellingen controleren en tonen wat verzonden zou worden (standaard aan)."
+        }
+      }
     }
   },
   "issues": {
@@ -793,6 +841,10 @@
     "firmware_signed_access": {
       "title": "Ondertekende lokale toegang gestopt na een firmware-update",
       "description": "De Powerwall is bijgewerkt van firmware {previous} naar {version} en reageert niet meer op de ondertekende lokale verbinding. Tesla kan lokale toegang met een update wijzigen.\n\nMetingen zijn niet beschikbaar; instellingen lopen via de cloudback-up als die is ingesteld. Dit verdwijnt vanzelf zodra ondertekende toegang weer werkt. Blijft het, kijk dan of er een update van deze integratie is, of registreer de sleutel opnieuw (**Configureren → Nieuwe ondertekende sleutel registreren**)."
+    },
+    "tariff_write_mismatch": {
+      "title": "Tesla heeft een ander tarief opgeslagen",
+      "description": "Het tarief is via {backend} verzonden, maar de prijzen die Tesla teruggeeft wijken af. Controleer het tarief in de Tesla-app; deze melding verdwijnt na de volgende tariefwijziging die klopt."
     }
   },
   "selector": {
