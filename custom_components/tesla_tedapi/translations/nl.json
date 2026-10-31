@@ -785,13 +785,13 @@
         },
         "dry_run": {
           "name": "Proefrun",
-          "description": "Alleen de instellingen controleren en tonen wat verzonden zou worden (standaard aan)."
+          "description": "Alleen de instellingen controleren, tonen wat Tesla zou aanpassen en tonen wat verzonden zou worden (standaard aan)."
         }
       }
     },
     "import_battery_history": {
       "name": "Batterijgeschiedenis importeren",
-      "description": "Eenmalig: de laad- en ontlaadgeschiedenis van de batterij uit Tesla Fleet of Teslemetry kopiëren naar de batterij-energiestatistieken van deze Powerwall, voor de periode vóór de eigen geschiedenis.",
+      "description": "Eenmalig: de laad- en ontlaadgeschiedenis van de batterij uit Tesla Fleet of Teslemetry kopiëren naar de batterij-energiestatistieken van deze Powerwall, voor de periode vóór de eigen geschiedenis. Maak eerst een Home Assistant-back-up: de import is moeilijk ongedaan te maken.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -878,7 +878,7 @@
     },
     "tariff_write_mismatch": {
       "title": "Tesla heeft een ander tarief opgeslagen",
-      "description": "Het tarief is via {backend} verzonden, maar de prijzen die Tesla teruggeeft wijken af. Controleer het tarief in de Tesla-app; deze melding verdwijnt na de volgende tariefwijziging die klopt."
+      "description": "Het tarief is via {backend} verzonden, maar de prijzen die Tesla teruggeeft wijken af. Controleer het tarief in de Tesla-app; deze melding verdwijnt zodra Tesla de verzonden prijzen toont."
     }
   },
   "selector": {

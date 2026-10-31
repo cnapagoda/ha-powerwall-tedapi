@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 from datetime import datetime
+import time
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -12,7 +13,7 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.tesla_tedapi import tariff
-from custom_components.tesla_tedapi.const import DOMAIN
+from custom_components.tesla_tedapi.const import DOMAIN, TARIFF_SECONDS
 
 from .conftest import DIN, TARIFF, cloud
 
@@ -96,6 +97,87 @@ def test_validate_write_rejects(payload, message) -> None:
 
 def test_validate_write_accepts_v2() -> None:
     assert tariff.validate_write({"tariff_content_v2": V2}) == []
+    assert tariff.check_write({"tariff_content_v2": V2}) == []
+
+
+def test_validate_write_only_sends_the_tariff() -> None:
+    errors = tariff.validate_write({"tariff_content_v2": V2, "optimization_strategy": "economics"})
+    assert errors == ["only tariff_content_v2 can be sent; remove optimization_strategy"]
+
+
+# -- Tesla leaves zero-valued fields out ---------------------------------------
+
+def test_missing_fields_are_zero() -> None:
+    """A range ending on Monday arrives without toDayOfWeek; an empty season
+    without its months. Neither may stretch to the whole week or year."""
+    read = {"seasons": {
+        "Winter": {"tou_periods": {}},  # all zeros left out: inactive
+        "Year": {"fromMonth": 1, "toMonth": 12, "fromDay": 1, "toDay": 31, "tou_periods": {
+            "ON_PEAK": [{"fromHour": 16, "toHour": 21}],  # Monday only
+            "OFF_PEAK": [{"fromDayOfWeek": 1, "toDayOfWeek": 6, "fromHour": 16, "toHour": 21}],
+            "SHOULDER": [{"toDayOfWeek": 6, "fromHour": 21, "toHour": 16}],
+        }}},
+        "energy_charges": {"Year": {"ON_PEAK": 0.5, "SHOULDER": 0.3}},  # OFF_PEAK free: left out
+        "sell_tariff": {"energy_charges": {"Year": {"ON_PEAK": 0.1}}}}
+    norm = tariff.normalize(read)
+    # 3 Nov 2026 is a Tuesday: off-peak, free (no rate given).
+    assert tariff.current(norm, datetime(2026, 11, 3, 17)) == {
+        "season": "Year", "period": "OFF_PEAK", "buy_rate": 0.0, "sell_rate": 0.0}
+    # 2 Nov 2026 is a Monday: peak.
+    assert tariff.current(norm, datetime(2026, 11, 2, 17))["buy_rate"] == 0.5
+    warnings = tariff.check_write({"tariff_content_v2": read})
+    assert "season Winter has no months, so Tesla treats it as inactive" in warnings
+    assert not [w for w in warnings if "no period" in w or "more than one" in w]
+
+
+def test_same_rates_allows_for_teslas_changes() -> None:
+    wanted = tariff.normalize({"energy_charges": {"ALL": {"rates": {"ALL": 0}},
+                                                  "S": {"rates": {"A": -0.05, "B": 0.10, "C": 0.0}}},
+                               "sell_tariff": {"energy_charges": {"S": {"rates": {"A": 0.02, "B": 0.15}}}}})
+    # Tesla drops ALL: 0 and the free C, raises A to 0 and then to its sell
+    # rate, and B's buy rate to its sell rate.
+    stored = tariff.normalize({"energy_charges": {"S": {"A": 0.02, "B": 0.15}},
+                               "sell_tariff": {"energy_charges": {"S": {"A": 0.02, "B": 0.15}}}})
+    assert tariff.same_rates(wanted, stored)
+    other = tariff.normalize({"energy_charges": {"S": {"A": 0.02, "B": 0.16}},
+                              "sell_tariff": {"energy_charges": {"S": {"A": 0.02, "B": 0.15}}}})
+    assert not tariff.same_rates(wanted, other)
+
+
+def _write(**content) -> dict:
+    return {"tariff_content_v2": content}
+
+
+YEAR = {"fromMonth": 1, "toMonth": 12, "fromDay": 1, "toDay": 31}
+ALL_WEEK = {"fromDayOfWeek": 0, "toDayOfWeek": 6}
+
+
+def test_check_write_warnings() -> None:
+    warnings = tariff.check_write(_write(
+        seasons={
+            "Summer": {"fromMonth": 1, "toMonth": 6, "fromDay": 1, "toDay": 30, "tou_periods": {
+                "A": {"periods": [{**ALL_WEEK, "fromHour": 0, "toHour": 12}]},
+                "B": {"periods": [{"fromDayOfWeek": 0, "toDayOfWeek": 4, "fromHour": 10, "toHour": 20}]}}},
+            "Late": {"fromMonth": 6, "toMonth": 9, "fromDay": 1, "toDay": 30, "tou_periods": {}}},
+        energy_charges={"Summer": {"rates": {"A": -0.05, "C": 0.3}}, "Gone": {"rates": {"X": 1}}},
+        sell_tariff={"energy_charges": {"Summer": {"rates": {"A": 0.1}}}}))
+    expected = [
+        "buy rate Summer.A is negative (-0.05); Tesla stores 0",
+        "sell rate Summer.A (0.1) is above the buy rate (-0.05); Tesla raises the buy rate to match",
+        "buy prices for season Gone, which isn't in seasons",
+        "Summer.C has a buy price but no time periods",
+        "Summer.B has time periods but no buy price (Tesla uses 0)",
+        "1 Jun-30 Jun is in more than one season (Summer, Late)",
+        "1 Oct-31 Dec is in no season",
+        "Summer: Monday 20:00-24:00 is in no period",
+        "... and 2 more gaps",
+        "Summer: Monday 10:00-12:00 is in more than one period (A, B)",
+    ]
+    for line in expected:
+        assert line in warnings, line
+    assert "no sell_tariff, so no feed-in rates are sent" in tariff.check_write(_write(
+        seasons={"Y": {**YEAR, "tou_periods": {"ALL": {"periods": [ALL_WEEK]}}}},
+        energy_charges={"Y": {"rates": {"ALL": 0.3}}}))
 
 
 # -- option, sensor and actions ----------------------------------------------
@@ -148,7 +230,8 @@ async def test_sensor_and_get_tariff(hass: HomeAssistant, fake_powerwall) -> Non
 async def test_set_tariff_dry_run_and_validation(hass: HomeAssistant, fake_powerwall) -> None:
     await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
     resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2})
-    assert resp == {"dry_run": True, "would_send": {"tariff_content_v2": V2}, "backend": "Owner API"}
+    assert resp == {"dry_run": True, "would_send": {"tariff_content_v2": V2}, "backend": "Owner API",
+                    "warnings": []}
     assert not [w for w in cloud(fake_powerwall).writes if w[0] == "tariff"]
     with pytest.raises(ServiceValidationError):
         await _call(hass, "set_tariff", tou_settings=TARIFF, dry_run=False)
@@ -157,7 +240,8 @@ async def test_set_tariff_dry_run_and_validation(hass: HomeAssistant, fake_power
 async def test_set_tariff_writes_and_confirms(hass: HomeAssistant, fake_powerwall) -> None:
     entry = await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
     resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
-    assert resp == {"dry_run": False, "backend": "Owner API", "confirmed": True}
+    assert resp == {"dry_run": False, "backend": "Owner API", "confirmed": True, "status": "confirmed",
+                    "warnings": []}
     assert ("tariff", {"tariff_content_v2": V2}) in cloud(fake_powerwall).writes
     await hass.async_block_till_done()
     assert hass.states.get(_eid(hass)).attributes["tariff"]["energy_charges"]["Year"]["rates"]["ON_PEAK"] == 0.60
@@ -165,11 +249,19 @@ async def test_set_tariff_writes_and_confirms(hass: HomeAssistant, fake_powerwal
 
 
 async def test_set_tariff_mismatch_raises_repair(hass: HomeAssistant, fake_powerwall) -> None:
+    """Owner API: a write it doesn't show yet is pending; the repair comes
+    only if the next tariff read still shows other rates."""
     entry = await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    coordinator = entry.runtime_data.coordinator
     fake_powerwall.tariff_applied = TARIFF  # Tesla keeps the old rates
     resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
-    assert resp["confirmed"] is False
+    assert resp["confirmed"] is False and resp["status"] == "pending"
     issue_id = f"tariff_write_{entry.entry_id}"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+    # Checked again in 35 minutes, not 6 hours.
+    assert TARIFF_SECONDS - (time.monotonic() - coordinator._tariff_at) == pytest.approx(35 * 60, abs=5)
+    coordinator._tariff_at = None  # due now
+    await coordinator.async_refresh()
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None
     # A later write that matches clears it.
     fake_powerwall.tariff_applied = None
@@ -201,8 +293,46 @@ async def test_write_ok_but_read_back_fails(hass: HomeAssistant, fake_powerwall)
 
     pw.set_tariff = write_then_break
     resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
-    assert resp["confirmed"] is False
-    assert ir.async_get(hass).async_get_issue(DOMAIN, f"tariff_write_{entry.entry_id}") is not None
+    assert resp["confirmed"] is False and resp["status"] == "pending"
+    issue_id = f"tariff_write_{entry.entry_id}"
+    coordinator = entry.runtime_data.coordinator
+    # Still unreadable at the next check: stays pending, no repair.
+    coordinator._tariff_at = None
+    await coordinator.async_refresh()
+    assert coordinator._tariff_pending and ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+    # Readable again and showing the write: confirmed.
+    fake_powerwall.cloud_reads_fail = False
+    coordinator._tariff_at = None
+    await coordinator.async_refresh()
+    assert coordinator._tariff_wanted is None and not coordinator._tariff_pending
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+
+
+async def test_read_back_waits_for_tesla(hass: HomeAssistant, fake_powerwall) -> None:
+    """Tesla shows the new tariff only on a later read-back: confirmed."""
+    from unittest.mock import patch  # noqa: PLC0415
+
+    await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    pw = cloud(fake_powerwall)
+    reads = {"n": 0}
+    original = pw.get_tariff
+
+    def slow(force=False):
+        reads["n"] += 1
+        return copy.deepcopy(TARIFF) if reads["n"] < 3 else original(force)
+
+    pw.get_tariff = slow
+    with patch("custom_components.tesla_tedapi.coordinator.TARIFF_READBACK_WAITS", (0, 0, 0, 0)):
+        resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
+    assert resp["status"] == "confirmed" and reads["n"] == 3
+
+
+async def test_dry_run_lists_warnings(hass: HomeAssistant, fake_powerwall) -> None:
+    await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    odd = copy.deepcopy(V2)
+    odd["energy_charges"]["Year"]["rates"]["OFF_PEAK"] = -0.05
+    resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": odd})
+    assert resp["dry_run"] is True and any("negative" in w for w in resp["warnings"])
 
 
 async def test_periodic_read_failure_keeps_last_value(hass: HomeAssistant, fake_powerwall) -> None:
@@ -260,3 +390,20 @@ async def test_option_offered_only_with_cloud(hass: HomeAssistant, fake_powerwal
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})
     assert ("tesla_tariff" in result["data_schema"].schema) is offered
+
+
+def test_check_write_with_only_empty_seasons() -> None:
+    warnings = tariff.check_write(_write(seasons={"Winter": {"tou_periods": {}}},
+                                         energy_charges={"ALL": {"rates": {"ALL": 0.3}}},
+                                         sell_tariff={"energy_charges": {}}))
+    assert warnings == ["season Winter has no months, so Tesla treats it as inactive"]
+
+
+async def test_read_back_errors_leave_it_pending(hass: HomeAssistant, fake_powerwall) -> None:
+    from unittest.mock import patch  # noqa: PLC0415
+
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    client = entry.runtime_data.coordinator.backends[0].get_client()
+    with patch.object(type(client), "get_tariff", side_effect=RuntimeError("busy")):
+        resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
+    assert resp["status"] == "pending"

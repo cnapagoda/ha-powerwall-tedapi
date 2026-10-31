@@ -785,13 +785,13 @@
         },
         "dry_run": {
           "name": "Próba",
-          "description": "Tylko sprawdź ustawienia i pokaż, co zostałoby wysłane (domyślnie włączone)."
+          "description": "Tylko sprawdź ustawienia, wypisz, co Tesla by zmieniła, i pokaż, co zostałoby wysłane (domyślnie włączone)."
         }
       }
     },
     "import_battery_history": {
       "name": "Importuj historię baterii",
-      "description": "Jednorazowo: skopiuj historię ładowania i rozładowania baterii z Tesla Fleet lub Teslemetry do statystyk energii baterii tego Powerwalla, za okres przed jego własną historią.",
+      "description": "Jednorazowo: skopiuj historię ładowania i rozładowania baterii z Tesla Fleet lub Teslemetry do statystyk energii baterii tego Powerwalla, za okres przed jego własną historią. Najpierw zrób kopię zapasową Home Assistant: importu nie da się łatwo cofnąć.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -878,7 +878,7 @@
     },
     "tariff_write_mismatch": {
       "title": "Tesla zapisała inną taryfę",
-      "description": "Taryfę wysłano przez {backend}, ale ceny zwracane przez Teslę są inne. Sprawdź taryfę w aplikacji Tesla; to powiadomienie zniknie po następnym zgodnym zapisie taryfy."
+      "description": "Taryfę wysłano przez {backend}, ale ceny zwracane przez Teslę są inne. Sprawdź taryfę w aplikacji Tesla; to powiadomienie zniknie, gdy Tesla pokaże wysłane ceny."
     }
   },
   "selector": {

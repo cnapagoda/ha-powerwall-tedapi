@@ -116,6 +116,12 @@ OWNER_RENEW_RETRY_SECONDS = 300
 OWNER_EXTRAS_SECONDS = 1800
 # Tesla tariff (cloud, optional): read every 6 hours.
 TARIFF_SECONDS = 6 * 3600
+# After a write, the tariff is read back after these waits (at 0, 1, 3, 7, 15
+# and 25 s): Tesla takes a while to show a new tariff.
+TARIFF_READBACK_WAITS = (0, 1, 2, 4, 8, 10)
+# The Owner API may show a new tariff only after up to 30 minutes: a write it
+# hasn't shown yet is pending, and checked again this long after.
+TARIFF_PENDING_SECONDS = 35 * 60
 # Backup events (Storm Watch, manual backup) are read from the gateway this
 # often, and right after one is started or cancelled here.
 BACKUP_EVENTS_SECONDS = 300

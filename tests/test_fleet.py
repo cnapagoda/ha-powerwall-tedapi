@@ -86,8 +86,10 @@ class FakeFleetApi:
         return {"response": {"id": DIN, **({"tariff_content_v2": self.tariff} if self.tariff else {})}}
 
     async def time_of_use_settings(self, settings):
-        result = await self._call("time_of_use_settings", settings=settings)
-        self.tariff = settings["tariff_content_v2"]
+        # Like tesla-fleet-api: the argument is the tariff, wrapped here.
+        body = {"tou_settings": {"tariff_content_v2": settings}}
+        result = await self._call("time_of_use_settings", json=body)
+        self.tariff = body["tou_settings"]["tariff_content_v2"]
         return result
 
     async def off_grid_vehicle_charging_reserve(self, off_grid_vehicle_charging_reserve_percent):
@@ -548,8 +550,33 @@ async def test_tesla_tariff_through_fleet(hass: HomeAssistant, fake_powerwall, f
     resp = await hass.services.async_call(DOMAIN, "set_tariff", {"tou_settings": {"tariff_content_v2": new},
                                                                  "dry_run": False},
                                           blocking=True, return_response=True)
-    assert resp == {"dry_run": False, "backend": "Tesla Fleet", "confirmed": True}
-    assert ("time_of_use_settings", {"settings": {"tariff_content_v2": new}}) in fleet.api.calls
+    assert resp == {"dry_run": False, "backend": "Tesla Fleet", "confirmed": True, "status": "confirmed",
+                    "warnings": []}
+    # Tesla gets the tariff wrapped once, not tariff_content_v2.tariff_content_v2.
+    assert ("time_of_use_settings", {"json": {"tou_settings": {"tariff_content_v2": new}}}) in fleet.api.calls
+    with pytest.raises(ValueError, match="non-empty"):
+        await hass.async_add_executor_job(
+            entry.runtime_data.coordinator.backends[0].get_client().set_tariff, {"tariff_content_v2": {}})
+
+    # Tesla Fleet shows a new tariff at once: other rates are a mismatch and a repair.
+    original = fleet.api.time_of_use_settings
+
+    async def keeps_old(settings):
+        await original(settings)
+        fleet.api.tariff = V2
+
+    issue_id = f"tariff_write_{entry.entry_id}"
+    with patch.object(fleet.api, "time_of_use_settings", keeps_old):
+        resp = await hass.services.async_call(DOMAIN, "set_tariff", {
+            "tou_settings": {"tariff_content_v2": {**V2, "energy_charges": {"Year": {"rates": {"ON_PEAK": 0.7}}}}},
+            "dry_run": False}, blocking=True, return_response=True)
+    assert resp["status"] == "mismatch"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None
+    # A later read that shows the rates written (here Tesla caught up) clears it.
+    fleet.api.tariff = {**V2, "energy_charges": {"Year": {"rates": {"ON_PEAK": 0.7}}}}
+    entry.runtime_data.coordinator._tariff_at = None
+    await entry.runtime_data.coordinator.async_refresh()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
 
     # A site_info without a tariff, a failing read and a hanging read.
     fleet.api.tariff = None

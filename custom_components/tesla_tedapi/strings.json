@@ -785,13 +785,13 @@
         },
         "dry_run": {
           "name": "Dry run",
-          "description": "Only check the settings and show what would be sent (on by default)."
+          "description": "Only check the settings, list what Tesla would change, and show what would be sent (on by default)."
         }
       }
     },
     "import_battery_history": {
       "name": "Import battery history",
-      "description": "One-off: copy Tesla Fleet or Teslemetry's battery charged and discharged history into this Powerwall's battery energy statistics, for the time before their own history starts.",
+      "description": "One-off: copy Tesla Fleet or Teslemetry's battery charged and discharged history into this Powerwall's battery energy statistics, for the time before their own history starts. Take a Home Assistant backup first: the import is hard to undo.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -878,7 +878,7 @@
     },
     "tariff_write_mismatch": {
       "title": "Tesla stored a different tariff",
-      "description": "The tariff was sent through {backend}, but the rates Tesla returns differ from the ones sent. Check the tariff in the Tesla app; this notice clears after the next tariff write that matches."
+      "description": "The tariff was sent through {backend}, but the rates Tesla returns differ from the ones sent. Check the tariff in the Tesla app; this notice clears once Tesla shows the rates sent."
     }
   },
   "selector": {

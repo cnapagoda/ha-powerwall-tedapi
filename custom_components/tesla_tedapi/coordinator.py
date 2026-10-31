@@ -6,6 +6,7 @@ backup: a Tesla account linked here (Owner API), the Tesla Fleet integration's
 sign-in (Fleet API), or both in the chosen order."""
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -63,6 +64,8 @@ from .const import (
     PASSWORD_REFUSED_POLLS,
     RESTORE_MIN_SECONDS,
     SOLAR_CURTAILMENT_KEY,
+    TARIFF_PENDING_SECONDS,
+    TARIFF_READBACK_WAITS,
     TARIFF_SECONDS,
     app_soc,
     cloud_choice,
@@ -281,6 +284,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.tariff: dict[str, Any] | None = None
         self.tariff_backend: str | None = None
         self._tariff_at: float | None = None
+        # The last tariff written here until Tesla shows it, and whether the
+        # Owner API hasn't shown it yet (checked again, no repair yet).
+        self._tariff_wanted: dict[str, Any] | None = None
+        self._tariff_pending = False
         # Settings can be changed over a signed connection, or through the cloud.
         self.control_enabled: bool = self._conn_mode == MODE_V1R or self.cloud_enabled
 
@@ -856,7 +863,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.tariff, self.tariff_backend = tariff, backend
         return tariff
 
-    def _write_tariff(self, tou_settings: dict[str, Any]) -> str:
+    def _write_tariff(self, tou_settings: dict[str, Any]) -> CloudBackend:
         errors: list[str] = []
         for backend in self._tariff_backends():
             try:
@@ -868,43 +875,87 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 errors.append(f"{backend.label}: {err}")
                 continue
             if self._write_ok(result):
-                return backend.label
+                return backend
             errors.append(f"{backend.label} did not accept it")
         raise HomeAssistantError(translation_domain=DOMAIN, translation_key="tariff_write_failed",
                                  translation_placeholders={"errors": "; ".join(errors) or "no cloud backup"})
 
     async def async_set_tariff(self, tou_settings: dict[str, Any], dry_run: bool) -> dict[str, Any]:
         """Validate, then (unless dry_run) write through the cloud backup and
-        read the tariff back; a repair says so if Tesla stored other rates."""
+        read the tariff back from it for up to 25 s. "status" is confirmed,
+        pending (the Owner API hasn't shown it yet: checked again later) or
+        mismatch (a repair says so). "warnings" lists what Tesla would change."""
         errors = tariff_mod.validate_write(tou_settings)
         if errors:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="tariff_invalid",
                                          translation_placeholders={"errors": "; ".join(errors)})
+        warnings = tariff_mod.check_write(tou_settings)
         if dry_run:
             backends = self._tariff_backends()
             return {"dry_run": True, "would_send": tou_settings,
-                    "backend": backends[0].label if backends else None}
+                    "backend": backends[0].label if backends else None, "warnings": warnings}
         backend = await self.hass.async_add_executor_job(self._write_tariff, tou_settings)
-        _LOGGER.info("Tesla tariff written through %s, reading it back", backend)
-        wanted = tariff_mod.normalize(tou_settings["tariff_content_v2"])
-        try:
-            actual = tariff_mod.normalize(await self.async_read_tariff())
-        except HomeAssistantError:
-            actual = None
-        confirmed = tariff_mod.same_rates(wanted, actual)
-        issue_id = f"tariff_write_{self.config_entry.entry_id}"
+        _LOGGER.info("Tesla tariff written through %s, reading it back", backend.label)
+        self._tariff_wanted = tariff_mod.normalize(tou_settings["tariff_content_v2"])
+        self._tariff_pending = False
+        confirmed = await self._read_back_tariff(backend)
         if confirmed:
-            if issue_id in self._write_issues:
-                self._write_issues.discard(issue_id)
-                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            status = "confirmed"
+            self._tariff_matches()
+        elif backend.name == BACKEND_OWNER:
+            status = "pending"
+            self._tariff_pending = True
+            self._tariff_at = time.monotonic() - TARIFF_SECONDS + TARIFF_PENDING_SECONDS
+            _LOGGER.info("Tesla tariff written through %s; it doesn't show it yet, checking again later",
+                         backend.label)
         else:
-            _LOGGER.warning("Tesla tariff written through %s, but the rates read back differ", backend)
-            self._write_issues.add(issue_id)
-            ir.async_create_issue(self.hass, DOMAIN, issue_id, is_fixable=False,
-                                  severity=ir.IssueSeverity.WARNING, translation_key="tariff_write_mismatch",
-                                  translation_placeholders={"backend": backend})
+            status = "mismatch"
+            self._tariff_mismatch(backend.label)
         self.async_update_listeners()
-        return {"dry_run": False, "backend": backend, "confirmed": confirmed}
+        return {"dry_run": False, "backend": backend.label, "confirmed": confirmed, "status": status,
+                "warnings": warnings}
+
+    async def _read_back_tariff(self, backend: CloudBackend) -> bool:
+        """Whether the backend written through shows the wanted rates within
+        the read-back waits."""
+        for wait in TARIFF_READBACK_WAITS:
+            await asyncio.sleep(wait)
+            try:
+                actual = await self.hass.async_add_executor_job(backend.get_client().get_tariff)
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Tesla tariff read-back through %s failed: %s", backend.label, err)
+                continue
+            if isinstance(actual, dict) and actual:
+                self.tariff, self.tariff_backend = actual, backend.label
+                if tariff_mod.same_rates(self._tariff_wanted, tariff_mod.normalize(actual)):
+                    return True
+        return False
+
+    def _tariff_matches(self) -> None:
+        self._tariff_wanted, self._tariff_pending = None, False
+        issue_id = f"tariff_write_{self.config_entry.entry_id}"
+        if issue_id in self._write_issues:
+            self._write_issues.discard(issue_id)
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+
+    def _tariff_mismatch(self, backend: str) -> None:
+        _LOGGER.warning("Tesla tariff written through %s, but the rates read back differ", backend)
+        self._tariff_pending = False
+        issue_id = f"tariff_write_{self.config_entry.entry_id}"
+        self._write_issues.add(issue_id)
+        ir.async_create_issue(self.hass, DOMAIN, issue_id, is_fixable=False,
+                              severity=ir.IssueSeverity.WARNING, translation_key="tariff_write_mismatch",
+                              translation_placeholders={"backend": backend})
+
+    def _check_tariff_write(self) -> None:
+        """After a periodic read: confirm the last write, or raise the repair
+        for a pending one Tesla still doesn't show."""
+        if self._tariff_wanted is None:
+            return
+        if tariff_mod.same_rates(self._tariff_wanted, tariff_mod.normalize(self.tariff)):
+            self._tariff_matches()
+        elif self._tariff_pending:
+            self._tariff_mismatch(self.tariff_backend or "the cloud backup")
 
     def _cloud_extras(self) -> dict[str, Any]:
         """Storm Watch and other cloud-only values from the first backup (in
@@ -1087,6 +1138,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 await self.async_read_tariff()
             except HomeAssistantError as err:
                 _LOGGER.debug("Tesla tariff read failed: %s", err)
+            else:
+                self._check_tariff_write()
         self._process_alerts(data)
         self._track_outages(data)
         self._track_firmware(data)
