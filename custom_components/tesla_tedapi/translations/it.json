@@ -610,6 +610,18 @@
     },
     "tariff_disabled": {
       "message": "Attiva prima l'opzione Tariffa Tesla (richiede un backup cloud)."
+    },
+    "history_no_source": {
+      "message": "Nessun sensore Tesla Fleet o Teslemetry trovato per {sensor}; sceglilo nei campi di origine."
+    },
+    "history_no_target": {
+      "message": "Questo Powerwall non ha ancora statistiche di energia della batteria ({sensor}); riprova tra qualche ora."
+    },
+    "history_nothing_to_import": {
+      "message": "{sensor} non ha cronologia precedente a quella di questo Powerwall."
+    },
+    "history_already_imported": {
+      "message": "{sensor} ha già cronologia di quel periodo: è già stata importata."
     }
   },
   "services": {
@@ -774,6 +786,28 @@
         "dry_run": {
           "name": "Prova",
           "description": "Solo verificare le impostazioni e mostrare cosa verrebbe inviato (attivo per impostazione predefinita)."
+        }
+      }
+    },
+    "import_battery_history": {
+      "name": "Importa cronologia batteria",
+      "description": "Una tantum: copiare la cronologia di carica e scarica della batteria da Tesla Fleet o Teslemetry nelle statistiche di energia della batteria di questo Powerwall, per il periodo precedente alla sua cronologia.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurata più di una Powerwall."
+        },
+        "dry_run": {
+          "name": "Prova",
+          "description": "Mostrare solo cosa verrebbe importato (attivo per impostazione predefinita)."
+        },
+        "source_charged": {
+          "name": "Origine carica",
+          "description": "Facoltativo: il sensore cloud dell'energia caricata, se non viene trovato automaticamente."
+        },
+        "source_discharged": {
+          "name": "Origine scarica",
+          "description": "Facoltativo: il sensore cloud dell'energia scaricata, se non viene trovato automaticamente."
         }
       }
     }

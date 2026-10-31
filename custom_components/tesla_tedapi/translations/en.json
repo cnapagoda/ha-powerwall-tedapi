@@ -610,6 +610,18 @@
     },
     "tariff_disabled": {
       "message": "Turn on the Tesla tariff option first (it needs a cloud backup)."
+    },
+    "history_no_source": {
+      "message": "No Tesla Fleet or Teslemetry sensor found for {sensor}; choose it with the source fields."
+    },
+    "history_no_target": {
+      "message": "This Powerwall has no battery energy statistics yet ({sensor}); try again after a few hours."
+    },
+    "history_nothing_to_import": {
+      "message": "{sensor} has no history before this Powerwall's own."
+    },
+    "history_already_imported": {
+      "message": "{sensor} already has history from that time: it was imported before."
     }
   },
   "services": {
@@ -774,6 +786,28 @@
         "dry_run": {
           "name": "Dry run",
           "description": "Only check the settings and show what would be sent (on by default)."
+        }
+      }
+    },
+    "import_battery_history": {
+      "name": "Import battery history",
+      "description": "One-off: copy Tesla Fleet or Teslemetry's battery charged and discharged history into this Powerwall's battery energy statistics, for the time before their own history starts.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "dry_run": {
+          "name": "Dry run",
+          "description": "Only show what would be imported (on by default)."
+        },
+        "source_charged": {
+          "name": "Charged source",
+          "description": "Optional: the cloud sensor to copy charged energy from, if it isn't found automatically."
+        },
+        "source_discharged": {
+          "name": "Discharged source",
+          "description": "Optional: the cloud sensor to copy discharged energy from, if it isn't found automatically."
         }
       }
     }

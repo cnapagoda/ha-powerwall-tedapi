@@ -610,6 +610,18 @@
     },
     "tariff_disabled": {
       "message": "Activez d'abord l'option Tarif Tesla (elle nécessite une sauvegarde cloud)."
+    },
+    "history_no_source": {
+      "message": "Aucun capteur Tesla Fleet ou Teslemetry trouvé pour {sensor} ; choisissez-le dans les champs source."
+    },
+    "history_no_target": {
+      "message": "Ce Powerwall n'a pas encore de statistiques d'énergie de batterie ({sensor}) ; réessayez dans quelques heures."
+    },
+    "history_nothing_to_import": {
+      "message": "{sensor} n'a pas d'historique antérieur à celui de ce Powerwall."
+    },
+    "history_already_imported": {
+      "message": "{sensor} a déjà un historique de cette période : il a déjà été importé."
     }
   },
   "services": {
@@ -774,6 +786,28 @@
         "dry_run": {
           "name": "Essai à blanc",
           "description": "Vérifier seulement les réglages et montrer ce qui serait envoyé (activé par défaut)."
+        }
+      }
+    },
+    "import_battery_history": {
+      "name": "Importer l'historique de la batterie",
+      "description": "Une seule fois : copier l'historique de charge et de décharge de la batterie de Tesla Fleet ou Teslemetry dans les statistiques d'énergie de batterie de ce Powerwall, pour la période antérieure à son propre historique.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "dry_run": {
+          "name": "Essai à blanc",
+          "description": "Montrer seulement ce qui serait importé (activé par défaut)."
+        },
+        "source_charged": {
+          "name": "Source charge",
+          "description": "Facultatif : le capteur cloud de l'énergie chargée, s'il n'est pas trouvé automatiquement."
+        },
+        "source_discharged": {
+          "name": "Source décharge",
+          "description": "Facultatif : le capteur cloud de l'énergie déchargée, s'il n'est pas trouvé automatiquement."
         }
       }
     }

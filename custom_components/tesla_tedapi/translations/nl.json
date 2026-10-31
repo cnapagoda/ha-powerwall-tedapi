@@ -610,6 +610,18 @@
     },
     "tariff_disabled": {
       "message": "Zet eerst de optie Tesla-tarief aan (die heeft een cloud-back-up nodig)."
+    },
+    "history_no_source": {
+      "message": "Geen Tesla Fleet- of Teslemetry-sensor gevonden voor {sensor}; kies hem in de bronvelden."
+    },
+    "history_no_target": {
+      "message": "Deze Powerwall heeft nog geen batterij-energiestatistieken ({sensor}); probeer het over een paar uur opnieuw."
+    },
+    "history_nothing_to_import": {
+      "message": "{sensor} heeft geen geschiedenis van vóór die van deze Powerwall."
+    },
+    "history_already_imported": {
+      "message": "{sensor} heeft al geschiedenis uit die periode: die is al geïmporteerd."
     }
   },
   "services": {
@@ -774,6 +786,28 @@
         "dry_run": {
           "name": "Proefrun",
           "description": "Alleen de instellingen controleren en tonen wat verzonden zou worden (standaard aan)."
+        }
+      }
+    },
+    "import_battery_history": {
+      "name": "Batterijgeschiedenis importeren",
+      "description": "Eenmalig: de laad- en ontlaadgeschiedenis van de batterij uit Tesla Fleet of Teslemetry kopiëren naar de batterij-energiestatistieken van deze Powerwall, voor de periode vóór de eigen geschiedenis.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "dry_run": {
+          "name": "Proefrun",
+          "description": "Alleen tonen wat geïmporteerd zou worden (standaard aan)."
+        },
+        "source_charged": {
+          "name": "Bron geladen",
+          "description": "Optioneel: de cloudsensor voor geladen energie, als die niet automatisch gevonden wordt."
+        },
+        "source_discharged": {
+          "name": "Bron ontladen",
+          "description": "Optioneel: de cloudsensor voor ontladen energie, als die niet automatisch gevonden wordt."
         }
       }
     }

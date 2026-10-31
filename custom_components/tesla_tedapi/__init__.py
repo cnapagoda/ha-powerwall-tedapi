@@ -23,6 +23,8 @@ from .const import (
     ATTR_MAX_SOC,
     ATTR_MIN_SOC,
     ATTR_POWER_WATTS,
+    ATTR_SOURCE_CHARGED,
+    ATTR_SOURCE_DISCHARGED,
     ATTR_TARGET_SOC,
     ATTR_TOU_SETTINGS,
     DISPATCH_MAX_SECONDS,
@@ -36,6 +38,7 @@ from .const import (
     SERVICE_DISPATCH,
     SERVICE_GET_TARIFF,
     SERVICE_GO_OFF_GRID,
+    SERVICE_IMPORT_BATTERY_HISTORY,
     SERVICE_RECONNECT_GRID,
     SERVICE_RESUME,
     SERVICE_SET_TARIFF,
@@ -69,6 +72,12 @@ MOVE_TO_SCHEMA = vol.Schema({
     vol.Required(ATTR_MAX_MINUTES): vol.All(vol.Coerce(int), vol.Range(min=1, max=DISPATCH_MAX_SECONDS // 60)),
 })
 RESUME_SCHEMA = vol.Schema({vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string})
+IMPORT_HISTORY_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    vol.Optional(ATTR_DRY_RUN, default=True): cv.boolean,
+    vol.Optional(ATTR_SOURCE_CHARGED): cv.entity_id,
+    vol.Optional(ATTR_SOURCE_DISCHARGED): cv.entity_id,
+})
 SET_TARIFF_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
     vol.Required(ATTR_TOU_SETTINGS): dict,
@@ -197,6 +206,15 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         coordinator.async_update_listeners()
         return {"backend": coordinator.tariff_backend, "tariff": tariff}
 
+    async def import_battery_history(call: ServiceCall) -> ServiceResponse:
+        from .history_import import async_import  # noqa: PLC0415
+
+        coordinator = _entry(hass, call).runtime_data.coordinator
+        return await async_import(hass, coordinator.din, {
+            "battery_energy_charged": call.data.get(ATTR_SOURCE_CHARGED),
+            "battery_energy_discharged": call.data.get(ATTR_SOURCE_DISCHARGED),
+        }, call.data[ATTR_DRY_RUN])
+
     async def set_tariff(call: ServiceCall) -> ServiceResponse:
         return await _tariff_coordinator(hass, call).async_set_tariff(
             call.data[ATTR_TOU_SETTINGS], call.data[ATTR_DRY_RUN])
@@ -214,6 +232,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_DISCHARGE_TO, discharge_to, schema=MOVE_TO_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_IMPORT_BATTERY_HISTORY, import_battery_history,
+                                 schema=IMPORT_HISTORY_SCHEMA, supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_GET_TARIFF, get_tariff, schema=RESUME_SCHEMA,
                                  supports_response=SupportsResponse.ONLY)
     hass.services.async_register(DOMAIN, SERVICE_SET_TARIFF, set_tariff, schema=SET_TARIFF_SCHEMA,

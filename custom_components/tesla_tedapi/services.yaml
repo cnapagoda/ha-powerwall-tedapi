@@ -203,3 +203,25 @@ set_tariff:
       default: true
       selector:
         boolean:
+import_battery_history:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    dry_run:
+      required: false
+      default: true
+      selector:
+        boolean:
+    source_charged:
+      required: false
+      selector:
+        entity:
+          domain: sensor
+    source_discharged:
+      required: false
+      selector:
+        entity:
+          domain: sensor

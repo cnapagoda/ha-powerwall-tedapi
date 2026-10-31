@@ -610,6 +610,18 @@
     },
     "tariff_disabled": {
       "message": "Schalte zuerst die Option Tesla-Tarif ein (sie braucht ein Cloud-Backup)."
+    },
+    "history_no_source": {
+      "message": "Kein Tesla-Fleet- oder Teslemetry-Sensor für {sensor} gefunden; wähle ihn in den Quellfeldern."
+    },
+    "history_no_target": {
+      "message": "Diese Powerwall hat noch keine Batterie-Energiestatistik ({sensor}); versuche es in ein paar Stunden erneut."
+    },
+    "history_nothing_to_import": {
+      "message": "{sensor} hat keinen Verlauf vor dem der Powerwall."
+    },
+    "history_already_imported": {
+      "message": "{sensor} hat bereits Verlauf aus dieser Zeit: er wurde schon importiert."
     }
   },
   "services": {
@@ -774,6 +786,28 @@
         "dry_run": {
           "name": "Probelauf",
           "description": "Nur die Einstellungen prüfen und zeigen, was gesendet würde (standardmäßig an)."
+        }
+      }
+    },
+    "import_battery_history": {
+      "name": "Batterieverlauf importieren",
+      "description": "Einmalig: den Lade- und Entladeverlauf der Batterie aus Tesla Fleet oder Teslemetry in die Batterie-Energiestatistik dieser Powerwall kopieren, für die Zeit vor deren eigenem Verlauf.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "dry_run": {
+          "name": "Probelauf",
+          "description": "Nur zeigen, was importiert würde (standardmäßig an)."
+        },
+        "source_charged": {
+          "name": "Quelle geladen",
+          "description": "Optional: der Cloud-Sensor für geladene Energie, falls er nicht automatisch gefunden wird."
+        },
+        "source_discharged": {
+          "name": "Quelle entladen",
+          "description": "Optional: der Cloud-Sensor für entladene Energie, falls er nicht automatisch gefunden wird."
         }
       }
     }

@@ -610,6 +610,18 @@
     },
     "tariff_disabled": {
       "message": "Najpierw włącz opcję Taryfa Tesla (wymaga kopii w chmurze)."
+    },
+    "history_no_source": {
+      "message": "Nie znaleziono czujnika Tesla Fleet ani Teslemetry dla {sensor}; wybierz go w polach źródła."
+    },
+    "history_no_target": {
+      "message": "Ten Powerwall nie ma jeszcze statystyk energii baterii ({sensor}); spróbuj ponownie za kilka godzin."
+    },
+    "history_nothing_to_import": {
+      "message": "{sensor} nie ma historii sprzed historii tego Powerwalla."
+    },
+    "history_already_imported": {
+      "message": "{sensor} ma już historię z tego okresu: została już zaimportowana."
     }
   },
   "services": {
@@ -774,6 +786,28 @@
         "dry_run": {
           "name": "Próba",
           "description": "Tylko sprawdź ustawienia i pokaż, co zostałoby wysłane (domyślnie włączone)."
+        }
+      }
+    },
+    "import_battery_history": {
+      "name": "Importuj historię baterii",
+      "description": "Jednorazowo: skopiuj historię ładowania i rozładowania baterii z Tesla Fleet lub Teslemetry do statystyk energii baterii tego Powerwalla, za okres przed jego własną historią.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "dry_run": {
+          "name": "Próba",
+          "description": "Tylko pokaż, co zostałoby zaimportowane (domyślnie włączone)."
+        },
+        "source_charged": {
+          "name": "Źródło ładowania",
+          "description": "Opcjonalnie: czujnik w chmurze dla energii ładowanej, jeśli nie zostanie znaleziony automatycznie."
+        },
+        "source_discharged": {
+          "name": "Źródło rozładowania",
+          "description": "Opcjonalnie: czujnik w chmurze dla energii rozładowanej, jeśli nie zostanie znaleziony automatycznie."
         }
       }
     }

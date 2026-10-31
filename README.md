@@ -493,6 +493,8 @@ When the local connection can't read or change a setting (the gateway is unreach
 | Cost | None | A change of setting is a command on your Tesla developer account (Tesla Fleet) or Teslemetry subscription |
 | Risk | Tesla may refuse Owner API tokens altogether one day | Tesla Fleet needs the developer app and key hosting described in path B |
 
+`tesla_tedapi.import_battery_history` copies Tesla Fleet or Teslemetry's earlier battery history into this integration's battery energy statistics (dry run by default).
+
 With a cloud backup, the optional **Tesla tariff (cloud)** setting adds a tariff sensor and `get_tariff` / `set_tariff` actions ([wiki](https://github.com/cnapagoda/ha-powerwall-tedapi/wiki/Tesla-tariff)).
 
 **Configure → Cloud backup** offers the choices that are set up: *None*, *Owner API*, *Tesla Fleet (or Teslemetry)*, *Tesla Fleet, then Owner API* and *Owner API, then Tesla Fleet*. Tesla Fleet is offered only when a loaded Tesla Fleet or Teslemetry entry has this Powerwall's site (matched by the gateway serial; a single site with no serials listed is used as well). Without a choice, a linked Tesla account is the backup, as in 2.2.
