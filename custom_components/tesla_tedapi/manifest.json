@@ -1,6 +1,9 @@
 {
   "domain": "tesla_tedapi",
   "name": "Tesla Powerwall TEDAPI",
+  "after_dependencies": [
+    "recorder"
+  ],
   "codeowners": [
     "@cnapagoda"
   ],

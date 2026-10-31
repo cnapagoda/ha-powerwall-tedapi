@@ -30,8 +30,14 @@ def auto_enable_custom_integrations(recorder_mock, enable_custom_integrations):
 
 
 def _meta(statistic_id: str) -> dict:
-    return {"has_mean": False, "has_sum": True, "name": None, "source": "recorder",
+    meta = {"has_mean": False, "has_sum": True, "name": None, "source": "recorder",
             "statistic_id": statistic_id, "unit_of_measurement": "kWh"}
+    # Newer recorders (HA 2025.4+, 2025.11+) want these spelt out.
+    try:
+        from homeassistant.components.recorder.models import StatisticMeanType  # noqa: PLC0415
+    except ImportError:  # pragma: no cover - older HA
+        return meta
+    return {**meta, "mean_type": StatisticMeanType.NONE, "unit_class": "energy"}
 
 
 def _counter(statistic_id: str, start: datetime, hours: int, per_hour: float, *, first_sum: float = 0.0,
