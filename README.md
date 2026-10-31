@@ -517,6 +517,20 @@ The integration polls the gateway every 30 seconds by default (**Polling interva
 
 After you change a setting, the integration reads the Powerwall again straight away, so the entity shows the new value within seconds. If the gateway can't be reached, readings show *unavailable* until it answers again; nothing is filled in for the missed time.
 
+## Blueprints
+
+Ready-made automations. They work with any price sensor (Amber, Octopus, Nord Pool, Tibber, ComEd and others) and change the Powerwall only through this integration's entities and actions.
+
+| Blueprint | What it does | |
+|---|---|---|
+| Stop exporting at negative feed-in prices | Grid export → *never* while the feed-in price is negative | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.4.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fnegative_feed_in.yaml) |
+| Charge when import is cheap | `charge_to` a target level while the import price is low ⚠️ | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.4.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fcheap_import_charge.yaml) |
+| Export on a price spike | `discharge_to` a floor while the feed-in price is high ⚠️ | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.4.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fprice_spike_discharge.yaml) |
+| Time-of-use charge and discharge | Off-peak `charge_to`, peak `discharge_to`, no price feed needed ⚠️ | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.4.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Ftime_of_use.yaml) |
+| Grid outage alert | A notification when the grid goes down and comes back | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.4.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fgrid_outage_alert.yaml) |
+
+⚠️ These use battery dispatch: see [Safety](#safety) about the warranty. Price entities and suggested thresholds per retailer are in the [wiki](https://github.com/cnapagoda/ha-powerwall-tedapi/wiki).
+
 ## Use cases
 
 - **Charge from the grid when power is cheap or free.** Set the operation mode, backup reserve and grid charging from your tariff (for example Amber prices or a free-power window), and switch back afterwards. See [`examples/automations.yaml`](examples/automations.yaml).

@@ -1,0 +1,137 @@
+blueprint:
+  name: Powerwall - time-of-use charge and discharge
+  description: >-
+    For fixed time-of-use tariffs without a price feed (for example many US
+    utilities): charge to a target level in the off-peak window and discharge
+    down to a floor in the peak window, with `tesla_tedapi.charge_to` and
+    `tesla_tedapi.discharge_to`. Each window ends the dispatch on time.
+
+
+    Use at your own risk: dispatching the battery may affect your Powerwall
+    warranty, which may cover unlimited cycles only for self-consumption,
+    time-based control and backup. Tesla's own time-based control may suit
+    you better.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/time_of_use.yaml
+  input:
+    powerwall:
+      name: Powerwall
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    charge_start:
+      name: Off-peak charging starts
+      default: "01:00:00"
+      selector:
+        time:
+    charge_end:
+      name: Off-peak charging ends
+      default: "05:00:00"
+      selector:
+        time:
+    target_soc:
+      name: Charge to
+      default: 90
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
+    charge_power:
+      name: Charging power
+      default: 3000
+      selector:
+        number:
+          min: 100
+          max: 10000
+          step: 100
+          unit_of_measurement: W
+    peak_start:
+      name: Peak starts
+      default: "16:00:00"
+      selector:
+        time:
+    peak_end:
+      name: Peak ends
+      default: "21:00:00"
+      selector:
+        time:
+    floor_soc:
+      name: Keep at least
+      default: 20
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
+    discharge_power:
+      name: Discharging power
+      default: 3000
+      selector:
+        number:
+          min: 100
+          max: 10000
+          step: 100
+          unit_of_measurement: W
+
+mode: queued
+max: 5
+
+variables:
+  charge_start: !input charge_start
+  charge_end: !input charge_end
+  peak_start: !input peak_start
+  peak_end: !input peak_end
+
+triggers:
+  - trigger: time
+    id: charge
+    at: !input charge_start
+  - trigger: time
+    id: discharge
+    at: !input peak_start
+  - trigger: time
+    id: stop
+    at: !input charge_end
+  - trigger: time
+    id: stop
+    at: !input peak_end
+
+actions:
+  - variables:
+      # Window length in minutes (across midnight too), at least 1.
+      minutes: >-
+        {% set s = (charge_start if trigger.id == 'charge' else peak_start).split(':') %}
+        {% set e = (charge_end if trigger.id == 'charge' else peak_end).split(':') %}
+        {% set m = (e[0] | int * 60 + e[1] | int) - (s[0] | int * 60 + s[1] | int) %}
+        {{ [m if m > 0 else m + 1440, 1] | max }}
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: charge
+        sequence:
+          - action: tesla_tedapi.charge_to
+            continue_on_error: true
+            data:
+              config_entry_id: !input powerwall
+              target_soc: !input target_soc
+              power_watts: !input charge_power
+              max_minutes: "{{ minutes }}"
+      - conditions:
+          - condition: trigger
+            id: discharge
+        sequence:
+          - action: tesla_tedapi.discharge_to
+            continue_on_error: true
+            data:
+              config_entry_id: !input powerwall
+              target_soc: !input floor_soc
+              power_watts: !input discharge_power
+              max_minutes: "{{ minutes }}"
+      - conditions:
+          - condition: trigger
+            id: stop
+        sequence:
+          - action: tesla_tedapi.resume_battery_operation
+            data:
+              config_entry_id: !input powerwall

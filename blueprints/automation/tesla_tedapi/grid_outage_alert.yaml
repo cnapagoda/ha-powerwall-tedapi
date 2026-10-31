@@ -1,0 +1,47 @@
+blueprint:
+  name: Powerwall - grid outage alert
+  description: >-
+    Send a notification when the grid goes down and when it comes back, from the
+    `tesla_tedapi_grid_outage` event. Off-grid runs started with
+    `tesla_tedapi.go_off_grid` don't count. Home Assistant and your network
+    need power during the outage (for example a UPS) to send it.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/grid_outage_alert.yaml
+  input:
+    notify_action:
+      name: Notify action
+      description: For example `notify.mobile_app_my_phone`, or `notify.notify` for all.
+      default: notify.notify
+      selector:
+        text:
+    battery_level:
+      name: Powerwall Battery level
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: sensor
+
+mode: queued
+max: 10
+
+variables:
+  battery_level: !input battery_level
+  notify_action: !input notify_action
+
+triggers:
+  - trigger: event
+    event_type: tesla_tedapi_grid_outage
+
+actions:
+  - variables:
+      level: "{{ states(battery_level) }}"
+      message: >-
+        {% if trigger.event.data.phase == 'started' %}
+          Grid outage: the house is on the Powerwall (battery {{ level }} %).
+        {% else %}
+          Grid back after {{ ((trigger.event.data.duration_seconds or 0) / 60) | round(0) | int }} min (battery {{ level }} %).
+        {% endif %}
+  - action: "{{ notify_action }}"
+    data:
+      title: Powerwall
+      message: "{{ message | trim }}"
