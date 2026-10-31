@@ -3,7 +3,7 @@
     "flow_title": "Powerwall ({host})",
     "step": {
       "user": {
-        "title": "Powerwall TEDAPI",
+        "title": "Tesla Powerwall TEDAPI",
         "description": "Find the Powerwall on your network. Signed (v1r) access gives local readings, local control and battery dispatch; this wizard can register the key it needs.",
         "menu_options": {
           "gateway": "Enter the gateway address",
@@ -172,7 +172,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Powerwall TEDAPI options",
+        "title": "Tesla Powerwall TEDAPI options",
         "menu_options": {
           "settings": "Settings",
           "cloud_backup": "Cloud backup (Owner API, Tesla Fleet)",
@@ -523,7 +523,7 @@
   },
   "exceptions": {
     "entry_not_found": {
-      "message": "No loaded Powerwall TEDAPI entry found. Check that the integration is set up and not disabled, or pass its config_entry_id."
+      "message": "No loaded Tesla Powerwall TEDAPI entry found. Check that the integration is set up and not disabled, or pass its config_entry_id."
     },
     "entry_ambiguous": {
       "message": "Several Powerwalls are set up: choose one with config_entry_id."
@@ -772,7 +772,7 @@
     },
     "fleet_backup": {
       "title": "Tesla Fleet cloud backup is not working",
-      "description": "The Powerwall TEDAPI integration uses the Tesla Fleet (or Teslemetry) integration as a cloud backup for settings, and the last checks failed. Local readings and control are not affected.\n\nCheck that the Tesla Fleet or Teslemetry integration is enabled, loaded and signed in (re-authenticate it if it asks), and that this Powerwall is on its Tesla account. This notice disappears after the next successful check (about hourly). To stop using it, choose another cloud backup in this integration's options."
+      "description": "The Tesla Powerwall TEDAPI integration uses the Tesla Fleet (or Teslemetry) integration as a cloud backup for settings, and the last checks failed. Local readings and control are not affected.\n\nCheck that the Tesla Fleet or Teslemetry integration is enabled, loaded and signed in (re-authenticate it if it asks), and that this Powerwall is on its Tesla account. This notice disappears after the next successful check (about hourly). To stop using it, choose another cloud backup in this integration's options."
     },
     "fleet_read_only": {
       "title": "Tesla Fleet cloud backup can't change settings",
@@ -780,7 +780,7 @@
     },
     "off_grid_reconnect_failed": {
       "title": "The Powerwall couldn't reconnect to the grid",
-      "description": "An off-grid run started by the Powerwall TEDAPI integration has ended, but reconnecting to the grid failed. The house still runs on the battery ({soc}%). The integration tries again every minute; if it keeps failing, reconnect in the Tesla app. This notice disappears once the Powerwall is back on the grid."
+      "description": "An off-grid run started by the Tesla Powerwall TEDAPI integration has ended, but reconnecting to the grid failed. The house still runs on the battery ({soc}%). The integration tries again every minute; if it keeps failing, reconnect in the Tesla app. This notice disappears once the Powerwall is back on the grid."
     },
     "cloud_reserve_capped": {
       "title": "Tesla's cloud capped the backup reserve",

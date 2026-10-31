@@ -3,7 +3,7 @@
     "flow_title": "Powerwall ({host})",
     "step": {
       "user": {
-        "title": "Powerwall TEDAPI",
+        "title": "Tesla Powerwall TEDAPI",
         "description": "Die Powerwall in deinem Netzwerk finden. Signierter Zugriff (v1r) bietet lokale Messwerte, lokale Steuerung und Batteriesteuerung (Dispatch); dieser Assistent kann den dafür nötigen Schlüssel registrieren.",
         "menu_options": {
           "gateway": "Gateway-Adresse eingeben",
@@ -772,7 +772,7 @@
     },
     "fleet_backup": {
       "title": "Tesla-Fleet-Cloud-Backup funktioniert nicht",
-      "description": "Die Integration Powerwall TEDAPI nutzt die Integration Tesla Fleet (oder Teslemetry) als Cloud-Backup für Einstellungen, und die letzten Prüfungen sind fehlgeschlagen. Lokale Messwerte und Steuerung sind nicht betroffen.\n\nPrüfe, ob die Integration Tesla Fleet oder Teslemetry aktiviert, geladen und angemeldet ist (authentifiziere sie neu, wenn sie danach fragt) und ob diese Powerwall in ihrem Tesla-Konto ist. Dieser Hinweis verschwindet nach der nächsten erfolgreichen Prüfung (etwa stündlich). Um sie nicht mehr zu nutzen, wähle in den Optionen dieser Integration ein anderes Cloud-Backup."
+      "description": "Die Integration Tesla Powerwall TEDAPI nutzt die Integration Tesla Fleet (oder Teslemetry) als Cloud-Backup für Einstellungen, und die letzten Prüfungen sind fehlgeschlagen. Lokale Messwerte und Steuerung sind nicht betroffen.\n\nPrüfe, ob die Integration Tesla Fleet oder Teslemetry aktiviert, geladen und angemeldet ist (authentifiziere sie neu, wenn sie danach fragt) und ob diese Powerwall in ihrem Tesla-Konto ist. Dieser Hinweis verschwindet nach der nächsten erfolgreichen Prüfung (etwa stündlich). Um sie nicht mehr zu nutzen, wähle in den Optionen dieser Integration ein anderes Cloud-Backup."
     },
     "fleet_read_only": {
       "title": "Tesla-Fleet-Cloud-Backup kann keine Einstellungen ändern",
@@ -780,7 +780,7 @@
     },
     "off_grid_reconnect_failed": {
       "title": "Die Powerwall konnte sich nicht wieder mit dem Netz verbinden",
-      "description": "Eine von der Integration Powerwall TEDAPI gestartete Netztrennung ist beendet, aber das Wiederverbinden ist fehlgeschlagen. Das Haus läuft noch mit der Batterie ({soc}%). Die Integration versucht es jede Minute erneut; wenn es weiter fehlschlägt, verbinde in der Tesla-App wieder. Dieser Hinweis verschwindet, sobald die Powerwall wieder am Netz ist."
+      "description": "Eine von der Integration Tesla Powerwall TEDAPI gestartete Netztrennung ist beendet, aber das Wiederverbinden ist fehlgeschlagen. Das Haus läuft noch mit der Batterie ({soc}%). Die Integration versucht es jede Minute erneut; wenn es weiter fehlschlägt, verbinde in der Tesla-App wieder. Dieser Hinweis verschwindet, sobald die Powerwall wieder am Netz ist."
     },
     "cloud_reserve_capped": {
       "title": "Teslas Cloud hat die Notstromreserve begrenzt",

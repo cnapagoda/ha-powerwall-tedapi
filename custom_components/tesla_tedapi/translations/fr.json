@@ -3,7 +3,7 @@
     "flow_title": "Powerwall ({host})",
     "step": {
       "user": {
-        "title": "Powerwall TEDAPI",
+        "title": "Tesla Powerwall TEDAPI",
         "description": "Trouver la Powerwall sur votre réseau. L'accès signé (v1r) donne les mesures locales, le contrôle local et le pilotage de la batterie (dispatch) ; cet assistant peut enregistrer la clé nécessaire.",
         "menu_options": {
           "gateway": "Saisir l'adresse de la passerelle",
@@ -172,7 +172,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Options de Powerwall TEDAPI",
+        "title": "Options de Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Paramètres",
           "cloud_backup": "Secours cloud (Owner API, Tesla Fleet)",
@@ -523,7 +523,7 @@
   },
   "exceptions": {
     "entry_not_found": {
-      "message": "Aucune entrée Powerwall TEDAPI chargée trouvée. Vérifiez que l'intégration est configurée et non désactivée, ou indiquez son config_entry_id."
+      "message": "Aucune entrée Tesla Powerwall TEDAPI chargée trouvée. Vérifiez que l'intégration est configurée et non désactivée, ou indiquez son config_entry_id."
     },
     "entry_ambiguous": {
       "message": "Plusieurs Powerwall sont configurées : choisissez-en une avec config_entry_id."
@@ -772,7 +772,7 @@
     },
     "fleet_backup": {
       "title": "Le secours cloud Tesla Fleet ne fonctionne pas",
-      "description": "L'intégration Powerwall TEDAPI utilise l'intégration Tesla Fleet (ou Teslemetry) comme secours cloud pour les paramètres, et les dernières vérifications ont échoué. Les mesures et le contrôle locaux ne sont pas affectés.\n\nVérifiez que l'intégration Tesla Fleet ou Teslemetry est activée, chargée et connectée (réauthentifiez-la si elle le demande), et que cette Powerwall est sur son compte Tesla. Cet avis disparaît après la prochaine vérification réussie (environ toutes les heures). Pour ne plus l'utiliser, choisissez un autre secours cloud dans les options de cette intégration."
+      "description": "L'intégration Tesla Powerwall TEDAPI utilise l'intégration Tesla Fleet (ou Teslemetry) comme secours cloud pour les paramètres, et les dernières vérifications ont échoué. Les mesures et le contrôle locaux ne sont pas affectés.\n\nVérifiez que l'intégration Tesla Fleet ou Teslemetry est activée, chargée et connectée (réauthentifiez-la si elle le demande), et que cette Powerwall est sur son compte Tesla. Cet avis disparaît après la prochaine vérification réussie (environ toutes les heures). Pour ne plus l'utiliser, choisissez un autre secours cloud dans les options de cette intégration."
     },
     "fleet_read_only": {
       "title": "Le secours cloud Tesla Fleet ne peut pas modifier les paramètres",
@@ -780,7 +780,7 @@
     },
     "off_grid_reconnect_failed": {
       "title": "La Powerwall n'a pas pu se reconnecter au réseau",
-      "description": "Un passage hors réseau lancé par l'intégration Powerwall TEDAPI est terminé, mais la reconnexion au réseau a échoué. La maison fonctionne toujours sur la batterie ({soc}%). L'intégration réessaie chaque minute ; si cela continue d'échouer, reconnectez dans l'application Tesla. Cet avis disparaît dès que la Powerwall est de nouveau sur le réseau."
+      "description": "Un passage hors réseau lancé par l'intégration Tesla Powerwall TEDAPI est terminé, mais la reconnexion au réseau a échoué. La maison fonctionne toujours sur la batterie ({soc}%). L'intégration réessaie chaque minute ; si cela continue d'échouer, reconnectez dans l'application Tesla. Cet avis disparaît dès que la Powerwall est de nouveau sur le réseau."
     },
     "cloud_reserve_capped": {
       "title": "Le cloud Tesla a plafonné la réserve de secours",

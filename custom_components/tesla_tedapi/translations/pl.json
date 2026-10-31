@@ -3,7 +3,7 @@
     "flow_title": "Powerwall ({host})",
     "step": {
       "user": {
-        "title": "Powerwall TEDAPI",
+        "title": "Tesla Powerwall TEDAPI",
         "description": "Znajdź Powerwall w swojej sieci. Dostęp podpisany (v1r) daje lokalne odczyty, lokalne sterowanie i sterowanie mocą baterii (dispatch); ten kreator może zarejestrować potrzebny klucz.",
         "menu_options": {
           "gateway": "Wpisz adres bramy",
@@ -172,7 +172,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Opcje Powerwall TEDAPI",
+        "title": "Opcje Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Ustawienia",
           "cloud_backup": "Zapas w chmurze (Owner API, Tesla Fleet)",
@@ -523,7 +523,7 @@
   },
   "exceptions": {
     "entry_not_found": {
-      "message": "Nie znaleziono wczytanego wpisu Powerwall TEDAPI. Sprawdź, czy integracja jest skonfigurowana i nie jest wyłączona, albo podaj jej config_entry_id."
+      "message": "Nie znaleziono wczytanego wpisu Tesla Powerwall TEDAPI. Sprawdź, czy integracja jest skonfigurowana i nie jest wyłączona, albo podaj jej config_entry_id."
     },
     "entry_ambiguous": {
       "message": "Skonfigurowano kilka Powerwall: wybierz jedną przez config_entry_id."
@@ -772,7 +772,7 @@
     },
     "fleet_backup": {
       "title": "Zapas w chmurze Tesla Fleet nie działa",
-      "description": "Integracja Powerwall TEDAPI używa integracji Tesla Fleet (lub Teslemetry) jako zapasu w chmurze dla ustawień, a ostatnie sprawdzenia się nie powiodły. Lokalne odczyty i sterowanie nie są objęte.\n\nSprawdź, czy integracja Tesla Fleet lub Teslemetry jest włączona, wczytana i zalogowana (uwierzytelnij ją ponownie, jeśli o to prosi) oraz czy ta Powerwall jest na jej koncie Tesla. To powiadomienie zniknie po następnym udanym sprawdzeniu (mniej więcej co godzinę). Aby przestać jej używać, wybierz inny zapas w chmurze w opcjach tej integracji."
+      "description": "Integracja Tesla Powerwall TEDAPI używa integracji Tesla Fleet (lub Teslemetry) jako zapasu w chmurze dla ustawień, a ostatnie sprawdzenia się nie powiodły. Lokalne odczyty i sterowanie nie są objęte.\n\nSprawdź, czy integracja Tesla Fleet lub Teslemetry jest włączona, wczytana i zalogowana (uwierzytelnij ją ponownie, jeśli o to prosi) oraz czy ta Powerwall jest na jej koncie Tesla. To powiadomienie zniknie po następnym udanym sprawdzeniu (mniej więcej co godzinę). Aby przestać jej używać, wybierz inny zapas w chmurze w opcjach tej integracji."
     },
     "fleet_read_only": {
       "title": "Zapas w chmurze Tesla Fleet nie może zmieniać ustawień",
@@ -780,7 +780,7 @@
     },
     "off_grid_reconnect_failed": {
       "title": "Powerwall nie mogła ponownie podłączyć się do sieci",
-      "description": "Odłączenie od sieci uruchomione przez integrację Powerwall TEDAPI zakończyło się, ale ponowne podłączenie nie powiodło się. Dom nadal działa na baterii ({soc}%). Integracja próbuje ponownie co minutę; jeśli to nadal nie działa, podłącz ponownie w aplikacji Tesla. To powiadomienie zniknie, gdy Powerwall wróci do sieci."
+      "description": "Odłączenie od sieci uruchomione przez integrację Tesla Powerwall TEDAPI zakończyło się, ale ponowne podłączenie nie powiodło się. Dom nadal działa na baterii ({soc}%). Integracja próbuje ponownie co minutę; jeśli to nadal nie działa, podłącz ponownie w aplikacji Tesla. To powiadomienie zniknie, gdy Powerwall wróci do sieci."
     },
     "cloud_reserve_capped": {
       "title": "Chmura Tesla ograniczyła rezerwę awaryjną",

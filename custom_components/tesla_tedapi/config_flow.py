@@ -1,4 +1,4 @@
-"""Config flow for the Powerwall TEDAPI integration.
+"""Config flow for the Tesla Powerwall TEDAPI integration.
 
 Order: find the gateway (typed, network scan or DHCP discovery) -> gateway
 password, checked at once -> how to connect:

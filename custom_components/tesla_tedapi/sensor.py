@@ -1,4 +1,4 @@
-"""Sensors for the Powerwall TEDAPI integration."""
+"""Sensors for the Tesla Powerwall TEDAPI integration."""
 from __future__ import annotations
 
 from collections.abc import Callable

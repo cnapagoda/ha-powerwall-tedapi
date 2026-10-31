@@ -1,4 +1,4 @@
-"""Powerwall TEDAPI: local monitoring and control of a Tesla Powerwall."""
+"""Tesla Powerwall TEDAPI: local monitoring and control of a Tesla Powerwall."""
 from __future__ import annotations
 
 import logging
@@ -88,7 +88,7 @@ def _entry(hass: HomeAssistant, call: ServiceCall) -> TedapiConfigEntry:
     ]
     if not entries:
         raise ServiceValidationError(
-            "No loaded Powerwall TEDAPI entry found",
+            "No loaded Tesla Powerwall TEDAPI entry found",
             translation_domain=DOMAIN, translation_key="entry_not_found",
         )
     if len(entries) > 1:

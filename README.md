@@ -1,4 +1,4 @@
-# Powerwall TEDAPI for Home Assistant
+# Tesla Powerwall TEDAPI for Home Assistant
 
 [![hacs](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
 [![Validate](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/validate.yml/badge.svg)](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/validate.yml)
@@ -50,7 +50,7 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 
 1. In Home Assistant open **HACS → ⋮ → Custom repositories**.
 2. Add `https://github.com/cnapagoda/ha-powerwall-tedapi` with type **Integration**.
-3. Search for **Powerwall TEDAPI**, open it and select **Download**.
+3. Search for **Tesla Powerwall TEDAPI**, open it and select **Download**.
 4. **Restart Home Assistant.**
 
 Or use this button:
@@ -68,7 +68,7 @@ Or use this button:
 
 _Screenshots below come from a test Home Assistant with example data (no real Powerwall or account)._
 
-Go to **Settings → Devices & services → Add integration → Powerwall TEDAPI**. If Home Assistant has already spotted the gateway on your network, it is listed under **Discovered**; select **Add** there instead.
+Go to **Settings → Devices & services → Add integration → Tesla Powerwall TEDAPI**. If Home Assistant has already spotted the gateway on your network, it is listed under **Discovered**; select **Add** there instead.
 
 You need the **gateway password** for every path: it is printed on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Home Assistant logs in to the gateway with its last 5 characters, also for signed access.
 
@@ -590,10 +590,10 @@ logger:
 
 ## Removing
 
-1. **Settings → Devices & services → Powerwall TEDAPI → ⋮ → Delete.** This removes the entities and the integration's saved state (alert times, the export rule it restores).
+1. **Settings → Devices & services → Tesla Powerwall TEDAPI → ⋮ → Delete.** This removes the entities and the integration's saved state (alert times, the export rule it restores).
 2. The key and the Tesla sign-in stay in `config/tesla_tedapi/`, because another entry may use them. If you don't set the Powerwall up again, delete that folder.
 3. The key stays registered on the Powerwall. Remove it in the Tesla app if you don't want it any more.
-4. If you installed through HACS: **HACS → Powerwall TEDAPI → ⋮ → Remove**, then restart Home Assistant. For a manual install, delete `config/custom_components/tesla_tedapi/` and restart.
+4. If you installed through HACS: **HACS → Tesla Powerwall TEDAPI → ⋮ → Remove**, then restart Home Assistant. For a manual install, delete `config/custom_components/tesla_tedapi/` and restart.
 5. Check your automations, scripts and dashboards for entities that no longer exist.
 
 ## Quality

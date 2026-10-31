@@ -3,7 +3,7 @@
     "flow_title": "Powerwall ({host})",
     "step": {
       "user": {
-        "title": "Powerwall TEDAPI",
+        "title": "Tesla Powerwall TEDAPI",
         "description": "Zoek de Powerwall op je netwerk. Ondertekende toegang (v1r) geeft lokale metingen, lokale bediening en batterijsturing (dispatch); deze wizard kan de benodigde sleutel registreren.",
         "menu_options": {
           "gateway": "Gateway-adres invoeren",
@@ -172,7 +172,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Opties voor Powerwall TEDAPI",
+        "title": "Opties voor Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Instellingen",
           "cloud_backup": "Cloud-back-up (Owner API, Tesla Fleet)",
@@ -523,7 +523,7 @@
   },
   "exceptions": {
     "entry_not_found": {
-      "message": "Geen geladen Powerwall TEDAPI-vermelding gevonden. Controleer of de integratie is ingesteld en niet is uitgeschakeld, of geef haar config_entry_id op."
+      "message": "Geen geladen Tesla Powerwall TEDAPI-vermelding gevonden. Controleer of de integratie is ingesteld en niet is uitgeschakeld, of geef haar config_entry_id op."
     },
     "entry_ambiguous": {
       "message": "Er zijn meerdere Powerwalls ingesteld: kies er een met config_entry_id."
@@ -772,7 +772,7 @@
     },
     "fleet_backup": {
       "title": "Tesla Fleet-cloud-back-up werkt niet",
-      "description": "De integratie Powerwall TEDAPI gebruikt de integratie Tesla Fleet (of Teslemetry) als cloud-back-up voor instellingen, en de laatste controles zijn mislukt. Lokale metingen en bediening worden niet beïnvloed.\n\nControleer of de integratie Tesla Fleet of Teslemetry is ingeschakeld, geladen en ingelogd (authenticeer opnieuw als daarom wordt gevraagd), en of deze Powerwall op het bijbehorende Tesla-account staat. Deze melding verdwijnt na de volgende geslaagde controle (ongeveer elk uur). Om hem niet meer te gebruiken, kies je een andere cloud-back-up in de opties van deze integratie."
+      "description": "De integratie Tesla Powerwall TEDAPI gebruikt de integratie Tesla Fleet (of Teslemetry) als cloud-back-up voor instellingen, en de laatste controles zijn mislukt. Lokale metingen en bediening worden niet beïnvloed.\n\nControleer of de integratie Tesla Fleet of Teslemetry is ingeschakeld, geladen en ingelogd (authenticeer opnieuw als daarom wordt gevraagd), en of deze Powerwall op het bijbehorende Tesla-account staat. Deze melding verdwijnt na de volgende geslaagde controle (ongeveer elk uur). Om hem niet meer te gebruiken, kies je een andere cloud-back-up in de opties van deze integratie."
     },
     "fleet_read_only": {
       "title": "Tesla Fleet-cloud-back-up kan geen instellingen wijzigen",
@@ -780,7 +780,7 @@
     },
     "off_grid_reconnect_failed": {
       "title": "De Powerwall kon niet opnieuw met het net verbinden",
-      "description": "Een off-grid-periode gestart door de integratie Powerwall TEDAPI is afgelopen, maar opnieuw verbinden met het net is mislukt. Het huis draait nog op de batterij ({soc}%). De integratie probeert het elke minuut opnieuw; als het blijft mislukken, verbind dan opnieuw in de Tesla-app. Deze melding verdwijnt zodra de Powerwall weer op het net zit."
+      "description": "Een off-grid-periode gestart door de integratie Tesla Powerwall TEDAPI is afgelopen, maar opnieuw verbinden met het net is mislukt. Het huis draait nog op de batterij ({soc}%). De integratie probeert het elke minuut opnieuw; als het blijft mislukken, verbind dan opnieuw in de Tesla-app. Deze melding verdwijnt zodra de Powerwall weer op het net zit."
     },
     "cloud_reserve_capped": {
       "title": "Teslas cloud heeft de noodstroomreserve begrensd",
