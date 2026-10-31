@@ -3,6 +3,7 @@
 ## 2.4.1
 
 - Renamed to **Tesla Powerwall TEDAPI** (HACS, the integration list, setup and notices). The device keeps its name, so entity names and ids don't change.
+- Tests for failure paths (gateway reads failing one by one, a restore that fails, unreadable backup events, signed-only commands on a Wi-Fi entry). Coverage 99 %; CI now fails below 99 %.
 
 ## 2.4.0
 

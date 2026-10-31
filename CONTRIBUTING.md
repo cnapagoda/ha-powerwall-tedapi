@@ -26,7 +26,7 @@ The tests use a fake gateway and cloud (`tests/conftest.py`); they never talk to
 
 ## What a pull request needs
 
-- **Tests for all new code.** Coverage is about 98 %; keep new modules at 100 % where you can, including the error paths.
+- **Tests for all new code.** Coverage is above 99 % and CI fails below 99 %; keep new modules at 100 % where you can, including the error paths.
 - **`ruff check .` clean.**
 - **Translations.** Every user-facing string goes in `strings.json` and in all eight languages under `translations/` (en, de, fr, nl, es, it, pl, pt-BR). If you can't translate, say so in the PR and use English as a placeholder.
 - **A `CHANGELOG.md` line.**
