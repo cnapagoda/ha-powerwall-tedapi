@@ -32,6 +32,22 @@ from .const import (
 from .coordinator import TedapiCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+# pypowerwall (0.22.2+) logs a warning for every accepted dispatch command.
+PYPOWERWALL_DISPATCH_LOGGER = "pypowerwall.tedapi.tedapi_v1r"
+
+
+class RepeatDispatchFilter(logging.Filter):
+    """Drops pypowerwall's per-command warning. A session renews its command
+    every minute, and its start is logged here with the same warning."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not str(record.msg).startswith("Battery dispatch accepted")
+
+
+def quiet_dispatch_repeats() -> None:
+    logger = logging.getLogger(PYPOWERWALL_DISPATCH_LOGGER)
+    if not any(isinstance(f, RepeatDispatchFilter) for f in logger.filters):
+        logger.addFilter(RepeatDispatchFilter())
 
 
 @dataclass
@@ -41,6 +57,8 @@ class DispatchState:
     ends: datetime
     min_soc: float | None
     max_soc: float | None
+    # Started by charge_to / discharge_to: reaching the limit is the goal.
+    target: bool = False
 
 
 class DispatchSession:
@@ -109,12 +127,14 @@ class DispatchSession:
             "ends": s.ends.isoformat(),
             "min_soc": s.min_soc,
             "max_soc": s.max_soc,
+            "target_soc": (s.max_soc if s.power_watts < 0 else s.min_soc) if s.target else None,
         }
 
     # ---- control ----
 
     async def async_start(self, power_watts: float, duration_seconds: int,
-                          min_soc: float | None, max_soc: float | None) -> dict[str, Any]:
+                          min_soc: float | None, max_soc: float | None,
+                          target: bool = False) -> dict[str, Any]:
         if not self.coordinator.dispatch_supported:
             raise ServiceValidationError(
                 "Battery dispatch needs the signed (v1r) connection",
@@ -136,7 +156,7 @@ class DispatchSession:
                 min_soc = float(reserve)
         now = dt_util.utcnow()
         state = DispatchState(power_watts, now, now + timedelta(seconds=duration_seconds),
-                              min_soc, max_soc)
+                              min_soc, max_soc, target)
         reason = self._limit_hit(state)
         if reason:
             raise ServiceValidationError(
@@ -154,7 +174,9 @@ class DispatchSession:
                                       timedelta(seconds=DISPATCH_RENEW_SECONDS)),
             async_track_point_in_utc_time(self.hass, self._async_at_end, state.ends),
         ]
-        _LOGGER.info("Battery dispatch started: %s W until %s", power_watts, state.ends)
+        _LOGGER.warning("Battery dispatch started: %s W until %s. A dispatch overrides the backup "
+                        "reserve and export setting and may affect the Powerwall warranty; use at "
+                        "your own risk", power_watts, state.ends)
         self._notify()
         self.hass.async_create_task(self.coordinator.async_request_refresh())
         return {**self.as_dict(), "response": result}
@@ -180,6 +202,22 @@ class DispatchSession:
             await self.coordinator.async_send_resume()
         except HomeAssistantError as err:
             _LOGGER.warning("Could not resume the battery while unloading: %s", err)
+
+    async def async_move_to(self, target_soc: float, power_watts: float, minutes: int,
+                            charge: bool) -> dict[str, Any]:
+        """Charge (or discharge) at power_watts until the battery reaches
+        target_soc, or for at most `minutes`."""
+        soc = self._soc()
+        if soc is not None and (soc >= target_soc if charge else soc <= target_soc):
+            raise ServiceValidationError(
+                f"The battery is already at {soc}%",
+                translation_domain=DOMAIN, translation_key="target_reached",
+                translation_placeholders={"soc": str(soc), "target": str(target_soc)},
+            )
+        power = -abs(power_watts) if charge else abs(power_watts)
+        return await self.async_start(power, minutes * 60,
+                                      None if charge else target_soc,
+                                      target_soc if charge else None, target=True)
 
     # ---- internals ----
 
@@ -223,6 +261,8 @@ class DispatchSession:
         reason = self._limit_hit(state)
         if reason:
             _LOGGER.info("Battery dispatch stopped: %s limit reached", reason)
+            if state.target:
+                reason = "target_reached"
             await self._async_resume_quietly(reason)
             return
         if (state.ends - dt_util.utcnow()).total_seconds() < 1:

@@ -140,7 +140,7 @@
       }
     },
     "progress": {
-      "confirm_key": "De sleutel (vingerafdruk `{fingerprint}…`) is geregistreerd en wacht op fysieke bevestiging. Binnen ongeveer 10 minuten:\n\n- **Powerwall 3:** zet de aan/uit-schakelaar (linkerkant, onder het rode klepje voor snelle uitschakeling) ongeveer 15 seconden UIT en daarna weer AAN. Een korte tik wordt genegeerd; als hij uit blijft tot het apparaat uitschakelt, sluit het venster.\n- **Andere modellen:** de AC-groepsschakelaar van de Powerwall ongeveer 15 seconden uitzetten werkt naar verluidt bij sommige apparaten.\n\nDeze pagina controleert elke 10 seconden en gaat vanzelf verder zodra de Powerwall bevestigt. Als het venster sluit, wordt de sleutel één keer automatisch opnieuw geregistreerd."
+      "confirm_key": "De sleutel (vingerafdruk `{fingerprint}…`) is geregistreerd en wacht op fysieke bevestiging. Binnen ongeveer 10 minuten:\n\n- **Powerwall 3:** zet de aan/uit-schakelaar (linkerkant) ongeveer 15 seconden UIT en daarna weer AAN. Een korte tik wordt genegeerd; als hij uit blijft tot het apparaat uitschakelt, sluit het venster.\n- **Andere modellen:** de AC-groepsschakelaar van de Powerwall ongeveer 15 seconden uitzetten werkt naar verluidt bij sommige apparaten.\n\nDeze pagina controleert elke 10 seconden en gaat vanzelf verder zodra de Powerwall bevestigt. Als het venster sluit, wordt de sleutel één keer automatisch opnieuw geregistreerd."
     },
     "error": {
       "cannot_connect": "Kan de Powerwall op dat adres niet bereiken. Controleer het adres (je router toont de gateway als `teslapw_…`), of de Powerwall aan staat en op hetzelfde netwerk als Home Assistant zit, en probeer het opnieuw.",
@@ -364,7 +364,21 @@
         "name": "Resterende batterij-energie"
       },
       "battery_health": {
-        "name": "Batterijgezondheid"
+        "name": "Batterijgezondheid",
+        "state_attributes": {
+          "nominal_kwh_per_pack": {
+            "name": "Nominaal per batterij"
+          },
+          "packs": {
+            "name": "Batterijen"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrens"
+          },
+          "lifetime_discharged_kwh": {
+            "name": "Totale ontlading"
+          }
+        }
       },
       "backup_time_remaining": {
         "name": "Resterende back-uptijd"
@@ -382,7 +396,15 @@
         "name": "Gateway laatst gestart"
       },
       "firmware_version": {
-        "name": "Firmwareversie"
+        "name": "Firmwareversie",
+        "state_attributes": {
+          "previous_version": {
+            "name": "Vorige versie"
+          },
+          "updated_at": {
+            "name": "Bijgewerkt op"
+          }
+        }
       },
       "connection": {
         "name": "Verbinding",
@@ -427,6 +449,51 @@
       },
       "fan_speed": {
         "name": "Ventilator {fan} toerental"
+      },
+      "last_grid_outage": {
+        "name": "Laatste netstoring",
+        "state_attributes": {
+          "ended": {
+            "name": "Beëindigd"
+          },
+          "ongoing": {
+            "name": "Bezig"
+          }
+        }
+      },
+      "last_grid_outage_duration": {
+        "name": "Duur laatste netstoring"
+      },
+      "grid_outages_month": {
+        "name": "Netstoringen deze maand"
+      },
+      "grid_outage_time_month": {
+        "name": "Duur netstoringen deze maand"
+      },
+      "pack_health": {
+        "name": "{pack} conditie",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Nominale capaciteit"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrens"
+          }
+        }
+      },
+      "pack_discharged": {
+        "name": "{pack} totale ontlading"
+      },
+      "pack_cycles": {
+        "name": "{pack} cycli",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Volle cycli (batterij)"
+          },
+          "over_discharges": {
+            "name": "Diepontladingen"
+          }
+        }
       }
     },
     "switch": {
@@ -435,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Storm Watch"
+      },
+      "solar_curtailment": {
+        "name": "Zonnestroombegrenzing op het net (experimenteel)"
       }
     },
     "event": {
@@ -514,12 +584,18 @@
     },
     "reconnect_not_confirmed": {
       "message": "De Powerwall accepteerde het commando maar begon niet binnen 90 seconden te synchroniseren met het net. Controleer of er netstroom is, en de Tesla-app."
+    },
+    "target_reached": {
+      "message": "De batterij staat al op {soc}%, voorbij het doel van {target}%."
+    },
+    "curtailment_needs_v1r": {
+      "message": "Zonnestroombegrenzing heeft de ondertekende (v1r) verbinding met de gateway nodig."
     }
   },
   "services": {
     "dispatch_battery_power": {
       "name": "Batterijvermogen sturen",
-      "description": "Laat de batterij een vaste tijd op een vast vermogen draaien via de ondertekende lokale verbinding. Positieve watts ontladen, negatieve laden, 0 houdt de batterij stil. Gaat boven de terugleverinstelling; een ontlading stopt bij de back-upreserve, tenzij `min_soc` is opgegeven (optie). De integratie vernieuwt de opdracht elke minuut in korte stappen, zodat de Powerwall binnen 5 minuten normaal werkt als Home Assistant stopt. Een nieuwe aanroep vervangt een lopende dispatch.",
+      "description": "Laat de batterij een vaste tijd op een vast vermogen draaien via de ondertekende lokale verbinding. Positieve watts ontladen, negatieve laden, 0 houdt de batterij stil. Gaat boven de terugleverinstelling; een ontlading stopt bij de back-upreserve, tenzij `min_soc` is opgegeven (optie). De integratie vernieuwt de opdracht elke minuut in korte stappen, zodat de Powerwall binnen 5 minuten normaal werkt als Home Assistant stopt. Een nieuwe aanroep vervangt een lopende dispatch. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -540,6 +616,50 @@
         "max_soc": {
           "name": "Stop laden bij",
           "description": "Beëindig het laden als het batterijniveau (schaal van de Tesla-app) dit percentage bereikt."
+        }
+      }
+    },
+    "charge_to": {
+      "name": "Laden tot een batterijniveau",
+      "description": "Laadt de batterij met een vast vermogen via de ondertekende lokale verbinding tot het doelniveau, hoogstens tot de tijdslimiet. Laadt uit zonne-energie en, als laden van het net is toegestaan, van het net. Eindigt met gebeurtenisreden `target_reached` of `completed`. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "target_soc": {
+          "name": "Doelniveau",
+          "description": "Batterijniveau (schaal van de Tesla-app) waarop gestopt wordt."
+        },
+        "power_watts": {
+          "name": "Vermogen",
+          "description": "Laad- of ontlaadvermogen in watt (100 tot 10.000)."
+        },
+        "max_minutes": {
+          "name": "Tijdslimiet",
+          "description": "Stop na zoveel minuten, ook als het doel niet is bereikt (tot 24 uur)."
+        }
+      }
+    },
+    "discharge_to": {
+      "name": "Ontladen tot een batterijniveau",
+      "description": "Ontlaadt de batterij met een vast vermogen via de ondertekende lokale verbinding tot het doelniveau, hoogstens tot de tijdslimiet. Gaat voor de teruglever-instelling, dus de batterij kan aan het net leveren. Eindigt met gebeurtenisreden `target_reached` of `completed`. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "target_soc": {
+          "name": "Doelniveau",
+          "description": "Batterijniveau (schaal van de Tesla-app) waarop gestopt wordt."
+        },
+        "power_watts": {
+          "name": "Vermogen",
+          "description": "Laad- of ontlaadvermogen in watt (100 tot 10.000)."
+        },
+        "max_minutes": {
+          "name": "Tijdslimiet",
+          "description": "Stop na zoveel minuten, ook als het doel niet is bereikt (tot 24 uur)."
         }
       }
     },
@@ -661,6 +781,18 @@
     "off_grid_reconnect_failed": {
       "title": "De Powerwall kon niet opnieuw met het net verbinden",
       "description": "Een off-grid-periode gestart door de integratie Powerwall TEDAPI is afgelopen, maar opnieuw verbinden met het net is mislukt. Het huis draait nog op de batterij ({soc}%). De integratie probeert het elke minuut opnieuw; als het blijft mislukken, verbind dan opnieuw in de Tesla-app. Deze melding verdwijnt zodra de Powerwall weer op het net zit."
+    },
+    "cloud_reserve_capped": {
+      "title": "Teslas cloud heeft de noodstroomreserve begrensd",
+      "description": "De noodstroomreserve is via {backend} op {wanted}% gezet, maar de Powerwall meldt {actual}%. Teslas cloud begrenst de reserve die hij instelt op 80%.\n\nOm de batterij voller te houden, gebruik je de actie **Max-back-up starten** (`tesla_tedapi.start_max_backup`), of stel je de reserve opnieuw in zolang de ondertekende lokale verbinding werkt: lokale wijzigingen worden niet begrensd."
+    },
+    "cloud_write_mismatch": {
+      "title": "Een cloudwijziging is niet zo toegepast",
+      "description": "Een instelling is via {backend} op `{wanted}` gezet, maar na 5 minuten meldt de Powerwall `{actual}`. Tesla heeft hem misschien aangepast of geweigerd. Controleer de instelling in de Tesla-app en stel hem opnieuw in zodra de ondertekende lokale verbinding werkt."
+    },
+    "firmware_signed_access": {
+      "title": "Ondertekende lokale toegang gestopt na een firmware-update",
+      "description": "De Powerwall is bijgewerkt van firmware {previous} naar {version} en reageert niet meer op de ondertekende lokale verbinding. Tesla kan lokale toegang met een update wijzigen.\n\nMetingen zijn niet beschikbaar; instellingen lopen via de cloudback-up als die is ingesteld. Dit verdwijnt vanzelf zodra ondertekende toegang weer werkt. Blijft het, kijk dan of er een update van deze integratie is, of registreer de sleutel opnieuw (**Configureren → Nieuwe ondertekende sleutel registreren**)."
     }
   },
   "selector": {

@@ -84,6 +84,8 @@ DROPPABLE_SETTINGS = {
     "grid_export": ("customer_preferred_export_rule", "battery_ok"),
     "grid_charging": ("disallow_charge_from_grid_with_solar_installed", True),
 }
+# Experimental: Tesla's on-grid solar curtailment flag in the gateway's site_info.
+SOLAR_CURTAILMENT_KEY = "on_grid_solar_curtailment_enabled"
 # A restore of each setting is written at most this often.
 RESTORE_MIN_SECONDS = 120
 
@@ -94,6 +96,13 @@ CLOUD_CACHE_SECONDS = 300
 # before the backup is needed; a failed check is retried sooner.
 CLOUD_CHECK_SECONDS = 3600
 CLOUD_RETRY_SECONDS = 600
+# A change made through a cloud backup is read back: first after this long
+# (Tesla takes about a minute to pass it to the gateway), and for at most
+# CLOUD_VERIFY_TIMEOUT_SECONDS before a different value is reported.
+CLOUD_VERIFY_SECONDS = 60
+CLOUD_VERIFY_TIMEOUT_SECONDS = 300
+# Tesla's cloud caps the backup reserve it sets (80 % since 2026-10).
+CLOUD_RESERVE_CAP = 80
 # The Owner API access token (8 hours) is renewed when it has less than this
 # left at a cloud read, before Tesla answers HTTP 401 for it. More than
 # CLOUD_CHECK_SECONDS, so the hourly check renews it in time; a failed renewal
@@ -133,9 +142,15 @@ CONTACTOR_POLL_SECONDS = 5
 # An automatic reconnect that fails is tried again this often.
 RECONNECT_RETRY_SECONDS = 60
 EVENT_OFF_GRID_ENDED = f"{DOMAIN}_off_grid_ended"
+# A grid outage started or ended (not an off-grid run started here).
+EVENT_GRID_OUTAGE = f"{DOMAIN}_grid_outage"
+# The gateway reported a new firmware version.
+EVENT_FIRMWARE_UPDATED = f"{DOMAIN}_firmware_updated"
 
 SERVICE_DISPATCH = "dispatch_battery_power"
 SERVICE_RESUME = "resume_battery_operation"
+SERVICE_CHARGE_TO = "charge_to"
+SERVICE_DISCHARGE_TO = "discharge_to"
 SERVICE_START_MAX_BACKUP = "start_max_backup"
 SERVICE_CANCEL_MAX_BACKUP = "cancel_max_backup"
 SERVICE_GO_OFF_GRID = "go_off_grid"
@@ -148,6 +163,8 @@ ATTR_MIN_SOC = "min_soc"
 ATTR_MAX_SOC = "max_soc"
 ATTR_DURATION_MINUTES = "duration_minutes"
 ATTR_CONFIRM = "confirm"
+ATTR_TARGET_SOC = "target_soc"
+ATTR_MAX_MINUTES = "max_minutes"
 
 
 def app_soc(raw: float | None) -> float | None:

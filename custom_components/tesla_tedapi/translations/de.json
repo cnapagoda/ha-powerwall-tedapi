@@ -140,7 +140,7 @@
       }
     },
     "progress": {
-      "confirm_key": "Der Schlüssel (Fingerabdruck `{fingerprint}…`) ist registriert und wartet auf die Bestätigung vor Ort. Innerhalb von etwa 10 Minuten:\n\n- **Powerwall 3:** den Ein/Aus-Schalter (linke Seite, unter der roten Rapid-Shutdown-Klappe) für etwa 15 Sekunden AUS und dann wieder EIN schalten. Ein kurzes Antippen wird ignoriert; bleibt er aus, bis das Gerät abschaltet, schließt sich das Fenster.\n- **Andere Modelle:** Den AC-Schutzschalter der Powerwall für etwa 15 Sekunden auszuschalten, funktioniert Berichten zufolge bei manchen Geräten.\n\nDiese Seite prüft alle 10 Sekunden und geht von selbst weiter, sobald die Powerwall bestätigt. Schließt sich das Fenster, wird der Schlüssel einmal automatisch neu registriert."
+      "confirm_key": "Der Schlüssel (Fingerabdruck `{fingerprint}…`) ist registriert und wartet auf die Bestätigung vor Ort. Innerhalb von etwa 10 Minuten:\n\n- **Powerwall 3:** den Ein/Aus-Schalter (linke Seite) für etwa 15 Sekunden AUS und dann wieder EIN schalten. Ein kurzes Antippen wird ignoriert; bleibt er aus, bis das Gerät abschaltet, schließt sich das Fenster.\n- **Andere Modelle:** Den AC-Schutzschalter der Powerwall für etwa 15 Sekunden auszuschalten, funktioniert Berichten zufolge bei manchen Geräten.\n\nDiese Seite prüft alle 10 Sekunden und geht von selbst weiter, sobald die Powerwall bestätigt. Schließt sich das Fenster, wird der Schlüssel einmal automatisch neu registriert."
     },
     "error": {
       "cannot_connect": "Die Powerwall ist unter dieser Adresse nicht erreichbar. Prüfe die Adresse (dein Router zeigt das Gateway als `teslapw_…` an), ob die Powerwall eingeschaltet und im selben Netzwerk wie Home Assistant ist, und versuche es erneut.",
@@ -364,7 +364,21 @@
         "name": "Verbleibende Batterieenergie"
       },
       "battery_health": {
-        "name": "Batteriezustand"
+        "name": "Batteriezustand",
+        "state_attributes": {
+          "nominal_kwh_per_pack": {
+            "name": "Nennwert pro Akku"
+          },
+          "packs": {
+            "name": "Akkus"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrenze"
+          },
+          "lifetime_discharged_kwh": {
+            "name": "Entladung gesamt"
+          }
+        }
       },
       "backup_time_remaining": {
         "name": "Verbleibende Backup-Zeit"
@@ -382,7 +396,15 @@
         "name": "Gateway zuletzt gestartet"
       },
       "firmware_version": {
-        "name": "Firmware-Version"
+        "name": "Firmware-Version",
+        "state_attributes": {
+          "previous_version": {
+            "name": "Vorherige Version"
+          },
+          "updated_at": {
+            "name": "Aktualisiert am"
+          }
+        }
       },
       "connection": {
         "name": "Verbindung",
@@ -427,6 +449,51 @@
       },
       "fan_speed": {
         "name": "Lüfter {fan} Drehzahl"
+      },
+      "last_grid_outage": {
+        "name": "Letzter Netzausfall",
+        "state_attributes": {
+          "ended": {
+            "name": "Beendet"
+          },
+          "ongoing": {
+            "name": "Läuft"
+          }
+        }
+      },
+      "last_grid_outage_duration": {
+        "name": "Dauer des letzten Netzausfalls"
+      },
+      "grid_outages_month": {
+        "name": "Netzausfälle diesen Monat"
+      },
+      "grid_outage_time_month": {
+        "name": "Netzausfallzeit diesen Monat"
+      },
+      "pack_health": {
+        "name": "{pack} Zustand",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Nennkapazität"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrenze"
+          }
+        }
+      },
+      "pack_discharged": {
+        "name": "{pack} Entladung gesamt"
+      },
+      "pack_cycles": {
+        "name": "{pack} Zyklen",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Vollzyklen (Akku)"
+          },
+          "over_discharges": {
+            "name": "Tiefentladungen"
+          }
+        }
       }
     },
     "switch": {
@@ -435,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Sturmwarnung"
+      },
+      "solar_curtailment": {
+        "name": "Solarabregelung am Netz (experimentell)"
       }
     },
     "event": {
@@ -514,12 +584,18 @@
     },
     "reconnect_not_confirmed": {
       "message": "Die Powerwall hat den Befehl angenommen, aber nicht innerhalb von 90 Sekunden mit der Netzsynchronisierung begonnen. Prüfe, ob Netzstrom da ist, und die Tesla-App."
+    },
+    "target_reached": {
+      "message": "Der Akku steht schon bei {soc} % und damit jenseits des Ziels von {target} %."
+    },
+    "curtailment_needs_v1r": {
+      "message": "Die Solarabregelung braucht die signierte (v1r) Verbindung zum Gateway."
     }
   },
   "services": {
     "dispatch_battery_power": {
       "name": "Batterieleistung steuern",
-      "description": "Betreibt die Batterie über die signierte lokale Verbindung für eine festgelegte Zeit mit fester Leistung. Positive Watt entladen, negative laden, 0 hält die Batterie im Leerlauf. Übersteuert die Einspeiseeinstellung; eine Entladung stoppt bei der Backup-Reserve, außer `min_soc` ist angegeben (optional). Die Integration erneuert den Befehl jede Minute in kurzen Schritten, sodass die Powerwall innerhalb von 5 Minuten zum Normalbetrieb zurückkehrt, wenn Home Assistant stoppt. Ein neuer Aufruf ersetzt einen laufenden Dispatch.",
+      "description": "Betreibt die Batterie über die signierte lokale Verbindung für eine festgelegte Zeit mit fester Leistung. Positive Watt entladen, negative laden, 0 hält die Batterie im Leerlauf. Übersteuert die Einspeiseeinstellung; eine Entladung stoppt bei der Backup-Reserve, außer `min_soc` ist angegeben (optional). Die Integration erneuert den Befehl jede Minute in kurzen Schritten, sodass die Powerwall innerhalb von 5 Minuten zum Normalbetrieb zurückkehrt, wenn Home Assistant stoppt. Ein neuer Aufruf ersetzt einen laufenden Dispatch. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -540,6 +616,50 @@
         "max_soc": {
           "name": "Laden stoppen bei",
           "description": "Beendet ein Laden, wenn der Batteriestand (Skala der Tesla-App) diesen Prozentwert erreicht."
+        }
+      }
+    },
+    "charge_to": {
+      "name": "Bis zu einem Akkustand laden",
+      "description": "Lädt den Akku über die signierte lokale Verbindung mit fester Leistung, bis der Zielstand erreicht ist, höchstens bis zum Zeitlimit. Lädt aus Solarstrom und, wenn Netzladen erlaubt ist, aus dem Netz. Endet mit dem Ereignisgrund `target_reached` oder `completed`. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "target_soc": {
+          "name": "Zielstand",
+          "description": "Akkustand (Skala der Tesla-App), bei dem gestoppt wird."
+        },
+        "power_watts": {
+          "name": "Leistung",
+          "description": "Lade- oder Entladeleistung in Watt (100 bis 10.000)."
+        },
+        "max_minutes": {
+          "name": "Zeitlimit",
+          "description": "Nach so vielen Minuten stoppen, auch wenn das Ziel nicht erreicht ist (bis zu 24 Stunden)."
+        }
+      }
+    },
+    "discharge_to": {
+      "name": "Bis zu einem Akkustand entladen",
+      "description": "Entlädt den Akku über die signierte lokale Verbindung mit fester Leistung, bis der Zielstand erreicht ist, höchstens bis zum Zeitlimit. Übergeht die Einspeiseeinstellung, der Akku kann also ins Netz einspeisen. Endet mit dem Ereignisgrund `target_reached` oder `completed`. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "target_soc": {
+          "name": "Zielstand",
+          "description": "Akkustand (Skala der Tesla-App), bei dem gestoppt wird."
+        },
+        "power_watts": {
+          "name": "Leistung",
+          "description": "Lade- oder Entladeleistung in Watt (100 bis 10.000)."
+        },
+        "max_minutes": {
+          "name": "Zeitlimit",
+          "description": "Nach so vielen Minuten stoppen, auch wenn das Ziel nicht erreicht ist (bis zu 24 Stunden)."
         }
       }
     },
@@ -661,6 +781,18 @@
     "off_grid_reconnect_failed": {
       "title": "Die Powerwall konnte sich nicht wieder mit dem Netz verbinden",
       "description": "Eine von der Integration Powerwall TEDAPI gestartete Netztrennung ist beendet, aber das Wiederverbinden ist fehlgeschlagen. Das Haus läuft noch mit der Batterie ({soc}%). Die Integration versucht es jede Minute erneut; wenn es weiter fehlschlägt, verbinde in der Tesla-App wieder. Dieser Hinweis verschwindet, sobald die Powerwall wieder am Netz ist."
+    },
+    "cloud_reserve_capped": {
+      "title": "Teslas Cloud hat die Notstromreserve begrenzt",
+      "description": "Die Notstromreserve wurde über {backend} auf {wanted} % gesetzt, die Powerwall meldet aber {actual} %. Teslas Cloud begrenzt die Reserve, die sie setzt, auf 80 %.\n\nUm den Akku voller zu halten, nutze die Aktion **Max-Backup starten** (`tesla_tedapi.start_max_backup`) oder setze die Reserve erneut, solange die signierte lokale Verbindung funktioniert: Lokale Änderungen sind nicht begrenzt."
+    },
+    "cloud_write_mismatch": {
+      "title": "Eine Cloud-Änderung wurde nicht wie gesetzt übernommen",
+      "description": "Eine Einstellung wurde über {backend} auf `{wanted}` geändert, nach 5 Minuten meldet die Powerwall aber `{actual}`. Tesla hat sie vielleicht geändert oder abgelehnt. Prüfe die Einstellung in der Tesla-App und setze sie erneut, sobald die signierte lokale Verbindung funktioniert."
+    },
+    "firmware_signed_access": {
+      "title": "Signierter lokaler Zugriff nach einem Firmware-Update gestoppt",
+      "description": "Die Powerwall wurde von Firmware {previous} auf {version} aktualisiert und antwortet nicht mehr auf die signierte lokale Verbindung. Tesla kann den lokalen Zugriff mit einem Update ändern.\n\nMesswerte sind nicht verfügbar; Einstellungen laufen über das Cloud-Backup, falls eines eingerichtet ist. Das verschwindet von selbst, sobald der signierte Zugriff wieder funktioniert. Hält es an, prüfe, ob es ein Update dieser Integration gibt, oder registriere den Schlüssel erneut (**Konfigurieren → Neuen signierten Schlüssel registrieren**)."
     }
   },
   "selector": {

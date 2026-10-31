@@ -49,6 +49,7 @@ async def test_sensors(hass: HomeAssistant, fake_powerwall) -> None:
     assert _eid(hass, "sensor", "string_A_voltage") is not None
     assert _eid(hass, "sensor", "string_B_power") is None
     assert _eid(hass, "sensor", "string_C_power") is None
+    # Against the rated 13.5 kWh: a pack with 13.9 kWh reads 103 %.
     assert hass.states.get(_eid(hass, "sensor", "battery_health")).state == "103.0"
     assert _eid(hass, "sensor", "pack_TG0123456789AB_capacity")
     firmware = hass.states.get(_eid(hass, "sensor", "firmware_version"))

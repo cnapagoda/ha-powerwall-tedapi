@@ -140,7 +140,7 @@
       }
     },
     "progress": {
-      "confirm_key": "The key (fingerprint `{fingerprint}…`) is registered and waiting for physical confirmation. Within about 10 minutes:\n\n- **Powerwall 3:** switch the On/Off switch (left side, under the red rapid-shutdown flap) OFF for about 15 seconds, then back ON. A short flick is ignored; leaving it off until the unit powers down closes the window.\n- **Other models:** toggling the Powerwall's AC breaker off for about 15 seconds is reported to work on some units.\n\nThis page checks every 10 seconds and continues on its own once the Powerwall confirms. If the window closes, the key is registered again once automatically."
+      "confirm_key": "The key (fingerprint `{fingerprint}…`) is registered and waiting for physical confirmation. Within about 10 minutes:\n\n- **Powerwall 3:** switch the On/Off switch (left side) OFF for about 15 seconds, then back ON. A short flick is ignored; leaving it off until the unit powers down closes the window.\n- **Other models:** toggling the Powerwall's AC breaker off for about 15 seconds is reported to work on some units.\n\nThis page checks every 10 seconds and continues on its own once the Powerwall confirms. If the window closes, the key is registered again once automatically."
     },
     "error": {
       "cannot_connect": "Could not reach the Powerwall at that address. Check the address (your router lists the gateway as `teslapw_…`), that the Powerwall is on and on the same network as Home Assistant, and try again.",
@@ -364,7 +364,21 @@
         "name": "Battery energy remaining"
       },
       "battery_health": {
-        "name": "Battery health"
+        "name": "Battery health",
+        "state_attributes": {
+          "nominal_kwh_per_pack": {
+            "name": "Nominal per pack"
+          },
+          "packs": {
+            "name": "Packs"
+          },
+          "warranty_kwh": {
+            "name": "Warranty level"
+          },
+          "lifetime_discharged_kwh": {
+            "name": "Lifetime discharge"
+          }
+        }
       },
       "backup_time_remaining": {
         "name": "Backup time remaining"
@@ -382,7 +396,15 @@
         "name": "Gateway last started"
       },
       "firmware_version": {
-        "name": "Firmware version"
+        "name": "Firmware version",
+        "state_attributes": {
+          "previous_version": {
+            "name": "Previous version"
+          },
+          "updated_at": {
+            "name": "Updated at"
+          }
+        }
       },
       "connection": {
         "name": "Connection",
@@ -427,6 +449,51 @@
       },
       "fan_speed": {
         "name": "Fan {fan} speed"
+      },
+      "last_grid_outage": {
+        "name": "Last grid outage",
+        "state_attributes": {
+          "ended": {
+            "name": "Ended"
+          },
+          "ongoing": {
+            "name": "Ongoing"
+          }
+        }
+      },
+      "last_grid_outage_duration": {
+        "name": "Last grid outage duration"
+      },
+      "grid_outages_month": {
+        "name": "Grid outages this month"
+      },
+      "grid_outage_time_month": {
+        "name": "Grid outage time this month"
+      },
+      "pack_health": {
+        "name": "{pack} health",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Rated capacity"
+          },
+          "warranty_kwh": {
+            "name": "Warranty level"
+          }
+        }
+      },
+      "pack_discharged": {
+        "name": "{pack} lifetime discharge"
+      },
+      "pack_cycles": {
+        "name": "{pack} cycles",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Full cycles (battery)"
+          },
+          "over_discharges": {
+            "name": "Over-discharges"
+          }
+        }
       }
     },
     "switch": {
@@ -435,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Storm Watch"
+      },
+      "solar_curtailment": {
+        "name": "On-grid solar curtailment (experimental)"
       }
     },
     "event": {
@@ -514,12 +584,18 @@
     },
     "reconnect_not_confirmed": {
       "message": "The Powerwall accepted the command but didn't start syncing to the grid within 90 seconds. Check that the grid supply is on, and the Tesla app."
+    },
+    "target_reached": {
+      "message": "The battery is already at {soc}%, past the target of {target}%."
+    },
+    "curtailment_needs_v1r": {
+      "message": "Solar curtailment needs the signed (v1r) connection to the gateway."
     }
   },
   "services": {
     "dispatch_battery_power": {
       "name": "Dispatch battery power",
-      "description": "Run the battery at a fixed power for a set time over the signed local connection. Positive watts discharge, negative watts charge, 0 holds the battery idle. Overrides the export setting; a discharge stops at the backup reserve unless `min_soc` is given (option). The integration renews the command every minute in short steps, so the Powerwall returns to normal within 5 minutes if Home Assistant stops. A new call replaces a running dispatch.",
+      "description": "Run the battery at a fixed power for a set time over the signed local connection. Positive watts discharge, negative watts charge, 0 holds the battery idle. Overrides the export setting; a discharge stops at the backup reserve unless `min_soc` is given (option). The integration renews the command every minute in short steps, so the Powerwall returns to normal within 5 minutes if Home Assistant stops. A new call replaces a running dispatch. Use at your own risk: dispatching the battery may affect your Powerwall warranty, which may cover unlimited cycles only for self-consumption, time-based control and backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -540,6 +616,50 @@
         "max_soc": {
           "name": "Stop charging at",
           "description": "End a charge when the battery level (Tesla app scale) reaches this percentage."
+        }
+      }
+    },
+    "charge_to": {
+      "name": "Charge to a battery level",
+      "description": "Charge the battery at a set power over the signed local connection until it reaches the target level, or for at most the time limit. Charges from solar and, if grid charging is allowed, from the grid. Ends with event reason `target_reached` or `completed`. Use at your own risk: dispatching the battery may affect your Powerwall warranty, which may cover unlimited cycles only for self-consumption, time-based control and backup.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "target_soc": {
+          "name": "Target level",
+          "description": "Battery level (Tesla app scale) at which to stop."
+        },
+        "power_watts": {
+          "name": "Power",
+          "description": "Charge or discharge power in watts (100 to 10,000)."
+        },
+        "max_minutes": {
+          "name": "Time limit",
+          "description": "Stop after this many minutes even if the target isn't reached (up to 24 hours)."
+        }
+      }
+    },
+    "discharge_to": {
+      "name": "Discharge to a battery level",
+      "description": "Discharge the battery at a set power over the signed local connection until it falls to the target level, or for at most the time limit. Overrides the export setting, so the battery may export to the grid. Ends with event reason `target_reached` or `completed`. Use at your own risk: dispatching the battery may affect your Powerwall warranty, which may cover unlimited cycles only for self-consumption, time-based control and backup.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "target_soc": {
+          "name": "Target level",
+          "description": "Battery level (Tesla app scale) at which to stop."
+        },
+        "power_watts": {
+          "name": "Power",
+          "description": "Charge or discharge power in watts (100 to 10,000)."
+        },
+        "max_minutes": {
+          "name": "Time limit",
+          "description": "Stop after this many minutes even if the target isn't reached (up to 24 hours)."
         }
       }
     },
@@ -661,6 +781,18 @@
     "off_grid_reconnect_failed": {
       "title": "The Powerwall couldn't reconnect to the grid",
       "description": "An off-grid run started by the Powerwall TEDAPI integration has ended, but reconnecting to the grid failed. The house still runs on the battery ({soc}%). The integration tries again every minute; if it keeps failing, reconnect in the Tesla app. This notice disappears once the Powerwall is back on the grid."
+    },
+    "cloud_reserve_capped": {
+      "title": "Tesla's cloud capped the backup reserve",
+      "description": "The backup reserve was set to {wanted}% through {backend}, but the Powerwall reports {actual}%. Tesla's cloud caps the reserve it sets at 80%.\n\nTo keep the battery fuller, use the **Start max backup** action (`tesla_tedapi.start_max_backup`), or set the reserve again while the signed local connection works: local writes are not capped."
+    },
+    "cloud_write_mismatch": {
+      "title": "A cloud change did not apply as set",
+      "description": "A setting was changed to `{wanted}` through {backend}, but after 5 minutes the Powerwall reports `{actual}`. Tesla may have changed or refused it. Check the setting in the Tesla app, and set it again once the signed local connection works."
+    },
+    "firmware_signed_access": {
+      "title": "Signed local access stopped after a firmware update",
+      "description": "The Powerwall was updated from firmware {previous} to {version}, and it no longer answers the signed local connection. Tesla can change local access with an update.\n\nReadings are unavailable; settings use the cloud backup if one is set up. This clears by itself when signed access works again. If it lasts, check for an update of this integration, or register the key again (**Configure → Register a new signed key**)."
     }
   },
   "selector": {

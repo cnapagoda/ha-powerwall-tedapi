@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest an idea
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: The problem or use case, in a few sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How it could work. Mention it if Tesla's app or another integration already does it.
+  - type: input
+    id: hardware
+    attributes:
+      label: Your system
+      description: Powerwall model, number of Powerwalls, firmware, region

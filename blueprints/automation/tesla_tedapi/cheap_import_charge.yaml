@@ -1,0 +1,123 @@
+blueprint:
+  name: Powerwall - charge when import is cheap
+  description: >-
+    When the import price falls below a threshold (or goes negative), charge
+    the Powerwall to a target level with `tesla_tedapi.charge_to`, and hand
+    the battery back when the price rises again. Works with any price sensor
+    (Amber, Octopus Agile, Nord Pool, Tibber, ComEd, ...).
+
+
+    Use at your own risk: dispatching the battery may affect your Powerwall
+    warranty, which may cover unlimited cycles only for self-consumption,
+    time-based control and backup.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/cheap_import_charge.yaml
+  input:
+    powerwall:
+      name: Powerwall
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    import_price:
+      name: Import price
+      description: The price you pay for power from the grid, per kWh.
+      selector:
+        entity:
+          domain: sensor
+    threshold:
+      name: Below this price
+      default: 0
+      selector:
+        number:
+          min: -10
+          max: 10
+          step: 0.01
+          mode: box
+    target_soc:
+      name: Charge to
+      default: 90
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
+    power:
+      name: Charging power
+      default: 5000
+      selector:
+        number:
+          min: 100
+          max: 10000
+          step: 100
+          unit_of_measurement: W
+    max_minutes:
+      name: For at most
+      default: 120
+      selector:
+        number:
+          min: 1
+          max: 1440
+          unit_of_measurement: min
+    dispatch_active:
+      name: Powerwall Dispatch active
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: binary_sensor
+    operation_mode:
+      name: Powerwall Operation mode
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: select
+    skip_autonomous:
+      name: Leave Tesla's own optimisation alone
+      description: Do nothing while the operation mode is autonomous (time-based control).
+      default: true
+      selector:
+        boolean:
+
+mode: queued
+max: 5
+
+variables:
+  dispatch_active: !input dispatch_active
+  operation_mode: !input operation_mode
+  skip_autonomous: !input skip_autonomous
+
+triggers:
+  - trigger: numeric_state
+    id: cheap
+    entity_id: !input import_price
+    below: !input threshold
+  - trigger: numeric_state
+    id: over
+    entity_id: !input import_price
+    above: !input threshold
+
+conditions:
+  - condition: template
+    value_template: "{{ not skip_autonomous or states(operation_mode) != 'autonomous' }}"
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: cheap
+        sequence:
+          - action: tesla_tedapi.charge_to
+            continue_on_error: true
+            data:
+              config_entry_id: !input powerwall
+              target_soc: !input target_soc
+              power_watts: !input power
+              max_minutes: !input max_minutes
+      - conditions:
+          - condition: trigger
+            id: over
+          - condition: template
+            value_template: "{{ is_state(dispatch_active, 'on') and (state_attr(dispatch_active, 'power_watts') or 0) < 0 }}"
+        sequence:
+          - action: tesla_tedapi.resume_battery_operation
+            data:
+              config_entry_id: !input powerwall

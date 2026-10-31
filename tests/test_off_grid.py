@@ -195,3 +195,56 @@ async def test_removing_the_entry_forgets_the_run(hass: HomeAssistant, fake_powe
     assert await hass.config_entries.async_remove(entry.entry_id)
     await hass.async_block_till_done()
     assert key not in hass_storage
+
+
+async def test_take_back_failure_is_logged(hass: HomeAssistant, fake_powerwall, caplog) -> None:
+    await _setup(hass, V1R)
+    fake_powerwall.contactor_moves = False
+    pw = local(fake_powerwall)
+    pw.reconnect_grid = lambda: None  # the take-back is refused
+    with patch("custom_components.tesla_tedapi.off_grid.CONTACTOR_WAIT_SECONDS", 0), \
+            pytest.raises(HomeAssistantError):
+        await _go(hass)
+    assert "Could not take back the off-grid request" in caplog.text
+
+
+async def test_waits_between_status_reads(hass: HomeAssistant, fake_powerwall) -> None:
+    await _setup(hass, V1R)
+    fake_powerwall.contactor_moves = False
+    with patch("custom_components.tesla_tedapi.off_grid.CONTACTOR_WAIT_SECONDS", 0.05), \
+            patch("custom_components.tesla_tedapi.off_grid.CONTACTOR_POLL_SECONDS", 0.01), \
+            pytest.raises(HomeAssistantError):
+        await _go(hass)
+
+
+async def test_broken_saved_run_is_dropped(hass: HomeAssistant, fake_powerwall, hass_storage) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, unique_id="0000000-00-A--TG000000000000", data=V1R, minor_version=2)
+    hass_storage[f"{DOMAIN}.{entry.entry_id}.off_grid"] = {
+        "version": 1, "key": f"{DOMAIN}.{entry.entry_id}.off_grid", "data": {"started": "not a time"}}
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.off_grid.state is None
+
+
+async def test_end_timer_reconnects(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, V1R)
+    events = async_capture_events(hass, EVENT_OFF_GRID_ENDED)
+    await _go(hass, duration_minutes=1)
+    session = entry.runtime_data.off_grid
+    session.state.ends = dt_util.utcnow() - timedelta(seconds=1)
+    session._at_end(dt_util.utcnow())
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert [e.data["reason"] for e in events] == ["completed"]
+
+
+async def test_no_battery_check_without_readings(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, V1R)
+    await _go(hass, min_soc=45)
+    entry.runtime_data.coordinator.data["local_ok"] = False
+    session = entry.runtime_data.off_grid
+    assert session._soc() is None
+    session._check()
+    assert session.state is not None
+    await session._async_end("requested")
+    await session._async_end("requested")  # nothing left to end

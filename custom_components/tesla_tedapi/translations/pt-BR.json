@@ -140,7 +140,7 @@
       }
     },
     "progress": {
-      "confirm_key": "A chave (impressão digital `{fingerprint}…`) está registrada e aguardando confirmação física. Em cerca de 10 minutos:\n\n- **Powerwall 3:** coloque o interruptor liga/desliga (lado esquerdo, sob a tampa vermelha de desligamento rápido) em DESLIGADO por cerca de 15 segundos e depois em LIGADO de novo. Um toque rápido é ignorado; deixá-lo desligado até o equipamento desligar fecha a janela.\n- **Outros modelos:** há relatos de que desligar o disjuntor CA da Powerwall por cerca de 15 segundos funciona em alguns equipamentos.\n\nEsta página verifica a cada 10 segundos e continua sozinha assim que a Powerwall confirmar. Se a janela fechar, a chave é registrada de novo uma vez automaticamente."
+      "confirm_key": "A chave (impressão digital `{fingerprint}…`) está registrada e aguardando confirmação física. Em cerca de 10 minutos:\n\n- **Powerwall 3:** coloque o interruptor liga/desliga (lado esquerdo) em DESLIGADO por cerca de 15 segundos e depois em LIGADO de novo. Um toque rápido é ignorado; deixá-lo desligado até o equipamento desligar fecha a janela.\n- **Outros modelos:** há relatos de que desligar o disjuntor CA da Powerwall por cerca de 15 segundos funciona em alguns equipamentos.\n\nEsta página verifica a cada 10 segundos e continua sozinha assim que a Powerwall confirmar. Se a janela fechar, a chave é registrada de novo uma vez automaticamente."
     },
     "error": {
       "cannot_connect": "Não foi possível alcançar a Powerwall nesse endereço. Confira o endereço (seu roteador mostra o gateway como `teslapw_…`), se a Powerwall está ligada e na mesma rede do Home Assistant, e tente de novo.",
@@ -364,7 +364,21 @@
         "name": "Energia restante da bateria"
       },
       "battery_health": {
-        "name": "Saúde da bateria"
+        "name": "Saúde da bateria",
+        "state_attributes": {
+          "nominal_kwh_per_pack": {
+            "name": "Nominal por bateria"
+          },
+          "packs": {
+            "name": "Baterias"
+          },
+          "warranty_kwh": {
+            "name": "Limite da garantia"
+          },
+          "lifetime_discharged_kwh": {
+            "name": "Descarga total"
+          }
+        }
       },
       "backup_time_remaining": {
         "name": "Tempo de backup restante"
@@ -382,7 +396,15 @@
         "name": "Última inicialização do gateway"
       },
       "firmware_version": {
-        "name": "Versão do firmware"
+        "name": "Versão do firmware",
+        "state_attributes": {
+          "previous_version": {
+            "name": "Versão anterior"
+          },
+          "updated_at": {
+            "name": "Atualizado em"
+          }
+        }
       },
       "connection": {
         "name": "Conexão",
@@ -427,6 +449,51 @@
       },
       "fan_speed": {
         "name": "Velocidade do ventilador {fan}"
+      },
+      "last_grid_outage": {
+        "name": "Última queda da rede",
+        "state_attributes": {
+          "ended": {
+            "name": "Terminou"
+          },
+          "ongoing": {
+            "name": "Em andamento"
+          }
+        }
+      },
+      "last_grid_outage_duration": {
+        "name": "Duração da última queda da rede"
+      },
+      "grid_outages_month": {
+        "name": "Quedas da rede neste mês"
+      },
+      "grid_outage_time_month": {
+        "name": "Tempo de queda da rede neste mês"
+      },
+      "pack_health": {
+        "name": "Saúde de {pack}",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Capacidade nominal"
+          },
+          "warranty_kwh": {
+            "name": "Limite da garantia"
+          }
+        }
+      },
+      "pack_discharged": {
+        "name": "Descarga total de {pack}"
+      },
+      "pack_cycles": {
+        "name": "Ciclos de {pack}",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Ciclos completos (bateria)"
+          },
+          "over_discharges": {
+            "name": "Descargas profundas"
+          }
+        }
       }
     },
     "switch": {
@@ -435,6 +502,9 @@
       },
       "storm_watch": {
         "name": "Alerta de tempestade"
+      },
+      "solar_curtailment": {
+        "name": "Limitação solar com a rede (experimental)"
       }
     },
     "event": {
@@ -514,12 +584,18 @@
     },
     "reconnect_not_confirmed": {
       "message": "A Powerwall aceitou o comando, mas não começou a sincronizar com a rede em 90 segundos. Verifique se há energia da rede, e o app da Tesla."
+    },
+    "target_reached": {
+      "message": "A bateria já está em {soc}%, além do alvo de {target}%."
+    },
+    "curtailment_needs_v1r": {
+      "message": "A limitação solar precisa da conexão assinada (v1r) com o gateway."
     }
   },
   "services": {
     "dispatch_battery_power": {
       "name": "Despachar potência da bateria",
-      "description": "Mantém a bateria em uma potência fixa por um tempo definido pela conexão local assinada. Watts positivos descarregam, negativos carregam, 0 deixa a bateria em repouso. Tem prioridade sobre a configuração de exportação; uma descarga para na reserva de backup, a menos que `min_soc` seja informado (opção). A integração renova o comando a cada minuto em passos curtos, para que a Powerwall volte ao normal em até 5 minutos se o Home Assistant parar. Uma nova chamada substitui um despacho em andamento.",
+      "description": "Mantém a bateria em uma potência fixa por um tempo definido pela conexão local assinada. Watts positivos descarregam, negativos carregam, 0 deixa a bateria em repouso. Tem prioridade sobre a configuração de exportação; uma descarga para na reserva de backup, a menos que `min_soc` seja informado (opção). A integração renova o comando a cada minuto em passos curtos, para que a Powerwall volte ao normal em até 5 minutos se o Home Assistant parar. Uma nova chamada substitui um despacho em andamento. Use por sua conta e risco: controlar a bateria pode afetar a garantia da Powerwall, que talvez cubra ciclos ilimitados apenas para autoconsumo, controle por horário e backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -540,6 +616,50 @@
         "max_soc": {
           "name": "Parar a carga em",
           "description": "Encerra uma carga quando o nível da bateria (escala do app da Tesla) chega a esta porcentagem."
+        }
+      }
+    },
+    "charge_to": {
+      "name": "Carregar até um nível",
+      "description": "Carrega a bateria com potência fixa pela conexão local assinada até o nível alvo, no máximo pelo tempo limite. Carrega com solar e, se o carregamento pela rede estiver permitido, pela rede. Termina com o motivo de evento `target_reached` ou `completed`. Use por sua conta e risco: controlar a bateria pode afetar a garantia da Powerwall, que talvez cubra ciclos ilimitados apenas para autoconsumo, controle por horário e backup.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessário só quando há mais de uma Powerwall configurada."
+        },
+        "target_soc": {
+          "name": "Nível alvo",
+          "description": "Nível da bateria (escala do app da Tesla) em que parar."
+        },
+        "power_watts": {
+          "name": "Potência",
+          "description": "Potência de carga ou descarga em watts (de 100 a 10.000)."
+        },
+        "max_minutes": {
+          "name": "Tempo limite",
+          "description": "Parar depois desses minutos mesmo que o alvo não seja atingido (até 24 horas)."
+        }
+      }
+    },
+    "discharge_to": {
+      "name": "Descarregar até um nível",
+      "description": "Descarrega a bateria com potência fixa pela conexão local assinada até o nível alvo, no máximo pelo tempo limite. Ignora a configuração de exportação, então a bateria pode exportar para a rede. Termina com o motivo de evento `target_reached` ou `completed`. Use por sua conta e risco: controlar a bateria pode afetar a garantia da Powerwall, que talvez cubra ciclos ilimitados apenas para autoconsumo, controle por horário e backup.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessário só quando há mais de uma Powerwall configurada."
+        },
+        "target_soc": {
+          "name": "Nível alvo",
+          "description": "Nível da bateria (escala do app da Tesla) em que parar."
+        },
+        "power_watts": {
+          "name": "Potência",
+          "description": "Potência de carga ou descarga em watts (de 100 a 10.000)."
+        },
+        "max_minutes": {
+          "name": "Tempo limite",
+          "description": "Parar depois desses minutos mesmo que o alvo não seja atingido (até 24 horas)."
         }
       }
     },
@@ -661,6 +781,18 @@
     "off_grid_reconnect_failed": {
       "title": "A Powerwall não conseguiu se reconectar à rede",
       "description": "Uma desconexão da rede iniciada pela integração Powerwall TEDAPI terminou, mas a reconexão falhou. A casa ainda funciona com a bateria ({soc}%). A integração tenta de novo a cada minuto; se continuar falhando, reconecte pelo app da Tesla. Este aviso some quando a Powerwall voltar à rede."
+    },
+    "cloud_reserve_capped": {
+      "title": "A nuvem da Tesla limitou a reserva de backup",
+      "description": "A reserva de backup foi definida em {wanted}% por {backend}, mas a Powerwall informa {actual}%. A nuvem da Tesla limita a 80% a reserva que define.\n\nPara manter a bateria mais cheia, use a ação **Iniciar backup máximo** (`tesla_tedapi.start_max_backup`), ou defina a reserva de novo enquanto a conexão local assinada funciona: alterações locais não são limitadas."
+    },
+    "cloud_write_mismatch": {
+      "title": "Uma alteração pela nuvem não foi aplicada como definida",
+      "description": "Uma configuração foi alterada para `{wanted}` por {backend}, mas depois de 5 minutos a Powerwall informa `{actual}`. A Tesla pode tê-la alterado ou recusado. Verifique a configuração no app da Tesla e defina-a de novo quando a conexão local assinada funcionar."
+    },
+    "firmware_signed_access": {
+      "title": "O acesso local assinado parou após uma atualização de firmware",
+      "description": "A Powerwall foi atualizada do firmware {previous} para o {version} e não responde mais à conexão local assinada. A Tesla pode mudar o acesso local com uma atualização.\n\nAs leituras ficam indisponíveis; as configurações usam o backup na nuvem, se houver um configurado. Isso some sozinho quando o acesso assinado voltar a funcionar. Se continuar, veja se há uma atualização desta integração, ou registre a chave de novo (**Configurar → Registrar uma nova chave assinada**)."
     }
   },
   "selector": {

@@ -155,6 +155,27 @@
       },
       "fan_speed": {
         "default": "mdi:fan"
+      },
+      "last_grid_outage": {
+        "default": "mdi:transmission-tower-off"
+      },
+      "last_grid_outage_duration": {
+        "default": "mdi:timer-outline"
+      },
+      "grid_outages_month": {
+        "default": "mdi:counter"
+      },
+      "grid_outage_time_month": {
+        "default": "mdi:timer-sand"
+      },
+      "pack_health": {
+        "default": "mdi:battery-heart-variant"
+      },
+      "pack_discharged": {
+        "default": "mdi:battery-arrow-down-outline"
+      },
+      "pack_cycles": {
+        "default": "mdi:battery-sync-outline"
       }
     },
     "switch": {
@@ -165,6 +186,12 @@
         "default": "mdi:weather-lightning-rainy",
         "state": {
           "off": "mdi:weather-cloudy"
+        }
+      },
+      "solar_curtailment": {
+        "default": "mdi:solar-power-variant-outline",
+        "state": {
+          "off": "mdi:solar-power-variant"
         }
       }
     },
@@ -177,6 +204,12 @@
   "services": {
     "dispatch_battery_power": {
       "service": "mdi:battery-sync"
+    },
+    "charge_to": {
+      "service": "mdi:battery-arrow-up"
+    },
+    "discharge_to": {
+      "service": "mdi:battery-arrow-down"
     },
     "resume_battery_operation": {
       "service": "mdi:battery-check"

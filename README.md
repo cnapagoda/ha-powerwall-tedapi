@@ -16,7 +16,7 @@ Local monitoring and control of a Tesla Powerwall (Powerwall 3, and Powerwall 2 
 - **Setup wizard**: finds the Powerwall on your network, checks the gateway password, registers the key with your Powerwall and notices the confirmation by itself. No command line needed.
 - **Keeps your export and grid charging settings**: the Powerwall sometimes drops them from its own settings; the integration writes them back.
 
-> **Not affiliated with Tesla.** This uses undocumented interfaces that Tesla can change at any time. A dispatch overrides your export setting (and, if you ask it to, the backup reserve), and going off-grid disconnects your house from the grid, so use them with care. See [Safety](#safety).
+> **Not affiliated with Tesla.** This uses undocumented interfaces that Tesla can change at any time. A dispatch overrides your export setting (and, if you ask it to, the backup reserve) and may affect your warranty, and going off-grid disconnects your house from the grid, so use them with care. See [Safety](#safety).
 
 ---
 
@@ -123,7 +123,7 @@ If Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tes
    - **Refresh token.** Paste a refresh token from a token app instead (see [Getting a Tesla refresh token](#getting-a-tesla-refresh-token)). No developer tools needed.
 2. The energy site with this gateway is picked automatically (you choose only if it can't tell).
 3. **Confirm at the Powerwall.** The wizard makes an RSA-4096 key in `config/tesla_tedapi/` and registers it with your Powerwall. Within about **10 minutes**:
-   - **Powerwall 3:** switch the **On/Off switch** (left side, under the red rapid-shutdown flap) **OFF for about 15 seconds, then back ON**. A quick flick is ignored. Don't leave it off until the unit powers down.
+   - **Powerwall 3:** switch the **On/Off switch** (left side) **OFF for about 15 seconds, then back ON**. A quick flick is ignored. Don't leave it off until the unit powers down.
    - **Other models:** switching the Powerwall's AC breaker off for about 15 seconds is reported to work on some units.
 
    The wizard checks every 10 seconds and continues on its own once the Powerwall confirms. If the window closes, it registers the key again once by itself; after that it asks you to try again.
@@ -300,7 +300,7 @@ If the gateway can't be reached, the sensors show *unavailable* instead of stale
 
 ### `tesla_tedapi.dispatch_battery_power`
 
-Hold the battery at a fixed power for a set time.
+Hold the battery at a fixed power for a set time. Use at your own risk: see [Safety](#safety) about the warranty.
 
 | Field | |
 |---|---|
@@ -313,7 +313,7 @@ Hold the battery at a fixed power for a set time.
 How a dispatch runs:
 
 - The integration sends the command in steps of at most **5 minutes** and renews it every minute. If Home Assistant stops, the Powerwall goes back to normal within 5 minutes.
-- When the time is up or a limit is reached, it hands the battery back. The `tesla_tedapi_dispatch_ended` event carries a `reason`: `completed`, `min_soc`, `max_soc`, `stopped`, `connection_lost` or `unloaded`.
+- When the time is up or a limit is reached, it hands the battery back. The `tesla_tedapi_dispatch_ended` event carries a `reason`: `completed`, `min_soc`, `max_soc`, `target_reached`, `stopped`, `connection_lost` or `unloaded`.
 - A new call replaces the running dispatch.
 - Charging from the grid may need **Grid charging** switched on.
 
@@ -324,6 +324,26 @@ data:
   power_watts: -5000
   duration_seconds: 7200
   max_soc: 90
+```
+
+### `tesla_tedapi.charge_to` / `tesla_tedapi.discharge_to`
+
+Charge or discharge at a set power until the **Battery level** reaches `target_soc`, or until `max_minutes` pass. They run as a dispatch (above) and end with reason `target_reached` or `completed`. They are refused when the battery is already at the target.
+
+| Field | |
+|---|---|
+| `target_soc` | 1–100 %. |
+| `power_watts` | 100–10,000 W, without a sign. |
+| `max_minutes` | 1–1440. |
+| `config_entry_id` | Only needed with more than one Powerwall. |
+
+```yaml
+# Charge to 80 % at 3 kW, for at most 2 hours
+action: tesla_tedapi.charge_to
+data:
+  target_soc: 80
+  power_watts: 3000
+  max_minutes: 120
 ```
 
 ### `tesla_tedapi.resume_battery_operation`
@@ -455,6 +475,7 @@ Turn this off with **Restore settings when the Powerwall drops them** if another
 ## Safety
 
 - **A dispatch ignores your grid export setting, and the Powerwall itself ignores the backup reserve.** On a Powerwall 3 a discharge exported to the grid with export set to *never*. The integration stops a discharge at the backup reserve unless you pass `min_soc` (option), and refuses calls above the largest dispatch power you set.
+- **Dispatching may affect your warranty.** Tesla's warranty may cover unlimited cycles only for self-consumption, time-based control and backup, and limit other use to a total energy throughput (37.8 MWh is quoted for some units). `dispatch_battery_power`, `charge_to` and `discharge_to` may count as other use. Check your own warranty; use them at your own risk.
 - **Your retailer or VPP may also control the Powerwall.** They can change modes or grid charging from the cloud, and their changes can fight yours.
 - The **Battery level** sensor and the limits use the Tesla app scale.
 - **Going off-grid switches the house to the battery.** If the battery runs out before the house is reconnected, the power goes off. Always set `min_soc` or `duration_minutes` high enough, and don't rely on it while Home Assistant may be down. See [`go_off_grid`](#tesla_tedapigo_off_grid).
@@ -479,6 +500,7 @@ With two backups:
 - Settings are read from the first one that answers. The setting entities' `cloud_backend` attribute says which one did.
 - A change the gateway doesn't take goes to the first backup that accepts it. If Tesla doesn't answer in time, it isn't sent to the other backup as well, because it may still have been applied; the action reports an error instead.
 - Each backup is checked about once an hour. **Setup health** lists each one under `cloud_backends` (`ok`, `starting`, `can_change_settings`, `failures`, `last_ok`) and only shows *Needs attention* when none can change settings. A backup that needs attention gets its own repair: *Sign in to Tesla again* (Owner API), *Tesla Fleet cloud backup is not working*, or *Tesla Fleet cloud backup can't change settings* (no `energy_cmds` permission).
+- A change made through a cloud backup is read back for up to 5 minutes. If the Powerwall reports a different value (Tesla's cloud caps the backup reserve at 80 %), a repair says so.
 - After a restart, Tesla Fleet can load after this integration. For up to 10 minutes it counts as *starting*, not as failing. A disabled entry, or one that keeps failing to load, counts as not working.
 
 ## Data updates
@@ -495,16 +517,33 @@ The integration polls the gateway every 30 seconds by default (**Polling interva
 
 After you change a setting, the integration reads the Powerwall again straight away, so the entity shows the new value within seconds. If the gateway can't be reached, readings show *unavailable* until it answers again; nothing is filled in for the missed time.
 
+## Blueprints
+
+Ready-made automations. They work with any price sensor (Amber, Octopus, Nord Pool, Tibber, ComEd and others) and change the Powerwall only through this integration's entities and actions.
+
+| Blueprint | What it does | |
+|---|---|---|
+| Stop exporting at negative feed-in prices | Grid export → *never* while the feed-in price is negative | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.4.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fnegative_feed_in.yaml) |
+| Charge when import is cheap | `charge_to` a target level while the import price is low ⚠️ | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.4.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fcheap_import_charge.yaml) |
+| Export on a price spike | `discharge_to` a floor while the feed-in price is high ⚠️ | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.4.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fprice_spike_discharge.yaml) |
+| Time-of-use charge and discharge | Off-peak `charge_to`, peak `discharge_to`, no price feed needed ⚠️ | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.4.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Ftime_of_use.yaml) |
+| Grid outage alert | A notification when the grid goes down and comes back | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.4.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fgrid_outage_alert.yaml) |
+
+⚠️ These use battery dispatch: see [Safety](#safety) about the warranty. Price entities and suggested thresholds per retailer are in the [wiki](https://github.com/cnapagoda/ha-powerwall-tedapi/wiki).
+
 ## Use cases
 
 - **Charge from the grid when power is cheap or free.** Set the operation mode, backup reserve and grid charging from your tariff (for example Amber prices or a free-power window), and switch back afterwards. See [`examples/automations.yaml`](examples/automations.yaml).
 - **Export on a price spike.** Use [`dispatch_battery_power`](#tesla_tedapidispatch_battery_power) to discharge at a set power while the price is high, and stop when it falls.
+- **Negative feed-in prices.** With solar on the Powerwall 3's own inputs, set **Grid export** to *never*: the Powerwall then limits its solar instead of exporting. A separate solar inverter has to be limited through its own integration.
+- **Experimental: On-grid solar curtailment.** A switch (disabled by default, signed connection only) for Tesla's `on_grid_solar_curtailment_enabled` flag in the gateway's config. Tesla doesn't document what it does, and it has not been tested on a real Powerwall: enable it only to experiment, and watch the solar output.
 - **Keep the settings you chose.** The [dropped settings](#dropped-settings) restore keeps your export rule and grid charging in place, even when the Powerwall drops them.
 - **Get ready for a storm.** Turn on **Storm Watch**, or start a [max backup](#tesla_tedapistart_max_backup) to charge to full and hold it.
 - **Test your backup.** [Go off-grid](#tesla_tedapigo_off_grid) for a few minutes, with a battery floor, to see that the house runs on the Powerwall.
-- **Know when the power goes out.** **Grid connected** turns off within one poll of an outage. Use it for notifications or to switch off big loads.
+- **Know when the power goes out.** **Grid connected** turns off within one poll of an outage. **Last grid outage**, **Grid outages this month** and **Grid outage time this month** keep the history, and the `tesla_tedapi_grid_outage` event (`phase`: `started` or `ended`, `duration_seconds`) fires on each outage. An off-grid run started here and an unreachable gateway don't count. Outages are seen only while Home Assistant and your network have power. Use it for notifications or to switch off big loads.
+- **Know when Tesla updates the firmware.** The `tesla_tedapi_firmware_updated` event (`previous_version`, `version`, `build`) fires on each update, and the Logbook shows it. **Firmware version** keeps the previous version. If signed local access stops working after an update, a repair says so.
 - **Track energy.** Add the lifetime energy sensors to the **Energy dashboard** (grid, solar, battery, home).
-- **Watch the hardware.** [Alerts](#alerts), the **Problem** sensor, battery health, temperatures and fan speeds show issues early, with the gateway's own alert codes.
+- **Watch the hardware.** [Alerts](#alerts), the **Problem** sensor, battery health, temperatures and fan speeds show issues early, with the gateway's own alert codes. **Battery health** and each pack's **health** compare the capacity with the rated 13.5 kWh per pack; a new pack reads above 100 % (the warranty level, 70 % of 13.5 kWh, is an attribute). On a Powerwall 3, each pack also has **lifetime discharge** and **cycles** (lifetime discharge ÷ 13.5 kWh).
 
 ## Known limitations
 
@@ -565,6 +604,10 @@ logger:
 
 - [pypowerwall](https://github.com/jasonacox/pypowerwall) by Jason Cox and contributors: TEDAPI, v1r signing, dispatch and Tesla login.
 - [Tesla-API](https://github.com/Matthew1471/Tesla-API) research by Matthew1471 into the gateway's battery dispatch fields.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately: [SECURITY.md](SECURITY.md).
 
 ## License
 

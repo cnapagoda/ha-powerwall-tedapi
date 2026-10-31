@@ -1,0 +1,124 @@
+blueprint:
+  name: Powerwall - export on a price spike
+  description: >-
+    When the feed-in price rises above a threshold, discharge the Powerwall
+    down to a floor with `tesla_tedapi.discharge_to`, and hand the battery
+    back when the price falls again. A dispatch overrides the export setting,
+    so the battery exports. Works with any price sensor (Amber, Octopus Agile
+    Outgoing, Nord Pool, Tibber, ...).
+
+
+    Use at your own risk: dispatching the battery may affect your Powerwall
+    warranty, which may cover unlimited cycles only for self-consumption,
+    time-based control and backup.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/price_spike_discharge.yaml
+  input:
+    powerwall:
+      name: Powerwall
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    feed_in_price:
+      name: Feed-in price
+      description: The price you are paid for export, per kWh.
+      selector:
+        entity:
+          domain: sensor
+    threshold:
+      name: Above this price
+      default: 1
+      selector:
+        number:
+          min: -10
+          max: 100
+          step: 0.01
+          mode: box
+    floor_soc:
+      name: Keep at least
+      default: 30
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
+    power:
+      name: Discharging power
+      default: 5000
+      selector:
+        number:
+          min: 100
+          max: 10000
+          step: 100
+          unit_of_measurement: W
+    max_minutes:
+      name: For at most
+      default: 60
+      selector:
+        number:
+          min: 1
+          max: 1440
+          unit_of_measurement: min
+    dispatch_active:
+      name: Powerwall Dispatch active
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: binary_sensor
+    operation_mode:
+      name: Powerwall Operation mode
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: select
+    skip_autonomous:
+      name: Leave Tesla's own optimisation alone
+      description: Do nothing while the operation mode is autonomous (time-based control).
+      default: true
+      selector:
+        boolean:
+
+mode: queued
+max: 5
+
+variables:
+  dispatch_active: !input dispatch_active
+  operation_mode: !input operation_mode
+  skip_autonomous: !input skip_autonomous
+
+triggers:
+  - trigger: numeric_state
+    id: spike
+    entity_id: !input feed_in_price
+    above: !input threshold
+  - trigger: numeric_state
+    id: over
+    entity_id: !input feed_in_price
+    below: !input threshold
+
+conditions:
+  - condition: template
+    value_template: "{{ not skip_autonomous or states(operation_mode) != 'autonomous' }}"
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: spike
+        sequence:
+          - action: tesla_tedapi.discharge_to
+            continue_on_error: true
+            data:
+              config_entry_id: !input powerwall
+              target_soc: !input floor_soc
+              power_watts: !input power
+              max_minutes: !input max_minutes
+      - conditions:
+          - condition: trigger
+            id: over
+          - condition: template
+            value_template: "{{ is_state(dispatch_active, 'on') and (state_attr(dispatch_active, 'power_watts') or 0) > 0 }}"
+        sequence:
+          - action: tesla_tedapi.resume_battery_operation
+            data:
+              config_entry_id: !input powerwall

@@ -18,15 +18,19 @@ from .const import (
     ATTR_CONFIRM,
     ATTR_DURATION_MINUTES,
     ATTR_DURATION_SECONDS,
+    ATTR_MAX_MINUTES,
     ATTR_MAX_SOC,
     ATTR_MIN_SOC,
     ATTR_POWER_WATTS,
+    ATTR_TARGET_SOC,
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
     DOMAIN,
     MAX_BACKUP_MAX_MINUTES,
     OFF_GRID_MAX_MINUTES,
     SERVICE_CANCEL_MAX_BACKUP,
+    SERVICE_CHARGE_TO,
+    SERVICE_DISCHARGE_TO,
     SERVICE_DISPATCH,
     SERVICE_GO_OFF_GRID,
     SERVICE_RECONNECT_GRID,
@@ -34,7 +38,7 @@ from .const import (
     SERVICE_START_MAX_BACKUP,
 )
 from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
-from .dispatch import DispatchSession
+from .dispatch import DispatchSession, quiet_dispatch_repeats
 from .off_grid import OffGridSession, off_grid_store
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,6 +56,13 @@ DISPATCH_SCHEMA = vol.Schema({
         vol.Coerce(int), vol.Range(min=1, max=DISPATCH_MAX_SECONDS)),
     vol.Optional(ATTR_MIN_SOC): _SOC,
     vol.Optional(ATTR_MAX_SOC): _SOC,
+})
+MOVE_TO_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    vol.Required(ATTR_TARGET_SOC): vol.All(vol.Coerce(float), vol.Range(min=1, max=100)),
+    # A size, not a direction: the action gives the sign.
+    vol.Required(ATTR_POWER_WATTS): vol.All(vol.Coerce(float), vol.Range(min=100, max=DISPATCH_MAX_WATTS)),
+    vol.Required(ATTR_MAX_MINUTES): vol.All(vol.Coerce(int), vol.Range(min=1, max=DISPATCH_MAX_SECONDS // 60)),
 })
 RESUME_SCHEMA = vol.Schema({vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string})
 START_MAX_BACKUP_SCHEMA = vol.Schema({
@@ -121,6 +132,7 @@ def _off_grid(hass: HomeAssistant, call: ServiceCall) -> OffGridSession:
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the actions once; they look up the entry per call."""
+    quiet_dispatch_repeats()
 
     async def dispatch(call: ServiceCall) -> ServiceResponse:
         return await _session(hass, call).async_start(
@@ -129,6 +141,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             call.data.get(ATTR_MIN_SOC),
             call.data.get(ATTR_MAX_SOC),
         )
+
+    async def charge_to(call: ServiceCall) -> ServiceResponse:
+        return await _session(hass, call).async_move_to(
+            call.data[ATTR_TARGET_SOC], call.data[ATTR_POWER_WATTS], call.data[ATTR_MAX_MINUTES], charge=True)
+
+    async def discharge_to(call: ServiceCall) -> ServiceResponse:
+        return await _session(hass, call).async_move_to(
+            call.data[ATTR_TARGET_SOC], call.data[ATTR_POWER_WATTS], call.data[ATTR_MAX_MINUTES], charge=False)
 
     async def resume(call: ServiceCall) -> ServiceResponse:
         result = await _session(hass, call).async_stop()
@@ -160,6 +180,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                                  schema=START_MAX_BACKUP_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_CANCEL_MAX_BACKUP, cancel_max_backup, schema=RESUME_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_DISPATCH, dispatch, schema=DISPATCH_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_CHARGE_TO, charge_to, schema=MOVE_TO_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_DISCHARGE_TO, discharge_to, schema=MOVE_TO_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_RESUME, resume, schema=RESUME_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
@@ -197,8 +221,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         dispatch=DispatchSession(hass, coordinator) if coordinator.dispatch_supported else None,
         off_grid=OffGridSession(hass, coordinator) if coordinator.dispatch_supported else None,
     )
-    if entry.runtime_data.off_grid is not None:
-        await entry.runtime_data.off_grid.async_load()
+    if (off_grid := entry.runtime_data.off_grid) is not None:
+        await off_grid.async_load()
+        coordinator.intentional_off_grid = lambda: off_grid.intentional
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
     _LOGGER.debug("Powerwall %s loaded (firmware %s, %s, settings %s)",

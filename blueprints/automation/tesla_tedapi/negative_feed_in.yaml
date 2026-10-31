@@ -1,0 +1,98 @@
+blueprint:
+  name: Powerwall - stop exporting at negative feed-in prices
+  description: >-
+    While the feed-in price stays below a threshold, set the Powerwall's
+    **Grid export** to *never*; when it is back above, set export to the value
+    you choose. With solar on a
+    Powerwall 3's own inputs, the Powerwall then limits its solar instead of
+    exporting. A separate solar inverter keeps exporting; limit it through its
+    own integration. Works with any price sensor (Amber, Octopus, Nord Pool,
+    Tibber, ...).
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/negative_feed_in.yaml
+  input:
+    feed_in_price:
+      name: Feed-in price
+      description: The price you are paid for export, per kWh.
+      selector:
+        entity:
+          domain: sensor
+    threshold:
+      name: Below this price
+      default: 0
+      selector:
+        number:
+          min: -10
+          max: 10
+          step: 0.01
+          mode: box
+    minutes:
+      name: For at least (minutes)
+      description: Ignore short dips.
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 60
+          unit_of_measurement: min
+    export_select:
+      name: Powerwall Grid export
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: select
+    restore:
+      name: Then set export back to
+      description: Used when the price is back above the threshold.
+      default: battery_ok
+      selector:
+        select:
+          options:
+            - battery_ok
+            - pv_only
+
+mode: queued
+max: 5
+
+variables:
+  export_select: !input export_select
+  restore: !input restore
+
+triggers:
+  - trigger: numeric_state
+    id: negative
+    entity_id: !input feed_in_price
+    below: !input threshold
+    for:
+      minutes: !input minutes
+  - trigger: numeric_state
+    id: back
+    entity_id: !input feed_in_price
+    above: !input threshold
+    for:
+      minutes: !input minutes
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: negative
+          - condition: template
+            value_template: "{{ states(export_select) != 'never' }}"
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: !input export_select
+            data:
+              option: never
+      - conditions:
+          - condition: trigger
+            id: back
+          - condition: template
+            value_template: "{{ is_state(export_select, 'never') }}"
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: !input export_select
+            data:
+              option: "{{ restore }}"

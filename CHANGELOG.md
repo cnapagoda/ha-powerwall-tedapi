@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.4.0
+
+- **Warranty warning** on battery dispatch (README Safety, and the descriptions of `dispatch_battery_power`, `charge_to` and `discharge_to`): Tesla's warranty may cover unlimited cycles only for self-consumption, time-based control and backup.
+- A dispatch session logs one warning when it starts. pypowerwall's warning for every accepted command (each renewal, every minute) is dropped.
+- pypowerwall **0.23.1** (`>=0.23.1,<0.24`): a reconnect that fails keeps the working client, and the battery level no longer goes below 0 % under the reserve.
+- Setup: the Powerwall 3 confirmation uses the **On/Off switch (left side)**.
+- **Grid outage tracking**: **Last grid outage** (with `ongoing` and `ended`), **Last grid outage duration**, **Grid outages this month** and **Grid outage time this month** (reset monthly, kept across restarts), and a `tesla_tedapi_grid_outage` event when an outage starts or ends. Off-grid runs started here and an unreachable gateway are not outages.
+- **Firmware updates**: a `tesla_tedapi_firmware_updated` event and log line when the gateway reports a new version, and **Firmware version** keeps `previous_version` and `updated_at`. On a signed connection, the first reading on the new firmware checks signed access; if it stopped working, a repair says so (and clears when it works again).
+- **Logbook** entries for firmware updates, grid outages, and the end of dispatch sessions and off-grid runs.
+- **Battery health per pack.** A new per-pack **health** sensor (capacity against the rated 13.5 kWh, like **Battery health**; a new pack reads above 100 %), with the warranty level (70 % of 13.5 kWh) as an attribute. **Battery health** adds `warranty_kwh` and `lifetime_discharged_kwh`. On a Powerwall 3 (pypowerwall 0.23+), per-pack **lifetime discharge** and **cycles** (lifetime discharge ÷ 13.5 kWh, with the battery's own full-cycle and over-discharge counts as attributes).
+- **Experimental: On-grid solar curtailment** switch (signed connection only, disabled by default): reads and writes Tesla's `on_grid_solar_curtailment_enabled` flag in the gateway's config. Undocumented by Tesla and not tested on a real Powerwall. README: negative feed-in prices with built-in solar are handled by setting export to *never*.
+- **Blueprints** (README → Blueprints, one-click import): stop exporting at negative feed-in prices, charge when import is cheap, export on a price spike, time-of-use charge and discharge, and a grid outage alert. They take any price sensor and change the Powerwall only through this integration.
+- Project: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `SECURITY.md`, a pull request template and a feature request form.
+- **Cloud changes are read back.** A setting changed through a cloud backup is logged as sent, then checked against the readings for up to 5 minutes. If the Powerwall reports something else, a repair says so. When Tesla's cloud caps the backup reserve at 80 %, the repair suggests a max backup or a local write.
+- **`tesla_tedapi.charge_to`** and **`tesla_tedapi.discharge_to`** actions (signed connection): charge or discharge at a set power until the battery reaches a target level, or for at most a time limit. They run as a dispatch session, end with the new reason `target_reached`, and are refused when the battery is already at the target. **Dispatch active** shows the `target_soc`.
+
 ## 2.3.1
 
 - **`tesla_tedapi.go_off_grid`** and **`tesla_tedapi.reconnect_grid`** actions (signed connection): disconnect the house from the grid and reconnect it, the same command as *Go off-grid* in the Tesla app (Tesla's `setIslandMode`, through pypowerwall).
