@@ -4,6 +4,7 @@
 
 - **Battery dispatch:** a stop (target reached, `resume_battery_operation` or unloading) could reach the gateway before a renewal already on its way, so the Powerwall kept charging or discharging for up to 5 minutes past the target, ignoring `min_soc`. Dispatch commands now reach the gateway in order.
 - **`set_tariff`** no longer refuses a tariff with an empty season written as `{}`, a shape Tesla accepts. The dry run still warns that an empty season is inactive.
+- **Discovery:** a Powerwall set up over its Wi-Fi hotspot is no longer offered as a new device when the gateway shows up on the home network. Its stored address is left alone.
 
 ## 2.4.3
 
