@@ -190,7 +190,8 @@
           "problem_minutes": "Opóźnienie problemu",
           "dispatch_floor_reserve": "Rozładowanie zatrzymuje się na rezerwie awaryjnej",
           "dispatch_max_watts": "Największa moc sterowania",
-          "tesla_tariff": "Taryfa Tesla (chmura)"
+          "tesla_tariff": "Taryfa Tesla (chmura)",
+          "diagnostics_gateway_config": "Konfiguracja bramy w diagnostyce"
         },
         "data_description": {
           "restore_export": "Powerwall czasem gubi swoją regułę oddawania do sieci i ustawienie ładowania z sieci (co godzinę na Powerwall 3); ładowanie z sieci się wtedy włącza. Gdy włączone, wybrane ustawienie jest zapisywane z powrotem w ciągu minuty lub dwóch (tylko połączenie podpisane).",
@@ -198,7 +199,8 @@
           "problem_minutes": "Jak długo ostrzeżenie lub usterka musi trwać, zanim czujnik Problem się włączy i zostanie zgłoszona naprawa.",
           "dispatch_floor_reserve": "Rozładowanie uruchomione bez `min_soc` zatrzymuje się, gdy bateria osiągnie rezerwę awaryjną.",
           "dispatch_max_watts": "Wywołania sterowania powyżej tej mocy są odrzucane.",
-          "tesla_tariff": "Odczytuj z kopii w chmurze taryfę, której Tesla używa do sterowania czasowego (czujnik i akcje odczytu/ustawienia). Tylko chmura."
+          "tesla_tariff": "Odczytuj z kopii w chmurze taryfę, której Tesla używa do sterowania czasowego (czujnik i akcje odczytu/ustawienia). Tylko chmura.",
+          "diagnostics_gateway_config": "Dodaj konfigurację bramy do pobieranej diagnostyki, bez numerów seryjnych, lokalizacji, nazw i danych logowania. Przydatne przy zgłaszaniu błędów."
         }
       },
       "cloud_backup": {
@@ -499,6 +501,32 @@
       },
       "tesla_tariff": {
         "name": "Taryfa Tesla"
+      },
+      "grid_energy_imported_today": {
+        "name": "Energia pobrana z sieci dzisiaj"
+      },
+      "grid_energy_exported_today": {
+        "name": "Energia oddana do sieci dzisiaj"
+      },
+      "battery_energy_charged_today": {
+        "name": "Energia naładowana do baterii dzisiaj"
+      },
+      "battery_energy_discharged_today": {
+        "name": "Energia rozładowana z baterii dzisiaj"
+      },
+      "solar_energy_produced_today": {
+        "name": "Energia wyprodukowana z fotowoltaiki dzisiaj"
+      },
+      "home_energy_consumed_today": {
+        "name": "Energia zużyta przez dom dzisiaj"
+      },
+      "grid_counter_check": {
+        "name": "Kontrola liczników sieci",
+        "state": {
+          "ok": "OK",
+          "mismatch": "Liczniki się różnią",
+          "unknown": "Jeszcze za mało danych"
+        }
       }
     },
     "switch": {
@@ -786,6 +814,14 @@
         "dry_run": {
           "name": "Próba",
           "description": "Tylko sprawdź ustawienia, wypisz, co Tesla by zmieniła, i pokaż, co zostałoby wysłane (domyślnie włączone)."
+        },
+        "read_back": {
+          "name": "Odczyt zwrotny",
+          "description": "full: odczytuj taryfę przez maksymalnie 25 sekund. once: jeden odczyt po 15 sekundach, dla zapisów zaplanowanych. none: bez odczytu; potwierdzi to następny odczyt taryfy."
+        },
+        "only_if_changed": {
+          "name": "Tylko przy zmianie",
+          "description": "Nie zapisuj, jeśli to ceny wysłane ostatnio lub te, które pokazuje Tesla."
         }
       }
     },
@@ -894,6 +930,13 @@
         "tesla_fleet": "Tesla Fleet (lub Teslemetry)",
         "fleet_then_owner": "Tesla Fleet, potem Owner API",
         "owner_then_fleet": "Owner API, potem Tesla Fleet"
+      }
+    },
+    "tariff_read_back": {
+      "options": {
+        "full": "Pełny (do 25 s)",
+        "once": "Raz",
+        "none": "Brak"
       }
     }
   }

@@ -226,3 +226,48 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
     text = str(diag)
     assert "secret" not in text and "a@b.c" not in text and DIN not in text
     assert diag["data"]["battery_level"] == 50.0
+
+
+def test_gateway_config_redaction() -> None:
+    from custom_components.tesla_tedapi.diagnostics import REDACTED, redact_config  # noqa: PLC0415
+
+    config = {
+        "vin": "1707000-30-L--TG1", "site_info": {
+            "site_name": "Home", "latitude": -34.9, "longitude": 138.6, "timezone": "Australia/Adelaide",
+            "backup_reserve_percent": 24.0, "nominal_system_energy_kWh": 27,
+            "customer_preferred_export_rule": "never"},
+        "wifi": {"ssid": "MyWifi", "wifi_password": "hunter2", "ip": "192.168.1.50"},
+        "battery_blocks": [{"vin": "TG1", "serial_number": "TG123", "type": "Powerwall3"}],
+        "installer": {"company": "Solar Co", "phone": "0400"},
+        "note": "gateway 1707000-30-L--TG1 online",
+    }
+    out = redact_config(config, ("1707000-30-L--TG1",))
+    text = str(out)
+    for secret in ("Home", "-34.9", "138.6", "MyWifi", "hunter2", "192.168.1.50", "TG123", "Solar Co", "0400",
+                   "1707000-30-L--TG1"):
+        assert secret not in text, secret
+    assert out["site_info"]["timezone"] == "Australia/Adelaide"
+    assert out["site_info"]["backup_reserve_percent"] == 24.0
+    assert out["battery_blocks"][0]["type"] == "Powerwall3" and out["note"] == REDACTED
+
+
+async def test_diagnostics_gateway_config_option(hass: HomeAssistant) -> None:
+    from unittest.mock import patch  # noqa: PLC0415
+
+    entry = await _setup(hass, V1R)
+    diag = await async_get_config_entry_diagnostics(hass, entry)
+    assert "gateway_config" not in diag and diag["tesla_tariff"] is None
+    hass.config_entries.async_update_entry(entry, options={**entry.options, "diagnostics_gateway_config": True})
+    await hass.async_block_till_done()
+    diag = await async_get_config_entry_diagnostics(hass, entry)
+    assert diag["gateway_config"]["site_info"]["backup_reserve_percent"] == 24.0
+    assert DIN not in str(diag)
+    coordinator = entry.runtime_data.coordinator
+    with patch.object(type(coordinator), "read_gateway_config", side_effect=RuntimeError("offline")):
+        diag = await async_get_config_entry_diagnostics(hass, entry)
+    assert diag["gateway_config"] == {"error": "offline"}
+    coordinator._pw = None
+    from homeassistant.exceptions import HomeAssistantError  # noqa: PLC0415
+
+    with pytest.raises(HomeAssistantError):
+        coordinator.read_gateway_config()

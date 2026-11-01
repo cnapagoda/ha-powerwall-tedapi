@@ -190,7 +190,8 @@
           "problem_minutes": "Probleemvertraging",
           "dispatch_floor_reserve": "Ontladen stopt bij de back-upreserve",
           "dispatch_max_watts": "Grootste dispatch-vermogen",
-          "tesla_tariff": "Tesla-tarief (cloud)"
+          "tesla_tariff": "Tesla-tarief (cloud)",
+          "diagnostics_gateway_config": "Gatewayconfiguratie in diagnostiek"
         },
         "data_description": {
           "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding).",
@@ -198,7 +199,8 @@
           "problem_minutes": "Hoe lang een waarschuwing of storing moet duren voordat de probleemsensor aangaat en een reparatie wordt gemeld.",
           "dispatch_floor_reserve": "Een ontlading die zonder `min_soc` is gestart, stopt als de batterij de back-upreserve bereikt.",
           "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd.",
-          "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensor en acties om te lezen/instellen). Alleen cloud."
+          "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensor en acties om te lezen/instellen). Alleen cloud.",
+          "diagnostics_gateway_config": "De configuratie van de gateway toevoegen aan diagnostiekdownloads, zonder serienummers, locatie, namen en inloggegevens. Handig voor bugmeldingen."
         }
       },
       "cloud_backup": {
@@ -499,6 +501,32 @@
       },
       "tesla_tariff": {
         "name": "Tesla-tarief"
+      },
+      "grid_energy_imported_today": {
+        "name": "Energie afgenomen van het net vandaag"
+      },
+      "grid_energy_exported_today": {
+        "name": "Energie teruggeleverd aan het net vandaag"
+      },
+      "battery_energy_charged_today": {
+        "name": "Batterij geladen vandaag"
+      },
+      "battery_energy_discharged_today": {
+        "name": "Batterij ontladen vandaag"
+      },
+      "solar_energy_produced_today": {
+        "name": "Zonne-energie opgewekt vandaag"
+      },
+      "home_energy_consumed_today": {
+        "name": "Energie verbruikt door huis vandaag"
+      },
+      "grid_counter_check": {
+        "name": "Controle netmeters",
+        "state": {
+          "ok": "OK",
+          "mismatch": "Meters wijken af",
+          "unknown": "Nog te weinig gegevens"
+        }
       }
     },
     "switch": {
@@ -786,6 +814,14 @@
         "dry_run": {
           "name": "Proefrun",
           "description": "Alleen de instellingen controleren, tonen wat Tesla zou aanpassen en tonen wat verzonden zou worden (standaard aan)."
+        },
+        "read_back": {
+          "name": "Teruglezen",
+          "description": "full: het tarief tot 25 seconden teruglezen. once: één keer lezen na 15 seconden, voor geplande schrijfacties. none: niet lezen; de volgende tariefuitlezing bevestigt het."
+        },
+        "only_if_changed": {
+          "name": "Alleen bij wijziging",
+          "description": "Niet schrijven als dit de laatst verzonden prijzen zijn of de prijzen die Tesla toont."
         }
       }
     },
@@ -894,6 +930,13 @@
         "tesla_fleet": "Tesla Fleet (of Teslemetry)",
         "fleet_then_owner": "Tesla Fleet, daarna Owner API",
         "owner_then_fleet": "Owner API, daarna Tesla Fleet"
+      }
+    },
+    "tariff_read_back": {
+      "options": {
+        "full": "Volledig (tot 25 s)",
+        "once": "Eén keer",
+        "none": "Geen"
       }
     }
   }

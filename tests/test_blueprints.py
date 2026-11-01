@@ -174,3 +174,72 @@ async def test_grid_outage_alert(hass: HomeAssistant, blueprint_dir) -> None:
     messages = [c.data["message"] for c in calls["my_phone"]]
     assert messages == ["Grid outage: the house is on the Powerwall (battery 55 %).",
                         "Grid back after 25 min (battery 55 %)."]
+
+
+def _amber(start, count: int, minutes: int, price) -> list[dict]:
+    """Amber-shaped forecast: intervals start one second past the boundary."""
+    return [{"start_time": (start + timedelta(minutes=minutes * k, seconds=1)).isoformat(),
+             "end_time": (start + timedelta(minutes=minutes * (k + 1))).isoformat(),
+             "per_kwh": price(k)} for k in range(count)]
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])  # the 30-minute trigger
+async def test_dynamic_price_tariff(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    from custom_components.tesla_tedapi import tariff  # noqa: PLC0415
+
+    await hass.config.async_set_time_zone("Australia/Adelaide")
+    freezer.move_to("2026-11-01T05:59:40+00:00")  # 16:29:40 local
+    now = dt_util.utcnow().replace(minute=55, second=0, microsecond=0)  # 16:25 local
+    half = now + timedelta(minutes=35)  # 06:30 UTC = 17:00 local
+    buy = _amber(now, 7, 5, lambda k: 0.23) + _amber(half, 46, 30, lambda k: 0.30 + k / 100)
+    sell = _amber(now, 7, 5, lambda k: 0.07) + _amber(half, 46, 30, lambda k: -0.02 if k < 3 else 0.10)
+    hass.states.async_set("sensor.amber_general_forecast", "0.23", {"forecasts": buy})
+    hass.states.async_set("sensor.amber_feed_in_forecast", "0.07", {"forecasts": sell})
+    from homeassistant.core import SupportsResponse  # noqa: PLC0415
+
+    sent = []
+
+    def set_tariff(call):
+        sent.append(call)
+        return {"warnings": tariff.check_write(call.data["tou_settings"])}
+
+    hass.services.async_register(DOMAIN, "set_tariff", set_tariff, supports_response=SupportsResponse.OPTIONAL)
+    await _automation(hass, "dynamic_price_tariff.yaml", {"powerwall": "entry1", "dry_run": False})
+
+    freezer.tick(timedelta(seconds=40))  # 16:30:20
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert len(sent) == 1
+    data = sent[0].data
+    assert data["dry_run"] is False and data["config_entry_id"] == "entry1"
+    assert data["read_back"] == "once" and data["only_if_changed"] is True
+    tou = data["tou_settings"]
+    assert tariff.validate_write(tou) == []
+    content = tou["tariff_content_v2"]
+    periods = content["seasons"]["Summer"]["tou_periods"]
+    assert len(periods) == 48 and periods["PERIOD_23_30"]["periods"][0]["toHour"] == 0
+    rates = content["energy_charges"]["Summer"]["rates"]
+    feed = content["sell_tariff"]["energy_charges"]["Summer"]["rates"]
+    assert rates["PERIOD_16_30"] == 0.23 and feed["PERIOD_16_30"] == 0.07  # the 5-minute prices
+    assert rates["PERIOD_17_00"] == 0.30 and feed["PERIOD_17_00"] == -0.02
+    assert rates["PERIOD_16_00"] == 0.75 and feed["PERIOD_16_00"] == 0.10  # past the forecast: the last known price
+    # Every slot priced from the forecast: no gaps, no stale prices.
+    assert not tariff.check_write(tou) or all("negative" in w for w in tariff.check_write(tou))
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])  # the 30-minute trigger
+async def test_dynamic_price_tariff_refuses_a_thin_forecast(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    await hass.config.async_set_time_zone("Australia/Adelaide")
+    freezer.move_to("2026-11-01T05:59:40+00:00")
+    start = dt_util.utcnow().replace(minute=30, second=0, microsecond=0)
+    hass.states.async_set("sensor.amber_general_forecast", "0.2",
+                          {"forecasts": _amber(start, 12, 30, lambda k: 0.2)})  # 6 of 24 hours
+    hass.states.async_set("sensor.amber_feed_in_forecast", "0.1", {"forecasts": []})
+    calls = _calls(hass, DOMAIN, "set_tariff")
+    notes = _calls(hass, "persistent_notification", "create")
+    await _automation(hass, "dynamic_price_tariff.yaml", {"powerwall": "entry1", "dry_run": False})
+    freezer.tick(timedelta(seconds=40))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert calls["set_tariff"] == []
+    assert "without a price" in notes["create"][0].data["message"]

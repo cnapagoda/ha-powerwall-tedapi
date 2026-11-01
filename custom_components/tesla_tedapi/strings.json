@@ -190,7 +190,8 @@
           "problem_minutes": "Problem delay",
           "dispatch_floor_reserve": "Discharges stop at the backup reserve",
           "dispatch_max_watts": "Largest dispatch power",
-          "tesla_tariff": "Tesla tariff (cloud)"
+          "tesla_tariff": "Tesla tariff (cloud)",
+          "diagnostics_gateway_config": "Gateway configuration in diagnostics"
         },
         "data_description": {
           "restore_export": "The Powerwall sometimes loses its grid export rule and its grid charging setting from its own settings (seen hourly on a Powerwall 3); grid charging then turns on. When on, the setting you chose is written back within a minute or two (signed connection only).",
@@ -198,7 +199,8 @@
           "problem_minutes": "How long a warning or fault must last before the Problem sensor turns on and a repair is raised.",
           "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",
           "dispatch_max_watts": "Dispatch calls above this power are refused.",
-          "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensor and get/set tariff actions). Cloud only."
+          "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensor and get/set tariff actions). Cloud only.",
+          "diagnostics_gateway_config": "Add the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports."
         }
       },
       "cloud_backup": {
@@ -499,6 +501,32 @@
       },
       "tesla_tariff": {
         "name": "Tesla tariff"
+      },
+      "grid_energy_imported_today": {
+        "name": "Grid energy imported today"
+      },
+      "grid_energy_exported_today": {
+        "name": "Grid energy exported today"
+      },
+      "battery_energy_charged_today": {
+        "name": "Battery energy charged today"
+      },
+      "battery_energy_discharged_today": {
+        "name": "Battery energy discharged today"
+      },
+      "solar_energy_produced_today": {
+        "name": "Solar energy produced today"
+      },
+      "home_energy_consumed_today": {
+        "name": "Home energy consumed today"
+      },
+      "grid_counter_check": {
+        "name": "Grid counter check",
+        "state": {
+          "ok": "OK",
+          "mismatch": "Counters differ",
+          "unknown": "Not enough data yet"
+        }
       }
     },
     "switch": {
@@ -786,6 +814,14 @@
         "dry_run": {
           "name": "Dry run",
           "description": "Only check the settings, list what Tesla would change, and show what would be sent (on by default)."
+        },
+        "read_back": {
+          "name": "Read back",
+          "description": "full: read the tariff back for up to 25 seconds. once: one read after 15 seconds, for scheduled writes. none: no read; the next tariff read confirms it."
+        },
+        "only_if_changed": {
+          "name": "Only if changed",
+          "description": "Skip the write when these are the rates last sent, or the ones Tesla shows."
         }
       }
     },
@@ -894,6 +930,13 @@
         "tesla_fleet": "Tesla Fleet (or Teslemetry)",
         "fleet_then_owner": "Tesla Fleet, then Owner API",
         "owner_then_fleet": "Owner API, then Tesla Fleet"
+      }
+    },
+    "tariff_read_back": {
+      "options": {
+        "full": "Full (up to 25 s)",
+        "once": "Once",
+        "none": "None"
       }
     }
   }

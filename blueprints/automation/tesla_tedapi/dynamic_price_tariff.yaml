@@ -1,0 +1,259 @@
+blueprint:
+  name: Powerwall - keep Tesla's tariff in step with dynamic prices
+  description: >-
+    Keeps the Powerwall in Time-Based Control while it follows a dynamic price
+    feed: every 30 minutes it turns the feed's forecast into Tesla's tariff
+    (48 half-hour periods covering the next 24 hours, in Home Assistant's time
+    zone) and sends it with `tesla_tedapi.set_tariff`. No battery dispatch.
+
+
+    Defaults are for Amber Electric. For other feeds set the attribute and key
+    names (for example Octopus Energy: attribute `rates`, keys `start`, `end`,
+    `value_inc_vat`; Nord Pool: attributes `raw_today, raw_tomorrow`, keys
+    `start`, `end`, `value`).
+
+
+    Needs the Tesla tariff (cloud) option and a cloud backup. Put the
+    Powerwall in Time-Based Control yourself. Unchanged rates aren't sent
+    again. Don't combine with Amber
+    SmartShift or PowerSync. Tesla stores negative prices as 0 and raises a buy
+    price below the sell price. Each write is a cloud command (it counts on a
+    Tesla Fleet developer account or a Teslemetry plan). Start with a dry run.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/dynamic_price_tariff.yaml
+  input:
+    powerwall:
+      name: Powerwall
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    buy_entity:
+      name: Buy price forecast
+      description: The entity whose attribute lists the buy prices ahead.
+      default: sensor.amber_general_forecast
+      selector:
+        entity:
+    sell_entity:
+      name: Sell (feed-in) price forecast
+      description: Leave empty to use the fixed feed-in price below.
+      default: sensor.amber_feed_in_forecast
+      selector:
+        entity:
+    fixed_sell:
+      name: Fixed feed-in price
+      description: Used when there's no sell forecast.
+      default: 0
+      selector:
+        number:
+          min: -10
+          max: 10
+          step: any
+          mode: box
+    attributes:
+      name: Forecast attribute(s)
+      description: Comma-separated; their lists are combined.
+      default: forecasts
+      selector:
+        text:
+    start_key:
+      name: Start key
+      default: start_time
+      selector:
+        text:
+    end_key:
+      name: End key
+      default: end_time
+      selector:
+        text:
+    price_key:
+      name: Price key
+      default: per_kwh
+      selector:
+        text:
+    price_scale:
+      name: Price scale
+      description: Multiplies every price, for example 0.01 for cents per kWh.
+      default: 1
+      selector:
+        number:
+          min: 0.0001
+          max: 1000
+          step: any
+          mode: box
+    tariff_name:
+      name: Tariff name
+      default: Dynamic prices
+      selector:
+        text:
+    dry_run:
+      name: Dry run
+      description: Only build the tariff and show Tesla's warnings; send nothing.
+      default: true
+      selector:
+        boolean:
+
+mode: single
+max_exceeded: silent
+
+triggers:
+  - trigger: time_pattern
+    minutes: "/30"
+    seconds: "20"
+
+variables:
+  powerwall: !input powerwall
+  buy_entity: !input buy_entity
+  sell_entity: !input sell_entity
+  fixed_sell: !input fixed_sell
+  attributes: !input attributes
+  start_key: !input start_key
+  end_key: !input end_key
+  price_key: !input price_key
+  price_scale: !input price_scale
+  tariff_name: !input tariff_name
+  dry_run: !input dry_run
+  max_missing: 10
+  # [[start ts, end ts, price], ...] for one entity.
+  buy_intervals: >-
+    {% set ns = namespace(out=[]) %}
+    {% for attr in attributes.split(',') %}
+      {% for f in (state_attr(buy_entity, attr | trim) or []) %}
+        {% set s = as_datetime(f[start_key]) if f[start_key] is defined else none %}
+        {% set e = as_datetime(f[end_key]) if f[end_key] is defined else none %}
+        {% set p = f[price_key] if f[price_key] is defined else none %}
+        {% if s and e and p is number %}
+          {% set ns.out = ns.out + [[as_timestamp(s), as_timestamp(e), p * price_scale]] %}
+        {% endif %}
+      {% endfor %}
+    {% endfor %}
+    {{ ns.out }}
+  sell_intervals: >-
+    {% set ns = namespace(out=[]) %}
+    {% if sell_entity %}
+      {% for attr in attributes.split(',') %}
+        {% for f in (state_attr(sell_entity, attr | trim) or []) %}
+          {% set s = as_datetime(f[start_key]) if f[start_key] is defined else none %}
+          {% set e = as_datetime(f[end_key]) if f[end_key] is defined else none %}
+          {% set p = f[price_key] if f[price_key] is defined else none %}
+          {% if s and e and p is number %}
+            {% set ns.out = ns.out + [[as_timestamp(s), as_timestamp(e), p * price_scale]] %}
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    {% endif %}
+    {{ ns.out }}
+  # [[start ts, slot index, buy, sell], ...] in time order: each half hour of
+  # the day at its next occurrence, priced by the overlap-weighted average of
+  # the forecast over what's left of it (none when under half covered).
+  slots: >-
+    {% set now_ts = as_timestamp(now()) %}
+    {% set midnight = today_at('00:00') %}
+    {% set ns = namespace(out=[]) %}
+    {% for i in range(48) %}
+      {% set st = midnight + timedelta(minutes=30 * i) %}
+      {% set en = st + timedelta(minutes=30) %}
+      {% if as_timestamp(en) <= now_ts %}
+        {% set st = st + timedelta(days=1) %}{% set en = en + timedelta(days=1) %}
+      {% endif %}
+      {% set a = [as_timestamp(st), now_ts] | max %}{% set b = as_timestamp(en) %}
+      {% set price = namespace(buy=0, bw=0, sell=0, sw=0) %}
+      {% for iv in buy_intervals if iv[1] > a and iv[0] < b %}
+        {% set w = ([iv[1], b] | min) - ([iv[0], a] | max) %}
+        {% set price.buy = price.buy + iv[2] * w %}{% set price.bw = price.bw + w %}
+      {% endfor %}
+      {% for iv in sell_intervals if iv[1] > a and iv[0] < b %}
+        {% set w = ([iv[1], b] | min) - ([iv[0], a] | max) %}
+        {% set price.sell = price.sell + iv[2] * w %}{% set price.sw = price.sw + w %}
+      {% endfor %}
+      {% set half = (b - a) / 2 %}
+      {% set ns.out = ns.out + [[a, i,
+           (price.buy / price.bw) if price.bw >= half and price.bw > 0 else none,
+           (price.sell / price.sw) if price.sw >= half and price.sw > 0 else
+             (none if sell_entity else fixed_sell | float(0))]] %}
+    {% endfor %}
+    {{ ns.out | sort(attribute='0') }}
+  missing: "{{ slots | selectattr('2', 'none') | list | count }}"
+  # {"PERIOD_HH_MM": [buy, sell]}: gaps take the last known price (the first
+  # known one before any).
+  rates: >-
+    {% set known_buy = slots | rejectattr('2', 'none') | map(attribute='2') | list %}
+    {% set known_sell = slots | rejectattr('3', 'none') | map(attribute='3') | list %}
+    {% set ns = namespace(buy=(known_buy | first) if known_buy else 0,
+                          sell=(known_sell | first) if known_sell else 0, out=[]) %}
+    {% for s in slots %}
+      {% set ns.buy = s[2] if s[2] is not none else ns.buy %}
+      {% set ns.sell = s[3] if s[3] is not none else ns.sell %}
+      {% set ns.out = ns.out + ['"PERIOD_%02d_%02d": [%s, %s]' | format(s[1] // 2, (s[1] % 2) * 30,
+                                 ns.buy | round(4), ns.sell | round(4))] %}
+    {% endfor %}
+    {{ ('{' ~ ns.out | join(', ') ~ '}') | from_json }}
+  tou_settings: >-
+    {% set ns = namespace(periods=[], buy=[], sell=[]) %}
+    {% for i in range(48) %}
+      {% set name = 'PERIOD_%02d_%02d' | format(i // 2, (i % 2) * 30) %}
+      {% set to = (i + 1) * 30 % 1440 %}
+      {% set ns.periods = ns.periods + ['"%s": {"periods": [{"fromDayOfWeek": 0, "toDayOfWeek": 6, "fromHour": %d, "fromMinute": %d, "toHour": %d, "toMinute": %d}]}' | format(name, i // 2, (i % 2) * 30, to // 60, to % 60)] %}
+      {% set ns.buy = ns.buy + ['"%s": %s' | format(name, rates[name][0])] %}
+      {% set ns.sell = ns.sell + ['"%s": %s' | format(name, rates[name][1])] %}
+    {% endfor %}
+    {
+      "tariff_content_v2": {
+        "name": {{ tariff_name | tojson }}, "utility": {{ tariff_name | tojson }},
+        "seasons": {"Summer": {"fromMonth": 1, "toMonth": 12, "fromDay": 1, "toDay": 31,
+                               "tou_periods": { {{ ns.periods | join(', ') }} }}},
+        "energy_charges": {"ALL": {"rates": {"ALL": 0}}, "Summer": {"rates": { {{ ns.buy | join(', ') }} }}},
+        "sell_tariff": {"energy_charges": {"ALL": {"rates": {"ALL": 0}},
+                                           "Summer": {"rates": { {{ ns.sell | join(', ') }} }}}}
+      }
+    }
+
+actions:
+  - if:
+      - condition: template
+        value_template: "{{ missing | int > max_missing }}"
+    then:
+      - action: persistent_notification.create
+        data:
+          notification_id: tesla_tedapi_dynamic_tariff
+          title: Powerwall tariff not updated
+          message: >-
+            The price forecast leaves {{ missing }} of 48 half hours without a
+            price (at most {{ max_missing }}), so Tesla's tariff was left as it is.
+      - stop: Too much of the forecast is missing
+  - if:
+      - condition: template
+        value_template: "{{ dry_run }}"
+    then:
+      - action: tesla_tedapi.set_tariff
+        data:
+          config_entry_id: "{{ powerwall }}"
+          tou_settings: "{{ tou_settings }}"
+          dry_run: true
+        response_variable: result
+      - action: persistent_notification.create
+        data:
+          notification_id: tesla_tedapi_dynamic_tariff
+          title: Powerwall tariff (dry run)
+          message: >-
+            Built 48 half-hour periods ({{ missing }} filled from the last known
+            price). Buy {{ rates.values() | map(attribute='0') | min }} to
+            {{ rates.values() | map(attribute='0') | max }}, sell
+            {{ rates.values() | map(attribute='1') | min }} to
+            {{ rates.values() | map(attribute='1') | max }}.
+            {% if result.unchanged %}Tesla already has these rates.{% endif %}
+            {% if result.warnings %}
+
+            What Tesla would change or leave unpriced:
+            {% for w in result.warnings %}
+            - {{ w }}
+            {% endfor %}{% endif %}
+      - stop: Dry run
+  # Sent only when the rates changed; one read-back (a later tariff read
+  # confirms a write Tesla doesn't show yet).
+  - action: tesla_tedapi.set_tariff
+    data:
+      config_entry_id: "{{ powerwall }}"
+      tou_settings: "{{ tou_settings }}"
+      dry_run: false
+      read_back: once
+      only_if_changed: true

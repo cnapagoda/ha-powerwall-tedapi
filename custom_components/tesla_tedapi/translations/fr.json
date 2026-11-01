@@ -190,7 +190,8 @@
           "problem_minutes": "Délai avant problème",
           "dispatch_floor_reserve": "Les décharges s'arrêtent à la réserve de secours",
           "dispatch_max_watts": "Puissance de dispatch maximale",
-          "tesla_tariff": "Tarif Tesla (cloud)"
+          "tesla_tariff": "Tarif Tesla (cloud)",
+          "diagnostics_gateway_config": "Configuration de la passerelle dans les diagnostics"
         },
         "data_description": {
           "restore_export": "La Powerwall perd parfois sa règle d'export vers le réseau et son paramètre de charge depuis le réseau (observé toutes les heures sur une Powerwall 3) ; la charge depuis le réseau s'active alors. Si activé, le paramètre choisi est réécrit en une ou deux minutes (connexion signée uniquement).",
@@ -198,7 +199,8 @@
           "problem_minutes": "Durée pendant laquelle un avertissement ou un défaut doit persister avant que le capteur Problème s'active et qu'une réparation soit signalée.",
           "dispatch_floor_reserve": "Une décharge lancée sans `min_soc` s'arrête quand la batterie atteint la réserve de secours.",
           "dispatch_max_watts": "Les appels de dispatch au-delà de cette puissance sont refusés.",
-          "tesla_tariff": "Lire le tarif utilisé par Tesla pour le contrôle selon l'heure via la sauvegarde cloud (capteur et actions de lecture/écriture). Cloud uniquement."
+          "tesla_tariff": "Lire le tarif utilisé par Tesla pour le contrôle selon l'heure via la sauvegarde cloud (capteur et actions de lecture/écriture). Cloud uniquement.",
+          "diagnostics_gateway_config": "Ajouter la configuration de la passerelle aux téléchargements de diagnostic, sans numéros de série, emplacement, noms ni identifiants. Utile pour signaler un bug."
         }
       },
       "cloud_backup": {
@@ -499,6 +501,32 @@
       },
       "tesla_tariff": {
         "name": "Tarif Tesla"
+      },
+      "grid_energy_imported_today": {
+        "name": "Énergie importée du réseau aujourd'hui"
+      },
+      "grid_energy_exported_today": {
+        "name": "Énergie exportée vers le réseau aujourd'hui"
+      },
+      "battery_energy_charged_today": {
+        "name": "Énergie chargée dans la batterie aujourd'hui"
+      },
+      "battery_energy_discharged_today": {
+        "name": "Énergie déchargée de la batterie aujourd'hui"
+      },
+      "solar_energy_produced_today": {
+        "name": "Énergie solaire produite aujourd'hui"
+      },
+      "home_energy_consumed_today": {
+        "name": "Énergie consommée par la maison aujourd'hui"
+      },
+      "grid_counter_check": {
+        "name": "Vérification des compteurs réseau",
+        "state": {
+          "ok": "OK",
+          "mismatch": "Les compteurs diffèrent",
+          "unknown": "Pas encore assez de données"
+        }
       }
     },
     "switch": {
@@ -786,6 +814,14 @@
         "dry_run": {
           "name": "Essai à blanc",
           "description": "Vérifier seulement les réglages, indiquer ce que Tesla modifierait et montrer ce qui serait envoyé (activé par défaut)."
+        },
+        "read_back": {
+          "name": "Relecture",
+          "description": "full : relire le tarif pendant jusqu'à 25 secondes. once : une lecture après 15 secondes, pour les écritures planifiées. none : aucune lecture ; la prochaine lecture du tarif le confirme."
+        },
+        "only_if_changed": {
+          "name": "Seulement si modifié",
+          "description": "Ne pas écrire si ce sont les prix envoyés en dernier ou ceux que Tesla affiche."
         }
       }
     },
@@ -894,6 +930,13 @@
         "tesla_fleet": "Tesla Fleet (ou Teslemetry)",
         "fleet_then_owner": "Tesla Fleet, puis Owner API",
         "owner_then_fleet": "Owner API, puis Tesla Fleet"
+      }
+    },
+    "tariff_read_back": {
+      "options": {
+        "full": "Complète (jusqu'à 25 s)",
+        "once": "Une fois",
+        "none": "Aucune"
       }
     }
   }
