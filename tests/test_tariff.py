@@ -100,6 +100,22 @@ def test_validate_write_accepts_v2() -> None:
     assert tariff.check_write({"tariff_content_v2": V2}) == []
 
 
+def test_validate_write_accepts_empty_seasons() -> None:
+    """Tesla accepts an empty season written as {} (zero fields left out)."""
+    content = copy.deepcopy(V2)
+    content["seasons"]["Winter"] = {}
+    content["energy_charges"]["Winter"] = {}
+    content["seasons"]["Spring"] = {"fromMonth": 3, "toMonth": 5, "fromDay": 1, "toDay": 31}  # no tou_periods
+    assert tariff.validate_write({"tariff_content_v2": content}) == []
+    assert "season Winter has no months, so Tesla treats it as inactive" in tariff.check_write(
+        {"tariff_content_v2": content})
+    # Still refused: the wrong type, and a non-empty entry without "rates" or with bad "tou_periods".
+    for bad in ({"seasons": {**content["seasons"], "W": []}},
+                {"seasons": {**content["seasons"], "W": {"tou_periods": []}}},
+                {"energy_charges": {**content["energy_charges"], "W": {"ON_PEAK": 1}}}):
+        assert tariff.validate_write({"tariff_content_v2": {**content, **bad}})
+
+
 def test_validate_write_only_sends_the_tariff() -> None:
     errors = tariff.validate_write({"tariff_content_v2": V2, "optimization_strategy": "economics"})
     assert errors == ["only tariff_content_v2 can be sent; remove optimization_strategy"]
@@ -407,3 +423,24 @@ async def test_read_back_errors_leave_it_pending(hass: HomeAssistant, fake_power
     with patch.object(type(client), "get_tariff", side_effect=RuntimeError("busy")):
         resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
     assert resp["status"] == "pending"
+
+
+async def test_read_back_runs_get_client_off_the_event_loop(hass: HomeAssistant, fake_powerwall) -> None:
+    """get_client can log in or renew the token (network I/O): the read-back
+    must run it in the executor, never on the event loop."""
+    import threading  # noqa: PLC0415
+
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    backend = entry.runtime_data.coordinator.backends[0]
+    original = backend.get_client
+    threads: list[str] = []
+
+    def recording():
+        threads.append(threading.current_thread().name)
+        return original()
+
+    backend.get_client = recording
+    loop_thread = threading.current_thread().name
+    resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
+    assert resp["status"] == "confirmed"
+    assert threads and loop_thread not in threads

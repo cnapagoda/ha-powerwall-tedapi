@@ -4,7 +4,8 @@ An outage starts when the gateway reports the grid as not up (DOWN, or
 SYNCING back) and ends when it is UP again. Readings that don't arrive (the
 gateway unreachable) change nothing, and an off-grid run started here is not
 an outage. Counts are kept per calendar month (local time) and survive
-restarts."""
+restarts. An outage across a month end counts in each month it touches, each
+with its own time (split at local midnight)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -46,8 +47,17 @@ class OutageTracker:
         month = _month(now)
         if month != self.month:
             self.month = month
-            self.month_count = 0
+            # An outage still going on counts in the new month too.
+            self.month_count = 1 if self._counts_from() is not None else 0
             self.month_seconds = 0.0
+
+    def _counts_from(self) -> datetime | None:
+        """Where this month's time of the outage in progress starts: its start,
+        or the month's local midnight if it began in an earlier month (_roll
+        has set the month)."""
+        if self.current is None or self.intentional or self.month is None:
+            return None
+        return max(self.current, month_start(self.month))
 
     def update(self, grid_status: str | None, now: datetime, intentional: bool = False) -> OutageChange | None:
         """One reading. Returns the change it caused, if any (not for an
@@ -65,13 +75,13 @@ class OutageTracker:
             return None
         if self.current is None:
             return None
-        start, was_intentional = self.current, self.intentional
+        start, was_intentional, counts_from = self.current, self.intentional, self._counts_from()
         self.current, self.intentional = None, False
-        if was_intentional:
+        if was_intentional or counts_from is None:
             return None
         duration = (now - start).total_seconds()
         self.last_start, self.last_end, self.last_duration = start, now, duration
-        self.month_seconds += duration
+        self.month_seconds += (now - counts_from).total_seconds()
         return OutageChange("ended", start, duration)
 
     def ongoing_seconds(self, now: datetime) -> float | None:
@@ -83,6 +93,8 @@ class OutageTracker:
         """For the sensors: the outage in progress counts as the last one."""
         self._roll(now)
         ongoing = self.ongoing_seconds(now)
+        counts_from = self._counts_from()
+        this_month = (now - counts_from).total_seconds() if counts_from is not None else 0.0
         return {
             "ongoing": ongoing is not None,
             "last_start": self.current if ongoing is not None else self.last_start,
@@ -90,7 +102,7 @@ class OutageTracker:
             "last_duration": self.last_duration,
             "month": self.month,
             "month_count": self.month_count,
-            "month_seconds": self.month_seconds + (ongoing or 0.0),
+            "month_seconds": self.month_seconds + this_month,
             "total_count": self.total_count,
         }
 

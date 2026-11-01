@@ -395,18 +395,22 @@ class TedapiConfigFlow(TeslaLoginMixin, ConfigFlow, domain=DOMAIN):
             host = entry.data.get(CONF_HOST)
             if host == ip:
                 return self.async_abort(reason="already_configured")
-            if entry.data.get(CONF_CONNECTION_MODE) != MODE_V1R or host == DEFAULT_HOST_WIFI \
-                    or not entry.data.get(CONF_GW_PWD):
+            if not entry.data.get(CONF_GW_PWD):
                 continue
             try:
                 din = await self.hass.async_add_executor_job(_check_gateway, ip, entry.data[CONF_GW_PWD])
             except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected):
                 continue
-            if din and din == entry.unique_id:
-                _LOGGER.info("Powerwall %s moved from %s to %s", din, host, ip)
-                self.hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_HOST: ip})
-                self.hass.config_entries.async_schedule_reload(entry.entry_id)
+            if not din or din != entry.unique_id:
+                continue
+            if entry.data.get(CONF_CONNECTION_MODE) != MODE_V1R or host == DEFAULT_HOST_WIFI:
+                # Set up over the gateway's Wi-Fi hotspot: already known, but
+                # keep the hotspot address it connects to.
                 return self.async_abort(reason="already_configured")
+            _LOGGER.info("Powerwall %s moved from %s to %s", din, host, ip)
+            self.hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_HOST: ip})
+            self.hass.config_entries.async_schedule_reload(entry.entry_id)
+            return self.async_abort(reason="already_configured")
         self._data[CONF_HOST] = ip
         self.context["title_placeholders"] = {"host": ip}
         return await self.async_step_gateway()

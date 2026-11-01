@@ -7,6 +7,7 @@ so the Powerwall goes back to normal within minutes if Home Assistant stops. It
 also stops on state-of-charge limits, which the Powerwall itself ignores."""
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -72,6 +73,12 @@ class DispatchSession:
         self._unsubs: list[CALLBACK_TYPE] = []
         self._failures = 0
         self._listeners: list[Callable[[], None]] = []
+        # Every command to the gateway (start, renewal, resume) is sent under
+        # this lock, so they reach it in order: a resume can't overtake a
+        # renewal still on its way and be undone by it. _ends counts ends, so
+        # a start overtaken by a stop doesn't install its session.
+        self._send_lock = asyncio.Lock()
+        self._ends = 0
 
     # ---- listeners (entities) ----
 
@@ -165,7 +172,14 @@ class DispatchSession:
                 translation_placeholders={"soc": str(self._soc()), "limit": reason},
             )
 
-        result = await self.coordinator.async_send_dispatch(power_watts, self._chunk(state))
+        async with self._send_lock:
+            ends = self._ends
+            result = await self.coordinator.async_send_dispatch(power_watts, self._chunk(state))
+            if self._ends != ends:
+                # Stopped while the command was on its way; the stop's resume
+                # is queued behind this lock and hands the battery back.
+                _LOGGER.info("Battery dispatch stopped before it started")
+                return {**self.as_dict(), "response": result}
         self._cancel_timers()
         self.state = state
         self._failures = 0
@@ -189,7 +203,8 @@ class DispatchSession:
         e.g. one started before a restart)."""
         had_session = self.state is not None
         self._end(reason)
-        result = await self.coordinator.async_send_resume()
+        async with self._send_lock:
+            result = await self.coordinator.async_send_resume()
         if had_session:
             _LOGGER.info("Battery dispatch ended (%s)", reason)
         self.hass.async_create_task(self.coordinator.async_request_refresh())
@@ -202,7 +217,8 @@ class DispatchSession:
             return
         self._end("unloaded")
         try:
-            await self.coordinator.async_send_resume()
+            async with self._send_lock:
+                await self.coordinator.async_send_resume()
         except HomeAssistantError as err:
             _LOGGER.warning("Could not resume the battery while unloading: %s", err)
 
@@ -232,6 +248,7 @@ class DispatchSession:
     @callback
     def _end(self, reason: str) -> None:
         self._cancel_timers()
+        self._ends += 1
         state, self.state = self.state, None
         if state is None:
             return
@@ -247,7 +264,8 @@ class DispatchSession:
     async def _async_resume_quietly(self, reason: str) -> None:
         self._end(reason)
         try:
-            await self.coordinator.async_send_resume()
+            async with self._send_lock:
+                await self.coordinator.async_send_resume()
         except HomeAssistantError as err:
             # The last command expires on its own within DISPATCH_CHUNK_SECONDS.
             _LOGGER.warning("Resume after %s failed: %s", reason, err)
@@ -283,7 +301,10 @@ class DispatchSession:
         if (state.ends - dt_util.utcnow()).total_seconds() < 1:
             return  # the end timer handles it
         try:
-            await self.coordinator.async_send_dispatch(state.power_watts, self._chunk(state))
+            async with self._send_lock:
+                if self.state is not state:
+                    return  # ended while waiting for the lock: don't restart it
+                await self.coordinator.async_send_dispatch(state.power_watts, self._chunk(state))
             self._failures = 0
         except HomeAssistantError as err:
             self._failures += 1

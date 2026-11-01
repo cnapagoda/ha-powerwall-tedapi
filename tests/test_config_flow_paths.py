@@ -379,3 +379,33 @@ async def test_scan_error_falls_back_to_manual(hass: HomeAssistant) -> None:
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "scan"})
     assert result["step_id"] == "gateway"
     assert result["errors"] == {"base": "none_found"}
+
+
+@pytest.mark.parametrize("data", [
+    {"connection_mode": "wifi", "host": "192.168.91.1", "gw_pwd": PWD},
+    {"connection_mode": "v1r", "host": "192.168.91.1", "gw_pwd": PWD, "rsa_key_path": "/k"},
+])
+async def test_dhcp_knows_a_hotspot_entry(hass: HomeAssistant, data: dict) -> None:
+    """A gateway set up over its Wi-Fi hotspot that shows up on the home
+    network is recognised by its DIN, not offered as new. Its stored
+    address (the hotspot) is left alone."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=data)
+    entry.add_to_hass(hass)
+
+    async def discover(mac: str):
+        return await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_DHCP},
+            data=DhcpServiceInfo(ip="192.168.1.70", hostname="teslapw_z", macaddress=mac))
+
+    with patch.object(config_flow, "_check_gateway", return_value=DIN) as check:
+        result = await discover("aabbccddee10")
+    assert result["reason"] == "already_configured"
+    check.assert_called_once_with("192.168.1.70", PWD)
+    assert entry.data["host"] == "192.168.91.1"
+
+    # Another gateway (other DIN), or one that can't be checked: offered as new.
+    with patch.object(config_flow, "_check_gateway", return_value="OTHER-DIN"):
+        assert (await discover("aabbccddee11"))["step_id"] == "gateway"
+    with patch.object(config_flow, "_check_gateway", side_effect=gateway.GatewayUnreachable):
+        assert (await discover("aabbccddee12"))["step_id"] == "gateway"
+    assert entry.data["host"] == "192.168.91.1"

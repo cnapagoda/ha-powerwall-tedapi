@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 from pytest_homeassistant_custom_component.common import async_capture_events
 
 from custom_components.tesla_tedapi.const import DOMAIN, EVENT_GRID_OUTAGE
@@ -73,6 +74,55 @@ def test_new_month_resets_the_month_counts() -> None:
     assert s["month_count"] == 0 and s["month_seconds"] == 0 and s["total_count"] == 1
     assert s["month"] == dt_util.as_local(november).strftime("%Y-%m")
     assert s["last_duration"] == 300  # the last outage is still the last one
+
+
+@pytest.fixture
+def adelaide():
+    """The HA time zone for the month boundary tests."""
+    previous = dt_util.get_default_time_zone()
+    zone = dt_util.get_time_zone("Australia/Adelaide")
+    dt_util.set_default_time_zone(zone)
+    yield zone
+    dt_util.set_default_time_zone(previous)
+
+
+def test_outage_across_month_end_is_split_at_midnight(adelaide) -> None:
+    """23:00 on 31 Oct to 01:00 on 1 Nov (local): October keeps the outage and
+    its hour up to midnight; November counts it too, with the hour after."""
+    t = OutageTracker()
+    t.update("UP", datetime(2026, 10, 31, 22, 0, tzinfo=adelaide))
+    t.update("DOWN", datetime(2026, 10, 31, 23, 0, tzinfo=adelaide))
+    october = t.summary(datetime(2026, 10, 31, 23, 59, 59, tzinfo=adelaide))
+    assert october["month"] == "2026-10" and october["month_count"] == 1
+    assert october["month_seconds"] == pytest.approx(3599)
+    # Still out at the rollover: November counts it from midnight.
+    november = t.summary(datetime(2026, 11, 1, 0, 30, tzinfo=adelaide))
+    assert november["month"] == "2026-11" and november["month_count"] == 1
+    assert november["month_seconds"] == pytest.approx(1800)
+    ended = t.update("UP", datetime(2026, 11, 1, 1, 0, tzinfo=adelaide))
+    assert ended.duration_seconds == 7200  # the outage itself is still 2 hours
+    s = t.summary(datetime(2026, 11, 1, 2, 0, tzinfo=adelaide))
+    assert s["month_count"] == 1 and s["month_seconds"] == pytest.approx(3600)
+    assert s["total_count"] == 1 and s["last_duration"] == 7200
+
+
+def test_outage_spanning_months_and_a_restart(adelaide) -> None:
+    """Out from 30 Sep to 2 Nov, with a restart in October: each month counts
+    the outage once, with only its own time."""
+    t = OutageTracker()
+    t.update("DOWN", datetime(2026, 9, 30, 12, 0, tzinfo=adelaide))
+    t.update("DOWN", datetime(2026, 10, 15, 0, 0, tzinfo=adelaide))
+    restarted = OutageTracker()
+    restarted.restore(t.as_dict())
+    s = restarted.summary(datetime(2026, 10, 31, 23, 0, tzinfo=adelaide))
+    # From local midnight on 1 Oct (daylight saving starts on 4 Oct, so not 30 d 23 h).
+    october = (dt_util.as_utc(datetime(2026, 10, 31, 23, 0, tzinfo=adelaide))
+               - dt_util.as_utc(datetime(2026, 10, 1, tzinfo=adelaide)))
+    assert s["month_count"] == 1 and s["month_seconds"] == pytest.approx(october.total_seconds())
+    restarted.update("UP", datetime(2026, 11, 2, 0, 0, tzinfo=adelaide))
+    s = restarted.summary(datetime(2026, 11, 2, 1, 0, tzinfo=adelaide))
+    assert s["month_count"] == 1 and s["month_seconds"] == pytest.approx(86400)
+    assert s["total_count"] == 1
 
 
 def test_round_trip_through_storage() -> None:

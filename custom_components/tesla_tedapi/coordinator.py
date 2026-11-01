@@ -921,7 +921,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for wait in TARIFF_READBACK_WAITS:
             await asyncio.sleep(wait)
             try:
-                actual = await self.hass.async_add_executor_job(backend.get_client().get_tariff)
+                # get_client can log in or renew the token: run it in the
+                # executor with the read, not on the event loop.
+                actual = await self.hass.async_add_executor_job(lambda: backend.get_client().get_tariff())
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Tesla tariff read-back through %s failed: %s", backend.label, err)
                 continue
