@@ -122,6 +122,11 @@ TARIFF_READBACK_WAITS = (0, 1, 2, 4, 8, 10)
 # The Owner API may show a new tariff only after up to 30 minutes: a write it
 # hasn't shown yet is pending, and checked again this long after.
 TARIFF_PENDING_SECONDS = 35 * 60
+# read_back "once" (for scheduled writes): one read after this wait.
+TARIFF_READBACK_ONCE_SECONDS = 15
+TARIFF_READ_BACK_MODES = ("full", "once", "none")
+# Unconfirmed writes kept for the pending check (the oldest are dropped).
+TARIFF_PENDING_MAX = 8
 # Backup events (Storm Watch, manual backup) are read from the gateway this
 # often, and right after one is started or cancelled here.
 BACKUP_EVENTS_SECONDS = 300
@@ -165,6 +170,8 @@ ATTR_SOURCE_CHARGED = "source_charged"
 ATTR_SOURCE_DISCHARGED = "source_discharged"
 ATTR_TOU_SETTINGS = "tou_settings"
 ATTR_DRY_RUN = "dry_run"
+ATTR_READ_BACK = "read_back"
+ATTR_ONLY_IF_CHANGED = "only_if_changed"
 SERVICE_CHARGE_TO = "charge_to"
 SERVICE_DISCHARGE_TO = "discharge_to"
 SERVICE_START_MAX_BACKUP = "start_max_backup"

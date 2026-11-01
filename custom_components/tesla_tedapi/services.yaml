@@ -203,6 +203,21 @@ set_tariff:
       default: true
       selector:
         boolean:
+    read_back:
+      required: false
+      default: full
+      selector:
+        select:
+          options:
+            - full
+            - once
+            - none
+          translation_key: tariff_read_back
+    only_if_changed:
+      required: false
+      default: false
+      selector:
+        boolean:
 import_battery_history:
   fields:
     config_entry_id:

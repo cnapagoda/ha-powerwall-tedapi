@@ -183,6 +183,7 @@ def _amber(start, count: int, minutes: int, price) -> list[dict]:
              "per_kwh": price(k)} for k in range(count)]
 
 
+@pytest.mark.parametrize("expected_lingering_timers", [True])  # the 30-minute trigger
 async def test_dynamic_price_tariff(hass: HomeAssistant, blueprint_dir, freezer) -> None:
     from custom_components.tesla_tedapi import tariff  # noqa: PLC0415
 
@@ -211,6 +212,7 @@ async def test_dynamic_price_tariff(hass: HomeAssistant, blueprint_dir, freezer)
     assert len(sent) == 1
     data = sent[0].data
     assert data["dry_run"] is False and data["config_entry_id"] == "entry1"
+    assert data["read_back"] == "once" and data["only_if_changed"] is True
     tou = data["tou_settings"]
     assert tariff.validate_write(tou) == []
     content = tou["tariff_content_v2"]
@@ -225,6 +227,7 @@ async def test_dynamic_price_tariff(hass: HomeAssistant, blueprint_dir, freezer)
     assert not tariff.check_write(tou) or all("negative" in w for w in tariff.check_write(tou))
 
 
+@pytest.mark.parametrize("expected_lingering_timers", [True])  # the 30-minute trigger
 async def test_dynamic_price_tariff_refuses_a_thin_forecast(hass: HomeAssistant, blueprint_dir, freezer) -> None:
     await hass.config.async_set_time_zone("Australia/Adelaide")
     freezer.move_to("2026-11-01T05:59:40+00:00")

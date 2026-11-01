@@ -786,6 +786,14 @@
         "dry_run": {
           "name": "Dry run",
           "description": "Only check the settings, list what Tesla would change, and show what would be sent (on by default)."
+        },
+        "read_back": {
+          "name": "Read back",
+          "description": "full: read the tariff back for up to 25 seconds. once: one read after 15 seconds, for scheduled writes. none: no read; the next tariff read confirms it."
+        },
+        "only_if_changed": {
+          "name": "Only if changed",
+          "description": "Skip the write when these are the rates last sent, or the ones Tesla shows."
         }
       }
     },
@@ -894,6 +902,13 @@
         "tesla_fleet": "Tesla Fleet (or Teslemetry)",
         "fleet_then_owner": "Tesla Fleet, then Owner API",
         "owner_then_fleet": "Owner API, then Tesla Fleet"
+      }
+    },
+    "tariff_read_back": {
+      "options": {
+        "full": "Full (up to 25 s)",
+        "once": "Once",
+        "none": "None"
       }
     }
   }

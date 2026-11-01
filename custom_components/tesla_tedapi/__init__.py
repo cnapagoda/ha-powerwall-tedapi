@@ -22,7 +22,9 @@ from .const import (
     ATTR_MAX_MINUTES,
     ATTR_MAX_SOC,
     ATTR_MIN_SOC,
+    ATTR_ONLY_IF_CHANGED,
     ATTR_POWER_WATTS,
+    ATTR_READ_BACK,
     ATTR_SOURCE_CHARGED,
     ATTR_SOURCE_DISCHARGED,
     ATTR_TARGET_SOC,
@@ -43,6 +45,7 @@ from .const import (
     SERVICE_RESUME,
     SERVICE_SET_TARIFF,
     SERVICE_START_MAX_BACKUP,
+    TARIFF_READ_BACK_MODES,
 )
 from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
 from .dispatch import DispatchSession, quiet_dispatch_repeats
@@ -82,6 +85,8 @@ SET_TARIFF_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
     vol.Required(ATTR_TOU_SETTINGS): dict,
     vol.Optional(ATTR_DRY_RUN, default=True): cv.boolean,
+    vol.Optional(ATTR_READ_BACK, default="full"): vol.In(TARIFF_READ_BACK_MODES),
+    vol.Optional(ATTR_ONLY_IF_CHANGED, default=False): cv.boolean,
 })
 START_MAX_BACKUP_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
@@ -217,7 +222,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     async def set_tariff(call: ServiceCall) -> ServiceResponse:
         return await _tariff_coordinator(hass, call).async_set_tariff(
-            call.data[ATTR_TOU_SETTINGS], call.data[ATTR_DRY_RUN])
+            call.data[ATTR_TOU_SETTINGS], call.data[ATTR_DRY_RUN], call.data[ATTR_READ_BACK],
+            call.data[ATTR_ONLY_IF_CHANGED])
 
     hass.services.async_register(DOMAIN, SERVICE_GO_OFF_GRID, go_off_grid, schema=GO_OFF_GRID_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)

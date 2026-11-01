@@ -786,6 +786,14 @@
         "dry_run": {
           "name": "Proefrun",
           "description": "Alleen de instellingen controleren, tonen wat Tesla zou aanpassen en tonen wat verzonden zou worden (standaard aan)."
+        },
+        "read_back": {
+          "name": "Teruglezen",
+          "description": "full: het tarief tot 25 seconden teruglezen. once: één keer lezen na 15 seconden, voor geplande schrijfacties. none: niet lezen; de volgende tariefuitlezing bevestigt het."
+        },
+        "only_if_changed": {
+          "name": "Alleen bij wijziging",
+          "description": "Niet schrijven als dit de laatst verzonden prijzen zijn of de prijzen die Tesla toont."
         }
       }
     },
@@ -894,6 +902,13 @@
         "tesla_fleet": "Tesla Fleet (of Teslemetry)",
         "fleet_then_owner": "Tesla Fleet, daarna Owner API",
         "owner_then_fleet": "Owner API, daarna Tesla Fleet"
+      }
+    },
+    "tariff_read_back": {
+      "options": {
+        "full": "Volledig (tot 25 s)",
+        "once": "Eén keer",
+        "none": "Geen"
       }
     }
   }

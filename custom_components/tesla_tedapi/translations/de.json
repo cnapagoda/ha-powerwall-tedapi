@@ -786,6 +786,14 @@
         "dry_run": {
           "name": "Probelauf",
           "description": "Nur die Einstellungen prüfen, auflisten, was Tesla ändern würde, und zeigen, was gesendet würde (standardmäßig an)."
+        },
+        "read_back": {
+          "name": "Zurücklesen",
+          "description": "full: den Tarif bis zu 25 Sekunden lang zurücklesen. once: einmal nach 15 Sekunden lesen, für geplante Schreibvorgänge. none: nicht lesen; das nächste Tariflesen bestätigt ihn."
+        },
+        "only_if_changed": {
+          "name": "Nur bei Änderung",
+          "description": "Nicht schreiben, wenn es die zuletzt gesendeten Preise sind oder die, die Tesla anzeigt."
         }
       }
     },
@@ -894,6 +902,13 @@
         "tesla_fleet": "Tesla Fleet (oder Teslemetry)",
         "fleet_then_owner": "Tesla Fleet, dann Owner API",
         "owner_then_fleet": "Owner API, dann Tesla Fleet"
+      }
+    },
+    "tariff_read_back": {
+      "options": {
+        "full": "Vollständig (bis 25 s)",
+        "once": "Einmal",
+        "none": "Keins"
       }
     }
   }

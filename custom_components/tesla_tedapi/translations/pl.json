@@ -786,6 +786,14 @@
         "dry_run": {
           "name": "Próba",
           "description": "Tylko sprawdź ustawienia, wypisz, co Tesla by zmieniła, i pokaż, co zostałoby wysłane (domyślnie włączone)."
+        },
+        "read_back": {
+          "name": "Odczyt zwrotny",
+          "description": "full: odczytuj taryfę przez maksymalnie 25 sekund. once: jeden odczyt po 15 sekundach, dla zapisów zaplanowanych. none: bez odczytu; potwierdzi to następny odczyt taryfy."
+        },
+        "only_if_changed": {
+          "name": "Tylko przy zmianie",
+          "description": "Nie zapisuj, jeśli to ceny wysłane ostatnio lub te, które pokazuje Tesla."
         }
       }
     },
@@ -894,6 +902,13 @@
         "tesla_fleet": "Tesla Fleet (lub Teslemetry)",
         "fleet_then_owner": "Tesla Fleet, potem Owner API",
         "owner_then_fleet": "Owner API, potem Tesla Fleet"
+      }
+    },
+    "tariff_read_back": {
+      "options": {
+        "full": "Pełny (do 25 s)",
+        "once": "Raz",
+        "none": "Brak"
       }
     }
   }

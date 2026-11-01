@@ -64,7 +64,9 @@ from .const import (
     PASSWORD_REFUSED_POLLS,
     RESTORE_MIN_SECONDS,
     SOLAR_CURTAILMENT_KEY,
+    TARIFF_PENDING_MAX,
     TARIFF_PENDING_SECONDS,
+    TARIFF_READBACK_ONCE_SECONDS,
     TARIFF_READBACK_WAITS,
     TARIFF_SECONDS,
     app_soc,
@@ -284,10 +286,14 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.tariff: dict[str, Any] | None = None
         self.tariff_backend: str | None = None
         self._tariff_at: float | None = None
-        # The last tariff written here until Tesla shows it, and whether the
-        # Owner API hasn't shown it yet (checked again, no repair yet).
+        # The last tariff written here until Tesla shows it; the writes Tesla
+        # doesn't show yet, with when they were sent (monotonic), checked
+        # TARIFF_PENDING_SECONDS after the oldest (a newer write doesn't move
+        # that); and the rates last sent, to skip an unchanged write.
         self._tariff_wanted: dict[str, Any] | None = None
-        self._tariff_pending = False
+        self._tariff_pending: list[tuple[float, dict[str, Any]]] = []
+        self._tariff_check_at: float | None = None
+        self._tariff_last_sent: dict[Any, float] | None = None
         # Settings can be changed over a signed connection, or through the cloud.
         self.control_enabled: bool = self._conn_mode == MODE_V1R or self.cloud_enabled
 
@@ -880,45 +886,66 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         raise HomeAssistantError(translation_domain=DOMAIN, translation_key="tariff_write_failed",
                                  translation_placeholders={"errors": "; ".join(errors) or "no cloud backup"})
 
-    async def async_set_tariff(self, tou_settings: dict[str, Any], dry_run: bool) -> dict[str, Any]:
+    async def async_set_tariff(self, tou_settings: dict[str, Any], dry_run: bool, read_back: str = "full",
+                               only_if_changed: bool = False) -> dict[str, Any]:
         """Validate, then (unless dry_run) write through the cloud backup and
-        read the tariff back from it for up to 25 s. "status" is confirmed,
-        pending (the Owner API hasn't shown it yet: checked again later) or
-        mismatch (a repair says so). "warnings" lists what Tesla would change."""
+        read the tariff back from it: for up to 25 s (read_back "full"), once
+        after 15 s ("once", for scheduled writes) or not at all ("none").
+        "status" is confirmed, pending (Tesla doesn't show it yet: checked
+        again later, with a repair if it still doesn't), mismatch (a full
+        read-back through Tesla Fleet shows other rates: a repair) or
+        unchanged (only_if_changed, and these rates are the ones last sent or
+        Tesla already shows: nothing sent). "warnings" lists what Tesla would
+        change."""
         errors = tariff_mod.validate_write(tou_settings)
         if errors:
             raise ServiceValidationError(translation_domain=DOMAIN, translation_key="tariff_invalid",
                                          translation_placeholders={"errors": "; ".join(errors)})
         warnings = tariff_mod.check_write(tou_settings)
+        wanted = tariff_mod.normalize(tou_settings["tariff_content_v2"]) or {}  # validated: never empty
+        unchanged = self._tariff_unchanged(wanted)
         if dry_run:
             backends = self._tariff_backends()
             return {"dry_run": True, "would_send": tou_settings,
-                    "backend": backends[0].label if backends else None, "warnings": warnings}
+                    "backend": backends[0].label if backends else None, "warnings": warnings,
+                    "unchanged": unchanged}
+        if only_if_changed and unchanged:
+            return {"dry_run": False, "backend": None, "confirmed": None, "status": "unchanged",
+                    "warnings": warnings}
         backend = await self.hass.async_add_executor_job(self._write_tariff, tou_settings)
-        _LOGGER.info("Tesla tariff written through %s, reading it back", backend.label)
-        self._tariff_wanted = tariff_mod.normalize(tou_settings["tariff_content_v2"])
-        self._tariff_pending = False
-        confirmed = await self._read_back_tariff(backend)
+        _LOGGER.info("Tesla tariff written through %s", backend.label)
+        self._tariff_wanted = wanted
+        self._tariff_last_sent = tariff_mod.as_tesla_stores(wanted)
+        waits = {"full": TARIFF_READBACK_WAITS, "once": (TARIFF_READBACK_ONCE_SECONDS,)}.get(read_back, ())
+        confirmed = await self._read_back_tariff(backend, waits) if waits else False
         if confirmed:
             status = "confirmed"
             self._tariff_matches()
-        elif backend.name == BACKEND_OWNER:
-            status = "pending"
-            self._tariff_pending = True
-            self._tariff_at = time.monotonic() - TARIFF_SECONDS + TARIFF_PENDING_SECONDS
-            _LOGGER.info("Tesla tariff written through %s; it doesn't show it yet, checking again later",
-                         backend.label)
-        else:
-            status = "mismatch"
+        elif read_back == "full" and backend.name != BACKEND_OWNER:
+            status = "mismatch"  # Tesla Fleet shows a new tariff at once
             self._tariff_mismatch(backend.label)
+        else:
+            status = "pending"
+            self._tariff_add_pending(wanted)
+            _LOGGER.debug("Tesla tariff written through %s; not shown yet, checking again later", backend.label)
         self.async_update_listeners()
         return {"dry_run": False, "backend": backend.label, "confirmed": confirmed, "status": status,
                 "warnings": warnings}
 
-    async def _read_back_tariff(self, backend: CloudBackend) -> bool:
+    def _tariff_unchanged(self, wanted: dict[str, Any]) -> bool:
+        """Whether these are the rates last sent, or the ones Tesla shows."""
+        if self._tariff_last_sent is not None and tariff_mod.as_tesla_stores(wanted) == self._tariff_last_sent:
+            return True
+        return tariff_mod.same_rates(wanted, tariff_mod.normalize(self.tariff))
+
+    def _tariff_add_pending(self, wanted: dict[str, Any]) -> None:
+        self._tariff_pending = [*self._tariff_pending, (time.monotonic(), wanted)][-TARIFF_PENDING_MAX:]
+        self._tariff_check_at = self._tariff_pending[0][0] + TARIFF_PENDING_SECONDS
+
+    async def _read_back_tariff(self, backend: CloudBackend, waits: tuple[float, ...]) -> bool:
         """Whether the backend written through shows the wanted rates within
         the read-back waits."""
-        for wait in TARIFF_READBACK_WAITS:
+        for wait in waits:
             await asyncio.sleep(wait)
             try:
                 # get_client can log in or renew the token: run it in the
@@ -934,7 +961,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return False
 
     def _tariff_matches(self) -> None:
-        self._tariff_wanted, self._tariff_pending = None, False
+        self._tariff_wanted, self._tariff_pending, self._tariff_check_at = None, [], None
         issue_id = f"tariff_write_{self.config_entry.entry_id}"
         if issue_id in self._write_issues:
             self._write_issues.discard(issue_id)
@@ -942,7 +969,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _tariff_mismatch(self, backend: str) -> None:
         _LOGGER.warning("Tesla tariff written through %s, but the rates read back differ", backend)
-        self._tariff_pending = False
+        self._tariff_pending, self._tariff_check_at = [], None
         issue_id = f"tariff_write_{self.config_entry.entry_id}"
         self._write_issues.add(issue_id)
         ir.async_create_issue(self.hass, DOMAIN, issue_id, is_fixable=False,
@@ -950,14 +977,23 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                               translation_placeholders={"backend": backend})
 
     def _check_tariff_write(self) -> None:
-        """After a periodic read: confirm the last write, or raise the repair
-        for a pending one Tesla still doesn't show."""
+        """After a tariff read: confirm the last write; if Tesla shows an
+        earlier one of ours, those up to it are done (it's catching up); raise
+        the repair only when the oldest write still unconfirmed is overdue."""
         if self._tariff_wanted is None:
             return
-        if tariff_mod.same_rates(self._tariff_wanted, tariff_mod.normalize(self.tariff)):
+        actual = tariff_mod.normalize(self.tariff)
+        if tariff_mod.same_rates(self._tariff_wanted, actual):
             self._tariff_matches()
-        elif self._tariff_pending:
+            return
+        shown = [i for i, (_, rates) in enumerate(self._tariff_pending) if tariff_mod.same_rates(rates, actual)]
+        if shown:
+            self._tariff_pending = self._tariff_pending[shown[-1] + 1:]
+        if self._tariff_pending and self._tariff_pending[0][0] + TARIFF_PENDING_SECONDS <= time.monotonic():
             self._tariff_mismatch(self.tariff_backend or "the cloud backup")
+            return
+        self._tariff_check_at = (self._tariff_pending[0][0] + TARIFF_PENDING_SECONDS
+                                 if self._tariff_pending else None)
 
     def _cloud_extras(self) -> dict[str, Any]:
         """Storm Watch and other cloud-only values from the first backup (in
@@ -1134,12 +1170,16 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 backend.check_at = time.monotonic()
             await self.hass.async_add_executor_job(self._check_cloud, due)
         data["cloud_extras"] = await self.hass.async_add_executor_job(self._cloud_extras) if self.backends else {}
-        if self.tariff_enabled and (self._tariff_at is None or time.monotonic() - self._tariff_at >= TARIFF_SECONDS):
-            self._tariff_at = time.monotonic()
+        now = time.monotonic()
+        check_due = self._tariff_check_at is not None and now >= self._tariff_check_at
+        if self.tariff_enabled and (check_due or self._tariff_at is None or now - self._tariff_at >= TARIFF_SECONDS):
+            self._tariff_at = now
             try:
                 await self.async_read_tariff()
             except HomeAssistantError as err:
                 _LOGGER.debug("Tesla tariff read failed: %s", err)
+                if check_due:  # try the pending check again later, not every poll
+                    self._tariff_check_at = now + TARIFF_PENDING_SECONDS
             else:
                 self._check_tariff_write()
         self._process_alerts(data)

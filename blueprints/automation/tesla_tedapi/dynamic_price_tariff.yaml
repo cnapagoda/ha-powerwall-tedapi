@@ -14,7 +14,8 @@ blueprint:
 
 
     Needs the Tesla tariff (cloud) option and a cloud backup. Put the
-    Powerwall in Time-Based Control yourself. Don't combine with Amber
+    Powerwall in Time-Based Control yourself. Unchanged rates aren't sent
+    again. Don't combine with Amber
     SmartShift or PowerSync. Tesla stores negative prices as 0 and raises a buy
     price below the sell price. Each write is a cloud command (it counts on a
     Tesla Fleet developer account or a Teslemetry plan). Start with a dry run.
@@ -84,15 +85,6 @@ blueprint:
       default: Dynamic prices
       selector:
         text:
-    tariff_sensor:
-      name: Tesla tariff sensor (optional)
-      description: Skip the write when Tesla already has these rates.
-      default: []
-      selector:
-        entity:
-          filter:
-            - integration: tesla_tedapi
-              domain: sensor
     dry_run:
       name: Dry run
       description: Only build the tariff and show Tesla's warnings; send nothing.
@@ -119,7 +111,6 @@ variables:
   price_key: !input price_key
   price_scale: !input price_scale
   tariff_name: !input tariff_name
-  tariff_sensor: !input tariff_sensor
   dry_run: !input dry_run
   max_missing: 10
   # [[start ts, end ts, price], ...] for one entity.
@@ -215,27 +206,6 @@ variables:
                                            "Summer": {"rates": { {{ ns.sell | join(', ') }} }}}}
       }
     }
-  # Whether Tesla already has these rates, as it stores them (negatives as 0,
-  # buy raised to sell, zero rates left out).
-  unchanged: >-
-    {% set current = state_attr(tariff_sensor, 'tariff') if tariff_sensor else none %}
-    {% if current is mapping %}
-      {% set ns = namespace(buy={}, sell={}, same=true) %}
-      {% for season, v in (current.energy_charges or {}).items() if season != 'ALL' %}
-        {% set ns.buy = v.rates if v.rates is defined and v.rates is mapping else v %}
-      {% endfor %}
-      {% for season, v in ((current.sell_tariff or {}).energy_charges or {}).items() if season != 'ALL' %}
-        {% set ns.sell = v.rates if v.rates is defined and v.rates is mapping else v %}
-      {% endfor %}
-      {% for name, r in rates.items() %}
-        {% set s = [r[1], 0] | max %}{% set b = [r[0], 0, s] | max %}
-        {% if ((ns.buy.get(name, 0) | float(0)) - b) | abs > 0.00005
-              or ((ns.sell.get(name, 0) | float(0)) - s) | abs > 0.00005 %}
-          {% set ns.same = false %}
-        {% endif %}
-      {% endfor %}
-      {{ ns.same }}
-    {% else %}{{ false }}{% endif %}
 
 actions:
   - if:
@@ -270,7 +240,7 @@ actions:
             {{ rates.values() | map(attribute='0') | max }}, sell
             {{ rates.values() | map(attribute='1') | min }} to
             {{ rates.values() | map(attribute='1') | max }}.
-            {% if unchanged %}Tesla already has these rates.{% endif %}
+            {% if result.unchanged %}Tesla already has these rates.{% endif %}
             {% if result.warnings %}
 
             What Tesla would change or leave unpriced:
@@ -278,10 +248,12 @@ actions:
             - {{ w }}
             {% endfor %}{% endif %}
       - stop: Dry run
-  - condition: template
-    value_template: "{{ not unchanged }}"
+  # Sent only when the rates changed; one read-back (a later tariff read
+  # confirms a write Tesla doesn't show yet).
   - action: tesla_tedapi.set_tariff
     data:
       config_entry_id: "{{ powerwall }}"
       tou_settings: "{{ tou_settings }}"
       dry_run: false
+      read_back: once
+      only_if_changed: true

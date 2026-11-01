@@ -13,7 +13,7 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.tesla_tedapi import tariff
-from custom_components.tesla_tedapi.const import DOMAIN, TARIFF_SECONDS
+from custom_components.tesla_tedapi.const import DOMAIN, TARIFF_PENDING_SECONDS
 
 from .conftest import DIN, TARIFF, cloud
 
@@ -247,7 +247,7 @@ async def test_set_tariff_dry_run_and_validation(hass: HomeAssistant, fake_power
     await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
     resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2})
     assert resp == {"dry_run": True, "would_send": {"tariff_content_v2": V2}, "backend": "Owner API",
-                    "warnings": []}
+                    "warnings": [], "unchanged": False}
     assert not [w for w in cloud(fake_powerwall).writes if w[0] == "tariff"]
     with pytest.raises(ServiceValidationError):
         await _call(hass, "set_tariff", tou_settings=TARIFF, dry_run=False)
@@ -264,6 +264,12 @@ async def test_set_tariff_writes_and_confirms(hass: HomeAssistant, fake_powerwal
     assert ir.async_get(hass).async_get_issue(DOMAIN, f"tariff_write_{entry.entry_id}") is None
 
 
+def _overdue(coordinator, minutes: float = 36) -> None:
+    """Make the pending writes look `minutes` older, and the check due."""
+    coordinator._tariff_pending = [(t - minutes * 60, r) for t, r in coordinator._tariff_pending]
+    coordinator._tariff_check_at = 0
+
+
 async def test_set_tariff_mismatch_raises_repair(hass: HomeAssistant, fake_powerwall) -> None:
     """Owner API: a write it doesn't show yet is pending; the repair comes
     only if the next tariff read still shows other rates."""
@@ -274,9 +280,9 @@ async def test_set_tariff_mismatch_raises_repair(hass: HomeAssistant, fake_power
     assert resp["confirmed"] is False and resp["status"] == "pending"
     issue_id = f"tariff_write_{entry.entry_id}"
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
-    # Checked again in 35 minutes, not 6 hours.
-    assert TARIFF_SECONDS - (time.monotonic() - coordinator._tariff_at) == pytest.approx(35 * 60, abs=5)
-    coordinator._tariff_at = None  # due now
+    # Checked again in 35 minutes (the 6-hourly read keeps its own time).
+    assert coordinator._tariff_check_at - time.monotonic() == pytest.approx(35 * 60, abs=5)
+    _overdue(coordinator)
     await coordinator.async_refresh()
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None
     # A later write that matches clears it.
@@ -444,3 +450,112 @@ async def test_read_back_runs_get_client_off_the_event_loop(hass: HomeAssistant,
     resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
     assert resp["status"] == "confirmed"
     assert threads and loop_thread not in threads
+
+
+
+V2_LOW = {**V2, "energy_charges": {"ALL": {"rates": {"ALL": 0}},
+                                   "Year": {"rates": {"OFF_PEAK": 0.0, "ON_PEAK": 0.40, "PARTIAL_PEAK": 0.30}}}}
+
+
+async def test_read_back_modes(hass: HomeAssistant, fake_powerwall) -> None:
+    """once: one read; none: no read, pending until the next tariff read."""
+    from unittest.mock import patch  # noqa: PLC0415
+
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    coordinator = entry.runtime_data.coordinator
+    client = coordinator.backends[0].get_client()
+    reads = []
+    original = type(client).get_tariff
+
+    def counting(self):
+        reads.append(1)
+        return original(self)
+
+    with patch.object(type(client), "get_tariff", counting), \
+            patch("custom_components.tesla_tedapi.coordinator.TARIFF_READBACK_ONCE_SECONDS", 0):
+        resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False,
+                           read_back="once")
+        assert resp["status"] == "confirmed" and len(reads) == 1
+        resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2_LOW}, dry_run=False,
+                           read_back="none")
+        assert resp["status"] == "pending" and len(reads) == 1
+    with pytest.raises(Exception):  # noqa: B017 - schema
+        await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, read_back="twice")
+
+
+async def test_only_if_changed(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    pw = cloud(fake_powerwall)
+    tariff_writes = lambda: [w for w in pw.writes if w[0] == "tariff"]  # noqa: E731
+    # Tesla already shows these rates (the TARIFF it starts with, in write form).
+    same = {**V2, "energy_charges": {"ALL": {"rates": {"ALL": 0}},
+                                     "Year": {"rates": {"OFF_PEAK": 0.0, "ON_PEAK": 0.583, "PARTIAL_PEAK": 0.44}}}}
+    dry = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": same})
+    assert dry["unchanged"] is True
+    resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": same}, dry_run=False,
+                       only_if_changed=True)
+    assert resp["status"] == "unchanged" and not tariff_writes()
+    # New rates are sent; the same ones again aren't (the last sent), even
+    # while Tesla doesn't show them yet.
+    fake_powerwall.tariff_applied = TARIFF
+    resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False,
+                       only_if_changed=True)
+    assert resp["status"] == "pending" and len(tariff_writes()) == 1
+    resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False,
+                       only_if_changed=True)
+    assert resp["status"] == "unchanged" and len(tariff_writes()) == 1
+    # Without the option it's sent anyway.
+    await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
+    assert len(tariff_writes()) == 2
+    assert entry.runtime_data.coordinator._tariff_pending
+
+
+async def test_new_writes_dont_postpone_the_pending_check(hass: HomeAssistant, fake_powerwall) -> None:
+    """Owner API, a write every 30 minutes: the check stays 35 minutes after
+    the oldest unconfirmed write; Tesla showing an earlier write of ours
+    counts as catching up; the repair only for an overdue write it never shows."""
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    coordinator = entry.runtime_data.coordinator
+    issue_id = f"tariff_write_{entry.entry_id}"
+    fake_powerwall.tariff_applied = TARIFF  # Tesla shows nothing new yet
+    await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
+    first_check = coordinator._tariff_check_at
+    _overdue(coordinator, minutes=30)  # the first write is 30 minutes old...
+    coordinator._tariff_check_at = first_check - 30 * 60
+    await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2_LOW}, dry_run=False)
+    assert len(coordinator._tariff_pending) == 2
+    assert coordinator._tariff_check_at == pytest.approx(first_check - 30 * 60)  # ...not moved
+    six_hourly = coordinator._tariff_at
+    # The check: Tesla now shows the first write (catching up): no repair,
+    # and the second is checked 35 minutes after it was sent.
+    from custom_components.tesla_tedapi.tariff import normalize  # noqa: PLC0415
+    fake_powerwall.tariff_applied = None
+    fake_powerwall.tariff = copy.deepcopy(V2)
+    _overdue(coordinator, minutes=6)
+    await coordinator.async_refresh()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+    assert [normalize(V2_LOW)] == [r for _, r in coordinator._tariff_pending]
+    assert coordinator._tariff_check_at > time.monotonic()
+    assert coordinator._tariff_at != six_hourly  # the read counts as the periodic one
+    # Overdue and still not shown: the repair.
+    _overdue(coordinator)
+    await coordinator.async_refresh()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None
+    assert coordinator._tariff_pending == [] and coordinator._tariff_check_at is None
+    # It clears once Tesla shows the last rates sent.
+    fake_powerwall.tariff = copy.deepcopy(V2_LOW)
+    coordinator._tariff_at = None
+    await coordinator.async_refresh()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+
+
+async def test_pending_check_read_failure_retries_later(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    coordinator = entry.runtime_data.coordinator
+    fake_powerwall.tariff_applied = TARIFF
+    await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
+    _overdue(coordinator)
+    fake_powerwall.cloud_reads_fail = True
+    await coordinator.async_refresh()
+    assert coordinator._tariff_check_at - time.monotonic() == pytest.approx(TARIFF_PENDING_SECONDS, abs=5)
+    assert coordinator._tariff_pending
