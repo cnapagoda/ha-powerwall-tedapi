@@ -29,6 +29,7 @@ from homeassistant.util import dt as dt_util
 
 from .alerts import LEVELS
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
+from .daily import day_start
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
 from .firmware import split_version
 from .outages import month_start
@@ -134,6 +135,25 @@ def _energy(key: str) -> TedapiSensorEntityDescription:
     )
 
 
+def _today_start(d: dict[str, Any]) -> datetime | None:
+    day = d.get("energy_day")
+    return day_start(day) if day else None
+
+
+def _energy_today(key: str) -> TedapiSensorEntityDescription:
+    """Today's energy (reset at local midnight), like Tesla Fleet's daily sensors."""
+    return TedapiSensorEntityDescription(
+        key=f"{key}_today",
+        translation_key=f"{key}_today",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL,
+        suggested_display_precision=2,
+        value_fn=lambda d, k=key: (d.get("energy_today") or {}).get(k),
+        last_reset_fn=_today_start,
+    )
+
+
 SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
     # Power: battery + = discharging; grid + = importing
     _power("solar_power"),
@@ -191,6 +211,13 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
     _energy("battery_energy_discharged"),
     _energy("solar_energy_produced"),
     _energy("home_energy_consumed"),
+    # Today's energy
+    _energy_today("grid_energy_imported"),
+    _energy_today("grid_energy_exported"),
+    _energy_today("battery_energy_charged"),
+    _energy_today("battery_energy_discharged"),
+    _energy_today("solar_energy_produced"),
+    _energy_today("home_energy_consumed"),
     # Capacity
     TedapiSensorEntityDescription(
         key="battery_full_capacity",

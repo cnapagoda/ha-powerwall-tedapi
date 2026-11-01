@@ -501,6 +501,24 @@
       },
       "tesla_tariff": {
         "name": "Taryfa Tesla"
+      },
+      "grid_energy_imported_today": {
+        "name": "Energia pobrana z sieci dzisiaj"
+      },
+      "grid_energy_exported_today": {
+        "name": "Energia oddana do sieci dzisiaj"
+      },
+      "battery_energy_charged_today": {
+        "name": "Energia naładowana do baterii dzisiaj"
+      },
+      "battery_energy_discharged_today": {
+        "name": "Energia rozładowana z baterii dzisiaj"
+      },
+      "solar_energy_produced_today": {
+        "name": "Energia wyprodukowana z fotowoltaiki dzisiaj"
+      },
+      "home_energy_consumed_today": {
+        "name": "Energia zużyta przez dom dzisiaj"
       }
     },
     "switch": {
