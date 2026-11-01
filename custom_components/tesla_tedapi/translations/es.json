@@ -190,7 +190,8 @@
           "problem_minutes": "Retardo de problema",
           "dispatch_floor_reserve": "Las descargas se detienen en la reserva de respaldo",
           "dispatch_max_watts": "Potencia máxima de despacho",
-          "tesla_tariff": "Tarifa de Tesla (nube)"
+          "tesla_tariff": "Tarifa de Tesla (nube)",
+          "diagnostics_gateway_config": "Configuración de la pasarela en los diagnósticos"
         },
         "data_description": {
           "restore_export": "La Powerwall a veces pierde su regla de exportación a la red y su ajuste de carga desde la red (visto cada hora en una Powerwall 3); entonces se activa la carga desde la red. Si está activado, el ajuste elegido se vuelve a escribir en uno o dos minutos (solo conexión firmada).",
@@ -198,7 +199,8 @@
           "problem_minutes": "Cuánto debe durar una advertencia o un fallo antes de que el sensor de problema se active y se cree una reparación.",
           "dispatch_floor_reserve": "Una descarga iniciada sin `min_soc` se detiene cuando la batería llega a la reserva de respaldo.",
           "dispatch_max_watts": "Las llamadas de despacho por encima de esta potencia se rechazan.",
-          "tesla_tariff": "Leer desde el respaldo en la nube la tarifa que Tesla usa para el control por horario (sensor y acciones de leer/establecer). Solo nube."
+          "tesla_tariff": "Leer desde el respaldo en la nube la tarifa que Tesla usa para el control por horario (sensor y acciones de leer/establecer). Solo nube.",
+          "diagnostics_gateway_config": "Añadir la configuración de la pasarela a las descargas de diagnóstico, sin números de serie, ubicación, nombres ni credenciales. Útil para informar de errores."
         }
       },
       "cloud_backup": {

@@ -580,6 +580,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if backend.name == BACKEND_OWNER:
                 self._token_expiry = None  # re-read: the refresh rewrites the file
 
+    def read_gateway_config(self) -> dict[str, Any]:
+        """The gateway's whole configuration, for diagnostics (blocking)."""
+        if self._pw is None:
+            raise HomeAssistantError("not connected to the gateway")
+        return self._pw.client.tedapi.get_config() or {}
+
     @staticmethod
     def _read_site_info(pw) -> dict[str, Any] | None:
         """The gateway's own config ("site_info"), or None if it can't be read."""

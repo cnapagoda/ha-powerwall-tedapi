@@ -190,7 +190,8 @@
           "problem_minutes": "Probleemvertraging",
           "dispatch_floor_reserve": "Ontladen stopt bij de back-upreserve",
           "dispatch_max_watts": "Grootste dispatch-vermogen",
-          "tesla_tariff": "Tesla-tarief (cloud)"
+          "tesla_tariff": "Tesla-tarief (cloud)",
+          "diagnostics_gateway_config": "Gatewayconfiguratie in diagnostiek"
         },
         "data_description": {
           "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding).",
@@ -198,7 +199,8 @@
           "problem_minutes": "Hoe lang een waarschuwing of storing moet duren voordat de probleemsensor aangaat en een reparatie wordt gemeld.",
           "dispatch_floor_reserve": "Een ontlading die zonder `min_soc` is gestart, stopt als de batterij de back-upreserve bereikt.",
           "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd.",
-          "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensor en acties om te lezen/instellen). Alleen cloud."
+          "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensor en acties om te lezen/instellen). Alleen cloud.",
+          "diagnostics_gateway_config": "De configuratie van de gateway toevoegen aan diagnostiekdownloads, zonder serienummers, locatie, namen en inloggegevens. Handig voor bugmeldingen."
         }
       },
       "cloud_backup": {

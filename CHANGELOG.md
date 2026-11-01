@@ -5,6 +5,7 @@
 - **Blueprint "Dynamic price tariff":** every 30 minutes it turns a price forecast (Amber by default; Octopus, Nord Pool and others by setting the attribute and key names) into Tesla's tariff for the next 24 hours and sends it with `set_tariff`, so the Powerwall can stay in Time-Based Control. It skips unchanged rates, refuses a forecast with more than 10 of 48 half hours missing, and has a dry run.
 - **`set_tariff`:** new `read_back` (`full`, the default; `once`, one read after 15 seconds, for scheduled writes; `none`) and `only_if_changed` (skip when these are the rates last sent or the ones Tesla shows; the dry run says so as `unchanged`).
 - **Tariff read-back:** a new write no longer postpones the check of an earlier one Tesla doesn't show yet, and no longer delays the 6-hourly tariff read. Tesla showing an earlier write counts as catching up; the repair comes only for a write still not shown 35 minutes after it was sent.
+- **Diagnostics:** an option (off by default) adds the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Diagnostics also include the Tesla tariff when the Tesla tariff option is on.
 
 ## 2.4.4
 

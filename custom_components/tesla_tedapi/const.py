@@ -22,6 +22,8 @@ CONF_RESTORE_EXPORT = "restore_export"
 CONF_STATUS_EVENTS = "status_alert_events"
 CONF_PROBLEM_MINUTES = "problem_minutes"
 CONF_TESLA_TARIFF = "tesla_tariff"
+# Diagnostics include the gateway's own configuration (redacted). Off by default.
+CONF_DIAGNOSTICS_GATEWAY = "diagnostics_gateway_config"
 CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
 CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
 # Which cloud backup to use and in what order (one of CLOUD_CHOICES).

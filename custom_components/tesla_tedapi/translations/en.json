@@ -190,7 +190,8 @@
           "problem_minutes": "Problem delay",
           "dispatch_floor_reserve": "Discharges stop at the backup reserve",
           "dispatch_max_watts": "Largest dispatch power",
-          "tesla_tariff": "Tesla tariff (cloud)"
+          "tesla_tariff": "Tesla tariff (cloud)",
+          "diagnostics_gateway_config": "Gateway configuration in diagnostics"
         },
         "data_description": {
           "restore_export": "The Powerwall sometimes loses its grid export rule and its grid charging setting from its own settings (seen hourly on a Powerwall 3); grid charging then turns on. When on, the setting you chose is written back within a minute or two (signed connection only).",
@@ -198,7 +199,8 @@
           "problem_minutes": "How long a warning or fault must last before the Problem sensor turns on and a repair is raised.",
           "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",
           "dispatch_max_watts": "Dispatch calls above this power are refused.",
-          "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensor and get/set tariff actions). Cloud only."
+          "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensor and get/set tariff actions). Cloud only.",
+          "diagnostics_gateway_config": "Add the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports."
         }
       },
       "cloud_backup": {

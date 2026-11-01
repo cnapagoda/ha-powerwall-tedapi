@@ -190,7 +190,8 @@
           "problem_minutes": "Problem-Verzögerung",
           "dispatch_floor_reserve": "Entladungen stoppen bei der Backup-Reserve",
           "dispatch_max_watts": "Größte Dispatch-Leistung",
-          "tesla_tariff": "Tesla-Tarif (Cloud)"
+          "tesla_tariff": "Tesla-Tarif (Cloud)",
+          "diagnostics_gateway_config": "Gateway-Konfiguration in der Diagnose"
         },
         "data_description": {
           "restore_export": "Die Powerwall verliert manchmal ihre Netzeinspeiseregel und ihre Einstellung zum Laden aus dem Netz (stündlich bei einer Powerwall 3 beobachtet); das Laden aus dem Netz schaltet sich dann ein. Wenn aktiv, wird die gewählte Einstellung innerhalb von ein bis zwei Minuten zurückgeschrieben (nur signierte Verbindung).",
@@ -198,7 +199,8 @@
           "problem_minutes": "Wie lange eine Warnung oder ein Fehler bestehen muss, bevor der Problem-Sensor einschaltet und eine Reparatur gemeldet wird.",
           "dispatch_floor_reserve": "Eine ohne `min_soc` gestartete Entladung stoppt, wenn die Batterie die Backup-Reserve erreicht.",
           "dispatch_max_watts": "Dispatch-Aufrufe über dieser Leistung werden abgelehnt.",
-          "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensor und Aktionen zum Lesen/Setzen). Nur Cloud."
+          "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensor und Aktionen zum Lesen/Setzen). Nur Cloud.",
+          "diagnostics_gateway_config": "Die Konfiguration des Gateways zu Diagnose-Downloads hinzufügen, ohne Seriennummern, Standort, Namen und Zugangsdaten. Hilfreich für Fehlerberichte."
         }
       },
       "cloud_backup": {

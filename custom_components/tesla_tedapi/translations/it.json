@@ -190,7 +190,8 @@
           "problem_minutes": "Ritardo del problema",
           "dispatch_floor_reserve": "Le scariche si fermano alla riserva di backup",
           "dispatch_max_watts": "Potenza massima di dispatch",
-          "tesla_tariff": "Tariffa Tesla (cloud)"
+          "tesla_tariff": "Tariffa Tesla (cloud)",
+          "diagnostics_gateway_config": "Configurazione del gateway nella diagnostica"
         },
         "data_description": {
           "restore_export": "La Powerwall a volte perde la regola di immissione in rete e l'impostazione di carica dalla rete (visto ogni ora su una Powerwall 3); la carica dalla rete allora si attiva. Se attivo, l'impostazione scelta viene riscritta entro uno o due minuti (solo connessione firmata).",
@@ -198,7 +199,8 @@
           "problem_minutes": "Quanto deve durare un'avvertenza o un guasto prima che il sensore Problema si attivi e venga segnalata una riparazione.",
           "dispatch_floor_reserve": "Una scarica avviata senza `min_soc` si ferma quando la batteria raggiunge la riserva di backup.",
           "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate.",
-          "tesla_tariff": "Leggere dal backup cloud la tariffa che Tesla usa per il controllo a fasce orarie (sensore e azioni di lettura/impostazione). Solo cloud."
+          "tesla_tariff": "Leggere dal backup cloud la tariffa che Tesla usa per il controllo a fasce orarie (sensore e azioni di lettura/impostazione). Solo cloud.",
+          "diagnostics_gateway_config": "Aggiungere la configurazione del gateway ai download di diagnostica, senza numeri di serie, posizione, nomi e credenziali. Utile per le segnalazioni di bug."
         }
       },
       "cloud_backup": {

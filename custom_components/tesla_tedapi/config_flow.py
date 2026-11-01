@@ -56,6 +56,7 @@ from .const import (
     CLOUD_WITHOUT_OWNER,
     CONF_CLOUD_BACKENDS,
     CONF_CONNECTION_MODE,
+    CONF_DIAGNOSTICS_GATEWAY,
     CONF_DISPATCH_FLOOR_RESERVE,
     CONF_DISPATCH_MAX_WATTS,
     CONF_GW_PWD,
@@ -789,6 +790,7 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                 # Tesla tariff (cloud only): offered once a cloud backup is set up.
                 **({vol.Required(CONF_TESLA_TARIFF, default=opts.get(CONF_TESLA_TARIFF, False)): bool}
                    if cloud_choice(self.config_entry.data, opts) != CLOUD_NONE else {}),
+                vol.Required(CONF_DIAGNOSTICS_GATEWAY, default=opts.get(CONF_DIAGNOSTICS_GATEWAY, False)): bool,
             }),
         )
 
