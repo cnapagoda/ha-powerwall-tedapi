@@ -72,7 +72,7 @@ from .const import (
     app_soc,
     cloud_choice,
 )
-from .daily import DailyEnergy
+from .daily import DailyEnergy, GridCheck
 from .firmware import FirmwareTracker, split_version
 from .fleet import FleetBackup, FleetTimeout, fleet_starting
 from .outages import OutageTracker
@@ -319,6 +319,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.cloud_writes: dict[str, CloudWrite] = {}
         self.outages = OutageTracker()
         self.daily = DailyEnergy()
+        self.grid_check = GridCheck()
         self.firmware = FirmwareTracker()
         # True while an off-grid run started here is on (set up in __init__).
         self.intentional_off_grid: Callable[[], bool] = lambda: False
@@ -1133,6 +1134,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.outages.restore(stored.get("outages") or {})
         self.firmware.restore(stored.get("firmware") or {})
         self.daily.restore(stored.get("daily") or {})
+        self.grid_check.restore(stored.get("grid_check") or {})
 
     def _state_to_save(self) -> dict[str, Any]:
         return {"export_wanted": self.wanted["grid_export"],
@@ -1140,7 +1142,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "alerts": self.alerts.as_dict(),
                 "outages": self.outages.as_dict(),
                 "firmware": self.firmware.as_dict(),
-                "daily": self.daily.as_dict()}
+                "daily": self.daily.as_dict(),
+                "grid_check": self.grid_check.as_dict()}
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -1226,11 +1229,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _track_daily(self, data: dict[str, Any]) -> None:
         """Today's energy from the lifetime counters (gateway readings only)."""
         energy = data.get("energy") or {}
+        now = dt_util.utcnow()
         if data.get("local_ok") and energy:
-            data["energy_today"] = self.daily.update(energy, dt_util.utcnow())
+            data["energy_today"] = self.daily.update(energy, now)
+            self.grid_check.update(self.daily.day, data.get("grid_power"), energy.get("grid_energy_imported"),
+                                   energy.get("grid_energy_exported"), now)
         else:
             data["energy_today"] = {}
         data["energy_day"] = self.daily.day
+        data["grid_check"] = self.grid_check.summary()
 
     def _track_firmware(self, data: dict[str, Any]) -> None:
         """Announce a firmware update, then check signed access on it."""

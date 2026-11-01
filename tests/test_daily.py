@@ -122,3 +122,121 @@ async def test_today_sensors(hass: HomeAssistant, fake_powerwall, hass_storage, 
         assert hass.states.get(_eid(hass, "sensor", "grid_energy_imported_today")).state == "unavailable"
     finally:
         FakePowerwall.poll = original
+
+
+# ---- grid counter check ----
+
+from custom_components.tesla_tedapi.daily import GridCheck  # noqa: E402
+
+
+def _feed(check: GridCheck, start: datetime, minutes: int, watts, counters, *, step: int = 60) -> None:
+    """Readings every `step` seconds: power from watts(t) and counters from
+    counters(t, imported, exported) given the true energy so far."""
+    imported = exported = 0.0
+    for i in range(minutes * 60 // step + 1):
+        now = start + timedelta(seconds=i * step)
+        p = watts(i)
+        if i:
+            kwh = p * step / 3_600_000
+            imported, exported = (imported + kwh, exported) if p > 0 else (imported, exported - kwh)
+        ci, ce = counters(i, imported, exported)
+        check.update(now.date(), p, ci, ce, now)
+
+
+def test_grid_check_ok_when_the_counters_agree(adelaide) -> None:
+    check = GridCheck()
+    start = _at(adelaide, 2026, 11, 2, 8, 0)
+    # 2 hours: 3 kW import, then 2 kW export.
+    _feed(check, start, 120, lambda i: 3000 if i <= 60 else -2000, lambda i, a, b: (100 + a, 50 + b))
+    s = check.summary()
+    assert s["state"] == "ok" and s["covered_minutes"] == 120 and s["gaps"] == 0
+    assert s["power_import_kwh"] == pytest.approx(3.0, abs=0.05)
+    assert s["power_export_kwh"] == pytest.approx(2.0, abs=0.05)
+    assert abs(s["import_difference_pct"]) < 3
+
+
+def test_grid_check_mismatch_when_small_flows_count_both_ways(adelaide) -> None:
+    """The live site: both counters ~2.3 kWh high over a day, net right."""
+    check = GridCheck()
+    start = _at(adelaide, 2026, 11, 2, 0, 0)
+    extra = 2.3 / 1440  # kWh a minute, counted both ways
+    _feed(check, start, 1439, lambda i: 840 if i < 720 else -500,
+          lambda i, a, b: (100 + a + extra * i, 50 + b + extra * i))
+    s = check.summary()
+    assert s["state"] == "mismatch"
+    assert s["counter_import_kwh"] - s["power_import_kwh"] == pytest.approx(2.3, abs=0.05)
+    assert s["import_difference_pct"] > 10 and s["export_difference_pct"] > 10
+
+
+def test_grid_check_needs_enough_data(adelaide) -> None:
+    check = GridCheck()
+    start = _at(adelaide, 2026, 11, 2, 8, 0)
+    _feed(check, start, 30, lambda i: 3000, lambda i, a, b: (a * 2, b))  # way off, but only 30 min
+    assert check.summary()["state"] == "unknown"
+    check = GridCheck()
+    _feed(check, start, 120, lambda i: 100, lambda i, a, b: (a * 2, b))  # 0.2 kWh in 2 hours
+    assert check.summary()["state"] == "unknown"
+    check.update(None, None, 1, 1, start)  # a missing reading changes nothing
+    assert check.summary()["covered_minutes"] == 0
+
+
+def test_grid_check_skips_gaps_and_resets(adelaide) -> None:
+    check = GridCheck()
+    day = _at(adelaide, 2026, 11, 2, 8, 0)
+    check.update(day.date(), 3000, 100.0, 50.0, day)
+    check.update(day.date(), 3000, 100.05, 50.0, day + timedelta(minutes=1))
+    # 20 minutes without readings (energy in the counters, none integrated): left out.
+    check.update(day.date(), 3000, 101.05, 50.0, day + timedelta(minutes=21))
+    # A counter reset: left out too.
+    check.update(day.date(), 3000, 0.1, 50.0, day + timedelta(minutes=22))
+    s = check.summary()
+    assert s["gaps"] == 2 and s["covered_minutes"] == 1
+    assert s["counter_import_kwh"] == pytest.approx(0.05) and s["power_import_kwh"] == pytest.approx(0.05)
+    # A sign change inside an interval is split at zero.
+    check.update(day.date(), -3000, 0.125, 50.025, day + timedelta(minutes=23))
+    assert check.summary()["power_export_kwh"] == pytest.approx(0.0125, abs=0.001)
+    # Midnight: a new day starts from nothing.
+    tomorrow = _at(adelaide, 2026, 11, 3, 0, 1)
+    check.update(tomorrow.date(), 1000, 0.2, 50.1, tomorrow)
+    assert check.summary()["covered_minutes"] == 0 and check.summary()["power_import_kwh"] == 0
+    # Round trip through storage.
+    copy = GridCheck()
+    copy.restore(check.as_dict())
+    assert copy.as_dict() == check.as_dict()
+    copy.restore({})
+    assert copy.day is None and copy.last is None
+
+
+async def test_grid_check_sensor(hass: HomeAssistant, fake_powerwall, hass_storage, freezer) -> None:
+    await hass.config.async_set_time_zone("Australia/Adelaide")
+    freezer.move_to("2026-11-02T01:30:00+00:00")
+    meters = {"site": {"energy_imported": 1_000_000, "energy_exported": 2_000_000},
+              "battery": {"energy_imported": 500_000, "energy_exported": 450_000},
+              "solar": {"energy_exported": 3_000_000}, "load": {"energy_imported": 1_500_000}}
+    original = FakePowerwall.poll
+    FakePowerwall.poll = lambda self, path: meters
+    try:
+        entry = await _setup(hass, V1R)
+        eid = _eid(hass, "sensor", "grid_counter_check")
+        assert hass.states.get(eid).state == "unknown"
+        from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+        assert er.async_get(hass).async_get(eid).entity_category == "diagnostic"
+        coordinator = entry.runtime_data.coordinator
+        # Pretend 90 minutes of matching readings were seen today.
+        check = coordinator.grid_check
+        check.power_import = check.counter_import = 3.0
+        check.covered = 90 * 60
+        await _refresh(hass, entry)
+        state = hass.states.get(eid)
+        assert state.state == "ok" and state.attributes["covered_minutes"] >= 90
+        # The totals survive a restart.
+        saved = coordinator._state_to_save()
+        assert await hass.config_entries.async_unload(entry.entry_id)
+        hass_storage[f"{DOMAIN}.{entry.entry_id}"] = {"version": 1, "key": f"{DOMAIN}.{entry.entry_id}",
+                                                       "data": saved}
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert hass.states.get(eid).attributes["power_import_kwh"] == pytest.approx(3.0, abs=0.01)
+    finally:
+        FakePowerwall.poll = original

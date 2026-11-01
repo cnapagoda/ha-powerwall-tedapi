@@ -519,6 +519,14 @@
       },
       "home_energy_consumed_today": {
         "name": "Energía consumida por la casa hoy"
+      },
+      "grid_counter_check": {
+        "name": "Comprobación de contadores de red",
+        "state": {
+          "ok": "Correcto",
+          "mismatch": "Los contadores difieren",
+          "unknown": "Aún no hay datos suficientes"
+        }
       }
     },
     "switch": {

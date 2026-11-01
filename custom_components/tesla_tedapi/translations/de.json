@@ -519,6 +519,14 @@
       },
       "home_energy_consumed_today": {
         "name": "Hausverbrauch (Energie) heute"
+      },
+      "grid_counter_check": {
+        "name": "Prüfung der Netzzähler",
+        "state": {
+          "ok": "OK",
+          "mismatch": "Zähler weichen ab",
+          "unknown": "Noch zu wenig Daten"
+        }
       }
     },
     "switch": {

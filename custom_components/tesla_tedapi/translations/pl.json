@@ -519,6 +519,14 @@
       },
       "home_energy_consumed_today": {
         "name": "Energia zużyta przez dom dzisiaj"
+      },
+      "grid_counter_check": {
+        "name": "Kontrola liczników sieci",
+        "state": {
+          "ok": "OK",
+          "mismatch": "Liczniki się różnią",
+          "unknown": "Jeszcze za mało danych"
+        }
       }
     },
     "switch": {

@@ -211,6 +211,16 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
     _energy("battery_energy_discharged"),
     _energy("solar_energy_produced"),
     _energy("home_energy_consumed"),
+    # Today's grid counters against the grid power readings
+    TedapiSensorEntityDescription(
+        key="grid_counter_check",
+        translation_key="grid_counter_check",
+        device_class=SensorDeviceClass.ENUM,
+        options=["ok", "mismatch", "unknown"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: (d.get("grid_check") or {}).get("state"),
+        attrs_fn=lambda d: {k: v for k, v in (d.get("grid_check") or {}).items() if k != "state"},
+    ),
     # Today's energy
     _energy_today("grid_energy_imported"),
     _energy_today("grid_energy_exported"),

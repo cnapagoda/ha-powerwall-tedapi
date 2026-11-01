@@ -519,6 +519,14 @@
       },
       "home_energy_consumed_today": {
         "name": "Energie verbruikt door huis vandaag"
+      },
+      "grid_counter_check": {
+        "name": "Controle netmeters",
+        "state": {
+          "ok": "OK",
+          "mismatch": "Meters wijken af",
+          "unknown": "Nog te weinig gegevens"
+        }
       }
     },
     "switch": {

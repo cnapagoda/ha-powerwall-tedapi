@@ -519,6 +519,14 @@
       },
       "home_energy_consumed_today": {
         "name": "Home energy consumed today"
+      },
+      "grid_counter_check": {
+        "name": "Grid counter check",
+        "state": {
+          "ok": "OK",
+          "mismatch": "Counters differ",
+          "unknown": "Not enough data yet"
+        }
       }
     },
     "switch": {
