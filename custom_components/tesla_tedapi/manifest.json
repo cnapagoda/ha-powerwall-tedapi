@@ -36,5 +36,5 @@
   "requirements": [
     "pypowerwall>=0.23.1,<0.24"
   ],
-  "version": "2.4.4"
+  "version": "2.5.0"
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.0
+
+- **Blueprint "Dynamic price tariff":** every 30 minutes it turns a price forecast (Amber by default; Octopus, Nord Pool and others by setting the attribute and key names) into Tesla's tariff for the next 24 hours and sends it with `set_tariff`, so the Powerwall can stay in Time-Based Control. It skips unchanged rates, refuses a forecast with more than 10 of 48 half hours missing, and has a dry run.
+
 ## 2.4.4
 
 - **Battery dispatch:** a stop (target reached, `resume_battery_operation` or unloading) could reach the gateway before a renewal already on its way, so the Powerwall kept charging or discharging for up to 5 minutes past the target, ignoring `min_soc`. Dispatch commands now reach the gateway in order.
