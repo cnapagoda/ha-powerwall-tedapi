@@ -6,6 +6,7 @@
 - **`set_tariff`** no longer refuses a tariff with an empty season written as `{}`, a shape Tesla accepts. The dry run still warns that an empty season is inactive.
 - **Discovery:** a Powerwall set up over its Wi-Fi hotspot is no longer offered as a new device when the gateway shows up on the home network. Its stored address is left alone.
 - **`set_tariff` read-back** no longer logs in or renews the Owner API token on Home Assistant's event loop, where it could block Home Assistant while waiting on the network.
+- **Grid outages:** an outage across a month end counts in both months, each with its own time up to or from local midnight. Before, the new month missed the outage and got all its time.
 
 ## 2.4.3
 
