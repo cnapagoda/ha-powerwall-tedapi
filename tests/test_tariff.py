@@ -423,3 +423,24 @@ async def test_read_back_errors_leave_it_pending(hass: HomeAssistant, fake_power
     with patch.object(type(client), "get_tariff", side_effect=RuntimeError("busy")):
         resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
     assert resp["status"] == "pending"
+
+
+async def test_read_back_runs_get_client_off_the_event_loop(hass: HomeAssistant, fake_powerwall) -> None:
+    """get_client can log in or renew the token (network I/O): the read-back
+    must run it in the executor, never on the event loop."""
+    import threading  # noqa: PLC0415
+
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    backend = entry.runtime_data.coordinator.backends[0]
+    original = backend.get_client
+    threads: list[str] = []
+
+    def recording():
+        threads.append(threading.current_thread().name)
+        return original()
+
+    backend.get_client = recording
+    loop_thread = threading.current_thread().name
+    resp = await _call(hass, "set_tariff", tou_settings={"tariff_content_v2": V2}, dry_run=False)
+    assert resp["status"] == "confirmed"
+    assert threads and loop_thread not in threads
