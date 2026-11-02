@@ -5,6 +5,7 @@
 - [What is stored](#what-is-stored)
 - [Privacy and security](#privacy-and-security)
 - [Known limitations](#known-limitations)
+- [Quality](#quality)
 
 ## Architecture
 
@@ -79,3 +80,7 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 - **No history backfill** for readings missed while the gateway was unreachable (battery history from Tesla Fleet / Teslemetry can be [imported](actions.md#tesla_tedapiimport_battery_history)).
 - **Saving options reloads the integration**, which ends a running battery dispatch.
 - **Outages are only seen while Home Assistant and your network have power.**
+
+## Quality
+
+[`quality_scale.yaml`](../custom_components/tesla_tedapi/quality_scale.yaml) tracks Home Assistant's [integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) rule by rule. It is a self-assessment (the scale is only reviewed for core integrations): Bronze, Silver and Gold rules are done, except dependency transparency, which depends on how pypowerwall publishes its releases. Platinum needs an async library.

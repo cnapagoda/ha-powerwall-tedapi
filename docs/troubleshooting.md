@@ -42,11 +42,12 @@
 | Readings stop now and then | Add the Powerwall's Wi-Fi as **Wi-Fi fallback address** if Home Assistant can reach it, or improve the network path (Ethernet for the gateway, a better access point). Try a longer **Polling interval** if another app also polls the gateway. |
 | **Battery level** differs from the Tesla app by a point | Normal rounding and timing: the app updates less often. **Battery state of energy** is the raw value and reads 2–4 points higher. |
 | No **Solar input** sensors | Normal when your solar has its own inverter: they only appear for the Powerwall 3's built-in inputs in use. Inputs that start producing later appear by themselves. |
+| **Solar input** sensors that always read about 0 W | An unused input reported a few watts in standby, so its sensors were created. Disable them on the entity's settings page. |
 | A pack or expansion pack is missing | Packs appear when the gateway first reports them. Check the **Alerts** sensor for *Battery packs missing*. |
 | Energy counters don't move | **Setup health** checks `energy_counters`. Readings that are missing, zero or lower than the last are ignored; after a gateway replacement, restart Home Assistant once. |
-| **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. Occasional days are normal (gaps in readings). If it lasts, mention it in an issue with diagnostics. |
+| **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. On some gateways this is every day: the counters read higher than the meter. Use your retailer's or Tesla Fleet's grid energy for costs (see [Energy dashboard](energy-dashboard.md#checking-the-numbers)). An occasional day can also come from gaps in readings. |
 | **Inverter heatsink temperature** never changes | Known on some firmware. |
-| Entity IDs start with an area name | Home Assistant 2026.8+ includes the area by default. See [conventions](README.md#conventions-in-these-pages). |
+| Entity IDs start with an area name | Home Assistant 2026.8+ includes the area by default. Replace `powerwall_tedapi_` in the examples with yours, or change the format and use **Recreate entity IDs**. See [conventions](README.md#conventions-in-these-pages). |
 
 ## Settings and control
 

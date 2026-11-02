@@ -24,7 +24,7 @@ Tesla Powerwall TEDAPI for Home Assistant: local monitoring and control of a Tes
 - **[Events](events.md)**: the events the integration fires, with their data.
 - **[Cloud backup](cloud-backup.md)**: the Owner API and Tesla Fleet / Teslemetry backups.
 - **[Dropped settings](dropped-settings.md)**: why the Powerwall loses its export and grid charging settings, and how they're restored.
-- **[How it works and limitations](how-it-works.md)**: polling, what is read how often, privacy, and known limitations.
+- **[How it works and limitations](how-it-works.md)**: polling, what is read how often, privacy, known limitations and the quality scale.
 
 ## Help
 
@@ -37,7 +37,8 @@ Tesla Powerwall TEDAPI for Home Assistant: local monitoring and control of a Tes
 
 **Entity IDs** are shown as `sensor.powerwall_tedapi_battery_level`: the device name (*Powerwall TEDAPI*) plus the entity name. Yours may differ:
 
-- If your device is in an area and your Home Assistant uses the *area + device + entity* format (**Settings → System → Entity ID format**, Home Assistant 2026.8 and newer), the area comes first, for example `sensor.garage_powerwall_tedapi_battery_level`.
+- From Home Assistant 2026.8, entity IDs follow **Settings → System → Entity ID format**, which is *area + device + entity* by default. With the device in an area, the area comes first, for example `sensor.garage_powerwall_tedapi_battery_level`.
+- The format applies when an entity is created: existing entity IDs keep their names. To apply a new format (or a new area), use **Recreate entity IDs** on the device page, then update automations and dashboards that use the old IDs.
 - With a second Powerwall, its entities end in `_2`.
 - Entities you renamed keep the name you gave them.
 

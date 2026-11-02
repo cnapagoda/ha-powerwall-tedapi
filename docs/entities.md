@@ -39,7 +39,7 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 | Grid export power | `sensor.powerwall_tedapi_grid_export_power` | W | Never negative: 0 while importing. |
 | Battery discharge power | `sensor.powerwall_tedapi_battery_discharge_power` | W | Never negative: 0 while charging. |
 | Battery charge power | `sensor.powerwall_tedapi_battery_charge_power` | W | Never negative: 0 while discharging. |
-| Solar input *A–F* power 🔍 | `sensor.powerwall_tedapi_solar_input_a_power` … | W | Powerwall 3 built-in inverter, one per input in use. Attribute `state` (the input's state). Not created when your solar has its own inverter. With several inverters, later ones are numbered (`2A`). |
+| Solar input *A–F* power 🔍 | `sensor.powerwall_tedapi_solar_input_a_power` … | W | Powerwall 3 built-in inverter, one per input in use. Attribute `state` (the input's state). With solar on its own inverter they usually aren't created, but an input that reports a few watts in standby can still create them; they then read about 0 W, and you can disable them. With several inverters, later ones are numbered (`2A`). |
 | Solar input *A–F* voltage / current 🔍🚫 | `…_solar_input_a_voltage`, `…_solar_input_a_current` | V, A | Same inputs. |
 
 ## Battery

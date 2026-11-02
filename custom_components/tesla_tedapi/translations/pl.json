@@ -809,7 +809,7 @@
         },
         "tou_settings": {
           "name": "Ustawienia taryfy czasowej",
-          "description": "Format zapisu Tesli: obiekt z tariff_content_v2 (nie format zwracany przez get_tariff; zobacz wiki)."
+          "description": "Format zapisu Tesli: obiekt z tariff_content_v2 (nie format zwracany przez get_tariff; zobacz docs/tesla-tariff.md)."
         },
         "dry_run": {
           "name": "Próba",

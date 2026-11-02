@@ -809,7 +809,7 @@
         },
         "tou_settings": {
           "name": "Tijdtarief-instellingen",
-          "description": "Het schrijfformaat van Tesla: een object met tariff_content_v2 (niet het formaat van get_tariff; zie de wiki)."
+          "description": "Het schrijfformaat van Tesla: een object met tariff_content_v2 (niet het formaat van get_tariff; zie docs/tesla-tariff.md)."
         },
         "dry_run": {
           "name": "Proefrun",

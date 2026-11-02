@@ -9,6 +9,7 @@
 - `examples/automations.yaml` uses entity IDs without an area, and a new `examples/dashboard.yaml` is a complete dashboard.
 - Blueprint import links all point to the same release.
 - New issue form for **hardware reports**, and the bug report asks for model, firmware and connection separately.
+- The `set_tariff` field help and its format error now point to the docs instead of the wiki.
 
 ## 2.5.0
 

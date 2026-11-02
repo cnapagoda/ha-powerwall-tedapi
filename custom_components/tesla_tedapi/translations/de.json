@@ -809,7 +809,7 @@
         },
         "tou_settings": {
           "name": "Zeittarif-Einstellungen",
-          "description": "Teslas Schreibformat: ein Objekt mit tariff_content_v2 (nicht das Format von get_tariff; siehe Wiki)."
+          "description": "Teslas Schreibformat: ein Objekt mit tariff_content_v2 (nicht das Format von get_tariff; siehe docs/tesla-tariff.md)."
         },
         "dry_run": {
           "name": "Probelauf",

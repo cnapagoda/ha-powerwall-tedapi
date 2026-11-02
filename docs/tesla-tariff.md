@@ -95,7 +95,7 @@ How the fields work:
 |---|---|
 | `would_send` | The payload. |
 | `backend` | The backup it would go through. |
-| `warnings` | What Tesla would change or leave unpriced: times of the week in no period (or in two), days of the year in no season (or in two), seasons without months, prices without a period and periods without a buy price, and a missing `sell_tariff`. |
+| `warnings` | What Tesla would change or leave unpriced: negative rates (Tesla stores 0), sell rates above the buy rate (Tesla raises the buy rate to match), times of the week in no period (or in two), days of the year in no season (or in two), seasons without months, prices without a period and periods without a buy price, and a missing `sell_tariff`. |
 | `unchanged` | Whether these rates are the ones last sent or the ones Tesla already shows. |
 
 ```yaml
@@ -144,6 +144,7 @@ The **[Dynamic price tariff](automations.md#blueprints)** blueprint does all of 
 
 - **Put the Powerwall in Time-Based Control yourself.** The tariff has no effect in *Self-Powered* or *Backup only*.
 - **Tesla stores negative rates as 0.** A negative price in your feed is sent, but Tesla keeps 0; the read-back allows for this.
+- **Tesla raises a buy rate below the sell rate.** Where the sell price is higher, Tesla stores the sell price as the buy price too; the read-back allows for this.
 - **Tesla decides what to do with the tariff.** Writing a tariff doesn't force a charge or discharge; it changes what Tesla's optimisation aims for.
 - **Your retailer or VPP may also write the tariff.** If yours keeps changing, check whether another service manages it.
 - **Writes are commands.** Through Tesla Fleet they count against your developer account; through Teslemetry, against your subscription.

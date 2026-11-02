@@ -809,7 +809,7 @@
         },
         "tou_settings": {
           "name": "Time-of-use settings",
-          "description": "Tesla's write format: an object with tariff_content_v2 (not the format get_tariff returns; see the wiki)."
+          "description": "Tesla's write format: an object with tariff_content_v2 (not the format get_tariff returns; see docs/tesla-tariff.md)."
         },
         "dry_run": {
           "name": "Dry run",

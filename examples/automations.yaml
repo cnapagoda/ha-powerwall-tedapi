@@ -2,7 +2,7 @@
 #
 # Entity IDs assume the device "Powerwall TEDAPI" with no area, for example
 # sensor.powerwall_tedapi_battery_level. If yours start with an area (for
-# example sensor.powerwall_tedapi_...) or end in _2, adjust them; see
+# example sensor.garage_powerwall_tedapi_...) or end in _2, adjust them; see
 # docs/README.md, "Conventions in these pages".
 #
 # More examples, with explanations, are in docs/automations.md. Battery

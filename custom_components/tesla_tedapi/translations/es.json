@@ -809,7 +809,7 @@
         },
         "tou_settings": {
           "name": "Ajustes horarios",
-          "description": "Formato de escritura de Tesla: un objeto con tariff_content_v2 (no el formato que devuelve get_tariff; ver la wiki)."
+          "description": "Formato de escritura de Tesla: un objeto con tariff_content_v2 (no el formato que devuelve get_tariff; ver docs/tesla-tariff.md)."
         },
         "dry_run": {
           "name": "Prueba",
