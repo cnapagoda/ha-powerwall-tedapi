@@ -24,7 +24,7 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 
 ## Quick start
 
-1. **Install** through HACS: add this repository as a custom repository (type **Integration**), download **Tesla Powerwall TEDAPI**, and restart Home Assistant.
+1. **Install** through HACS: search for **Tesla Powerwall TEDAPI**, download it, and restart Home Assistant. If the search doesn't find it, add this repository as a custom repository (type **Integration**) first.
 
    [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cnapagoda&repository=ha-powerwall-tedapi&category=integration)
 

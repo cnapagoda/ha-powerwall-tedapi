@@ -14,12 +14,12 @@ You need:
 
 ## 1. Install
 
-1. In Home Assistant open **HACS → ⋮ → Custom repositories**.
-2. Add `https://github.com/cnapagoda/ha-powerwall-tedapi` with type **Integration**.
-3. Search for **Tesla Powerwall TEDAPI**, open it and select **Download**.
-4. **Restart Home Assistant.**
+1. In Home Assistant open **HACS**, search for **Tesla Powerwall TEDAPI**, open it and select **Download**.
+2. **Restart Home Assistant.**
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cnapagoda&repository=ha-powerwall-tedapi&category=integration)
+
+Not found in the search? Add it as a custom repository first: **HACS → ⋮ → Custom repositories**, add `https://github.com/cnapagoda/ha-powerwall-tedapi` with type **Integration**, then search again.
 
 Without HACS: download the latest release, copy `custom_components/tesla_tedapi` into your `config/custom_components/` folder, and restart.
 

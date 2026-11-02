@@ -11,6 +11,7 @@
 - **Home Assistant 2025.11 or newer is required** (was 2025.1). Only Home Assistant releases from the last 12 months are supported.
 - The manifest lists the integration's category (Energy: solar & batteries), which clears the HACS validation warning.
 - Setup: with the Wi-Fi password only, a refused password now says so (and that the password alone works only over the Powerwall's own Wi-Fi), instead of "Could not reach the Powerwall".
+- Docs: installing starts with searching for the integration in HACS; adding it as a custom repository is the fallback.
 - Docs: the dashboard examples use the new buttons, and the Energy dashboard and Troubleshooting pages no longer make claims about how accurate the gateway's grid counters are.
 
 ## 2.5.1
