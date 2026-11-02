@@ -3,7 +3,6 @@ v1r), grid services and the off-grid vehicle charging reserve."""
 from __future__ import annotations
 
 import time
-from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
@@ -13,8 +12,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.tesla_tedapi.const import DOMAIN
 
-from .conftest import DIN, cloud, local
-from .test_fleet import FLEET_ENTRIES, SITE_INFO, _fleet_entry, _site
+from .conftest import DIN, TESLEMETRY, cloud, local
 
 V1R = {"connection_mode": "v1r", "host": "192.168.1.50", "wifi_host": "",
        "rsa_key_path": "/tmp/key.pem", "gw_pwd": "ABCDE12345", "scan_interval": 30}
@@ -141,33 +139,35 @@ async def test_no_cloud_no_storm_watch(hass: HomeAssistant, fake_powerwall) -> N
     assert _eid(hass, "binary_sensor", "storm_watch_active") is None
 
 
-async def test_storm_watch_and_off_grid_reserve_through_fleet(hass: HomeAssistant, fake_powerwall) -> None:
-    site = _site({**SITE_INFO, "user_settings_storm_mode_enabled": True,
-                  "components_off_grid_vehicle_charging_reserve_supported": True,
-                  "off_grid_vehicle_charging_reserve_percent": 20})
-    site.live_coordinator.data["storm_mode_active"] = True
-    with patch(FLEET_ENTRIES, return_value=[_fleet_entry(site)]):
-        await _setup(hass, V1R, {"cloud_backends": "tesla_fleet"})
-        switch = _eid(hass, "switch", "storm_watch")
-        assert hass.states.get(switch).state == "on"
-        assert hass.states.get(switch).attributes["cloud_backend"] == "tesla_fleet"
-        assert hass.states.get(_eid(hass, "binary_sensor", "storm_watch_active")).state == "on"
-        number = _eid(hass, "number", "off_grid_reserve")
-        assert hass.states.get(number).state == "20"
+async def test_storm_watch_and_off_grid_reserve_through_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    fleet.info["user_settings"]["storm_mode_enabled"] = True
+    fleet.info["components"]["off_grid_vehicle_charging_reserve_supported"] = True
+    fleet.info["off_grid_vehicle_charging_reserve_percent"] = 20
+    fleet.live["storm_mode_active"] = True
+    await _setup(hass, {**V1R, **TESLEMETRY}, {"cloud_backends": "tesla_fleet"})
+    switch = _eid(hass, "switch", "storm_watch")
+    assert hass.states.get(switch).state == "on"
+    assert hass.states.get(switch).attributes["cloud_backend"] == "tesla_fleet"
+    assert hass.states.get(_eid(hass, "binary_sensor", "storm_watch_active")).state == "on"
+    number = _eid(hass, "number", "off_grid_reserve")
+    assert hass.states.get(number).state == "20"
 
-        await hass.services.async_call("switch", "turn_off", {"entity_id": switch}, blocking=True)
-        await hass.services.async_call("number", "set_value", {"entity_id": number, "value": 35}, blocking=True)
-    assert ("storm_mode", {"enabled": False}) in site.api.calls
-    assert ("off_grid_vehicle_charging_reserve", {"off_grid_vehicle_charging_reserve_percent": 35}) in site.api.calls
+    await hass.services.async_call("switch", "turn_off", {"entity_id": switch}, blocking=True)
+    await hass.services.async_call("number", "set_value", {"entity_id": number, "value": 35}, blocking=True)
+    assert ("storm_mode", {"enabled": False}) in fleet.posts
+    assert ("off_grid_vehicle_charging_reserve", {"off_grid_vehicle_charging_reserve_percent": 35}) in fleet.posts
     assert fake_powerwall.instances and cloud(fake_powerwall) is None
 
 
-async def test_storm_watch_appears_when_cloud_answers_later(hass: HomeAssistant, fake_powerwall) -> None:
-    site = _site()
-    fleet_entry = _fleet_entry(site)
-    with patch(FLEET_ENTRIES, return_value=[]):
-        entry = await _setup(hass, V1R, {"cloud_backends": "tesla_fleet"})
-        assert _eid(hass, "switch", "storm_watch") is None
-    with patch(FLEET_ENTRIES, return_value=[fleet_entry]):
-        await _refresh(hass, entry)
-        assert hass.states.get(_eid(hass, "switch", "storm_watch")).state == "off"
+async def test_storm_watch_appears_when_cloud_answers_later(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    from custom_components.tesla_tedapi.fleet import FleetError  # noqa: PLC0415
+
+    fleet.fail = FleetError("HTTP 503", 503)
+    entry = await _setup(hass, {**V1R, **TESLEMETRY}, {"cloud_backends": "tesla_fleet"})
+    assert _eid(hass, "switch", "storm_watch") is None
+    fleet.fail = None
+    backend = entry.runtime_data.coordinator.backends[0]
+    backend.extras = None
+    backend.get_client()._info = None
+    await _refresh(hass, entry)
+    assert hass.states.get(_eid(hass, "switch", "storm_watch")).state == "off"

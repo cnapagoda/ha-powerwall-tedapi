@@ -16,8 +16,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 
-from .const import DOMAIN
-from .fleet import find_site
+from .const import CONF_FLEET_SITE_ID, CONF_SITE_ID, DOMAIN
 
 SOURCE_PLATFORMS = ("tesla_fleet", "teslemetry")
 # Our key -> the cloud integrations' translation key.
@@ -36,11 +35,13 @@ def _refuse(key: str, **placeholders: str) -> ServiceValidationError:
 
 def find_sources(hass: HomeAssistant, din: str | None,
                  overrides: dict[str, str | None]) -> dict[str, str]:
-    """Our key -> source entity id. Overrides win; otherwise the sensors of
-    the Tesla Fleet / Teslemetry site with this Powerwall, or the only ones."""
+    """Our key -> source entity id. Overrides win; otherwise the Tesla Fleet /
+    Teslemetry sensors (found in the entity registry) of the energy site this
+    Powerwall's entry knows from its own sign-in, or the only ones."""
     registry = er.async_get(hass)
-    found = find_site(hass, din)
-    site_id = getattr(found[1], "id", None) if found else None
+    entry = hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, din) if din else None
+    site_ids = {str(entry.data[key]) for key in (CONF_FLEET_SITE_ID, CONF_SITE_ID)
+                if entry is not None and entry.data.get(key)}
     sources: dict[str, str] = {}
     for ours, theirs in PAIRS.items():
         if overrides.get(ours):
@@ -49,8 +50,8 @@ def find_sources(hass: HomeAssistant, din: str | None,
         candidates = [e for e in registry.entities.values()
                       if e.platform in SOURCE_PLATFORMS and e.domain == "sensor"
                       and (e.translation_key == theirs or str(e.unique_id).endswith(f"-{theirs}"))]
-        if site_id is not None:
-            candidates = [e for e in candidates if str(e.unique_id).startswith(f"{site_id}-")]
+        if site_ids:
+            candidates = [e for e in candidates if str(e.unique_id).split("-", 1)[0] in site_ids]
         if len(candidates) != 1:
             raise _refuse("history_no_source", sensor=theirs)
         sources[ours] = candidates[0].entity_id

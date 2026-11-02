@@ -8,7 +8,7 @@ _Screenshots come from a test Home Assistant with example data (no real Powerwal
 - [1. Find the gateway](#1-find-the-gateway)
 - [2. Choose how to connect](#2-choose-how-to-connect)
   - [Register a new key (recommended)](#a-register-a-new-key-recommended)
-  - [Register through Tesla Fleet or Teslemetry](#register-through-tesla-fleet-or-teslemetry)
+  - [Tesla Fleet: your own developer app](#tesla-fleet-your-own-developer-app)
   - [Upload a key that is already registered](#b-upload-a-key-that-is-already-registered)
   - [Wi-Fi password only](#c-wi-fi-password-only)
 - [Signing in to Tesla](#signing-in-to-tesla)
@@ -80,13 +80,16 @@ Either Tesla API can send the registration:
 
 | | Owner API | Fleet API |
 |---|---|---|
-| Who it's for | Everyone | People who already use Tesla Fleet or Teslemetry, or developers |
-| You need | A Tesla sign-in: a refresh token from a token app, or a browser sign-in | Home Assistant's Tesla Fleet or Teslemetry integration with this Powerwall, **or** your own developer app |
-| Where | Path **A** in this wizard | **Register through Tesla Fleet or Teslemetry** in this wizard, or `python -m pypowerwall register` on a computer followed by path **B** |
+| Who it's for | Everyone | People with a Teslemetry plan or their own Tesla developer app |
+| You need | A Tesla sign-in: a refresh token from a token app, or a browser sign-in | A Teslemetry access token, **or** a Tesla developer app |
+| Where | Path **A** in this wizard | Path **A** in this wizard (choose Tesla Fleet or Teslemetry), or `python -m pypowerwall register` on a computer followed by path **B** |
 
 ### A. Register a new key (recommended)
 
-1. **[Sign in to Tesla](#signing-in-to-tesla)** with a refresh token or in the browser.
+1. **Sign in**, one of:
+   - **Tesla account (Owner API):** a refresh token or a browser sign-in ([how](#signing-in-to-tesla)).
+   - **Tesla Fleet:** your own developer app ([below](#tesla-fleet-your-own-developer-app)).
+   - **Teslemetry:** an access token from the Teslemetry console, with the energy permissions.
 2. **The energy site** with this gateway is picked automatically. You only choose when the wizard can't tell.
 3. **Confirm at the Powerwall.** The wizard creates an RSA-4096 key in `config/tesla_tedapi/` and registers it with your Powerwall. Within about **10 minutes**:
    - **Powerwall 3:** switch the **On/Off switch** (left side) **OFF for about 15 seconds, then back ON**. A quick flick is ignored. Don't leave it off until the unit powers down.
@@ -94,7 +97,7 @@ Either Tesla API can send the registration:
 
    The wizard checks every 10 seconds and continues by itself once the Powerwall confirms. It shows the start of the key's fingerprint so you can tell keys apart. If the 10-minute window closes, it registers the key again once by itself; after that it asks you to try again.
 
-Your Tesla sign-in is saved in `config/tesla_tedapi/.pypowerwall.auth` and used as the cloud backup.
+The sign-in is kept (a Tesla account in `config/tesla_tedapi/.pypowerwall.auth`, a Fleet API sign-in in the integration's entry) and used as the [cloud backup](cloud-backup.md).
 
 <details>
 <summary>Screenshots: Tesla sign-in, confirmation, done</summary>
@@ -107,11 +110,13 @@ Your Tesla sign-in is saved in `config/tesla_tedapi/.pypowerwall.auth` and used 
 
 </details>
 
-### Register through Tesla Fleet or Teslemetry
+### Tesla Fleet: your own developer app
 
-If Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) or [Teslemetry](https://www.home-assistant.io/integrations/teslemetry) integration already has this Powerwall, the wizard offers **Register a new key with my Tesla Fleet or Teslemetry integration (no Tesla sign-in)**. Confirm at the Powerwall as in path A.
+Tesla Fleet signs in with your own Tesla developer app. The app you use for Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration works too; the two sign-ins are separate. The first time, the wizard asks for the app's **Client ID** and **Client Secret** and keeps them under **Settings → Application credentials**. Then Tesla's sign-in page opens: allow the energy permissions.
 
-On an existing setup, use **Configure → Register a new signed key**.
+The app needs the energy scopes, `https://my.home-assistant.io/redirect/oauth` as a redirect URI, and a registered domain. Making one is described [below](#registering-with-the-fleet-api-developers).
+
+On an existing setup, use **Configure → Register a new signed key**, or **Configure → Sign in to Tesla Fleet or Teslemetry** for the cloud backup only.
 
 ### B. Upload a key that is already registered
 
@@ -174,12 +179,12 @@ Codes expire within minutes and work only once. If Tesla rejects a code, the wiz
 
 ## Registering with the Fleet API (developers)
 
-You only need this if you want to register with your **own** Tesla developer app instead of the Owner API or the Tesla Fleet / Teslemetry integration. The Fleet API needs a developer app whose public key is hosted on a domain you own. If you already use Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration, you have both and can reuse the same developer app.
+You only need this for your **own** Tesla developer app: for the [Tesla Fleet sign-in](#tesla-fleet-your-own-developer-app), or to register a key with `pypowerwall register`. The Fleet API needs a developer app whose public key is hosted on a domain you own. If you already use Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration, you have both and can reuse the same developer app.
 
 1. **Developer app.** At [developer.tesla.com/request](https://developer.tesla.com/request), create an app with:
    - OAuth grant type: *Authorization Code and Machine-to-Machine*.
    - Allowed origin: your domain, for example `https://yourdomain.com/`.
-   - Allowed redirect URIs: `https://my.home-assistant.io/redirect/oauth` (for Tesla Fleet), and one for this command, for example `https://yourdomain.com/callback`. That page doesn't need to exist; you only copy its address.
+   - Allowed redirect URIs: `https://my.home-assistant.io/redirect/oauth` (for the Tesla Fleet sign-in), and one for `pypowerwall register`, for example `https://yourdomain.com/callback`. That page doesn't need to exist; you only copy its address.
    - Scopes: **Energy Product Information** and **Energy Product Settings**. The energy APIs are free; no billing is needed.
 
    Note the **Client ID** and **Client Secret** under *View Details → Credentials & APIs*.
@@ -187,7 +192,7 @@ You only need this if you want to register with your **own** Tesla developer app
    - The [NGINX Home Assistant SSL proxy](https://github.com/home-assistant/addons/blob/master/nginx_proxy/DOCS.md) app, with a custom `location` for the `.well-known` path.
    - A hosting service such as [FleetKey.net](https://fleetkey.net) or [MyTeslamate](https://app.myteslamate.com/fleet).
 
-   Tesla may silently reject some domains (for example `ddns.net` hostnames). China isn't supported. The Tesla Fleet integration's setup registers your domain with Tesla (the partner registration); without it, see [Tesla's Fleet API guide](https://developer.tesla.com/docs/fleet-api/getting-started/what-is-fleet-api).
+   Tesla may silently reject some domains (for example `ddns.net` hostnames). China isn't supported. Tesla only answers an app whose domain is registered with it (the partner registration). Home Assistant's Tesla Fleet integration does this in its setup; this integration doesn't. Without it, see [Tesla's Fleet API guide](https://developer.tesla.com/docs/fleet-api/getting-started/what-is-fleet-api).
 3. **Register the Powerwall key** on a computer with Python:
 
    ```bash

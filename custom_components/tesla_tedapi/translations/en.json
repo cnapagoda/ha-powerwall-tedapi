@@ -34,7 +34,6 @@
         "title": "Choose how to connect",
         "description": "Signed (v1r) access needs a key that this Powerwall trusts.",
         "menu_options": {
-          "register_fleet": "Register a new key with my Tesla Fleet or Teslemetry integration (no Tesla sign-in)",
           "register": "Register a new key (recommended)",
           "key_upload": "Upload a key that is already registered",
           "wifi": "No key: Wi-Fi password only (monitoring)"
@@ -98,7 +97,6 @@
         "title": "The Powerwall no longer accepts Home Assistant",
         "description": "The gateway keeps refusing the password or the key. Readings stop until this is fixed; settings still work through the Tesla cloud if an account is linked.",
         "menu_options": {
-          "register_fleet": "Register the key again with my Tesla Fleet or Teslemetry integration",
           "reauth_password": "Enter the gateway password again",
           "register": "Register the key again",
           "key_upload": "Upload a different key"
@@ -133,10 +131,44 @@
         "title": "Register a new key",
         "description": "Register another signed key for this Powerwall. The current key keeps working; Home Assistant switches to the new key only once the Powerwall confirms it.",
         "menu_options": {
-          "register_fleet": "Register a new key with my Tesla Fleet or Teslemetry integration (no Tesla sign-in)",
           "register": "Register a new key (recommended)",
           "key_upload": "Upload a key that is already registered"
         }
+      },
+      "signin": {
+        "title": "Sign in to Tesla",
+        "description": "The sign-in registers the key with the Powerwall and is the cloud backup for changing settings when the local connection is down.",
+        "menu_options": {
+          "login": "Tesla account (Owner API)",
+          "fleet_oauth": "Tesla Fleet (your own Tesla developer app)",
+          "teslemetry": "Teslemetry (access token)"
+        }
+      },
+      "fleet_signin": {
+        "title": "Sign in to Tesla Fleet or Teslemetry",
+        "description": "The sign-in is the cloud backup for changing settings (Tesla's Fleet API).",
+        "menu_options": {
+          "fleet_oauth": "Tesla Fleet (your own Tesla developer app)",
+          "teslemetry": "Teslemetry (access token)"
+        }
+      },
+      "fleet_credentials": {
+        "title": "Tesla developer app",
+        "description": "Tesla Fleet needs your own app from the [Tesla developer dashboard]({developer_url}), with the energy device data and energy commands scopes and `{redirect_url}` as an allowed redirect URL. The app you use for Home Assistant's Tesla Fleet integration works too.",
+        "data": {
+          "client_id": "Client ID",
+          "client_secret": "Client secret"
+        }
+      },
+      "teslemetry": {
+        "title": "Teslemetry",
+        "description": "Paste an access token from the Teslemetry console. It needs the energy device data and energy commands permissions.",
+        "data": {
+          "access_token": "Access token"
+        }
+      },
+      "pick_implementation": {
+        "title": "Pick the Tesla developer app"
       }
     },
     "progress": {
@@ -167,7 +199,19 @@
       "register_token_refused": "Tesla refused the sign-in token when registering the key. Start the setup again and sign in again (in the browser, or with a fresh refresh token).",
       "register_wrong_site": "Tesla doesn't know that energy site on this account. Start the setup again and choose the site with this Powerwall, signed in with the Tesla account that owns it.",
       "register_unreachable": "Tesla could not reach the Powerwall to register the key. Check that it shows as online in the Tesla app (its internet connection), wait a few minutes and start the setup again.",
-      "register_fleet_unavailable": "The Tesla Fleet or Teslemetry integration can no longer be used for this Powerwall: it isn't loaded, doesn't have this Powerwall, or its sign-in can't send commands (it needs the energy_cmds permission). Check that integration, or start the setup again and register with a Tesla sign-in."
+      "register_fleet_unavailable": "The Fleet API sign-in can't send commands to this Powerwall: it needs the energy commands permission. Sign in again and allow it, or choose another sign-in.",
+      "fleet_refused": "Tesla Fleet refused the new sign-in. Check that the app has the energy scopes, then try again.",
+      "fleet_error": "Tesla Fleet returned an error. Try again in a minute.",
+      "oauth_error": "Tesla returned an invalid sign-in. Try again.",
+      "oauth_failed": "Getting the Tesla sign-in failed. Try again.",
+      "oauth_timeout": "Tesla took too long to finish the sign-in. Try again.",
+      "oauth_unauthorized": "Tesla refused the app's client ID or secret. Check the application credentials.",
+      "user_rejected_authorize": "The sign-in was cancelled: {error}",
+      "authorize_url_timeout": "Making the sign-in link took too long. Try again.",
+      "no_url_available": "Home Assistant has no URL for the sign-in to return to. Set one under Settings → System → Network.",
+      "missing_credentials": "Add the Tesla developer app under Settings → Application credentials first.",
+      "missing_configuration": "Add the Tesla developer app under Settings → Application credentials first.",
+      "oauth_implementation_unavailable": "The Tesla developer app isn't available. Check the application credentials."
     }
   },
   "options": {
@@ -176,8 +220,9 @@
         "title": "Tesla Powerwall TEDAPI options",
         "menu_options": {
           "settings": "Settings",
-          "cloud_backup": "Cloud backup (Owner API, Tesla Fleet)",
+          "cloud_backup": "Cloud backup (Owner API, Fleet API)",
           "link_account": "Link a Tesla account (Owner API)",
+          "fleet_signin": "Sign in to Tesla Fleet or Teslemetry",
           "unlink_account": "Unlink a cloud backup",
           "new_key": "Register a new signed key"
         }
@@ -232,12 +277,12 @@
       },
       "cloud_backup": {
         "title": "Cloud backup",
-        "description": "When the local connection can't read or change a setting, it goes through the Tesla cloud instead. Two backups can be used, alone or one after the other:\n\n- **Owner API**: a Tesla account linked here (*Link a Tesla account*). Currently {owner}.\n- **Tesla Fleet**: the sign-in of Home Assistant's Tesla Fleet or Teslemetry integration, which use Tesla's official Fleet API. A loaded entry with this Powerwall is currently {fleet}. Its site data is read without extra Tesla calls, and its token is never refreshed here, so it stays signed in.\n\nWith both, settings are read from the first one that answers, and a change goes to the first one that accepts it. Each backup is checked about once an hour; one that stops working gets its own repair while the other keeps going.",
+        "description": "When the local connection can't read or change a setting, it goes through the Tesla cloud instead. Two backups can be used, alone or one after the other:\n\n- **Owner API**: a Tesla account linked here (*Link a Tesla account*). Currently {owner}.\n- **Fleet API**: a Tesla Fleet or Teslemetry sign-in made here (*Sign in to Tesla Fleet or Teslemetry*). Currently {fleet}.\n\nWith both, settings are read from the first one that answers, and a change goes to the first one that accepts it. Each backup is checked about once an hour; one that stops working gets its own repair while the other keeps going.",
         "data": {
           "cloud_backends": "Cloud backup"
         },
         "data_description": {
-          "cloud_backends": "Only the backups that are set up are offered. Changing a setting through Tesla Fleet counts as a command on that Tesla developer account (or Teslemetry subscription); reading costs nothing extra."
+          "cloud_backends": "Only the backups that are set up are offered. Fleet API calls count on your Tesla developer account or Teslemetry plan."
         }
       },
       "login": {
@@ -280,7 +325,8 @@
     "abort": {
       "no_sites": "No Powerwall was found on this Tesla account. Sign in with the Tesla account that owns the Powerwall (the one that shows it in the Tesla app).",
       "wrong_powerwall": "That Tesla account has no site with this Powerwall. Sign in with the Tesla account that owns it.",
-      "new_key_started": "Open Settings → Devices & services: this Powerwall now shows a Reauthenticate prompt, where you choose how to register the new key. The current key keeps working until the new one is confirmed."
+      "new_key_started": "Open Settings → Devices & services: this Powerwall now shows a Reauthenticate prompt, where you choose how to register the new key. The current key keeps working until the new one is confirmed.",
+      "fleet_signin_started": "Open Settings → Devices & services: this Powerwall now shows a Reauthenticate prompt, where you sign in to Tesla Fleet or Teslemetry."
     }
   },
   "entity": {
@@ -932,12 +978,46 @@
       }
     },
     "fleet_backup": {
-      "title": "Tesla Fleet cloud backup is not working",
-      "description": "The Tesla Powerwall TEDAPI integration uses the Tesla Fleet (or Teslemetry) integration as a cloud backup for settings, and the last checks failed. Local readings and control are not affected.\n\nCheck that the Tesla Fleet or Teslemetry integration is enabled, loaded and signed in (re-authenticate it if it asks), and that this Powerwall is on its Tesla account. This notice disappears after the next successful check (about hourly). To stop using it, choose another cloud backup in this integration's options."
+      "title": "Fleet API cloud backup is not working",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Sign in again",
+            "description": "The Tesla Fleet or Teslemetry sign-in used as the cloud backup for settings stopped working. Local readings and control are not affected.\n\nSign in again with **Submit** below, or with *Sign in to Tesla Fleet or Teslemetry* in this integration's options. This notice disappears after the next successful check (about hourly)."
+          }
+        },
+        "abort": {
+          "entry_gone": "The Powerwall entry was removed."
+        }
+      }
     },
     "fleet_read_only": {
-      "title": "Tesla Fleet cloud backup can't change settings",
-      "description": "The Tesla Fleet (or Teslemetry) sign-in used as the cloud backup can read the Powerwall's settings but not change them: it lacks the **energy_cmds** (energy commands) scope. Settings changes fall back to the next cloud backup, if any.\n\nSign in to that integration again (re-configure or re-authenticate it) and allow the energy commands permission. This notice disappears at the next check after that."
+      "title": "Fleet API cloud backup can't change settings",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Sign in again",
+            "description": "The Tesla Fleet or Teslemetry sign-in used as the cloud backup can read the Powerwall's settings but not change them: it lacks the **energy_cmds** (energy commands) scope. Settings changes fall back to the next cloud backup, if any.\n\nSign in again and allow energy commands. This notice disappears at the next check after that."
+          }
+        },
+        "abort": {
+          "entry_gone": "The Powerwall entry was removed."
+        }
+      }
+    },
+    "fleet_signin": {
+      "title": "Sign in to Tesla Fleet or Teslemetry",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Sign in again",
+            "description": "This Powerwall's cloud backup used Home Assistant's Tesla Fleet or Teslemetry integration. The integration now signs in on its own, so that backup is paused until you sign in here. Local readings and control are not affected.\n\nSubmit to start a Reauthenticate prompt for this Powerwall (Settings → Devices & services), where you sign in to Tesla Fleet or Teslemetry."
+          }
+        },
+        "abort": {
+          "entry_gone": "The Powerwall entry was removed."
+        }
+      }
     },
     "off_grid_reconnect_failed": {
       "title": "The Powerwall couldn't reconnect to the grid",
@@ -970,9 +1050,9 @@
       "options": {
         "none": "None (local only)",
         "owner_api": "Owner API (Tesla account linked here)",
-        "tesla_fleet": "Tesla Fleet (or Teslemetry)",
-        "fleet_then_owner": "Tesla Fleet, then Owner API",
-        "owner_then_fleet": "Owner API, then Tesla Fleet"
+        "tesla_fleet": "Fleet API (Tesla Fleet or Teslemetry)",
+        "fleet_then_owner": "Fleet API, then Owner API",
+        "owner_then_fleet": "Owner API, then Fleet API"
       }
     },
     "tariff_read_back": {

@@ -200,7 +200,7 @@ A one-off copy of **Tesla Fleet** or **Teslemetry**'s battery charged and discha
 | `source_discharged` | (found automatically) | The same for discharged energy. |
 | `config_entry_id` | | Only with several Powerwalls. |
 
-The sources are found by matching the Tesla Fleet or Teslemetry site that has this Powerwall. The response's `summary` lists, per sensor, the `source`, the number of `hours`, the `kwh`, the period (`from`, `to`) and where it joins (`join`).
+The sources are found in the entity registry, by the energy site this Powerwall's cloud sign-in uses (or the only one). The response's `summary` lists, per sensor, the `source`, the number of `hours`, the `kwh`, the period (`from`, `to`) and where it joins (`join`).
 
 It's refused when there is nothing to import, or when the history was already imported.
 

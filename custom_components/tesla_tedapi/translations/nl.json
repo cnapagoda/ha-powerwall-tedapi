@@ -34,7 +34,6 @@
         "title": "Kies hoe je verbindt",
         "description": "Ondertekende toegang (v1r) heeft een sleutel nodig die deze Powerwall vertrouwt.",
         "menu_options": {
-          "register_fleet": "Nieuwe sleutel registreren met mijn Tesla Fleet- of Teslemetry-integratie (zonder Tesla-aanmelding)",
           "register": "Een nieuwe sleutel registreren (aanbevolen)",
           "key_upload": "Een al geregistreerde sleutel uploaden",
           "wifi": "Geen sleutel: alleen wifi-wachtwoord (monitoring)"
@@ -98,7 +97,6 @@
         "title": "De Powerwall accepteert Home Assistant niet meer",
         "description": "De gateway blijft het wachtwoord of de sleutel weigeren. Metingen stoppen tot dit is opgelost; instellingen werken nog via de Tesla-cloud als een account is gekoppeld.",
         "menu_options": {
-          "register_fleet": "Sleutel opnieuw registreren met mijn Tesla Fleet- of Teslemetry-integratie",
           "reauth_password": "Gateway-wachtwoord opnieuw invoeren",
           "register": "De sleutel opnieuw registreren",
           "key_upload": "Een andere sleutel uploaden"
@@ -133,10 +131,44 @@
         "title": "Nieuwe sleutel registreren",
         "description": "Nog een ondertekende sleutel voor deze Powerwall registreren. De huidige sleutel blijft werken; Home Assistant schakelt pas over naar de nieuwe sleutel als de Powerwall die bevestigt.",
         "menu_options": {
-          "register_fleet": "Nieuwe sleutel registreren met mijn Tesla Fleet- of Teslemetry-integratie (zonder Tesla-aanmelding)",
           "register": "Een nieuwe sleutel registreren (aanbevolen)",
           "key_upload": "Een al geregistreerde sleutel uploaden"
         }
+      },
+      "signin": {
+        "title": "Aanmelden bij Tesla",
+        "description": "Met de aanmelding wordt de sleutel bij de Powerwall geregistreerd; ze is ook de cloudback-up om instellingen te wijzigen als de lokale verbinding uitvalt.",
+        "menu_options": {
+          "login": "Tesla-account (Owner API)",
+          "fleet_oauth": "Tesla Fleet (je eigen Tesla-ontwikkelaarsapp)",
+          "teslemetry": "Teslemetry (toegangstoken)"
+        }
+      },
+      "fleet_signin": {
+        "title": "Aanmelden bij Tesla Fleet of Teslemetry",
+        "description": "De aanmelding is de cloudback-up voor het wijzigen van instellingen (Tesla's Fleet API).",
+        "menu_options": {
+          "fleet_oauth": "Tesla Fleet (je eigen Tesla-ontwikkelaarsapp)",
+          "teslemetry": "Teslemetry (toegangstoken)"
+        }
+      },
+      "fleet_credentials": {
+        "title": "Tesla-ontwikkelaarsapp",
+        "description": "Tesla Fleet heeft je eigen app nodig uit het [Tesla-ontwikkelaarsdashboard]({developer_url}), met de rechten voor energiegegevens en energieopdrachten en `{redirect_url}` als toegestane omleidings-URL. De app voor de Tesla Fleet-integratie van Home Assistant werkt ook.",
+        "data": {
+          "client_id": "Client-ID",
+          "client_secret": "Clientgeheim"
+        }
+      },
+      "teslemetry": {
+        "title": "Teslemetry",
+        "description": "Plak een toegangstoken uit de Teslemetry-console. Het heeft de rechten voor energiegegevens en energieopdrachten nodig.",
+        "data": {
+          "access_token": "Toegangstoken"
+        }
+      },
+      "pick_implementation": {
+        "title": "Kies de Tesla-ontwikkelaarsapp"
       }
     },
     "progress": {
@@ -167,7 +199,19 @@
       "register_token_refused": "Tesla heeft de aanmeldtoken geweigerd bij het registreren van de sleutel. Start de installatie opnieuw en log opnieuw in (in de browser, of met een nieuwe refresh-token).",
       "register_wrong_site": "Tesla kent die energielocatie niet op dit account. Start de installatie opnieuw en kies de locatie met deze Powerwall, ingelogd met het Tesla-account dat eigenaar is.",
       "register_unreachable": "Tesla kon de Powerwall niet bereiken om de sleutel te registreren. Controleer of hij online is in de Tesla-app (zijn internetverbinding), wacht een paar minuten en start de installatie opnieuw.",
-      "register_fleet_unavailable": "De integratie Tesla Fleet of Teslemetry kan niet meer voor deze Powerwall worden gebruikt: ze is niet geladen, kent deze Powerwall niet, of haar aanmelding mag geen opdrachten sturen (ze heeft de machtiging energy_cmds nodig). Controleer die integratie, of start de installatie opnieuw en registreer met een Tesla-aanmelding."
+      "register_fleet_unavailable": "De Fleet API-aanmelding kan geen opdrachten naar deze Powerwall sturen: ze heeft het recht voor energieopdrachten nodig. Meld je opnieuw aan en sta het toe, of kies een andere aanmelding.",
+      "fleet_refused": "Tesla Fleet heeft de nieuwe aanmelding geweigerd. Controleer of de app de energierechten heeft en probeer het opnieuw.",
+      "fleet_error": "Tesla Fleet gaf een fout. Probeer het over een minuut opnieuw.",
+      "oauth_error": "Tesla gaf een ongeldige aanmelding terug. Probeer het opnieuw.",
+      "oauth_failed": "De Tesla-aanmelding kon niet worden opgehaald. Probeer het opnieuw.",
+      "oauth_timeout": "Tesla deed te lang over het afronden van de aanmelding. Probeer het opnieuw.",
+      "oauth_unauthorized": "Tesla weigerde de client-ID of het clientgeheim van de app. Controleer de applicatiegegevens.",
+      "user_rejected_authorize": "De aanmelding is geannuleerd: {error}",
+      "authorize_url_timeout": "Het maken van de aanmeldlink duurde te lang. Probeer het opnieuw.",
+      "no_url_available": "Home Assistant heeft geen URL waar de aanmelding naar kan terugkeren. Stel er een in onder Instellingen → Systeem → Netwerk.",
+      "missing_credentials": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
+      "missing_configuration": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
+      "oauth_implementation_unavailable": "De Tesla-ontwikkelaarsapp is niet beschikbaar. Controleer de applicatiegegevens."
     }
   },
   "options": {
@@ -176,8 +220,9 @@
         "title": "Opties voor Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Instellingen",
-          "cloud_backup": "Cloud-back-up (Owner API, Tesla Fleet)",
+          "cloud_backup": "Cloudback-up (Owner API, Fleet API)",
           "link_account": "Een Tesla-account koppelen (Owner API)",
+          "fleet_signin": "Aanmelden bij Tesla Fleet of Teslemetry",
           "unlink_account": "Een cloudback-up ontkoppelen",
           "new_key": "Nieuwe ondertekende sleutel registreren"
         }
@@ -232,12 +277,12 @@
       },
       "cloud_backup": {
         "title": "Cloud-back-up",
-        "description": "Als de lokale verbinding een instelling niet kan lezen of wijzigen, gaat het via de Tesla-cloud. Twee back-ups kunnen worden gebruikt, apart of na elkaar:\n\n- **Owner API**: een hier gekoppeld Tesla-account (*Een Tesla-account koppelen*). Momenteel {owner}.\n- **Tesla Fleet**: de aanmelding van de Home Assistant-integratie Tesla Fleet of Teslemetry, die de officiële Fleet API van Tesla gebruiken. Een geladen vermelding met deze Powerwall is momenteel {fleet}. De locatiegegevens worden zonder extra Tesla-aanroepen gelezen, en de token wordt hier nooit vernieuwd, zodat hij ingelogd blijft.\n\nMet beide worden instellingen gelezen van de eerste die antwoordt, en gaat een wijziging naar de eerste die hem accepteert. Elke back-up wordt ongeveer elk uur gecontroleerd; een back-up die niet meer werkt, krijgt een eigen reparatie terwijl de andere doorgaat.",
+        "description": "Als de lokale verbinding een instelling niet kan lezen of wijzigen, gaat het via de Tesla-cloud. Twee back-ups kunnen alleen of na elkaar worden gebruikt:\n\n- **Owner API**: een hier gekoppeld Tesla-account (*Een Tesla-account koppelen*). Nu {owner}.\n- **Fleet API**: een hier gemaakte aanmelding bij Tesla Fleet of Teslemetry (*Aanmelden bij Tesla Fleet of Teslemetry*). Nu {fleet}.\n\nMet beide worden instellingen gelezen van de eerste die antwoordt, en een wijziging gaat naar de eerste die haar accepteert. Elke back-up wordt ongeveer elk uur gecontroleerd; een die niet meer werkt krijgt een eigen reparatie terwijl de andere doorgaat.",
         "data": {
           "cloud_backends": "Cloud-back-up"
         },
         "data_description": {
-          "cloud_backends": "Alleen ingestelde back-ups worden aangeboden. Een instelling wijzigen via Tesla Fleet telt als een opdracht op dat Tesla-ontwikkelaarsaccount (of Teslemetry-abonnement); lezen kost niets extra."
+          "cloud_backends": "Alleen ingestelde back-ups worden aangeboden. Fleet API-aanroepen tellen mee op je Tesla-ontwikkelaarsaccount of Teslemetry-abonnement."
         }
       },
       "login": {
@@ -280,7 +325,8 @@
     "abort": {
       "no_sites": "Er is geen Powerwall gevonden op dit Tesla-account. Log in met het Tesla-account dat eigenaar is van de Powerwall (het account dat hem in de Tesla-app toont).",
       "wrong_powerwall": "Dat Tesla-account heeft geen locatie met deze Powerwall. Log in met het Tesla-account dat eigenaar is.",
-      "new_key_started": "Open Instellingen → Apparaten & diensten: deze Powerwall toont nu een verzoek om opnieuw te authenticeren, waar je kiest hoe de nieuwe sleutel wordt geregistreerd. De huidige sleutel blijft werken tot de nieuwe is bevestigd."
+      "new_key_started": "Open Instellingen → Apparaten & diensten: deze Powerwall toont nu een verzoek om opnieuw te authenticeren, waar je kiest hoe de nieuwe sleutel wordt geregistreerd. De huidige sleutel blijft werken tot de nieuwe is bevestigd.",
+      "fleet_signin_started": "Open Instellingen → Apparaten en diensten: deze Powerwall toont nu een verzoek om opnieuw te verifiëren, waar je je aanmeldt bij Tesla Fleet of Teslemetry."
     }
   },
   "entity": {
@@ -932,12 +978,46 @@
       }
     },
     "fleet_backup": {
-      "title": "Tesla Fleet-cloud-back-up werkt niet",
-      "description": "De integratie Tesla Powerwall TEDAPI gebruikt de integratie Tesla Fleet (of Teslemetry) als cloud-back-up voor instellingen, en de laatste controles zijn mislukt. Lokale metingen en bediening worden niet beïnvloed.\n\nControleer of de integratie Tesla Fleet of Teslemetry is ingeschakeld, geladen en ingelogd (authenticeer opnieuw als daarom wordt gevraagd), en of deze Powerwall op het bijbehorende Tesla-account staat. Deze melding verdwijnt na de volgende geslaagde controle (ongeveer elk uur). Om hem niet meer te gebruiken, kies je een andere cloud-back-up in de opties van deze integratie."
+      "title": "Fleet API-cloudback-up werkt niet",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Opnieuw aanmelden",
+            "description": "De aanmelding bij Tesla Fleet of Teslemetry die als cloudback-up voor instellingen dient, werkt niet meer. Lokale metingen en bediening werken gewoon.\n\nMeld je opnieuw aan met **Verzenden** hieronder, of met *Aanmelden bij Tesla Fleet of Teslemetry* in de opties van deze integratie. Deze melding verdwijnt na de volgende geslaagde controle (ongeveer elk uur)."
+          }
+        },
+        "abort": {
+          "entry_gone": "De Powerwall-vermelding is verwijderd."
+        }
+      }
     },
     "fleet_read_only": {
-      "title": "Tesla Fleet-cloud-back-up kan geen instellingen wijzigen",
-      "description": "De Tesla Fleet- (of Teslemetry-)aanmelding die als cloud-back-up wordt gebruikt, kan de instellingen van de Powerwall lezen maar niet wijzigen: de machtiging **energy_cmds** (energieopdrachten) ontbreekt. Wijzigingen gaan naar de volgende cloud-back-up, als die er is.\n\nLog opnieuw in bij die integratie (opnieuw configureren of opnieuw authenticeren) en sta de machtiging voor energieopdrachten toe. Deze melding verdwijnt bij de volgende controle daarna."
+      "title": "Fleet API-cloudback-up kan instellingen niet wijzigen",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Opnieuw aanmelden",
+            "description": "De aanmelding bij Tesla Fleet of Teslemetry die als back-up dient, kan de instellingen van de Powerwall lezen maar niet wijzigen: het recht **energy_cmds** (energieopdrachten) ontbreekt. Wijzigingen gaan naar de volgende back-up, als die er is.\n\nMeld je opnieuw aan en sta energieopdrachten toe. Deze melding verdwijnt bij de volgende controle daarna."
+          }
+        },
+        "abort": {
+          "entry_gone": "De Powerwall-vermelding is verwijderd."
+        }
+      }
+    },
+    "fleet_signin": {
+      "title": "Aanmelden bij Tesla Fleet of Teslemetry",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Opnieuw aanmelden",
+            "description": "De cloudback-up van deze Powerwall gebruikte de Tesla Fleet- of Teslemetry-integratie van Home Assistant. De integratie meldt zich nu zelf aan, dus die back-up staat stil tot je je hier aanmeldt. Lokale metingen en bediening werken gewoon.\n\nVerzend om een verzoek om opnieuw te verifiëren voor deze Powerwall te starten (Instellingen → Apparaten en diensten), waar je je aanmeldt bij Tesla Fleet of Teslemetry."
+          }
+        },
+        "abort": {
+          "entry_gone": "De Powerwall-vermelding is verwijderd."
+        }
+      }
     },
     "off_grid_reconnect_failed": {
       "title": "De Powerwall kon niet opnieuw met het net verbinden",
@@ -970,9 +1050,9 @@
       "options": {
         "none": "Geen (alleen lokaal)",
         "owner_api": "Owner API (hier gekoppeld Tesla-account)",
-        "tesla_fleet": "Tesla Fleet (of Teslemetry)",
-        "fleet_then_owner": "Tesla Fleet, daarna Owner API",
-        "owner_then_fleet": "Owner API, daarna Tesla Fleet"
+        "tesla_fleet": "Fleet API (Tesla Fleet of Teslemetry)",
+        "fleet_then_owner": "Fleet API, dan Owner API",
+        "owner_then_fleet": "Owner API, dan Fleet API"
       }
     },
     "tariff_read_back": {

@@ -2,8 +2,8 @@
 
 Readings come from the gateway over the local network. Settings are written to
 the gateway when the connection is signed (v1r) and to the Tesla cloud as a
-backup: a Tesla account linked here (Owner API), the Tesla Fleet integration's
-sign-in (Fleet API), or both in the chosen order."""
+backup: a Tesla account linked here (Owner API), a Fleet API sign-in made here
+(Tesla Fleet or Teslemetry), or both in the chosen order."""
 from __future__ import annotations
 
 import asyncio
@@ -40,6 +40,8 @@ from .const import (
     CLOUD_VERIFY_SECONDS,
     CLOUD_VERIFY_TIMEOUT_SECONDS,
     CONF_CONNECTION_MODE,
+    CONF_FLEET_PROVIDER,
+    CONF_FLEET_SITE_ID,
     CONF_GW_PWD,
     CONF_HOST,
     CONF_OWNERS_AUTHPATH,
@@ -75,7 +77,7 @@ from .const import (
 )
 from .daily import DailyEnergy, GridCheck
 from .firmware import FirmwareTracker, split_version
-from .fleet import FleetBackup, FleetTimeout, fleet_starting
+from .fleet import FleetBackup, FleetTimeout, entry_api, provider_label
 from .outages import OutageTracker
 from .texts import texts as shared_texts
 
@@ -308,7 +310,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.problem_after = timedelta(minutes=DEFAULT_PROBLEM_MINUTES)
         self._apply_live_options(options)
 
-        self.backends: list[CloudBackend] = self._make_backends(hass, data, options)
+        self.backends: list[CloudBackend] = self._make_backends(hass, entry)
         self.cloud_enabled: bool = bool(self.backends)
         # Tesla tariff (optional, cloud only): raw tariff, the backup it came
         # from, and when it was last read (monotonic).
@@ -396,19 +398,25 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.update_interval = self._scan_interval(self.config_entry)
         self.async_update_listeners()
 
-    def _make_backends(self, hass: HomeAssistant, data: Any, options: Any) -> list[CloudBackend]:
-        """The cloud backups in the order chosen in the options."""
+    def _make_backends(self, hass: HomeAssistant, entry: TedapiConfigEntry) -> list[CloudBackend]:
+        """The cloud backups in the order chosen in the options. A Fleet API
+        backup that was chosen but has no sign-in here (set up before 2.6,
+        through the Tesla Fleet integration) is left out until there is one."""
         backends: list[CloudBackend] = []
-        started = time.monotonic()
-        for name in CLOUD_CHOICES.get(cloud_choice(data, options), ()):
+        data = entry.data
+        self.fleet_signin_needed = False
+        for name in CLOUD_CHOICES.get(cloud_choice(data, entry.options), ()):
             if name == BACKEND_OWNER and self._owners_email:
                 backends.append(CloudBackend(name, self._init_cloud, extras_seconds=OWNER_EXTRAS_SECONDS))
             elif name == BACKEND_FLEET:
-                fleet = FleetBackup(hass, lambda: self.din)
+                api = entry_api(hass, entry)
+                if api is None:
+                    self.fleet_signin_needed = True
+                    continue
+                fleet = FleetBackup(hass, api, int(data[CONF_FLEET_SITE_ID]))
                 backends.append(CloudBackend(
-                    name, lambda fleet=fleet: fleet,
-                    starting=lambda: fleet_starting(hass, self.din, started),
-                    writable=lambda fleet=fleet: fleet.can_write))
+                    name, lambda fleet=fleet: fleet, writable=lambda fleet=fleet: fleet.can_write,
+                    extras_seconds=OWNER_EXTRAS_SECONDS, display=provider_label(data.get(CONF_FLEET_PROVIDER))))
         return backends
 
     def backend(self, name: str) -> CloudBackend | None:
@@ -602,8 +610,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         now = time.monotonic()
         if backend.cache and now - backend.cache[0] < CLOUD_CACHE_SECONDS:
             return backend.cache[1]
-        if (backend.failing and not check) or backend.starting():
-            return {}  # Tesla Fleet still starting: not a failure, asked again later
+        if backend.failing and not check:
+            return {}
         try:
             values = self._read_control_from(backend.get_client())
         except Exception as err:  # noqa: BLE001
@@ -842,9 +850,6 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_refused_no_cloud")
         errors: list[str] = []
         for backend in self.backends:
-            if backend.starting():
-                errors.append(f"{backend.label} is still starting")
-                continue
             try:
                 ok = self._write_ok(write(backend.get_client()))
             except FleetTimeout as err:
@@ -927,7 +932,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _tariff_backends(self) -> list[CloudBackend]:
         if not self.cloud_enabled:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="tariff_needs_cloud")
-        return [b for b in self.backends if not b.failing and not b.starting()]
+        return [b for b in self.backends if not b.failing]
 
     def _read_tariff(self) -> tuple[dict[str, Any], str]:
         """The tariff from the first cloud backup (in order) that gives one."""
@@ -973,7 +978,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         after 15 s ("once", for scheduled writes) or not at all ("none").
         "status" is confirmed, pending (Tesla doesn't show it yet: checked
         again later, with a repair if it still doesn't), mismatch (a full
-        read-back through Tesla Fleet shows other rates: a repair) or
+        read-back through the Fleet API shows other rates: a repair) or
         unchanged (only_if_changed, and these rates are the ones last sent or
         Tesla already shows: nothing sent). "warnings" lists what Tesla would
         change."""
@@ -1002,7 +1007,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             status = "confirmed"
             self._tariff_matches()
         elif read_back == "full" and backend.name != BACKEND_OWNER:
-            status = "mismatch"  # Tesla Fleet shows a new tariff at once
+            status = "mismatch"  # the Fleet API shows a new tariff at once
             self._tariff_mismatch(backend.label)
         else:
             status = "pending"
@@ -1079,7 +1084,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Storm Watch and other cloud-only values from the first backup (in
         order) that gives them; "backend" names it."""
         for backend in self.backends:
-            if backend.failing or backend.starting():
+            if backend.failing:
                 continue
             now = time.monotonic()
             if backend.extras is not None and now - backend.extras[0] < backend.extras_seconds:
@@ -1413,8 +1418,6 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @staticmethod
     def _cloud_check_due(backend: CloudBackend) -> bool:
-        if backend.starting():
-            return False  # checked once Tesla Fleet has loaded
         if backend.check_at is None:
             return True
         since_check = time.monotonic() - backend.check_at
@@ -1465,8 +1468,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @staticmethod
     def _cloud_issue_key(backend: CloudBackend) -> str | None:
-        """The repair a backup needs: sign in again (Owner API), check Tesla
-        Fleet, or give Tesla Fleet the energy_cmds scope."""
+        """The repair a backup needs: sign in again (Owner API or Fleet API),
+        or sign in to the Fleet API with the energy_cmds scope."""
         if backend.failing:
             return "cloud_login" if backend.name == BACKEND_OWNER else "fleet_backup"
         if backend.ok and not backend.writable():
@@ -1486,7 +1489,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if key:
                 ir.async_create_issue(
                     self.hass, DOMAIN, issue_id,
-                    is_fixable=key == "cloud_login",
+                    is_fixable=True,
                     is_persistent=False,
                     severity=ir.IssueSeverity.WARNING,
                     translation_key=key,
@@ -1517,12 +1520,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self.cloud_enabled:
             # Checked by a real read at least hourly, not just "no failures yet".
             # One working backup is enough; a failing one has its own repair.
-            # Tesla Fleet still loading after a restart is not a problem yet.
-            checks["cloud_backup"] = any((backend.ok and backend.writable()) or backend.starting()
-                                         for backend in self.backends)
+            checks["cloud_backup"] = any(backend.ok and backend.writable() for backend in self.backends)
         if self.backend(BACKEND_OWNER):
-            # Only an Owner API sign-in here has a token file; Tesla Fleet
-            # keeps its own.
+            # Only an Owner API sign-in has a token file; a Fleet API sign-in
+            # is kept in the entry.
             now = time.monotonic()
             if self._token_expiry is None or now - self._token_expiry[0] > 600:
                 self._token_expiry = (now, await self.hass.async_add_executor_job(self._read_token_expiry))
@@ -1539,7 +1540,6 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "cloud_backends": {
                 backend.name: {
                     "ok": backend.ok,
-                    "starting": backend.starting(),
                     "can_change_settings": backend.writable(),
                     "failures": backend.failures,
                     "last_ok": backend.last_ok.isoformat() if backend.last_ok else None,
@@ -1593,7 +1593,20 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ir.async_delete_issue(self.hass, DOMAIN, issue_id)
         self._issues = set(wanted)
 
+    @callback
+    def async_sync_signin_issue(self) -> None:
+        """A Fleet API backup chosen without a sign-in here (set up through
+        the Tesla Fleet integration before 2.6): ask for one."""
+        issue_id = f"fleet_signin_{self.config_entry.entry_id}"
+        if not self.fleet_signin_needed:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        ir.async_create_issue(self.hass, DOMAIN, issue_id, is_fixable=True, is_persistent=False,
+                              severity=ir.IssueSeverity.WARNING, translation_key="fleet_signin",
+                              data={"entry_id": self.config_entry.entry_id})
+
     def async_clear_issues(self) -> None:
+        ir.async_delete_issue(self.hass, DOMAIN, f"fleet_signin_{self.config_entry.entry_id}")
         for issue_id in self._issues | self._write_issues:
             ir.async_delete_issue(self.hass, DOMAIN, issue_id)
         self._issues = set()

@@ -28,12 +28,10 @@ LABELS = {BACKEND_OWNER: "Owner API", BACKEND_FLEET: "Tesla Fleet"}
 @dataclass(eq=False)
 class CloudBackend:
     """One cloud backup. factory builds a pypowerwall-like client (executor);
-    starting() is true while it can't be used yet but is no failure either;
     writable() is false when it can read but not change settings."""
 
     name: str
     factory: Callable[[], Any]
-    starting: Callable[[], bool] = lambda: False
     writable: Callable[[], bool] = lambda: True
     client: Any = None
     failures: int = 0
@@ -44,13 +42,15 @@ class CloudBackend:
     # The repair currently shown for it (its translation key), if any.
     issue: str | None = None
     # Storm Watch and other cloud-only values: (monotonic time, values), read
-    # at most every extras_seconds (Tesla Fleet's stored data: every poll).
+    # at most every extras_seconds.
     extras: tuple[float, dict[str, Any]] | None = None
     extras_seconds: float = 0
+    # The name shown for it, when it isn't the backend's own (Teslemetry).
+    display: str | None = None
 
     @property
     def label(self) -> str:
-        return LABELS.get(self.name, self.name)
+        return self.display or LABELS.get(self.name, self.name)
 
     @property
     def failing(self) -> bool:

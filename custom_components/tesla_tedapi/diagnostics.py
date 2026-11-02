@@ -11,14 +11,18 @@ from . import tesla_cloud
 from .const import (
     AUTH_FILE,
     CONF_DIAGNOSTICS_GATEWAY,
+    CONF_FLEET_SITE_ID,
+    CONF_FLEET_TOKEN,
     CONF_GW_PWD,
+    CONF_OAUTH_TOKEN,
     CONF_OWNERS_AUTHPATH,
     CONF_OWNERS_EMAIL,
     CONF_SITE_ID,
 )
 from .coordinator import TedapiConfigEntry
 
-TO_REDACT = {CONF_GW_PWD, CONF_OWNERS_EMAIL, CONF_SITE_ID, "din", "serial", "unique_id", "title"}
+TO_REDACT = {CONF_GW_PWD, CONF_OWNERS_EMAIL, CONF_SITE_ID, CONF_FLEET_SITE_ID, CONF_FLEET_TOKEN,
+             CONF_OAUTH_TOKEN, "din", "serial", "unique_id", "title"}
 REDACTED = "**REDACTED**"
 # Gateway config keys that identify the site, a person or a device, or hold
 # credentials: any key containing one of these, or equal to one of the short ones.

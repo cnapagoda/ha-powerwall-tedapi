@@ -1,4 +1,4 @@
-"""Fixable repair: sign in to Tesla again when the cloud backup stops working."""
+"""Fixable repairs: sign in to Tesla again when a cloud backup stops working."""
 from __future__ import annotations
 
 from typing import Any
@@ -6,9 +6,10 @@ from typing import Any
 from homeassistant.components.repairs import RepairsFlow
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
+import voluptuous as vol
 
 from . import tesla_cloud
-from .config_flow import TeslaLoginMixin
+from .config_flow import FLEET_SIGNIN, TeslaLoginMixin
 
 
 class CloudLoginRepairFlow(TeslaLoginMixin, RepairsFlow):
@@ -36,7 +37,28 @@ class CloudLoginRepairFlow(TeslaLoginMixin, RepairsFlow):
         return self.async_create_entry(data={})
 
 
+class FleetSigninRepairFlow(RepairsFlow):
+    """Sign in to the Fleet API (Tesla Fleet or Teslemetry). The sign-in runs
+    as a reauthentication of the entry: Tesla Fleet's OAuth can only finish
+    in a config flow."""
+
+    def __init__(self, entry_id: str) -> None:
+        self._entry_id = entry_id
+
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        entry = self.hass.config_entries.async_get_entry(self._entry_id)
+        if entry is None:
+            return self.async_abort(reason="entry_gone")
+        if user_input is not None:
+            entry.async_start_reauth(self.hass, data={**entry.data, FLEET_SIGNIN: True})
+            return self.async_create_entry(data={})
+        return self.async_show_form(step_id="init", data_schema=vol.Schema({}))
+
+
 async def async_create_fix_flow(
     hass: HomeAssistant, issue_id: str, data: dict[str, Any] | None
 ) -> RepairsFlow:
-    return CloudLoginRepairFlow((data or {})["entry_id"])
+    entry_id = (data or {})["entry_id"]
+    if issue_id.startswith("cloud_login"):
+        return CloudLoginRepairFlow(entry_id)
+    return FleetSigninRepairFlow(entry_id)

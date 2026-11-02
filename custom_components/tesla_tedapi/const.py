@@ -35,10 +35,23 @@ LIVE_OPTIONS = frozenset({
     CONF_DISPATCH_FLOOR_RESERVE, CONF_DISPATCH_MAX_WATTS, CONF_DIAGNOSTICS_GATEWAY,
 })
 
-# Cloud backups: a Tesla account signed in here (Owner API), or the core Tesla
-# Fleet integration's sign-in (Fleet API).
+# Cloud backups: a Tesla account signed in here (Owner API), or a Fleet API
+# sign-in made here (Tesla Fleet with the user's own developer app, or
+# Teslemetry).
 BACKEND_OWNER = "owner_api"
 BACKEND_FLEET = "tesla_fleet"
+# The Fleet API sign-in, in the entry data. A Tesla Fleet sign-in also keeps
+# "auth_implementation" and "token" (Home Assistant's OAuth2 keys).
+CONF_FLEET_PROVIDER = "fleet_provider"
+CONF_FLEET_SITE_ID = "fleet_site_id"
+CONF_FLEET_SERVER = "fleet_server"
+CONF_FLEET_TOKEN = "fleet_token"  # Teslemetry access token
+CONF_OAUTH_IMPLEMENTATION = "auth_implementation"
+CONF_OAUTH_TOKEN = "token"
+PROVIDER_TESLA_FLEET = "tesla_fleet"
+PROVIDER_TESLEMETRY = "teslemetry"
+FLEET_DATA_KEYS = (CONF_FLEET_PROVIDER, CONF_FLEET_SITE_ID, CONF_FLEET_SERVER, CONF_FLEET_TOKEN,
+                   CONF_OAUTH_IMPLEMENTATION, CONF_OAUTH_TOKEN)
 CLOUD_NONE = "none"
 CLOUD_FLEET_FIRST = "fleet_then_owner"
 CLOUD_OWNER_FIRST = "owner_then_fleet"
@@ -54,6 +67,7 @@ CLOUD_CHOICES: dict[str, tuple[str, ...]] = {
 CLOUD_WITH_OWNER = {CLOUD_NONE: BACKEND_OWNER, BACKEND_FLEET: CLOUD_FLEET_FIRST}
 CLOUD_WITHOUT_OWNER = {BACKEND_OWNER: CLOUD_NONE, CLOUD_FLEET_FIRST: BACKEND_FLEET,
                        CLOUD_OWNER_FIRST: BACKEND_FLEET}
+CLOUD_WITH_FLEET = {CLOUD_NONE: BACKEND_FLEET, BACKEND_OWNER: CLOUD_OWNER_FIRST}
 CLOUD_WITHOUT_FLEET = {BACKEND_FLEET: CLOUD_NONE, CLOUD_FLEET_FIRST: BACKEND_OWNER,
                        CLOUD_OWNER_FIRST: BACKEND_OWNER}
 

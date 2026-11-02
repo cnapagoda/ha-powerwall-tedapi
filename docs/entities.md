@@ -144,7 +144,7 @@ data:
 | Grid services active ☁️ | `binary_sensor.powerwall_tedapi_grid_services_active` | Tesla reports grid services (for example a virtual power plant) as active on the site. Only on sites enrolled in grid services. |
 | Tesla tariff | `sensor.powerwall_tedapi_tesla_tariff` | Only with the **Tesla tariff (cloud)** option. See [Tesla tariff](tesla-tariff.md). |
 
-Cloud states come from Tesla Fleet's data every minute, or from the Owner API every 30 minutes. Their `cloud_backend` attribute says which.
+Cloud states come from the cloud backup every 30 minutes. Their `cloud_backend` attribute says which.
 
 ## Buttons
 

@@ -16,7 +16,7 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 - **Backup tools:** start a max backup, follow Storm Watch, test your backup by going off-grid with an automatic reconnect.
 - **Dashboard buttons:** stop a battery dispatch, cancel a max backup or reconnect to the grid with one press.
 - **Knows when something is wrong:** Tesla's alert codes in plain language, a **Problem** sensor, repairs, grid outage history and firmware update notices.
-- **Keeps working when it can't reach the gateway:** an optional Tesla cloud backup (your Tesla account, or the Tesla Fleet / Teslemetry integration) keeps the settings usable.
+- **Keeps working when it can't reach the gateway:** an optional Tesla cloud backup (your Tesla account, Tesla Fleet or Teslemetry) keeps the settings usable.
 - **A setup wizard:** it finds the Powerwall on your network and registers the access key for you. No command line.
 - **Ready-made blueprints** for cheap charging, price spikes, negative feed-in, time-of-use and outage alerts.
 

@@ -6,6 +6,7 @@ pypowerwall's PVAC_*_A..F field names, and an unset export rule in the gateway
 config reads as "battery_ok"."""
 from __future__ import annotations
 
+import asyncio
 import copy
 from types import SimpleNamespace
 from typing import Any
@@ -371,3 +372,82 @@ def local(fake) -> FakePowerwall:
 def cloud(fake) -> FakePowerwall | None:
     found = [p for p in fake.instances if p.mode == "cloud"]
     return found[-1] if found else None
+
+
+# ---- Fleet API (Tesla Fleet / Teslemetry sign-in made here) ----
+
+# A Teslemetry sign-in made here (the simplest kind: a fixed token).
+TESLEMETRY = {"fleet_provider": "teslemetry", "fleet_site_id": 42, "fleet_server": "https://api.teslemetry.com",
+              "fleet_token": "tm-token"}
+SCOPES = ["energy_cmds", "energy_device_data", "offline_access", "openid", "user_data"]
+
+# site_info for a Powerwall 3 (shape from a real site, serials replaced).
+SITE_INFO = {
+    "id": "STE20240101-00001",
+    "default_real_mode": "self_consumption",
+    "backup_reserve_percent": 5,
+    "components": {
+        "battery": True,
+        "gateway": "teg",
+        "customer_preferred_export_rule": "never",
+        "disallow_charge_from_grid_with_solar_installed": True,
+        "non_export_configured": True,
+        "storm_mode_capable": True,
+        "grid_services_enabled": False,
+        "off_grid_vehicle_charging_reserve_supported": False,
+        "gateways": [{"din": DIN, "part_number": "1707000-11-J", "part_name": "Powerwall 3"}],
+    },
+    "user_settings": {"storm_mode_enabled": False},
+}
+
+
+class FakeFleetServer:
+    """The Fleet API (or Teslemetry) behind FleetApi.request."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, Any]] = []
+        self.info: dict[str, Any] = copy.deepcopy(SITE_INFO)
+        self.live: dict[str, Any] = {"island_status": "on_grid", "storm_mode_active": False}
+        self.scopes: list[str] | None = list(SCOPES)
+        self.sites = [{"energy_site_id": 42, "gateway_id": DIN, "site_name": "Home"}]
+        self.tariff: dict | None = None
+        self.fail: Exception | None = None
+        self.hang = False
+
+    @property
+    def posts(self) -> list[tuple[str, Any]]:
+        return [(path.split("/", 4)[-1], body) for method, path, body in self.calls if method == "POST"]
+
+    @property
+    def reads(self) -> list[str]:
+        return [path.rsplit("/", 1)[-1] for method, path, _ in self.calls if method == "GET"]
+
+    async def request(self, api: Any, method: str, path: str, body: Any = None) -> Any:
+        self.calls.append((method, path, body))
+        if self.hang:
+            await asyncio.sleep(30)
+        if self.fail is not None:
+            raise self.fail
+        if path == "api/1/products":
+            return {"response": self.sites}
+        if path == "api/metadata":
+            return {"scopes": self.scopes} if self.scopes is not None else {}
+        if path.endswith("/site_info"):
+            return {"response": {**self.info, **({"tariff_content_v2": self.tariff} if self.tariff else {})}}
+        if path.endswith("/live_status"):
+            return {"response": self.live}
+        if path.endswith("/time_of_use_settings"):
+            self.tariff = body["tou_settings"]["tariff_content_v2"]
+        return {"response": {"code": 201, "message": "Updated"}}
+
+
+@pytest.fixture
+def fleet():
+    """The Fleet API behind a sign-in made here (FleetApi.request replaced)."""
+    server = FakeFleetServer()
+
+    async def request(api, method, path, body=None):
+        return await server.request(api, method, path, body)
+
+    with patch("custom_components.tesla_tedapi.fleet.FleetApi.request", request):
+        yield server

@@ -14,10 +14,11 @@ Select **Configure** on the integration. The menu offers:
 | Menu item | What it does |
 |---|---|
 | **Settings** | The options below. |
-| **Cloud backup (Owner API, Tesla Fleet)** | Choose which cloud backup to use, and in which order. See [Cloud backup](cloud-backup.md). |
+| **Cloud backup (Owner API, Fleet API)** | Choose which cloud backup to use, and in which order. See [Cloud backup](cloud-backup.md). |
 | **Link a Tesla account (Owner API)** | Add the Owner API backup without setting the Powerwall up again (refresh token or browser sign-in). Shown when no account is linked. |
-| **Unlink a cloud backup** | Stop using one backup and keep the other. *Owner API* removes the Tesla account linked here. *Tesla Fleet* only stops this integration using it; the Tesla Fleet or Teslemetry integration itself isn't changed. |
-| **Register a new signed key** | Register another key, for example through Tesla Fleet. Signed connections only. It continues as a reauthentication on the integration's card. |
+| **Sign in to Tesla Fleet or Teslemetry** | Add or renew the Fleet API backup. It continues as a reauthentication on the integration's card. |
+| **Unlink a cloud backup** | Stop using one backup and keep the other. Its sign-in here is removed. |
+| **Register a new signed key** | Register another key (Tesla account, Tesla Fleet or Teslemetry sign-in). Signed connections only. It continues as a reauthentication on the integration's card. |
 
 <details>
 <summary>Screenshots: options</summary>
@@ -64,7 +65,7 @@ The gateway must still be the same Powerwall (same DIN); to add a different one,
 If the gateway keeps refusing the password (3 polls in a row) or the key (10 polls), Home Assistant shows **Reauthenticate** on the integration's card. Choose:
 
 - **Enter the gateway password again**,
-- **Register the key again** (Tesla sign-in, or through Tesla Fleet / Teslemetry), or
+- **Register the key again** (Tesla account, Tesla Fleet or Teslemetry sign-in), or
 - **Upload a different key**.
 
 Meanwhile the settings keep working through the cloud backup, if you have one.

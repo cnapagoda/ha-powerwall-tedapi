@@ -58,7 +58,7 @@ That's it. You now have a **Powerwall TEDAPI** device with its sensors and contr
 <img src="images/setup-07-done.png" alt="Setup complete" width="560">
 
 > [!TIP]
-> Already use Home Assistant's **Tesla Fleet** or **Teslemetry** integration for this Powerwall? The wizard also offers **Register a new key with my Tesla Fleet or Teslemetry integration (no Tesla sign-in)**.
+> Have a **Teslemetry** plan or your own **Tesla Fleet** developer app? The wizard's sign-in step offers both, next to the Tesla account sign-in.
 
 ## 4. Next steps
 

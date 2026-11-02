@@ -174,6 +174,8 @@ async def _key_upload_with_cloud(hass: HomeAssistant, tmp_path):
     with patch.object(config_flow, "_store_key", return_value=str(key)):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"key_file": "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0", "cloud_backup": True})
+    assert result["step_id"] == "signin"
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "login"})
     assert result["step_id"] == "login"
     return result
 
@@ -231,6 +233,8 @@ async def _register(hass: HomeAssistant, tmp_path, **extra):
     patched.__enter__()
     result = await _gateway(hass)
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "register"})
+    assert result["step_id"] == "signin"
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "login"})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"callback": "C1"})
     return patched, result
 
@@ -399,10 +403,10 @@ async def test_cloud_backup_keeps_a_choice_no_longer_offered(hass: HomeAssistant
     with patch(SETUP, return_value=True):
         result = await hass.config_entries.options.async_init(entry.entry_id)
         result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "cloud_backup"})
-    # Tesla Fleet isn't set up any more, but the current choice stays listed.
+    # No Fleet API sign-in here (yet), but the current choice stays listed.
     options = result["data_schema"].schema["cloud_backends"].config["options"]
     assert "tesla_fleet" in options
-    assert result["description_placeholders"] == {"owner": "not linked", "fleet": "not set up"}
+    assert result["description_placeholders"] == {"owner": "not linked", "fleet": "not signed in"}
 
 
 async def test_scan_error_falls_back_to_manual(hass: HomeAssistant) -> None:

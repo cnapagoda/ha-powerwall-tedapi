@@ -1,14 +1,10 @@
-"""2.3 cloud backups: the Tesla Fleet / Teslemetry integration's site data and
-API, alone or with the Owner API in either order; migration and the Cloud
-backup options step."""
+"""Cloud backups: the Fleet API through a sign-in made here (Tesla Fleet or
+Teslemetry), alone or with the Owner API in either order; the Cloud backup
+options step and the sign-in repair."""
 from __future__ import annotations
 
-import asyncio
-import copy
-from types import SimpleNamespace
 from unittest.mock import patch
 
-from homeassistant.config_entries import ConfigEntryDisabler, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import HomeAssistantError
@@ -19,123 +15,16 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.tesla_tedapi import fleet as fleet_mod, tesla_cloud
 from custom_components.tesla_tedapi.const import DOMAIN
 
-from .conftest import DIN, cloud, local
+from .conftest import DIN, SCOPES, TESLEMETRY, cloud, local
 
 V1R = {"connection_mode": "v1r", "host": "192.168.1.50", "wifi_host": "",
        "rsa_key_path": "/tmp/key.pem", "gw_pwd": "ABCDE12345", "scan_interval": 30}
 ACCOUNT = {"owners_email": "a@b.c", "owners_authpath": "/tmp", "site_id": 42}
-FLEET_ENTRIES = "custom_components.tesla_tedapi.fleet.fleet_entries"
-SCOPES = ["energy_cmds", "energy_device_data", "offline_access", "openid", "user_data"]
-
-# Tesla Fleet's info coordinator data for a Powerwall 3 with an expansion pack
-# (flattened site_info, shape from a real site, serials replaced).
-SITE_INFO = {
-    "id": DIN,
-    "default_real_mode": "self_consumption",
-    "backup_reserve_percent": 5,
-    "components_battery": True,
-    "components_gateway": "teg",
-    "components_customer_preferred_export_rule": "never",
-    "components_disallow_charge_from_grid_with_solar_installed": True,
-    "components_non_export_configured": True,
-    "components_storm_mode_capable": True,
-    "components_grid_services_enabled": False,
-    "components_off_grid_vehicle_charging_reserve_supported": False,
-    "user_settings_storm_mode_enabled": False,
-    "components_gateways": [{"din": DIN, "part_number": "1707000-11-J", "part_type": 4,
-                             "part_name": "Powerwall 3", "is_active": True}],
-    "components_batteries": [{"din": "1807000-20-B--TG0000000000EX", "part_number": "1807000-20-B",
-                              "part_name": "Unknown", "is_active": True}],
-}
-
-
-class FakeFleetApi:
-    """tesla_fleet_api EnergySite: the settings commands (reads come from the
-    coordinator)."""
-
-    def __init__(self) -> None:
-        self.calls: list[tuple[str, dict]] = []
-        self.fail = False
-        self.hang = False
-        self.tariff: dict | None = None
-
-    async def _call(self, name: str, **kwargs):
-        self.calls.append((name, kwargs))
-        if self.hang:
-            await asyncio.sleep(30)
-        if self.fail:
-            raise RuntimeError("401 token expired")
-        return {"response": {"code": 201}}
-
-    async def operation(self, default_real_mode):
-        return await self._call("operation", default_real_mode=default_real_mode)
-
-    async def backup(self, backup_reserve_percent):
-        return await self._call("backup", backup_reserve_percent=backup_reserve_percent)
-
-    async def grid_import_export(self, **kwargs):
-        return await self._call("grid_import_export", **kwargs)
-
-    async def storm_mode(self, enabled):
-        return await self._call("storm_mode", enabled=enabled)
-
-    async def site_info(self):
-        self.calls.append(("site_info", {}))
-        if self.fail:
-            raise RuntimeError("401 token expired")
-        return {"response": {"id": DIN, **({"tariff_content_v2": self.tariff} if self.tariff else {})}}
-
-    async def time_of_use_settings(self, settings):
-        # Like tesla-fleet-api: the argument is the tariff, wrapped here.
-        body = {"tou_settings": {"tariff_content_v2": settings}}
-        result = await self._call("time_of_use_settings", json=body)
-        self.tariff = body["tou_settings"]["tariff_content_v2"]
-        return result
-
-    async def off_grid_vehicle_charging_reserve(self, off_grid_vehicle_charging_reserve_percent):
-        return await self._call("off_grid_vehicle_charging_reserve",
-                                off_grid_vehicle_charging_reserve_percent=off_grid_vehicle_charging_reserve_percent)
-
-
-class FakeInfoCoordinator:
-    def __init__(self, data: dict) -> None:
-        self.data = data
-        self.last_update_success = True
-        self.refreshes = 0
-
-    async def async_request_refresh(self) -> None:
-        self.refreshes += 1
-
-
-def _site(data: dict | None = None) -> SimpleNamespace:
-    return SimpleNamespace(api=FakeFleetApi(),
-                           info_coordinator=FakeInfoCoordinator(copy.deepcopy(SITE_INFO if data is None else data)),
-                           live_coordinator=FakeInfoCoordinator({"island_status": "on_grid",
-                                                                 "storm_mode_active": False}))
-
-
-def _fleet_entry(*sites, state=ConfigEntryState.LOADED, scopes=SCOPES) -> SimpleNamespace:
-    return SimpleNamespace(state=state, disabled_by=None,
-                           runtime_data=SimpleNamespace(energysites=list(sites), scopes=scopes))
-
-
-def _other_site() -> SimpleNamespace:
-    return _site({**SITE_INFO, "id": "1707000-11-J--TGOTHER",
-                  "components_gateways": [{"din": "1707000-11-J--TGOTHER"}], "components_batteries": []})
-
-
-@pytest.fixture
-def fleet():
-    """A loaded Tesla Fleet entry with this Powerwall's site (the core
-    integration itself is not loaded in tests)."""
-    site = _site()
-    with patch(FLEET_ENTRIES, return_value=[_fleet_entry(site)]):
-        yield site
-
-
-async def _setup(hass: HomeAssistant, data: dict, choice: str | None = "tesla_fleet") -> MockConfigEntry:
+async def _setup(hass: HomeAssistant, data: dict, choice: str | None = "tesla_fleet",
+                 options: dict | None = None) -> MockConfigEntry:
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=data, minor_version=2,
-                            options={"cloud_backends": choice} if choice else {}, title="Powerwall")
+                            options={**({"cloud_backends": choice} if choice else {}), **(options or {})},
+                            title="Powerwall")
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
@@ -173,74 +62,91 @@ async def _select(hass: HomeAssistant, key: str, option: str) -> None:
         "entity_id": _eid(hass, "select", key), "option": option}, blocking=True)
 
 
-async def test_reads_use_fleet_data_and_writes_use_its_api(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    entry = await _setup(hass, V1R)
+async def test_reads_and_writes_go_through_the_sign_in_here(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, {**V1R, **TESLEMETRY})
     health = _health(hass)
     assert health.state == "ok"
     status = health.attributes["cloud_backends"]["tesla_fleet"]
     assert status["ok"] is True and status["can_change_settings"] is True
     assert health.attributes["cloud_token_expires"] is None
-    # Checked from Tesla Fleet's own data: no Tesla call, no Owner API client.
-    assert fleet.api.calls == []
     assert cloud(fake_powerwall) is None
+    assert "site_info" in fleet.reads and "metadata" in fleet.reads
 
     local(fake_powerwall).get_mode = lambda: None  # gateway can't say
-    entry.runtime_data.coordinator.backends[0].cache = None
-    fleet.info_coordinator.data["default_real_mode"] = "autonomous"
+    backend = entry.runtime_data.coordinator.backends[0]
+    assert backend.label == "Teslemetry"
+    backend.cache = None
+    backend.get_client()._info = None
+    fleet.info["default_real_mode"] = "autonomous"
     await _refresh(hass, entry)
     state = hass.states.get(_eid(hass, "select", "operation_mode"))
     assert state.state == "autonomous"
     assert state.attributes["source"] == "mixed"
     assert state.attributes["cloud_backend"] == "tesla_fleet"
-    assert fleet.api.calls == []
 
-    # The gateway refuses writes: they go through Tesla Fleet, which then
-    # refreshes its data.
+    # The gateway refuses writes: they go through the Fleet API.
     local(fake_powerwall).set_grid_export = lambda mode: None
     await _select(hass, "grid_export", "pv_only")
-    assert ("grid_import_export", {"customer_preferred_export_rule": "pv_only"}) in fleet.api.calls
+    assert ("grid_import_export", {"customer_preferred_export_rule": "pv_only"}) in fleet.posts
     local(fake_powerwall).set_grid_charging = lambda mode: None
     await hass.services.async_call("switch", "turn_on", {
         "entity_id": _eid(hass, "switch", "grid_charging")}, blocking=True)
-    assert ("grid_import_export", {"disallow_charge_from_grid_with_solar_installed": False}) in fleet.api.calls
+    assert ("grid_import_export", {"disallow_charge_from_grid_with_solar_installed": False}) in fleet.posts
     local(fake_powerwall).set_reserve = lambda level: None
     await hass.services.async_call("number", "set_value", {
         "entity_id": _eid(hass, "number", "backup_reserve"), "value": 30}, blocking=True)
-    assert ("backup", {"backup_reserve_percent": 30}) in fleet.api.calls
-    assert fleet.info_coordinator.refreshes == 3
+    assert ("backup", {"backup_reserve_percent": 30}) in fleet.posts
+    # A write drops the cached site data, so the change is read next time.
+    assert backend.get_client()._info is None
 
 
 async def test_mode_and_errors_fall_back_to_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    entry = await _setup(hass, V1R)
-    # The gateway refuses the mode: it goes through Tesla Fleet.
+    entry = await _setup(hass, {**V1R, **TESLEMETRY})
     local(fake_powerwall).set_mode = lambda mode: None
     await _select(hass, "operation_mode", "backup")
-    assert ("operation", {"default_real_mode": "backup"}) in fleet.api.calls
+    assert ("operation", {"default_real_mode": "backup"}) in fleet.posts
 
-    # A local write that raises goes there too.
     def boom(level):
         raise ConnectionError("gateway down")
 
     local(fake_powerwall).set_reserve = boom
     await hass.services.async_call("number", "set_value", {
         "entity_id": _eid(hass, "number", "backup_reserve"), "value": 95}, blocking=True)
-    assert ("backup", {"backup_reserve_percent": 95}) in fleet.api.calls
+    assert ("backup", {"backup_reserve_percent": 95}) in fleet.posts
 
-    # So does any write while the gateway is not connected.
     entry.runtime_data.coordinator._pw = None
     await _select(hass, "grid_export", "never")
-    assert ("grid_import_export", {"customer_preferred_export_rule": "never"}) in fleet.api.calls
-    assert fleet.info_coordinator.refreshes == 3
+    assert ("grid_import_export", {"customer_preferred_export_rule": "never"}) in fleet.posts
+
+
+async def test_site_data_is_read_once_for_all_settings(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, {**V1R, **TESLEMETRY})
+    client = entry.runtime_data.coordinator.backends[0].get_client()
+    client._info = None
+    fleet.calls.clear()
+    values = await hass.async_add_executor_job(
+        lambda: (client.get_mode(), client.get_reserve(), client.get_grid_charging(), client.get_grid_export()))
+    assert values == ("self_consumption", 5.0, False, "never")
+    assert fleet.reads == ["site_info"]
 
 
 async def test_export_rule_ignores_non_export_configured(hass: HomeAssistant, fake_powerwall, fleet) -> None:
     # Real sites keep non_export_configured while exporting with battery_ok.
-    fleet.info_coordinator.data["components_customer_preferred_export_rule"] = "battery_ok"
-    entry = await _setup(hass, V1R)
+    fleet.info["components"]["customer_preferred_export_rule"] = "battery_ok"
+    entry = await _setup(hass, {**V1R, **TESLEMETRY})
     client = entry.runtime_data.coordinator.backends[0].get_client()
-    assert client.get_grid_export() == "battery_ok"
-    del fleet.info_coordinator.data["components_customer_preferred_export_rule"]
-    assert client.get_grid_export() == "battery_ok"  # not set: Tesla's default
+    client._info = None
+    assert await hass.async_add_executor_job(client.get_grid_export) == "battery_ok"
+    del fleet.info["components"]["customer_preferred_export_rule"]
+    client._info = None
+    assert await hass.async_add_executor_job(client.get_grid_export) == "battery_ok"  # Tesla's default
+    # A site_info without settings: nothing to report.
+    fleet.info = {}
+    client._info = None
+    assert await hass.async_add_executor_job(client.get_grid_export) is None
+    assert await hass.async_add_executor_job(client.get_grid_charging) is None
+    assert await hass.async_add_executor_job(client.get_reserve) is None
+    assert await hass.async_add_executor_job(client.get_extras) == {}
 
 
 async def test_owner_api_export_rule_ignores_non_export_configured(hass: HomeAssistant, fake_powerwall) -> None:
@@ -251,131 +157,120 @@ async def test_owner_api_export_rule_ignores_non_export_configured(hass: HomeAss
     assert owner.get_grid_export() == "battery_ok"  # pypowerwall alone says "never"
 
 
-async def test_fleet_data_not_updating(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    fleet.info_coordinator.last_update_success = False
-    entry = await _setup(hass, V1R)
+async def test_failing_sign_in_gets_a_fixable_repair(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    fleet.fail = fleet_mod.FleetAuthError("token not accepted", 401)
+    entry = await _setup(hass, {**V1R, **TESLEMETRY})
     health = _health(hass)
     assert health.state == "degraded" and "cloud_backup" in health.attributes["problems"]
     await _check(hass, entry, "tesla_fleet", 3)
     issue = _issue(hass, "fleet_backup", entry)
-    assert issue is not None and not issue.is_fixable and issue.translation_key == "fleet_backup"
+    assert issue is not None and issue.is_fixable and issue.translation_key == "fleet_backup"
     assert _issue(hass, "cloud_login", entry) is None
 
-    fleet.info_coordinator.last_update_success = True
+    fleet.fail = None
     await _check(hass, entry, "tesla_fleet")
     assert _health(hass).state == "ok"
     assert _issue(hass, "fleet_backup", entry) is None
 
 
-async def test_waits_while_fleet_loads(hass: HomeAssistant, fake_powerwall) -> None:
-    fleet_entry = _fleet_entry(_site(), state=ConfigEntryState.SETUP_IN_PROGRESS)
-    with patch(FLEET_ENTRIES, return_value=[fleet_entry]):
-        entry = await _setup(hass, V1R)
-        backend = entry.runtime_data.coordinator.backends[0]
-        assert backend.failures == 0 and backend.check_at is None
-        health = _health(hass)
-        assert health.attributes["cloud_backends"]["tesla_fleet"]["starting"] is True
-        assert health.state == "ok"  # not degraded while it loads
-        fleet_entry.state = ConfigEntryState.LOADED
-        await _refresh(hass, entry)
-        assert backend.ok
-        assert _health(hass).attributes["cloud_backends"]["tesla_fleet"]["starting"] is False
+async def test_choice_without_a_sign_in_here_asks_for_one(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    """Set up through the Tesla Fleet integration before 2.6: the choice is
+    kept, but nothing is used until there is a sign-in here."""
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, "fleet_then_owner")
+    assert [b.name for b in entry.runtime_data.coordinator.backends] == ["owner_api"]
+    issue = _issue(hass, "fleet_signin", entry)
+    assert issue is not None and issue.is_fixable and issue.translation_key == "fleet_signin"
+    assert fleet.calls == []
+    # The repair starts the sign-in as a reauthentication.
+    from custom_components.tesla_tedapi.repairs import async_create_fix_flow  # noqa: PLC0415
+
+    flow = await async_create_fix_flow(hass, issue.issue_id, issue.data)
+    flow.hass, flow.handler, flow.flow_id = hass, DOMAIN, "flow1"
+    result = await flow.async_step_init()
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "init"
+    result = await flow.async_step_init({})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert [f["step_id"] for f in flows] == ["fleet_signin"]
+    # Unloading clears it.
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert _issue(hass, "fleet_signin", entry) is None
 
 
-async def test_waiting_for_fleet_is_limited(hass: HomeAssistant, fake_powerwall) -> None:
-    # Retrying for longer than the startup window counts as not working.
-    with (patch(FLEET_ENTRIES, return_value=[_fleet_entry(_site(), state=ConfigEntryState.SETUP_RETRY)]),
-          patch.object(fleet_mod, "STARTING_SECONDS", -1)):
-        await _setup(hass, V1R)
-        health = _health(hass)
-    assert health.attributes["cloud_backends"]["tesla_fleet"]["starting"] is False
-    assert health.state == "degraded"
+async def test_repair_for_a_removed_entry(hass: HomeAssistant) -> None:
+    from custom_components.tesla_tedapi.repairs import FleetSigninRepairFlow, async_create_fix_flow  # noqa: PLC0415
+
+    flow = await async_create_fix_flow(hass, "fleet_signin_x", {"entry_id": "gone"})
+    assert isinstance(flow, FleetSigninRepairFlow)
+    flow.hass = hass
+    result = await flow.async_step_init()
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "entry_gone"
 
 
-async def test_disabled_and_other_domains(hass: HomeAssistant) -> None:
-    MockConfigEntry(domain="tesla_fleet", disabled_by=ConfigEntryDisabler.USER).add_to_hass(hass)
-    teslemetry = MockConfigEntry(domain="teslemetry")
-    teslemetry.add_to_hass(hass)
-    MockConfigEntry(domain="tesla_custom").add_to_hass(hass)
-    assert fleet_mod.fleet_entries(hass) == [teslemetry]
-
-
-async def test_disabled_fleet_is_not_waited_for(hass: HomeAssistant, fake_powerwall) -> None:
-    MockConfigEntry(domain="tesla_fleet", disabled_by=ConfigEntryDisabler.USER).add_to_hass(hass)
-    await _setup(hass, V1R)
+async def test_read_only_sign_in(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    fleet.scopes = ["energy_device_data"]
+    entry = await _setup(hass, {**V1R, **ACCOUNT, **TESLEMETRY}, "fleet_then_owner")
     health = _health(hass)
-    assert health.attributes["cloud_backends"]["tesla_fleet"]["starting"] is False
-    assert health.state == "degraded"
+    assert health.attributes["cloud_backends"]["tesla_fleet"]["can_change_settings"] is False
+    assert health.state == "ok"  # the Owner API can still change settings
+    issue = _issue(hass, "fleet_backup", entry)
+    assert issue is not None and issue.translation_key == "fleet_read_only" and issue.is_fixable
+    # A change goes to the Owner API without a Fleet API command.
+    local(fake_powerwall).set_mode = lambda mode: None
+    await _select(hass, "operation_mode", "backup")
+    assert fleet.posts == []
+    assert ("mode", "backup") in cloud(fake_powerwall).writes
+    client = entry.runtime_data.coordinator.backend("tesla_fleet").get_client()
+    with pytest.raises(fleet_mod.FleetUnavailable):
+        client.set_mode("backup")
 
 
-async def test_without_fleet(hass: HomeAssistant, fake_powerwall) -> None:
-    await _setup(hass, V1R)
+async def test_read_only_sign_in_alone_degrades(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    fleet.scopes = ["energy_device_data"]
+    await _setup(hass, {**V1R, **TESLEMETRY})
     assert _health(hass).state == "degraded"
 
 
-async def test_site_matching(hass: HomeAssistant) -> None:
-    other = _other_site()
-    ours = _site({**SITE_INFO, "id": "", "components_gateways": [], "components_batteries": [{"din": DIN}]})
-    bare = _site({"default_real_mode": "backup"})
-    assert fleet_mod._site_dins(other.info_coordinator.data) == ["1707000-11-J--TGOTHER", "1707000-11-J--TGOTHER"]
-    with patch(FLEET_ENTRIES, return_value=[_fleet_entry(other), _fleet_entry(ours)]):
-        assert fleet_mod.find_site(hass, DIN)[1] is ours  # named as a battery only
-    # A site naming no serial is used only when it is the only one.
-    with patch(FLEET_ENTRIES, return_value=[_fleet_entry(bare)]):
-        assert fleet_mod.find_site(hass, DIN)[1] is bare
-    with patch(FLEET_ENTRIES, return_value=[_fleet_entry(bare, other)]):
-        assert fleet_mod.find_site(hass, DIN) is None
-    with patch(FLEET_ENTRIES, return_value=[_fleet_entry(other)]):
-        assert fleet_mod.find_site(hass, DIN) is None
+async def test_scopes_read_again_after_a_failure(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, {**V1R, **TESLEMETRY}, None)
+    client = fleet_mod.FleetBackup(hass, fleet_mod.entry_api(hass, entry), 42)
+    calls = 0
+    original = fleet.request
 
+    async def flaky(api, method, path, body=None):
+        nonlocal calls
+        if path == "api/metadata":
+            calls += 1
+            if calls == 1:
+                raise fleet_mod.FleetError("busy", 503)
+        return await original(api, method, path, body)
 
-async def test_site_with_another_powerwall_is_not_used(hass: HomeAssistant, fake_powerwall) -> None:
-    with patch(FLEET_ENTRIES, return_value=[_fleet_entry(_other_site())]):
-        await _setup(hass, V1R)
-        assert _health(hass).state == "degraded"
-
-
-async def test_read_only_sign_in(hass: HomeAssistant, fake_powerwall) -> None:
-    site = _site()
-    with patch(FLEET_ENTRIES, return_value=[_fleet_entry(site, scopes=["energy_device_data"])]):
-        entry = await _setup(hass, {**V1R, **ACCOUNT}, "fleet_then_owner")
-        health = _health(hass)
-        assert health.attributes["cloud_backends"]["tesla_fleet"]["can_change_settings"] is False
-        assert health.state == "ok"  # the Owner API can still change settings
-        issue = _issue(hass, "fleet_backup", entry)
-        assert issue is not None and issue.translation_key == "fleet_read_only"
-        # A change goes to the Owner API without a Tesla Fleet command.
-        local(fake_powerwall).set_mode = lambda mode: None
-        await _select(hass, "operation_mode", "backup")
-    assert site.api.calls == []
-    assert ("mode", "backup") in cloud(fake_powerwall).writes
-
-
-async def test_read_only_sign_in_alone_degrades(hass: HomeAssistant, fake_powerwall) -> None:
-    with patch(FLEET_ENTRIES, return_value=[_fleet_entry(_site(), scopes=["energy_device_data"])]):
-        await _setup(hass, V1R)
-        assert _health(hass).state == "degraded"
+    with patch.object(fleet, "request", flaky):
+        await hass.async_add_executor_job(client.get_mode)
+        assert client.can_write is True and client._scopes is None
+        client._info = None
+        await hass.async_add_executor_job(client.get_mode)
+    assert calls == 2 and client._scopes == set(SCOPES)
 
 
 async def test_timeout_is_not_sent_elsewhere(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    await _setup(hass, {**V1R, **ACCOUNT}, "fleet_then_owner")
-    fleet.api.hang = True
+    await _setup(hass, {**V1R, **ACCOUNT, **TESLEMETRY}, "fleet_then_owner")
+    fleet.hang = True
     local(fake_powerwall).set_mode = lambda mode: None
-    with patch.object(fleet_mod, "CALL_TIMEOUT", 0.2), pytest.raises(HomeAssistantError) as err:
+    with patch.object(fleet_mod, "RUN_TIMEOUT", 0.2), pytest.raises(HomeAssistantError) as err:
         await _select(hass, "operation_mode", "backup")
     assert err.value.translation_key == "write_cloud_timeout"
-    assert err.value.translation_placeholders == {"backend": "Tesla Fleet"}
-    assert ("operation", {"default_real_mode": "backup"}) in fleet.api.calls
+    assert err.value.translation_placeholders == {"backend": "Teslemetry"}
+    assert ("operation", {"default_real_mode": "backup"}) in fleet.posts
     assert ("mode", "backup") not in cloud(fake_powerwall).writes
 
 
 async def test_fleet_first_falls_back_to_owner(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    fleet.info_coordinator.last_update_success = False
-    fleet.api.fail = True
-    entry = await _setup(hass, {**V1R, **ACCOUNT}, "fleet_then_owner")
+    fleet.fail = fleet_mod.FleetError("HTTP 500", 500)
+    entry = await _setup(hass, {**V1R, **ACCOUNT, **TESLEMETRY}, "fleet_then_owner")
     coordinator = entry.runtime_data.coordinator
     assert [b.name for b in coordinator.backends] == ["tesla_fleet", "owner_api"]
-    # One backup still works: not degraded, but the failing one is reported.
     health = _health(hass)
     assert health.state == "ok"
     assert health.attributes["cloud_backends"]["tesla_fleet"]["ok"] is False
@@ -389,19 +284,19 @@ async def test_fleet_first_falls_back_to_owner(hass: HomeAssistant, fake_powerwa
     await _refresh(hass, entry)
     assert hass.states.get(_eid(hass, "select", "operation_mode")).attributes["cloud_backend"] == "owner_api"
 
-    # A write Tesla Fleet refuses goes to the Owner API.
+    # A write the Fleet API refuses goes to the Owner API.
     local(fake_powerwall).set_grid_export = lambda mode: None
     await _select(hass, "grid_export", "pv_only")
-    assert ("grid_import_export", {"customer_preferred_export_rule": "pv_only"}) in fleet.api.calls
+    assert ("grid_import_export", {"customer_preferred_export_rule": "pv_only"}) in fleet.posts
     assert ("grid_export", "pv_only") in cloud(fake_powerwall).writes
 
 
 async def test_owner_first_writes_once(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    await _setup(hass, {**V1R, **ACCOUNT}, "owner_then_fleet")
+    await _setup(hass, {**V1R, **ACCOUNT, **TESLEMETRY}, "owner_then_fleet")
     local(fake_powerwall).set_mode = lambda mode: None
     await _select(hass, "operation_mode", "backup")
     assert ("mode", "backup") in cloud(fake_powerwall).writes
-    assert fleet.api.calls == []
+    assert fleet.posts == []
 
 
 async def test_owner_choice_without_account_has_no_backup(hass: HomeAssistant, fake_powerwall) -> None:
@@ -433,9 +328,10 @@ async def _cloud_step(hass: HomeAssistant, entry: MockConfigEntry):
 
 
 async def test_options_cloud_backup_choices(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    entry = await _setup(hass, {**V1R, **ACCOUNT}, None)
+    entry = await _setup(hass, {**V1R, **ACCOUNT, **TESLEMETRY}, None)
     result = await _cloud_step(hass, entry)
     assert result["type"] is FlowResultType.FORM
+    assert result["description_placeholders"]["fleet"] == "Teslemetry"
     selector = result["data_schema"].schema["cloud_backends"]
     assert selector.config["options"] == ["none", "owner_api", "tesla_fleet", "fleet_then_owner", "owner_then_fleet"]
     result = await hass.config_entries.options.async_configure(
@@ -446,16 +342,32 @@ async def test_options_cloud_backup_choices(hass: HomeAssistant, fake_powerwall,
     assert [b.name for b in entry.runtime_data.coordinator.backends] == ["tesla_fleet", "owner_api"]
 
 
-async def test_options_offer_fleet_only_with_this_powerwall(hass: HomeAssistant, fake_powerwall) -> None:
+async def test_options_offer_fleet_only_with_a_sign_in_here(hass: HomeAssistant, fake_powerwall) -> None:
     entry = await _setup(hass, V1R, None)
-    for entries in ([], [_fleet_entry(_other_site())], [_fleet_entry(_site(), state=ConfigEntryState.SETUP_ERROR)]):
-        with patch(FLEET_ENTRIES, return_value=entries):
-            result = await _cloud_step(hass, entry)
-        assert result["data_schema"].schema["cloud_backends"].config["options"] == ["none"]
+    result = await _cloud_step(hass, entry)
+    assert result["data_schema"].schema["cloud_backends"].config["options"] == ["none"]
+    assert result["description_placeholders"]["fleet"] == "not signed in"
+
+
+async def test_options_keep_showing_a_choice_without_its_sign_in(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, V1R, "tesla_fleet")
+    result = await _cloud_step(hass, entry)
+    assert result["data_schema"].schema["cloud_backends"].config["options"] == ["none", "tesla_fleet"]
+
+
+async def test_options_start_the_fleet_sign_in(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, V1R, None)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert "fleet_signin" in result["menu_options"]
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "fleet_signin"})
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "fleet_signin_started"
+    await hass.async_block_till_done()
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert [f["step_id"] for f in flows] == ["fleet_signin"]
 
 
 async def test_unlink_keeps_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    entry = await _setup(hass, {**V1R, **ACCOUNT}, "owner_then_fleet")
+    entry = await _setup(hass, {**V1R, **ACCOUNT, **TESLEMETRY}, "owner_then_fleet")
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "unlink_account"})
     result = await hass.config_entries.options.async_configure(result["flow_id"], {})
@@ -463,10 +375,11 @@ async def test_unlink_keeps_fleet(hass: HomeAssistant, fake_powerwall, fleet) ->
     await hass.async_block_till_done()
     assert entry.options["cloud_backends"] == "tesla_fleet"
     assert "owners_email" not in entry.data
+    assert entry.data["fleet_token"] == "tm-token"
 
 
 async def test_linking_an_account_loads_the_owner_backup(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    entry = await _setup(hass, V1R)
+    entry = await _setup(hass, {**V1R, **TESLEMETRY})
     assert [b.name for b in entry.runtime_data.coordinator.backends] == ["tesla_fleet"]
     login = tesla_cloud.LoginStart("https://auth.tesla.com/x", "verifier", "s")
     cloud_mod = "custom_components.tesla_tedapi.config_flow.tesla_cloud"
@@ -486,7 +399,6 @@ async def test_linking_an_account_loads_the_owner_backup(hass: HomeAssistant, fa
         await hass.async_block_till_done()
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options["cloud_backends"] == "fleet_then_owner"
-    # The reload after linking sets up both backups, without another reload.
     assert [b.name for b in entry.runtime_data.coordinator.backends] == ["tesla_fleet", "owner_api"]
 
 
@@ -502,18 +414,20 @@ async def _unlink(hass: HomeAssistant, entry: MockConfigEntry, backup: str | Non
     return {"menu": menu, "offered": offered, **result}
 
 
-async def test_unlink_tesla_fleet_keeps_the_account(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    entry = await _setup(hass, {**V1R, **ACCOUNT}, "fleet_then_owner")
+async def test_unlink_fleet_removes_its_sign_in_and_keeps_the_account(
+        hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, {**V1R, **ACCOUNT, **TESLEMETRY}, "fleet_then_owner")
     result = await _unlink(hass, entry, "tesla_fleet")
     assert "unlink_account" in result["menu"] and "link_account" not in result["menu"]
     assert result["offered"] == ["tesla_fleet", "owner_api"]
     assert entry.options["cloud_backends"] == "owner_api"
     assert entry.data["owners_email"] == ACCOUNT["owners_email"]
+    assert not any(key in entry.data for key in TESLEMETRY)
     assert [b.name for b in entry.runtime_data.coordinator.backends] == ["owner_api"]
 
 
-async def test_unlink_owner_api_keeps_tesla_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    entry = await _setup(hass, {**V1R, **ACCOUNT}, "owner_then_fleet")
+async def test_unlink_owner_api_keeps_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, {**V1R, **ACCOUNT, **TESLEMETRY}, "owner_then_fleet")
     result = await _unlink(hass, entry, "owner_api")
     assert result["offered"] == ["owner_api", "tesla_fleet"]
     assert entry.options["cloud_backends"] == "tesla_fleet"
@@ -521,72 +435,79 @@ async def test_unlink_owner_api_keeps_tesla_fleet(hass: HomeAssistant, fake_powe
     assert [b.name for b in entry.runtime_data.coordinator.backends] == ["tesla_fleet"]
 
 
-async def test_menu_offers_link_and_unlink_with_only_tesla_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    entry = await _setup(hass, V1R)
+async def test_menu_offers_link_and_unlink_with_only_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, {**V1R, **TESLEMETRY})
     result = await _unlink(hass, entry, None)
-    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "unlink_account", "new_key"]
+    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "fleet_signin",
+                                      "unlink_account", "new_key"]
     result = await _unlink(hass, entry, "tesla_fleet")
     assert result["offered"] == ["tesla_fleet"]
     assert entry.options["cloud_backends"] == "none"
     result = await _unlink(hass, entry, None)
-    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "new_key"]
+    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "fleet_signin", "new_key"]
+
+
+async def test_token_refresh_does_not_reload(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    entry = await _setup(hass, {**V1R, **TESLEMETRY, "token": {"access_token": "a"}})
+    coordinator = entry.runtime_data.coordinator
+    hass.config_entries.async_update_entry(entry, data={**entry.data, "token": {"access_token": "b"}})
+    await hass.async_block_till_done()
+    assert entry.runtime_data.coordinator is coordinator
+    assert entry.runtime_data.applied_data["token"] == {"access_token": "b"}
+    # Any other data change still reloads.
+    hass.config_entries.async_update_entry(entry, data={**entry.data, "fleet_token": "new"})
+    await hass.async_block_till_done()
+    assert entry.runtime_data.coordinator is not coordinator
 
 
 async def test_tesla_tariff_through_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
-    """Tesla Fleet: the tariff from site_info, written with time_of_use_settings."""
+    """The Fleet API: the tariff from site_info, written with time_of_use_settings."""
     from .test_tariff import V2  # noqa: PLC0415
 
-    fleet.api.tariff = V2
-    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R, minor_version=2,
-                            options={"cloud_backends": "tesla_fleet", "tesla_tariff": True}, title="Powerwall")
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    fleet.tariff = V2
+    entry = await _setup(hass, {**V1R, **TESLEMETRY}, options={"tesla_tariff": True})
     sensor = er.async_get(hass).async_get_entity_id("sensor", DOMAIN, f"{DIN}_tesla_tariff")
     assert hass.states.get(sensor).state == "ZeroHero"
-    assert hass.states.get(sensor).attributes["backend"] == "Tesla Fleet"
+    assert hass.states.get(sensor).attributes["backend"] == "Teslemetry"
 
     new = {**V2, "name": "ZeroHero 2"}
     resp = await hass.services.async_call(DOMAIN, "set_tariff", {"tou_settings": {"tariff_content_v2": new},
                                                                  "dry_run": False},
                                           blocking=True, return_response=True)
-    assert resp == {"dry_run": False, "backend": "Tesla Fleet", "confirmed": True, "status": "confirmed",
+    assert resp == {"dry_run": False, "backend": "Teslemetry", "confirmed": True, "status": "confirmed",
                     "warnings": []}
     # Tesla gets the tariff wrapped once, not tariff_content_v2.tariff_content_v2.
-    assert ("time_of_use_settings", {"json": {"tou_settings": {"tariff_content_v2": new}}}) in fleet.api.calls
+    assert ("time_of_use_settings", {"tou_settings": {"tariff_content_v2": new}}) in fleet.posts
     with pytest.raises(ValueError, match="non-empty"):
         await hass.async_add_executor_job(
             entry.runtime_data.coordinator.backends[0].get_client().set_tariff, {"tariff_content_v2": {}})
 
-    # Tesla Fleet shows a new tariff at once: other rates are a mismatch and a repair.
-    original = fleet.api.time_of_use_settings
+    # The Fleet API shows a new tariff at once: other rates are a mismatch and a repair.
+    original = fleet.request
 
-    async def keeps_old(settings):
-        await original(settings)
-        fleet.api.tariff = V2
+    async def keeps_old(api, method, path, body=None):
+        result = await original(api, method, path, body)
+        if path.endswith("/time_of_use_settings"):
+            fleet.tariff = V2
+        return result
 
     issue_id = f"tariff_write_{entry.entry_id}"
-    with patch.object(fleet.api, "time_of_use_settings", keeps_old):
+    with patch.object(fleet, "request", keeps_old):
         resp = await hass.services.async_call(DOMAIN, "set_tariff", {
             "tou_settings": {"tariff_content_v2": {**V2, "energy_charges": {"Year": {"rates": {"ON_PEAK": 0.7}}}}},
             "dry_run": False}, blocking=True, return_response=True)
     assert resp["status"] == "mismatch"
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None
-    # A later read that shows the rates written (here Tesla caught up) clears it.
-    fleet.api.tariff = {**V2, "energy_charges": {"Year": {"rates": {"ON_PEAK": 0.7}}}}
+    fleet.tariff = {**V2, "energy_charges": {"Year": {"rates": {"ON_PEAK": 0.7}}}}
     entry.runtime_data.coordinator._tariff_at = None
     await entry.runtime_data.coordinator.async_refresh()
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
 
-    # A site_info without a tariff, a failing read and a hanging read.
-    fleet.api.tariff = None
+    # A site_info without a tariff, and a read that hangs.
+    fleet.tariff = None
     with pytest.raises(HomeAssistantError):
         await hass.services.async_call(DOMAIN, "get_tariff", {}, blocking=True, return_response=True)
     client = entry.runtime_data.coordinator.backends[0].get_client()
-    with patch.object(fleet.api, "site_info", return_value=None):
-        assert await hass.async_add_executor_job(client.get_tariff) is None
-    fleet.api.hang = True
-    from custom_components.tesla_tedapi.fleet import FleetTimeout  # noqa: PLC0415
-
-    with patch("custom_components.tesla_tedapi.fleet.CALL_TIMEOUT", 0.05), pytest.raises(FleetTimeout):
-        await hass.async_add_executor_job(client._read, lambda api: api._call("x"))
+    fleet.hang = True
+    with patch.object(fleet_mod, "RUN_TIMEOUT", 0.05), pytest.raises(fleet_mod.FleetTimeout):
+        await hass.async_add_executor_job(client.get_tariff)

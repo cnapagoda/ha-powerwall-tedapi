@@ -1,7 +1,9 @@
 """Tesla Powerwall TEDAPI: local monitoring and control of a Tesla Powerwall."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 import logging
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
@@ -29,6 +31,7 @@ from .const import (
     ATTR_SOURCE_DISCHARGED,
     ATTR_TARGET_SOC,
     ATTR_TOU_SETTINGS,
+    CONF_OAUTH_TOKEN,
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
     DOMAIN,
@@ -279,6 +282,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         # a placeholder identity and duplicated later. Retry instead.
         raise ConfigEntryNotReady("Powerwall DIN not available yet")
 
+    coordinator.async_sync_signin_issue()
     entry.runtime_data = TedapiRuntimeData(
         coordinator=coordinator,
         dispatch=DispatchSession(hass, coordinator) if coordinator.dispatch_supported else None,
@@ -297,6 +301,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
     return True
 
 
+def _without_token(data: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in data.items() if key != CONF_OAUTH_TOKEN}
+
+
 async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) -> None:
     """Apply a change of options in place when only LIVE_OPTIONS changed, so a
     running battery dispatch carries on; reload for anything else (connection,
@@ -304,7 +312,9 @@ async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) 
     runtime = entry.runtime_data
     changed = {key for key in runtime.applied_options.keys() | entry.options.keys()
                if runtime.applied_options.get(key) != entry.options.get(key)}
-    if entry.data == runtime.applied_data and changed <= LIVE_OPTIONS:
+    if _without_token(entry.data) == _without_token(runtime.applied_data) and changed <= LIVE_OPTIONS:
+        # A refreshed Tesla Fleet token is saved in the data: no reload.
+        runtime.applied_data = dict(entry.data)
         runtime.applied_options = dict(entry.options)
         if changed:
             _LOGGER.debug("Options %s applied without a reload", ", ".join(sorted(changed)))

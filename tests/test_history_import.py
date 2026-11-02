@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from types import SimpleNamespace
-from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
@@ -176,10 +174,10 @@ async def test_sources_found_by_site_or_override(hass: HomeAssistant, fake_power
                                          translation_key="total_battery_charge").entity_id
     with pytest.raises(ServiceValidationError):
         find_sources(hass, DIN, {})
-    # ...unless the Fleet site with this Powerwall is known...
-    with patch("custom_components.tesla_tedapi.history_import.find_site",
-               return_value=(None, SimpleNamespace(id=int(SITE)))):
-        found = find_sources(hass, DIN, {})
+    # ...unless this Powerwall's entry knows its energy site (its own sign-in)...
+    entry = hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, DIN)
+    hass.config_entries.async_update_entry(entry, data={**entry.data, "fleet_site_id": int(SITE)})
+    found = find_sources(hass, DIN, {})
     assert found == {"battery_energy_charged": ids["src_charged"],
                      "battery_energy_discharged": ids["src_discharged"]}
     # ...or the source is chosen.

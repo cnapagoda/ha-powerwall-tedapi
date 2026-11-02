@@ -169,18 +169,6 @@ async def test_cloud_refuses_too(hass: HomeAssistant, fake_powerwall) -> None:
     assert entry.runtime_data.coordinator.cloud_writes == {}
 
 
-async def test_starting_backup_is_skipped(hass: HomeAssistant, fake_powerwall) -> None:
-    from unittest.mock import patch  # noqa: PLC0415
-
-    from homeassistant.exceptions import HomeAssistantError  # noqa: PLC0415
-
-    entry, _pw = await _entry_with_failing_local_writes(hass, fake_powerwall)
-    owner = entry.runtime_data.coordinator.backends[0]
-    with patch.object(owner, "starting", return_value=True), pytest.raises(HomeAssistantError) as err:
-        await _set_reserve(hass, 40)
-    assert err.value.translation_key == "write_failed"
-
-
 async def test_wifi_without_cloud_cannot_write(hass: HomeAssistant, fake_powerwall) -> None:
     from homeassistant.exceptions import HomeAssistantError  # noqa: PLC0415
 
