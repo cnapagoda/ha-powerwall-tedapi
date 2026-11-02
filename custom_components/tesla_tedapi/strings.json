@@ -144,6 +144,7 @@
     },
     "error": {
       "cannot_connect": "Could not reach the Powerwall at that address. Check the address (your router lists the gateway as `teslapw_…`), that the Powerwall is on and on the same network as Home Assistant, and try again.",
+      "wifi_password_refused": "The Powerwall answered but refused the password. Check it on the QR sticker (letters are upper case). The password alone works only over the Powerwall's own Wi-Fi (`192.168.91.1`), not on its home-network address: there, use a signed connection.",
       "invalid_gw_pwd": "The gateway refused this password. Check the QR sticker (letters are upper case).",
       "password_required": "Signed access needs the gateway password.",
       "invalid_rsa_key": "That is not an RSA private key in PEM format. Upload the private key file (it starts with `-----BEGIN`), not the public key.",

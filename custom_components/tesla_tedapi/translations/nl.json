@@ -144,6 +144,7 @@
     },
     "error": {
       "cannot_connect": "Kan de Powerwall op dat adres niet bereiken. Controleer het adres (je router toont de gateway als `teslapw_…`), of de Powerwall aan staat en op hetzelfde netwerk als Home Assistant zit, en probeer het opnieuw.",
+      "wifi_password_refused": "De Powerwall antwoordde maar weigerde het wachtwoord. Controleer het op de QR-sticker (hoofdletters). Het wachtwoord alleen werkt alleen via de eigen wifi van de Powerwall (`192.168.91.1`), niet op zijn adres in het thuisnetwerk: gebruik daar een ondertekende verbinding.",
       "invalid_gw_pwd": "De gateway heeft dit wachtwoord geweigerd. Controleer de QR-sticker (letters zijn hoofdletters).",
       "password_required": "Ondertekende toegang heeft het gateway-wachtwoord nodig.",
       "invalid_rsa_key": "Dat is geen private RSA-sleutel in PEM-formaat. Upload het bestand met de private sleutel (het begint met `-----BEGIN`), niet de publieke sleutel.",

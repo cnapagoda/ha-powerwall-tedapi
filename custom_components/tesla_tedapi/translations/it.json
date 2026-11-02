@@ -144,6 +144,7 @@
     },
     "error": {
       "cannot_connect": "Impossibile raggiungere la Powerwall a quell'indirizzo. Controlla l'indirizzo (il router mostra il gateway come `teslapw_…`), che la Powerwall sia accesa e sulla stessa rete di Home Assistant, e riprova.",
+      "wifi_password_refused": "Il Powerwall ha risposto ma ha rifiutato la password. Controllala sull'etichetta QR (lettere maiuscole). La sola password funziona solo tramite il Wi-Fi del Powerwall (`192.168.91.1`), non sul suo indirizzo della rete domestica: lì usa una connessione firmata.",
       "invalid_gw_pwd": "Il gateway ha rifiutato questa password. Controlla l'adesivo QR (le lettere sono maiuscole).",
       "password_required": "L'accesso firmato richiede la password del gateway.",
       "invalid_rsa_key": "Non è una chiave privata RSA in formato PEM. Carica il file della chiave privata (inizia con `-----BEGIN`), non la chiave pubblica.",

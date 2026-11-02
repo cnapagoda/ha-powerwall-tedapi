@@ -144,6 +144,7 @@
     },
     "error": {
       "cannot_connect": "Die Powerwall ist unter dieser Adresse nicht erreichbar. Prüfe die Adresse (dein Router zeigt das Gateway als `teslapw_…` an), ob die Powerwall eingeschaltet und im selben Netzwerk wie Home Assistant ist, und versuche es erneut.",
+      "wifi_password_refused": "Die Powerwall hat geantwortet, aber das Passwort abgelehnt. Prüfe es auf dem QR-Aufkleber (Großbuchstaben). Das Passwort allein funktioniert nur über das eigene WLAN der Powerwall (`192.168.91.1`), nicht über ihre Adresse im Heimnetz: Verwende dort eine signierte Verbindung.",
       "invalid_gw_pwd": "Das Gateway hat dieses Passwort abgelehnt. Prüfe den QR-Aufkleber (Buchstaben sind Großbuchstaben).",
       "password_required": "Signierter Zugriff braucht das Gateway-Passwort.",
       "invalid_rsa_key": "Das ist kein privater RSA-Schlüssel im PEM-Format. Lade die Datei mit dem privaten Schlüssel hoch (sie beginnt mit `-----BEGIN`), nicht den öffentlichen Schlüssel.",

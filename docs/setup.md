@@ -126,7 +126,7 @@ If you registered a key with `python -m pypowerwall register`, upload its `tedap
 
 ### C. Wi-Fi password only
 
-Home Assistant must be connected to the Powerwall's `TeslaPW_…` Wi-Fi network (address `192.168.91.1`), usually through a second Wi-Fi adapter. You get local readings. To change settings, link a Tesla account (or use Tesla Fleet / Teslemetry) as a [cloud backup](cloud-backup.md). Battery dispatch, max backup and going off-grid aren't available.
+Home Assistant must be connected to the Powerwall's `TeslaPW_…` Wi-Fi network (address `192.168.91.1`), usually through a second Wi-Fi adapter. The gateway refuses the password on its home-network address, so this only works over its Wi-Fi. A signed connection (paths A and B) works on the home network. You get local readings. To change settings, link a Tesla account (or use Tesla Fleet / Teslemetry) as a [cloud backup](cloud-backup.md). Battery dispatch, max backup and going off-grid aren't available.
 
 You can switch to signed later: **⋮ → Reconfigure** and give a key file.
 

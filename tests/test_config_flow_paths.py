@@ -18,6 +18,9 @@ from custom_components.tesla_tedapi.const import DOMAIN
 from .conftest import DIN, FakePowerwall
 from .test_config_flow import CLOUD, PWD, SETUP, DhcpServiceInfo, _gateway
 
+# The real check (conftest stands in for it in every other test).
+REAL_ANSWERS = gateway.answers
+
 V1R = {"connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/k"}
 LOGIN = tesla_cloud.LoginStart("https://auth.tesla.com/x", "verifier", "state1")
 HOME = tesla_cloud.EnergySite(42, DIN, "Home")
@@ -72,14 +75,30 @@ def test_probe(tmp_path) -> None:
             pytest.raises(config_flow.KeyNotAccepted):
         config_flow._probe("v1r", "h", PWD, str(key), "UTC")
     FakePowerwall.fail_local = True
-    with pytest.raises(config_flow.CannotConnect):
+    with patch.object(gateway, "answers", return_value=False), pytest.raises(config_flow.CannotConnect) as info:
+        config_flow._probe("wifi", "h", PWD, "", "UTC")
+    assert not isinstance(info.value, config_flow.WifiPasswordRefused)
+    # The gateway answers but refuses the password (wrong password, or its
+    # home-network address, where the password alone isn't accepted).
+    with patch.object(gateway, "answers", return_value=True), \
+            pytest.raises(config_flow.WifiPasswordRefused):
         config_flow._probe("wifi", "h", PWD, "", "UTC")
     FakePowerwall.fail_local = False
     with patch.object(FakePowerwall, "din", lambda self: None):
         with pytest.raises(config_flow.KeyNotAccepted):
             config_flow._probe("v1r", "h", PWD, str(key), "UTC")
-        with pytest.raises(config_flow.CannotConnect):
+        with patch.object(gateway, "answers", return_value=False), pytest.raises(config_flow.CannotConnect):
             config_flow._probe("wifi", "h", PWD, "", "UTC")
+        with patch.object(gateway, "answers", return_value=True), \
+                pytest.raises(config_flow.WifiPasswordRefused):
+            config_flow._probe("wifi", "h", PWD, "", "UTC")
+
+
+def test_gateway_answers() -> None:
+    with patch.object(gateway, "_request", return_value=(403, b"")):
+        assert REAL_ANSWERS("h")
+    with patch.object(gateway, "_request", side_effect=gateway.GatewayUnreachable("x")):
+        assert not REAL_ANSWERS("h")
 
 
 def _init_with_mode(mode):
@@ -128,6 +147,7 @@ def test_store_key_rejects_non_pem_and_keeps_a_backup(hass: HomeAssistant, tmp_p
     (config_flow.PasswordRequired(), {"gw_pwd": "password_required"}),
     (config_flow.InvalidRsaKey(), {"base": "invalid_rsa_key"}),
     (config_flow.KeyNotAccepted(), {"base": "key_not_accepted"}),
+    (config_flow.WifiPasswordRefused(), {"base": "wifi_password_refused"}),
     (config_flow.CannotConnect(), {"base": "cannot_connect"}),
 ])
 def test_gateway_errors(err, errors) -> None:
@@ -272,6 +292,18 @@ async def test_connect_failed_goes_back_to_gateway(hass: HomeAssistant) -> None:
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
     assert result["step_id"] == "gateway"
 
+
+async def test_wifi_password_refused_on_home_network(hass: HomeAssistant, fake_gateway) -> None:
+    """Password only at the home-network address: the gateway answers but
+    refuses, so the message says so instead of "could not reach"."""
+    result = await _gateway(hass, host="192.168.1.50")
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "wifi"})
+    FakePowerwall.fail_local = True
+    fake_gateway.answers = True
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.168.1.50", "cloud_backup": False})
+    assert result["step_id"] == "connect_failed"
+    assert result["errors"] == {"base": "wifi_password_refused"}
 
 async def test_connect_finds_another_powerwall(hass: HomeAssistant, tmp_path) -> None:
     with patch.object(FakePowerwall, "din", lambda self: "OTHER-DIN"):

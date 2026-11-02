@@ -127,6 +127,12 @@ class CannotConnect(Exception):
     """The gateway did not answer."""
 
 
+class WifiPasswordRefused(CannotConnect):
+    """Password only: the gateway answered but refused the password. Either
+    the password is wrong, or this is its home-network address, where the
+    gateway doesn't accept the password alone."""
+
+
 class KeyNotAccepted(Exception):
     """The gateway answered but not over signed v1r (key not verified)."""
 
@@ -165,12 +171,20 @@ def _probe(mode: str, host: str, gw_pwd: str, rsa_key_path: str, timezone: str) 
     except KeyNotAccepted:
         raise
     except Exception as err:  # noqa: BLE001
+        _raise_if_refused(mode, host)
         raise CannotConnect(str(err)) from err
     if not din:
         if mode == MODE_V1R:
             raise KeyNotAccepted
+        _raise_if_refused(mode, host)
         raise CannotConnect("no DIN")
     return din
+
+
+def _raise_if_refused(mode: str, host: str) -> None:
+    """Password only: tell a refused password from no answer."""
+    if mode == MODE_WIFI and gateway.answers(host):
+        raise WifiPasswordRefused
 
 
 def _check_gateway(host: str, gw_pwd: str) -> str | None:
@@ -216,6 +230,8 @@ def _gateway_errors(err: Exception) -> dict[str, str]:
         return {"base": "invalid_rsa_key"}
     if isinstance(err, KeyNotAccepted):
         return {"base": "key_not_accepted"}
+    if isinstance(err, WifiPasswordRefused):
+        return {"base": "wifi_password_refused"}
     return {"base": "cannot_connect"}
 
 

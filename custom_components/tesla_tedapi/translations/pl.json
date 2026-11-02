@@ -144,6 +144,7 @@
     },
     "error": {
       "cannot_connect": "Nie można połączyć się z Powerwall pod tym adresem. Sprawdź adres (router pokazuje bramę jako `teslapw_…`), czy Powerwall jest włączona i w tej samej sieci co Home Assistant, i spróbuj ponownie.",
+      "wifi_password_refused": "Powerwall odpowiedział, ale odrzucił hasło. Sprawdź je na naklejce z kodem QR (wielkie litery). Samo hasło działa tylko przez własne Wi-Fi Powerwalla (`192.168.91.1`), a nie pod jego adresem w sieci domowej: tam użyj połączenia podpisanego.",
       "invalid_gw_pwd": "Brama odrzuciła to hasło. Sprawdź naklejkę z kodem QR (litery są wielkie).",
       "password_required": "Dostęp podpisany wymaga hasła bramy.",
       "invalid_rsa_key": "To nie jest prywatny klucz RSA w formacie PEM. Prześlij plik klucza prywatnego (zaczyna się od `-----BEGIN`), a nie klucz publiczny.",

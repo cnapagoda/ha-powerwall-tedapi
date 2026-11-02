@@ -144,6 +144,7 @@
     },
     "error": {
       "cannot_connect": "No se pudo llegar a la Powerwall en esa dirección. Revisa la dirección (tu router muestra la pasarela como `teslapw_…`), que la Powerwall esté encendida y en la misma red que Home Assistant, y vuelve a intentarlo.",
+      "wifi_password_refused": "El Powerwall respondió pero rechazó la contraseña. Compruébala en la etiqueta QR (las letras van en mayúsculas). La contraseña sola solo funciona a través de la Wi-Fi propia del Powerwall (`192.168.91.1`), no en su dirección de la red doméstica: allí, usa una conexión firmada.",
       "invalid_gw_pwd": "La pasarela rechazó esta contraseña. Revisa la etiqueta QR (las letras son mayúsculas).",
       "password_required": "El acceso firmado necesita la contraseña de la pasarela.",
       "invalid_rsa_key": "Eso no es una clave privada RSA en formato PEM. Sube el archivo de clave privada (empieza por `-----BEGIN`), no la clave pública.",

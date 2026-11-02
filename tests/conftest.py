@@ -336,6 +336,9 @@ class FakeGateway:
     password = "ABCDE12345"
     reachable = True
     din = DIN
+    # Whether the gateway answers at all when pypowerwall's connection fails
+    # (gateway.answers): no, unless a test says so.
+    answers = False
 
 
 @pytest.fixture(autouse=True)
@@ -343,6 +346,7 @@ def fake_gateway():
     from custom_components.tesla_tedapi import gateway
 
     FakeGateway.password, FakeGateway.reachable, FakeGateway.din = "ABCDE12345", True, DIN
+    FakeGateway.answers = False
 
     def login(host, gw_pwd):
         if not FakeGateway.reachable:
@@ -355,7 +359,8 @@ def fake_gateway():
         login(host, gw_pwd)
         return FakeGateway.din
 
-    with patch.object(gateway, "login", login), patch.object(gateway, "din", din):
+    with patch.object(gateway, "login", login), patch.object(gateway, "din", din), \
+            patch.object(gateway, "answers", lambda host: FakeGateway.answers):
         yield FakeGateway
 
 
