@@ -183,24 +183,50 @@
       },
       "settings": {
         "title": "Paramètres",
-        "data": {
-          "scan_interval": "Intervalle d'interrogation",
-          "restore_export": "Rétablir les paramètres quand la Powerwall les perd",
-          "status_alert_events": "Événements d'alerte aussi pour les alertes d'état",
-          "problem_minutes": "Délai avant problème",
-          "dispatch_floor_reserve": "Les décharges s'arrêtent à la réserve de secours",
-          "dispatch_max_watts": "Puissance de dispatch maximale",
-          "tesla_tariff": "Tarif Tesla (cloud)",
-          "diagnostics_gateway_config": "Configuration de la passerelle dans les diagnostics"
-        },
-        "data_description": {
-          "restore_export": "La Powerwall perd parfois sa règle d'export vers le réseau et son paramètre de charge depuis le réseau (observé toutes les heures sur une Powerwall 3) ; la charge depuis le réseau s'active alors. Si activé, le paramètre choisi est réécrit en une ou deux minutes (connexion signée uniquement).",
-          "status_alert_events": "Les alertes d'état comme \"Export limited\" décrivent un fonctionnement normal et certaines vont et viennent toutes les quelques minutes ; par défaut, seuls les avis, avertissements et défauts créent des événements d'alerte.",
-          "problem_minutes": "Durée pendant laquelle un avertissement ou un défaut doit persister avant que le capteur Problème s'active et qu'une réparation soit signalée.",
-          "dispatch_floor_reserve": "Une décharge lancée sans `min_soc` s'arrête quand la batterie atteint la réserve de secours.",
-          "dispatch_max_watts": "Les appels de dispatch au-delà de cette puissance sont refusés.",
-          "tesla_tariff": "Lire le tarif utilisé par Tesla pour le contrôle selon l'heure via la sauvegarde cloud (capteur et actions de lecture/écriture). Cloud uniquement.",
-          "diagnostics_gateway_config": "Ajouter la configuration de la passerelle aux téléchargements de diagnostic, sans numéros de série, emplacement, noms ni identifiants. Utile pour signaler un bug."
+        "sections": {
+          "general": {
+            "name": "Général",
+            "data": {
+              "scan_interval": "Intervalle d'interrogation",
+              "restore_export": "Rétablir les paramètres quand la Powerwall les perd"
+            },
+            "data_description": {
+              "restore_export": "La Powerwall perd parfois sa règle d'export vers le réseau et son paramètre de charge depuis le réseau (observé toutes les heures sur une Powerwall 3) ; la charge depuis le réseau s'active alors. Si activé, le paramètre choisi est réécrit en une ou deux minutes (connexion signée uniquement)."
+            }
+          },
+          "alerts": {
+            "name": "Alertes",
+            "data": {
+              "status_alert_events": "Événements d'alerte aussi pour les alertes d'état",
+              "problem_minutes": "Délai avant problème"
+            },
+            "data_description": {
+              "status_alert_events": "Les alertes d'état comme \"Export limited\" décrivent un fonctionnement normal et certaines vont et viennent toutes les quelques minutes ; par défaut, seuls les avis, avertissements et défauts créent des événements d'alerte.",
+              "problem_minutes": "Durée pendant laquelle un avertissement ou un défaut doit persister avant que le capteur Problème s'active et qu'une réparation soit signalée."
+            }
+          },
+          "dispatch": {
+            "name": "Pilotage de la batterie",
+            "data": {
+              "dispatch_floor_reserve": "Les décharges s'arrêtent à la réserve de secours",
+              "dispatch_max_watts": "Puissance de dispatch maximale"
+            },
+            "data_description": {
+              "dispatch_floor_reserve": "Une décharge lancée sans `min_soc` s'arrête quand la batterie atteint la réserve de secours.",
+              "dispatch_max_watts": "Les appels de dispatch au-delà de cette puissance sont refusés."
+            }
+          },
+          "advanced": {
+            "name": "Avancé",
+            "data": {
+              "tesla_tariff": "Tarif Tesla (cloud)",
+              "diagnostics_gateway_config": "Configuration de la passerelle dans les diagnostics"
+            },
+            "data_description": {
+              "tesla_tariff": "Lire le tarif utilisé par Tesla pour le contrôle selon l'heure via la sauvegarde cloud (capteur et actions de lecture/écriture). Cloud uniquement.",
+              "diagnostics_gateway_config": "Ajouter la configuration de la passerelle aux téléchargements de diagnostic, sans numéros de série, emplacement, noms ni identifiants. Utile pour signaler un bug."
+            }
+          }
         }
       },
       "cloud_backup": {
@@ -335,7 +361,12 @@
         "name": "État d'énergie de la batterie"
       },
       "grid_status": {
-        "name": "État du réseau"
+        "name": "État du réseau",
+        "state": {
+          "up": "Connecté",
+          "down": "Coupé",
+          "syncing": "Synchronisation"
+        }
       },
       "grid_frequency": {
         "name": "Fréquence du réseau"
@@ -937,6 +968,92 @@
         "full": "Complète (jusqu'à 25 s)",
         "once": "Une fois",
         "none": "Aucune"
+      }
+    },
+    "alert_description": {
+      "options": {
+        "systemconnectedtogrid": "Connecté au réseau",
+        "fwupdatesucceeded": "La dernière mise à jour du firmware s'est installée correctement",
+        "baggr_a007_endofcharge": "La batterie est pleine",
+        "backfeedlimited": "L'injection sur le réseau est limitée (réglage ou limite d'injection)",
+        "chargeonlyfromsolaroverride": "La charge depuis le réseau n'est pas autorisée ; charge solaire uniquement",
+        "selfconsumptionreservedlimit": "La batterie est à la réserve de secours",
+        "pch_a054_pwsdisabledmpptenableline": "Les entrées solaires intégrées (MPPT) du Powerwall sont désactivées, normal si les panneaux utilisent un onduleur séparé",
+        "bms_a045_sw_soc_change": "La batterie a recalibré son niveau de charge",
+        "bms_a089_lifemodel_stodcrgrowth_change": "La batterie a mis à jour son estimation de vieillissement",
+        "energyaccumulatorirrational": "Un compteur d'énergie a fait un saut improbable",
+        "islandchecksfailed": "Échec du contrôle de disponibilité du secours (normal quelques minutes quand la batterie se remplit ou après un redémarrage)",
+        "pvinvertercomms": "Communication perdue avec l'onduleur solaire",
+        "ieee1547trip": "La protection de raccordement au réseau s'est déclenchée (tension ou fréquence hors plage)",
+        "disallowservice": "La passerelle n'est pas prête",
+        "pch_a053_pwsdisabledinvenableline": "L'onduleur est désactivé",
+        "pch_a055_pwsdisableddcdcenableline": "Le convertisseur DC-DC de la batterie est désactivé",
+        "pws_a014_hvpnotactive": "Le contrôleur haute tension de la batterie n'est pas actif",
+        "pws_a021_hvpmia": "Le contrôleur haute tension de la batterie ne répond pas",
+        "baggr_a005_numbatteriesexpectedmismatch": "Moins de batteries détectées que prévu",
+        "bms_a037_sw_nvram_config_error": "Les réglages de gestion de la batterie n'ont pas pu être lus",
+        "batteryfault": "Défaut de batterie",
+        "systemshutdown": "Système arrêté",
+        "pws_a009_rsd": "L'arrêt rapide est actif (interrupteur marche/arrêt ou bouton d'arrêt rapide)",
+        "pws_a014_hvpfault": "Défaut du contrôleur haute tension de la batterie",
+        "pws_a044_hvprsdfault": "Défaut d'arrêt rapide de la batterie",
+        "pws_a045_battvrationality": "La mesure de tension de la batterie est improbable"
+      }
+    },
+    "alert_short": {
+      "options": {
+        "fwupdatesucceeded": "Mise à jour du firmware réussie",
+        "backfeedlimited": "Injection limitée",
+        "chargeonlyfromsolaroverride": "Charge solaire uniquement",
+        "selfconsumptionreservedlimit": "À la réserve",
+        "pch_a054_pwsdisabledmpptenableline": "Entrées solaires désactivées",
+        "bms_a045_sw_soc_change": "Niveau de charge recalibré",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Vieillissement mis à jour",
+        "energyaccumulatorirrational": "Saut de compteur",
+        "islandchecksfailed": "Contrôle du secours échoué",
+        "pvinvertercomms": "Onduleur solaire injoignable",
+        "ieee1547trip": "Protection réseau déclenchée",
+        "disallowservice": "Passerelle pas prête",
+        "pch_a053_pwsdisabledinvenableline": "Onduleur désactivé",
+        "pch_a055_pwsdisableddcdcenableline": "Convertisseur DC-DC désactivé",
+        "pws_a014_hvpnotactive": "Contrôleur batterie inactif",
+        "pws_a021_hvpmia": "Contrôleur batterie muet",
+        "baggr_a005_numbatteriesexpectedmismatch": "Batteries manquantes",
+        "bms_a037_sw_nvram_config_error": "Erreur de réglages batterie",
+        "pws_a009_rsd": "Arrêt rapide actif",
+        "pws_a014_hvpfault": "Défaut contrôleur batterie",
+        "pws_a044_hvprsdfault": "Défaut d'arrêt rapide",
+        "pws_a045_battvrationality": "Tension batterie improbable",
+        "no_alerts": "Aucune"
+      }
+    },
+    "logbook": {
+      "options": {
+        "firmware_updated": "firmware mis à jour de {previous} vers {version}",
+        "outage_started": "coupure réseau commencée",
+        "outage_ended": "réseau rétabli après une coupure de {minutes} min",
+        "outage_ended_unknown": "réseau rétabli après une coupure",
+        "dispatch_ended": "pilotage de la batterie terminé ({reason})",
+        "off_grid_ended": "fonctionnement hors réseau terminé ({reason})"
+      }
+    },
+    "dispatch_end_reason": {
+      "options": {
+        "completed": "durée écoulée",
+        "target_reached": "objectif atteint",
+        "min_soc": "limite basse atteinte",
+        "max_soc": "limite haute atteinte",
+        "stopped": "arrêté",
+        "connection_lost": "connexion perdue",
+        "unloaded": "intégration déchargée"
+      }
+    },
+    "off_grid_end_reason": {
+      "options": {
+        "completed": "durée écoulée",
+        "min_soc": "batterie au niveau de reconnexion",
+        "requested": "reconnexion demandée",
+        "reconnected_elsewhere": "reconnecté ailleurs"
       }
     }
   }

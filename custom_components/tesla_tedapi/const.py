@@ -28,6 +28,12 @@ CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
 CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
 # Which cloud backup to use and in what order (one of CLOUD_CHOICES).
 CONF_CLOUD_BACKENDS = "cloud_backends"
+# Options that take effect without reloading the integration (a reload would
+# end a running battery dispatch). Any other change reloads it.
+LIVE_OPTIONS = frozenset({
+    CONF_SCAN_INTERVAL, CONF_RESTORE_EXPORT, CONF_STATUS_EVENTS, CONF_PROBLEM_MINUTES,
+    CONF_DISPATCH_FLOOR_RESERVE, CONF_DISPATCH_MAX_WATTS, CONF_DIAGNOSTICS_GATEWAY,
+})
 
 # Cloud backups: a Tesla account signed in here (Owner API), or the core Tesla
 # Fleet integration's sign-in (Fleet API).
@@ -137,6 +143,10 @@ MAX_BACKUP_MAX_MINUTES = 2880
 CLOUD_AUTH_FAILURES = 3
 KEY_REFUSED_POLLS = 10
 PASSWORD_REFUSED_POLLS = 3
+# A lifetime energy counter that reads lower than before is a glitch, unless
+# it stays lower for this many readings in a row: then the counter was reset
+# (a gateway replaced or reset) and the new value is taken.
+ENERGY_RESET_POLLS = 10
 
 # Battery dispatch
 DISPATCH_MAX_WATTS = 10000

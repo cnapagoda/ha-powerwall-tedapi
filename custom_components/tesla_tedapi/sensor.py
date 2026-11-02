@@ -95,6 +95,14 @@ def _health_attrs(d: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+GRID_STATUSES = ("up", "down", "syncing")
+
+
+def _grid_status(value: Any) -> str | None:
+    status = str(value).lower() if value is not None else None
+    return status if status in GRID_STATUSES else None
+
+
 def _firmware(d: dict[str, Any]) -> tuple[str | None, str | None]:
     return split_version(d.get("firmware_version"))
 
@@ -186,7 +194,10 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
     TedapiSensorEntityDescription(
         key="grid_status",
         translation_key="grid_status",
-        value_fn=lambda d: d.get("grid_status"),
+        device_class=SensorDeviceClass.ENUM,
+        options=list(GRID_STATUSES),
+        # The gateway reports UP, DOWN or SYNCING; the states are translated.
+        value_fn=lambda d: _grid_status(d.get("grid_status")),
     ),
     TedapiSensorEntityDescription(
         key="grid_frequency",
@@ -236,8 +247,11 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.ENERGY_STORAGE,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: d.get("battery_full_kwh"),
+        # Each pack's capacity. Not its remaining energy, which changes on
+        # every reading: that is on each pack's capacity sensor and in
+        # Battery energy remaining.
         attrs_fn=lambda d: {
-            p["name"]: {"serial": sn, "full_kwh": p["full_kwh"], "remaining_kwh": p["remaining_kwh"]}
+            p["name"]: {"serial": sn, "full_kwh": p["full_kwh"]}
             for sn, p in (d.get("packs") or {}).items()
         },
     ),
@@ -594,6 +608,23 @@ async def async_setup_entry(
 
 class TedapiSensor(TedapiEntity, SensorEntity):
     entity_description: TedapiSensorEntityDescription
+
+    # Attributes that change on (nearly) every reading while the state
+    # doesn't, or that are only diagnostic detail: shown live, but kept out
+    # of the recorder so they don't fill the database.
+    _unrecorded_attributes = frozenset({
+        # pack capacity / temperature
+        "remaining_kwh", "temp_min", "shunt_temp", "part_number", "serial",
+        # grid counter check
+        "counter_import_kwh", "counter_export_kwh", "power_import_kwh", "power_export_kwh",
+        "import_difference_pct", "export_difference_pct", "covered_minutes", "gaps",
+        # setup health
+        "checks", "cloud_backends", "cloud_token_expires", "cloud_last_ok", "wifi_fallback", "cloud_linked",
+        # fans (drive duty, target speed)
+        "duty", "target_rpm",
+        # alert details (the alert codes themselves stay recorded)
+        "details", "pack_alerts",
+    })
 
     def __init__(self, coordinator: TedapiCoordinator, description: TedapiSensorEntityDescription) -> None:
         super().__init__(coordinator, description.key)

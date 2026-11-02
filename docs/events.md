@@ -60,7 +60,7 @@ The **[Grid outage alert](automations.md#blueprints)** blueprint does this for y
 | `max_soc` | A charge reached `max_soc`. |
 | `stopped` | `resume_battery_operation` was called. (A new dispatch that replaces a running one doesn't fire this event.) |
 | `connection_lost` | Three renewals in a row failed. The Powerwall returns to normal by itself within 5 minutes. |
-| `unloaded` | The integration was unloaded or reloaded, for example after saving its options. |
+| `unloaded` | The integration was unloaded or reloaded, for example after changing the Tesla tariff option, the cloud backup or the connection. |
 
 ---
 

@@ -49,7 +49,7 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 | **Battery level** | `sensor.powerwall_tedapi_battery_level` | % | **Same scale as the Tesla app.** Use this one in automations; dispatch limits use it too. |
 | Battery state of energy | `sensor.powerwall_tedapi_battery_state_of_energy` | % | The gateway's raw value, about 2–4 points higher than the app (the app hides the bottom 5 %: app = (raw − 5) ÷ 0.95). |
 | Battery energy remaining | `sensor.powerwall_tedapi_battery_energy_remaining` | kWh | |
-| Battery full capacity | `sensor.powerwall_tedapi_battery_full_capacity` | kWh | Attributes: each pack's `serial`, `full_kwh` and `remaining_kwh`. |
+| Battery full capacity | `sensor.powerwall_tedapi_battery_full_capacity` | kWh | Attributes: each pack's `serial` and `full_kwh`. |
 | Backup time remaining | `sensor.powerwall_tedapi_backup_time_remaining` | h | The gateway's estimate at the current load. |
 | Battery health 🩺 | `sensor.powerwall_tedapi_battery_health` | % | Full capacity ÷ (13.5 kWh × packs). A new battery reads above 100 %. Attributes: `nominal_kwh_per_pack`, `packs`, `warranty_kwh` (70 % of 13.5 kWh per pack), `lifetime_discharged_kwh`. |
 
@@ -80,7 +80,7 @@ One set per Powerwall and expansion pack, named after the pack (*Powerwall 3*, *
 | Solar energy produced | `sensor.powerwall_tedapi_solar_energy_produced` |
 | Home energy consumed | `sensor.powerwall_tedapi_home_energy_consumed` |
 
-A reading that is missing, zero or lower than the last one is ignored, so a glitch never looks like a meter reset in your statistics.
+A reading that is missing or zero is ignored, and so is a reading lower than the last one, so a glitch never looks like a meter reset in your statistics. Only a lower reading that stays for 10 readings in a row is taken as a real counter reset (for example a replaced gateway).
 
 ### Today
 
@@ -97,7 +97,7 @@ They're meant for cards and automations. For the Energy dashboard, use the lifet
 | Entity | Entity ID | Notes |
 |---|---|---|
 | **Grid connected** | `binary_sensor.powerwall_tedapi_grid_connected` | On while the Powerwall is on the grid. Off during an outage, *Go off-grid*, and while it syncs to reconnect. Attribute `grid_status`: `UP`, `DOWN` or `SYNCING`. With a signed connection it also shows an [off-grid run](actions.md#tesla_tedapigo_off_grid) started here: `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below`, `last_end_reason`. |
-| Grid status | `sensor.powerwall_tedapi_grid_status` | `UP`, `DOWN` or `SYNCING`, as the gateway reports it. |
+| Grid status | `sensor.powerwall_tedapi_grid_status` | `up`, `down` or `syncing` (shown as *Up*, *Down*, *Syncing* in your language). Before 2.5.1 the states were upper case. |
 | Grid frequency | `sensor.powerwall_tedapi_grid_frequency` | Hz. |
 | Grid voltage | `sensor.powerwall_tedapi_grid_voltage` | V. |
 | Last grid outage | `sensor.powerwall_tedapi_last_grid_outage` | When the last (or current) outage started. Attributes: `ended`, `ongoing`. |

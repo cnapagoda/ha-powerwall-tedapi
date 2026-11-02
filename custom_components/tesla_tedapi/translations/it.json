@@ -183,24 +183,50 @@
       },
       "settings": {
         "title": "Impostazioni",
-        "data": {
-          "scan_interval": "Intervallo di aggiornamento",
-          "restore_export": "Ripristina le impostazioni quando la Powerwall le perde",
-          "status_alert_events": "Eventi di avviso anche per gli avvisi di stato",
-          "problem_minutes": "Ritardo del problema",
-          "dispatch_floor_reserve": "Le scariche si fermano alla riserva di backup",
-          "dispatch_max_watts": "Potenza massima di dispatch",
-          "tesla_tariff": "Tariffa Tesla (cloud)",
-          "diagnostics_gateway_config": "Configurazione del gateway nella diagnostica"
-        },
-        "data_description": {
-          "restore_export": "La Powerwall a volte perde la regola di immissione in rete e l'impostazione di carica dalla rete (visto ogni ora su una Powerwall 3); la carica dalla rete allora si attiva. Se attivo, l'impostazione scelta viene riscritta entro uno o due minuti (solo connessione firmata).",
-          "status_alert_events": "Gli avvisi di stato come \"Export limited\" descrivono il normale funzionamento e alcuni vanno e vengono ogni pochi minuti; per impostazione predefinita solo notifiche, avvertenze e guasti creano eventi di avviso.",
-          "problem_minutes": "Quanto deve durare un'avvertenza o un guasto prima che il sensore Problema si attivi e venga segnalata una riparazione.",
-          "dispatch_floor_reserve": "Una scarica avviata senza `min_soc` si ferma quando la batteria raggiunge la riserva di backup.",
-          "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate.",
-          "tesla_tariff": "Leggere dal backup cloud la tariffa che Tesla usa per il controllo a fasce orarie (sensore e azioni di lettura/impostazione). Solo cloud.",
-          "diagnostics_gateway_config": "Aggiungere la configurazione del gateway ai download di diagnostica, senza numeri di serie, posizione, nomi e credenziali. Utile per le segnalazioni di bug."
+        "sections": {
+          "general": {
+            "name": "Generale",
+            "data": {
+              "scan_interval": "Intervallo di aggiornamento",
+              "restore_export": "Ripristina le impostazioni quando la Powerwall le perde"
+            },
+            "data_description": {
+              "restore_export": "La Powerwall a volte perde la regola di immissione in rete e l'impostazione di carica dalla rete (visto ogni ora su una Powerwall 3); la carica dalla rete allora si attiva. Se attivo, l'impostazione scelta viene riscritta entro uno o due minuti (solo connessione firmata)."
+            }
+          },
+          "alerts": {
+            "name": "Avvisi",
+            "data": {
+              "status_alert_events": "Eventi di avviso anche per gli avvisi di stato",
+              "problem_minutes": "Ritardo del problema"
+            },
+            "data_description": {
+              "status_alert_events": "Gli avvisi di stato come \"Export limited\" descrivono il normale funzionamento e alcuni vanno e vengono ogni pochi minuti; per impostazione predefinita solo notifiche, avvertenze e guasti creano eventi di avviso.",
+              "problem_minutes": "Quanto deve durare un'avvertenza o un guasto prima che il sensore Problema si attivi e venga segnalata una riparazione."
+            }
+          },
+          "dispatch": {
+            "name": "Dispatch della batteria",
+            "data": {
+              "dispatch_floor_reserve": "Le scariche si fermano alla riserva di backup",
+              "dispatch_max_watts": "Potenza massima di dispatch"
+            },
+            "data_description": {
+              "dispatch_floor_reserve": "Una scarica avviata senza `min_soc` si ferma quando la batteria raggiunge la riserva di backup.",
+              "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate."
+            }
+          },
+          "advanced": {
+            "name": "Avanzate",
+            "data": {
+              "tesla_tariff": "Tariffa Tesla (cloud)",
+              "diagnostics_gateway_config": "Configurazione del gateway nella diagnostica"
+            },
+            "data_description": {
+              "tesla_tariff": "Leggere dal backup cloud la tariffa che Tesla usa per il controllo a fasce orarie (sensore e azioni di lettura/impostazione). Solo cloud.",
+              "diagnostics_gateway_config": "Aggiungere la configurazione del gateway ai download di diagnostica, senza numeri di serie, posizione, nomi e credenziali. Utile per le segnalazioni di bug."
+            }
+          }
         }
       },
       "cloud_backup": {
@@ -335,7 +361,12 @@
         "name": "Stato di energia della batteria"
       },
       "grid_status": {
-        "name": "Stato della rete"
+        "name": "Stato della rete",
+        "state": {
+          "up": "Connessa",
+          "down": "Interrotta",
+          "syncing": "Sincronizzazione"
+        }
       },
       "grid_frequency": {
         "name": "Frequenza di rete"
@@ -937,6 +968,92 @@
         "full": "Completa (fino a 25 s)",
         "once": "Una volta",
         "none": "Nessuna"
+      }
+    },
+    "alert_description": {
+      "options": {
+        "systemconnectedtogrid": "Connesso alla rete",
+        "fwupdatesucceeded": "L'ultimo aggiornamento firmware è stato installato correttamente",
+        "baggr_a007_endofcharge": "La batteria è carica",
+        "backfeedlimited": "L'immissione in rete è limitata (impostazione o limite di immissione)",
+        "chargeonlyfromsolaroverride": "La ricarica dalla rete non è consentita; solo ricarica dal fotovoltaico",
+        "selfconsumptionreservedlimit": "La batteria è alla riserva di backup",
+        "pch_a054_pwsdisabledmpptenableline": "Gli ingressi fotovoltaici integrati (MPPT) del Powerwall sono spenti, normale se il fotovoltaico usa un inverter separato",
+        "bms_a045_sw_soc_change": "La batteria ha ricalibrato il livello di carica",
+        "bms_a089_lifemodel_stodcrgrowth_change": "La batteria ha aggiornato la stima di invecchiamento",
+        "energyaccumulatorirrational": "Un contatore di energia ha fatto un salto anomalo",
+        "islandchecksfailed": "Controllo di prontezza del backup non riuscito (normale per qualche minuto quando la batteria si riempie o dopo un riavvio)",
+        "pvinvertercomms": "Comunicazione persa con l'inverter fotovoltaico",
+        "ieee1547trip": "È intervenuta la protezione di interfaccia (tensione o frequenza di rete fuori range)",
+        "disallowservice": "Il gateway non è pronto",
+        "pch_a053_pwsdisabledinvenableline": "L'inverter è disattivato",
+        "pch_a055_pwsdisableddcdcenableline": "Il convertitore DC-DC della batteria è disattivato",
+        "pws_a014_hvpnotactive": "Il controller ad alta tensione della batteria non è attivo",
+        "pws_a021_hvpmia": "Il controller ad alta tensione della batteria non risponde",
+        "baggr_a005_numbatteriesexpectedmismatch": "Trovate meno batterie del previsto",
+        "bms_a037_sw_nvram_config_error": "Impossibile leggere le impostazioni di gestione della batteria",
+        "batteryfault": "Guasto della batteria",
+        "systemshutdown": "Sistema spento",
+        "pws_a009_rsd": "Lo spegnimento rapido è attivo (interruttore On/Off o pulsante di spegnimento rapido)",
+        "pws_a014_hvpfault": "Guasto del controller ad alta tensione della batteria",
+        "pws_a044_hvprsdfault": "Guasto dello spegnimento rapido della batteria",
+        "pws_a045_battvrationality": "La tensione della batteria letta è anomala"
+      }
+    },
+    "alert_short": {
+      "options": {
+        "fwupdatesucceeded": "Aggiornamento firmware riuscito",
+        "backfeedlimited": "Immissione limitata",
+        "chargeonlyfromsolaroverride": "Solo ricarica solare",
+        "selfconsumptionreservedlimit": "Alla riserva",
+        "pch_a054_pwsdisabledmpptenableline": "Ingressi FV spenti",
+        "bms_a045_sw_soc_change": "Carica ricalibrata",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Invecchiamento aggiornato",
+        "energyaccumulatorirrational": "Salto del contatore",
+        "islandchecksfailed": "Controllo backup non riuscito",
+        "pvinvertercomms": "Inverter FV non raggiungibile",
+        "ieee1547trip": "Intervento protezione di rete",
+        "disallowservice": "Gateway non pronto",
+        "pch_a053_pwsdisabledinvenableline": "Inverter disattivato",
+        "pch_a055_pwsdisableddcdcenableline": "Convertitore DC-DC disattivato",
+        "pws_a014_hvpnotactive": "Controller batteria inattivo",
+        "pws_a021_hvpmia": "Controller batteria non risponde",
+        "baggr_a005_numbatteriesexpectedmismatch": "Batterie mancanti",
+        "bms_a037_sw_nvram_config_error": "Errore impostazioni batteria",
+        "pws_a009_rsd": "Spegnimento rapido attivo",
+        "pws_a014_hvpfault": "Guasto controller batteria",
+        "pws_a044_hvprsdfault": "Guasto spegnimento rapido",
+        "pws_a045_battvrationality": "Tensione batteria anomala",
+        "no_alerts": "Nessuno"
+      }
+    },
+    "logbook": {
+      "options": {
+        "firmware_updated": "firmware aggiornato da {previous} a {version}",
+        "outage_started": "iniziata un'interruzione di rete",
+        "outage_ended": "rete tornata dopo un'interruzione di {minutes} min",
+        "outage_ended_unknown": "rete tornata dopo un'interruzione",
+        "dispatch_ended": "dispatch della batteria terminato ({reason})",
+        "off_grid_ended": "funzionamento fuori rete terminato ({reason})"
+      }
+    },
+    "dispatch_end_reason": {
+      "options": {
+        "completed": "tempo scaduto",
+        "target_reached": "obiettivo raggiunto",
+        "min_soc": "limite inferiore raggiunto",
+        "max_soc": "limite superiore raggiunto",
+        "stopped": "interrotto",
+        "connection_lost": "connessione persa",
+        "unloaded": "integrazione scaricata"
+      }
+    },
+    "off_grid_end_reason": {
+      "options": {
+        "completed": "tempo scaduto",
+        "min_soc": "batteria al livello di ricollegamento",
+        "requested": "ricollegamento richiesto",
+        "reconnected_elsewhere": "ricollegato altrove"
       }
     }
   }

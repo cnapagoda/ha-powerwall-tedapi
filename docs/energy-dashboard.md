@@ -55,4 +55,4 @@ If a card shows the flow the wrong way round, it expects the opposite sign: use 
 - **Grid counter check** (diagnostic) compares today's grid counters with the grid power readings. *OK* means they agree within 10 %.
 - **Some gateways' grid counters read higher than the meter**, by 10–20 % on one Powerwall 3, because small flows in both directions are counted twice. If **Grid counter check** says *Counters differ* most days, use your retailer's or Tesla Fleet's grid energy for costs, and keep these for the solar and battery sections.
 - Readings missed while the gateway was unreachable stay missing in the power history, but the lifetime counters catch up: the energy used meanwhile appears in the hour the gateway answers again.
-- A reading that is missing, zero or lower than the last one is ignored, so a glitch never shows up as a huge spike or a meter reset.
+- A reading that is missing, zero or lower than the last one is ignored, so a glitch never shows up as a huge spike or a meter reset. A lower reading that stays for 10 readings in a row is taken as a real counter reset.

@@ -41,7 +41,7 @@ How a dispatch runs:
 - The call is refused if the battery is already past the limit.
 - Charging from the grid may need **Grid charging** switched on.
 - **Dispatch active** shows the running dispatch, and [`tesla_tedapi_dispatch_ended`](events.md#tesla_tedapi_dispatch_ended) fires when it ends.
-- Saving the integration's options reloads it, which ends a running dispatch.
+- Changing the **Tesla tariff (cloud)** option, the cloud backup, a linked account or the connection reloads the integration, which ends a running dispatch. The other settings apply straight away.
 
 ```yaml
 # Charge at 5 kW for 2 hours, stop at 90 %

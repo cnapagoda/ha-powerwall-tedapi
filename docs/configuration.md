@@ -30,6 +30,8 @@ Select **Configure** on the integration. The menu offers:
 
 ### Settings
 
+The form is in four sections: **General** (polling, restore), **Alerts**, **Battery dispatch** and **Advanced** (Tesla tariff, diagnostics; collapsed).
+
 | Option | Default | Range | What it does |
 |---|---|---|---|
 | **Polling interval** | 30 s | 10–300 s | How often the gateway is read. See [How it works](how-it-works.md#data-updates). |
@@ -42,7 +44,7 @@ Select **Configure** on the integration. The menu offers:
 | **Gateway configuration in diagnostics** | Off | | Adds the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports. |
 
 > [!NOTE]
-> Saving options reloads the integration. **A battery dispatch that is running ends** when it reloads (reason `unloaded`), and the battery goes back to normal. An off-grid run continues: it's saved and picked up again. Change options when no dispatch is running.
+> The settings above apply straight away, except **Tesla tariff (cloud)**. Changing that option, the cloud backup, a linked account or the connection (**Reconfigure**) reloads the integration: **a battery dispatch that is running ends** (reason `unloaded`) and the battery goes back to normal. An off-grid run continues: it's saved and picked up again.
 
 ## Reconfigure
 

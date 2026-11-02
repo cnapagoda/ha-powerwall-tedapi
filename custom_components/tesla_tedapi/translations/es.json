@@ -183,24 +183,50 @@
       },
       "settings": {
         "title": "Ajustes",
-        "data": {
-          "scan_interval": "Intervalo de sondeo",
-          "restore_export": "Restaurar los ajustes cuando la Powerwall los pierda",
-          "status_alert_events": "Eventos de alerta también para alertas de estado",
-          "problem_minutes": "Retardo de problema",
-          "dispatch_floor_reserve": "Las descargas se detienen en la reserva de respaldo",
-          "dispatch_max_watts": "Potencia máxima de despacho",
-          "tesla_tariff": "Tarifa de Tesla (nube)",
-          "diagnostics_gateway_config": "Configuración de la pasarela en los diagnósticos"
-        },
-        "data_description": {
-          "restore_export": "La Powerwall a veces pierde su regla de exportación a la red y su ajuste de carga desde la red (visto cada hora en una Powerwall 3); entonces se activa la carga desde la red. Si está activado, el ajuste elegido se vuelve a escribir en uno o dos minutos (solo conexión firmada).",
-          "status_alert_events": "Las alertas de estado como \"Export limited\" describen el funcionamiento normal y algunas van y vienen cada pocos minutos; por defecto solo los avisos, advertencias y fallos crean eventos de alerta.",
-          "problem_minutes": "Cuánto debe durar una advertencia o un fallo antes de que el sensor de problema se active y se cree una reparación.",
-          "dispatch_floor_reserve": "Una descarga iniciada sin `min_soc` se detiene cuando la batería llega a la reserva de respaldo.",
-          "dispatch_max_watts": "Las llamadas de despacho por encima de esta potencia se rechazan.",
-          "tesla_tariff": "Leer desde el respaldo en la nube la tarifa que Tesla usa para el control por horario (sensor y acciones de leer/establecer). Solo nube.",
-          "diagnostics_gateway_config": "Añadir la configuración de la pasarela a las descargas de diagnóstico, sin números de serie, ubicación, nombres ni credenciales. Útil para informar de errores."
+        "sections": {
+          "general": {
+            "name": "General",
+            "data": {
+              "scan_interval": "Intervalo de sondeo",
+              "restore_export": "Restaurar los ajustes cuando la Powerwall los pierda"
+            },
+            "data_description": {
+              "restore_export": "La Powerwall a veces pierde su regla de exportación a la red y su ajuste de carga desde la red (visto cada hora en una Powerwall 3); entonces se activa la carga desde la red. Si está activado, el ajuste elegido se vuelve a escribir en uno o dos minutos (solo conexión firmada)."
+            }
+          },
+          "alerts": {
+            "name": "Alertas",
+            "data": {
+              "status_alert_events": "Eventos de alerta también para alertas de estado",
+              "problem_minutes": "Retardo de problema"
+            },
+            "data_description": {
+              "status_alert_events": "Las alertas de estado como \"Export limited\" describen el funcionamiento normal y algunas van y vienen cada pocos minutos; por defecto solo los avisos, advertencias y fallos crean eventos de alerta.",
+              "problem_minutes": "Cuánto debe durar una advertencia o un fallo antes de que el sensor de problema se active y se cree una reparación."
+            }
+          },
+          "dispatch": {
+            "name": "Despacho de la batería",
+            "data": {
+              "dispatch_floor_reserve": "Las descargas se detienen en la reserva de respaldo",
+              "dispatch_max_watts": "Potencia máxima de despacho"
+            },
+            "data_description": {
+              "dispatch_floor_reserve": "Una descarga iniciada sin `min_soc` se detiene cuando la batería llega a la reserva de respaldo.",
+              "dispatch_max_watts": "Las llamadas de despacho por encima de esta potencia se rechazan."
+            }
+          },
+          "advanced": {
+            "name": "Avanzado",
+            "data": {
+              "tesla_tariff": "Tarifa de Tesla (nube)",
+              "diagnostics_gateway_config": "Configuración de la pasarela en los diagnósticos"
+            },
+            "data_description": {
+              "tesla_tariff": "Leer desde el respaldo en la nube la tarifa que Tesla usa para el control por horario (sensor y acciones de leer/establecer). Solo nube.",
+              "diagnostics_gateway_config": "Añadir la configuración de la pasarela a las descargas de diagnóstico, sin números de serie, ubicación, nombres ni credenciales. Útil para informar de errores."
+            }
+          }
         }
       },
       "cloud_backup": {
@@ -335,7 +361,12 @@
         "name": "Estado de energía de la batería"
       },
       "grid_status": {
-        "name": "Estado de la red"
+        "name": "Estado de la red",
+        "state": {
+          "up": "Conectada",
+          "down": "Caída",
+          "syncing": "Sincronizando"
+        }
       },
       "grid_frequency": {
         "name": "Frecuencia de la red"
@@ -937,6 +968,92 @@
         "full": "Completa (hasta 25 s)",
         "once": "Una vez",
         "none": "Ninguna"
+      }
+    },
+    "alert_description": {
+      "options": {
+        "systemconnectedtogrid": "Conectado a la red",
+        "fwupdatesucceeded": "La última actualización del firmware se instaló correctamente",
+        "baggr_a007_endofcharge": "La batería está llena",
+        "backfeedlimited": "La exportación a la red está limitada (ajuste o límite de exportación)",
+        "chargeonlyfromsolaroverride": "No se permite cargar desde la red; solo carga solar",
+        "selfconsumptionreservedlimit": "La batería está en la reserva de respaldo",
+        "pch_a054_pwsdisabledmpptenableline": "Las entradas solares integradas (MPPT) del Powerwall están apagadas, normal si los paneles usan un inversor aparte",
+        "bms_a045_sw_soc_change": "La batería recalibró su nivel de carga",
+        "bms_a089_lifemodel_stodcrgrowth_change": "La batería actualizó su estimación de envejecimiento",
+        "energyaccumulatorirrational": "Un contador de energía saltó de forma inverosímil",
+        "islandchecksfailed": "Falló la comprobación de respaldo (normal unos minutos cuando la batería se llena o tras un reinicio)",
+        "pvinvertercomms": "Se perdió la comunicación con el inversor solar",
+        "ieee1547trip": "Saltó la protección de conexión a la red (tensión o frecuencia fuera de rango)",
+        "disallowservice": "La pasarela no está lista",
+        "pch_a053_pwsdisabledinvenableline": "El inversor está desactivado",
+        "pch_a055_pwsdisableddcdcenableline": "El convertidor CC-CC de la batería está desactivado",
+        "pws_a014_hvpnotactive": "El controlador de alta tensión de la batería no está activo",
+        "pws_a021_hvpmia": "El controlador de alta tensión de la batería no responde",
+        "baggr_a005_numbatteriesexpectedmismatch": "Se encontraron menos baterías de las esperadas",
+        "bms_a037_sw_nvram_config_error": "No se pudieron leer los ajustes de gestión de la batería",
+        "batteryfault": "Fallo de batería",
+        "systemshutdown": "Sistema apagado",
+        "pws_a009_rsd": "El apagado rápido está activo (interruptor de encendido o botón de apagado rápido)",
+        "pws_a014_hvpfault": "Fallo del controlador de alta tensión de la batería",
+        "pws_a044_hvprsdfault": "Fallo del apagado rápido de la batería",
+        "pws_a045_battvrationality": "La lectura de tensión de la batería es inverosímil"
+      }
+    },
+    "alert_short": {
+      "options": {
+        "fwupdatesucceeded": "Actualización de firmware correcta",
+        "backfeedlimited": "Exportación limitada",
+        "chargeonlyfromsolaroverride": "Solo carga solar",
+        "selfconsumptionreservedlimit": "En la reserva",
+        "pch_a054_pwsdisabledmpptenableline": "Entradas solares apagadas",
+        "bms_a045_sw_soc_change": "Nivel de carga recalibrado",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Envejecimiento actualizado",
+        "energyaccumulatorirrational": "Salto del contador",
+        "islandchecksfailed": "Falló la comprobación de respaldo",
+        "pvinvertercomms": "Sin comunicación con el inversor",
+        "ieee1547trip": "Disparo de protección de red",
+        "disallowservice": "Pasarela no lista",
+        "pch_a053_pwsdisabledinvenableline": "Inversor desactivado",
+        "pch_a055_pwsdisableddcdcenableline": "Convertidor CC-CC desactivado",
+        "pws_a014_hvpnotactive": "Controlador de batería inactivo",
+        "pws_a021_hvpmia": "Controlador de batería sin respuesta",
+        "baggr_a005_numbatteriesexpectedmismatch": "Faltan baterías",
+        "bms_a037_sw_nvram_config_error": "Error de ajustes de batería",
+        "pws_a009_rsd": "Apagado rápido activo",
+        "pws_a014_hvpfault": "Fallo del controlador de batería",
+        "pws_a044_hvprsdfault": "Fallo de apagado rápido",
+        "pws_a045_battvrationality": "Tensión de batería inverosímil",
+        "no_alerts": "Ninguna"
+      }
+    },
+    "logbook": {
+      "options": {
+        "firmware_updated": "firmware actualizado de {previous} a {version}",
+        "outage_started": "comenzó un corte de red",
+        "outage_ended": "red restablecida tras un corte de {minutes} min",
+        "outage_ended_unknown": "red restablecida tras un corte",
+        "dispatch_ended": "despacho de la batería terminado ({reason})",
+        "off_grid_ended": "funcionamiento sin red terminado ({reason})"
+      }
+    },
+    "dispatch_end_reason": {
+      "options": {
+        "completed": "tiempo cumplido",
+        "target_reached": "objetivo alcanzado",
+        "min_soc": "límite inferior alcanzado",
+        "max_soc": "límite superior alcanzado",
+        "stopped": "detenido",
+        "connection_lost": "conexión perdida",
+        "unloaded": "integración descargada"
+      }
+    },
+    "off_grid_end_reason": {
+      "options": {
+        "completed": "tiempo cumplido",
+        "min_soc": "batería en el nivel de reconexión",
+        "requested": "reconexión solicitada",
+        "reconnected_elsewhere": "reconectado en otro lugar"
       }
     }
   }

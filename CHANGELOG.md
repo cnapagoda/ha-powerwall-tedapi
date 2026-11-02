@@ -1,7 +1,14 @@
 # Changelog
 
-## Unreleased
+## 2.5.1
 
+- **Settings apply without a reload.** Polling interval, restore, alert and dispatch options and the diagnostics option now take effect straight away, so a running battery dispatch carries on. The Tesla tariff option, the cloud backup, a linked account and the connection still reload the integration.
+- **Settings form in sections:** General, Alerts, Battery dispatch, Advanced.
+- **In your language:** alert descriptions, the **Active alerts** summary and the Logbook messages (dispatch and off-grid end reasons included) follow Home Assistant's language.
+- **Grid status** is now an enum sensor with translated states and icons. ⚠️ Its states are now lower case: `up`, `down`, `syncing` (were `UP`, `DOWN`, `SYNCING`). Update automations that compare its state. The `grid_status` attribute of **Grid connected** is unchanged.
+- **Device page** shows the model (*Powerwall 3*) and the gateway's part number, and the firmware version updates without a restart.
+- **Smaller database:** attributes that change on nearly every reading (pack temperatures and remaining energy, grid counter check figures, Setup health checks, fan duty, alert details) are no longer recorded. **Battery full capacity** no longer has each pack's `remaining_kwh` (it's on each pack's capacity sensor).
+- **Energy counter reset:** a lifetime counter that stays lower for 10 readings in a row is taken as a real reset (for example a replaced gateway) instead of being ignored until a restart.
 - **Documentation reorganised.** The README is now a short overview with a quick start; the details moved to [`docs/`](docs/README.md), one page per topic.
 - New pages: **Quick start**, **Migrating from another integration** (keeping Energy dashboard history, which integrations can stay), **Energy dashboard** (which sensor goes where), **Dashboards** (ready-to-paste cards), **Events** (every event and its data), **Compatibility** (models, features, firmware), **FAQ**, and **Tesla tariff** (the write format, dry run and read-back, previously only in the wiki).
 - **Troubleshooting** now lists every repair and the exact error messages from the UI.

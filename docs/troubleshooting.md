@@ -44,7 +44,7 @@
 | No **Solar input** sensors | Normal when your solar has its own inverter: they only appear for the Powerwall 3's built-in inputs in use. Inputs that start producing later appear by themselves. |
 | **Solar input** sensors that always read about 0 W | An unused input reported a few watts in standby, so its sensors were created. Disable them on the entity's settings page. |
 | A pack or expansion pack is missing | Packs appear when the gateway first reports them. Check the **Alerts** sensor for *Battery packs missing*. |
-| Energy counters don't move | **Setup health** checks `energy_counters`. Readings that are missing, zero or lower than the last are ignored; after a gateway replacement, restart Home Assistant once. |
+| Energy counters don't move | **Setup health** checks `energy_counters`. Readings that are missing or zero are ignored, and so is a lower reading unless it stays lower for 10 readings in a row (then it's taken as a counter reset, for example after a gateway replacement). |
 | **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. On some gateways this is every day: the counters read higher than the meter. Use your retailer's or Tesla Fleet's grid energy for costs (see [Energy dashboard](energy-dashboard.md#checking-the-numbers)). An occasional day can also come from gaps in readings. |
 | **Inverter heatsink temperature** never changes | Known on some firmware. |
 | Entity IDs start with an area name | Home Assistant 2026.8+ includes the area by default. Replace `powerwall_tedapi_` in the examples with yours, or change the format and use **Recreate entity IDs**. See [conventions](README.md#conventions-in-these-pages). |
@@ -59,7 +59,7 @@
 | Settings entities missing | A Wi-Fi password connection without a cloud backup is read-only, so there are no settings entities. Add a cloud backup, or switch to signed (**⋮ → Reconfigure** with a key). |
 | *Battery dispatch needs the signed (v1r) connection* | Dispatch, max backup and go off-grid only work over a signed connection. |
 | A dispatch is refused | Check the message: power above **Largest dispatch power**, battery already past the limit, or already at the target. |
-| A dispatch ended early | Check `last_end_reason` on **Dispatch active**. `min_soc` without your own `min_soc` means the backup reserve was reached (option **Discharges stop at the backup reserve**). `unloaded` means the integration reloaded, for example after saving options. |
+| A dispatch ended early | Check `last_end_reason` on **Dispatch active**. `min_soc` without your own `min_soc` means the backup reserve was reached (option **Discharges stop at the backup reserve**). `unloaded` means the integration reloaded, for example after changing the Tesla tariff option, the cloud backup or the connection. |
 | A discharge exports although export is *Disabled* | Expected: a dispatch overrides the export setting. See [Safety](safety.md). |
 | `go_off_grid` is refused | The Powerwall must be on the grid and the battery above the reconnect level (default: the backup reserve). |
 | `reconnect_grid` fails | During a real outage there's no grid to sync to. Otherwise check the gateway connection. |

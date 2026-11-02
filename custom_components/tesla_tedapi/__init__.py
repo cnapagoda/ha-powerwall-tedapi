@@ -32,6 +32,7 @@ from .const import (
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
     DOMAIN,
+    LIVE_OPTIONS,
     MAX_BACKUP_MAX_MINUTES,
     OFF_GRID_MAX_MINUTES,
     SERVICE_CANCEL_MAX_BACKUP,
@@ -50,6 +51,7 @@ from .const import (
 from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
 from .dispatch import DispatchSession, quiet_dispatch_repeats
 from .off_grid import OffGridSession, off_grid_store
+from .texts import async_setup_texts
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -166,6 +168,7 @@ def _off_grid(hass: HomeAssistant, call: ServiceCall) -> OffGridSession:
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register the actions once; they look up the entry per call."""
     quiet_dispatch_repeats()
+    await async_setup_texts(hass)
 
     async def dispatch(call: ServiceCall) -> ServiceResponse:
         return await _session(hass, call).async_start(
@@ -279,6 +282,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         coordinator=coordinator,
         dispatch=DispatchSession(hass, coordinator) if coordinator.dispatch_supported else None,
         off_grid=OffGridSession(hass, coordinator) if coordinator.dispatch_supported else None,
+        applied_data=dict(entry.data),
+        applied_options=dict(entry.options),
     )
     if (off_grid := entry.runtime_data.off_grid) is not None:
         await off_grid.async_load()
@@ -292,6 +297,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) -> None:
+    """Apply a change of options in place when only LIVE_OPTIONS changed, so a
+    running battery dispatch carries on; reload for anything else (connection,
+    account, cloud backup, Tesla tariff)."""
+    runtime = entry.runtime_data
+    changed = {key for key in runtime.applied_options.keys() | entry.options.keys()
+               if runtime.applied_options.get(key) != entry.options.get(key)}
+    if entry.data == runtime.applied_data and changed <= LIVE_OPTIONS:
+        runtime.applied_options = dict(entry.options)
+        if changed:
+            _LOGGER.debug("Options %s applied without a reload", ", ".join(sorted(changed)))
+            runtime.coordinator.async_apply_options()
+        return
     await hass.config_entries.async_reload(entry.entry_id)
 
 

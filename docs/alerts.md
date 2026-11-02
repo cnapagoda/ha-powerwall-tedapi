@@ -1,6 +1,6 @@
 # Alerts
 
-The gateway reports status and fault codes such as `SystemConnectedToGrid`, `BackfeedLimited` or `BatteryFault`. Tesla doesn't document them, so the integration has a built-in list that gives each known code a plain-language description and a severity. A code it doesn't know is shown by its raw name as a `notice`.
+The gateway reports status and fault codes such as `SystemConnectedToGrid`, `BackfeedLimited` or `BatteryFault`. Tesla doesn't document them, so the integration has a built-in list that gives each known code a plain-language description (in Home Assistant's language) and a severity. A code it doesn't know is shown by its raw name as a `notice`.
 
 ## Severities
 

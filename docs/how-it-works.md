@@ -59,6 +59,7 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 | `config/tesla_tedapi/` | `tedapi_rsa_private.pem` (the key), `tedapi_rsa_public.der`, `.pypowerwall.auth` (Owner API tokens). Owner-only permissions. |
 | `.storage/tesla_tedapi.<entry>` | Alert start times, the settings to restore, outage history, firmware history, today's energy baselines, grid counter check. Removed when you delete the entry. |
 | `.storage/tesla_tedapi.<entry>.off_grid` | A running off-grid run, so the reconnect survives a restart. |
+| Recorder | States, and the attributes that matter in history. Attributes that change on nearly every reading or are only detail (pack temperatures and remaining energy, the grid counter check figures, Setup health checks, fan duty, alert details) are shown live but not recorded. |
 
 ## Privacy and security
 
@@ -78,7 +79,7 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 - **A registered key can't be removed from here.** Remove it in the Tesla app.
 - **Tested on Powerwall 3, with and without Expansion Packs.** Powerwall 2 / Powerwall+ are less tested; some readings depend on the model and firmware. See [Compatibility](compatibility.md).
 - **No history backfill** for readings missed while the gateway was unreachable (battery history from Tesla Fleet / Teslemetry can be [imported](actions.md#tesla_tedapiimport_battery_history)).
-- **Saving options reloads the integration**, which ends a running battery dispatch.
+- **Changing the Tesla tariff option, the cloud backup, a linked account or the connection reloads the integration**, which ends a running battery dispatch. Other settings apply without a reload.
 - **Outages are only seen while Home Assistant and your network have power.**
 
 ## Quality
