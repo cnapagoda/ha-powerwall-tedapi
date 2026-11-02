@@ -86,6 +86,7 @@ async def _to_signin(hass: HomeAssistant) -> dict:
 async def _teslemetry(hass: HomeAssistant, result: dict, token: str = "tm-token") -> dict:
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "teslemetry"})
     assert result["step_id"] == "teslemetry"
+    assert result["description_placeholders"]["console_url"] == "https://teslemetry.com/console"
     return await hass.config_entries.flow.async_configure(result["flow_id"], {"access_token": f" {token} "})
 
 
@@ -178,12 +179,14 @@ async def test_window_closes_and_registers_again(hass: HomeAssistant, tmp_path, 
     (fleet_mod.FleetError("device offline", 408), "register_unreachable"),
     (fleet_mod.FleetTimeout("Teslemetry did not answer in time"), "register_unreachable"),
     (fleet_mod.FleetAuthError("token expired", 401), "register_token_refused"),
+    (fleet_mod.FleetNotRegistered("not registered", 412), "fleet_not_registered"),
 ])
 async def test_registration_fails(hass: HomeAssistant, tmp_path, fleet, error, reason) -> None:
     with KeyServer(fleet, [1], fail=error).patch, _key(tmp_path):
         result = await _teslemetry(hass, await _to_signin(hass))
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == reason
+    assert "docs_url" in result["description_placeholders"]
 
 
 def test_unavailable_sign_in_reason() -> None:
@@ -381,6 +384,9 @@ async def test_tesla_fleet_sign_in_refused(hass: HomeAssistant, fleet, aioclient
     fleet.fail = error
     result = await _oauth(hass, aioclient_mock, result["flow_id"])
     assert result["type"] is FlowResultType.ABORT and result["reason"] == reason
+    # Translations can't hold URLs: the setup guide link is a placeholder.
+    if reason == "fleet_not_registered":
+        assert result["description_placeholders"]["docs_url"].endswith("#registering-with-the-fleet-api-developers")
 
 
 async def test_wifi_with_teslemetry_for_settings(hass: HomeAssistant, fleet) -> None:

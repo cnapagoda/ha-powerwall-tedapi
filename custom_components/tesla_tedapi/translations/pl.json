@@ -155,7 +155,7 @@
       },
       "teslemetry": {
         "title": "Teslemetry",
-        "description": "Wklej token dostępu z [konsoli Teslemetry](https://teslemetry.com/console). Potrzebuje uprawnień do danych i poleceń energii. Token nie jest tu odświeżany: gdy Teslemetry przestanie go akceptować, zaloguj się ponownie nowym tokenem.",
+        "description": "Wklej token dostępu z [konsoli Teslemetry]({console_url}). Potrzebuje uprawnień do danych i poleceń energii. Token nie jest tu odświeżany: gdy Teslemetry przestanie go akceptować, zaloguj się ponownie nowym tokenem.",
         "data": {
           "access_token": "Token dostępu"
         }
@@ -205,7 +205,7 @@
       "missing_credentials": "Najpierw dodaj aplikację deweloperską Tesla w Ustawienia → Dane uwierzytelniające aplikacji.",
       "missing_configuration": "Najpierw dodaj aplikację deweloperską Tesla w Ustawienia → Dane uwierzytelniające aplikacji.",
       "oauth_implementation_unavailable": "Aplikacja deweloperska Tesla jest niedostępna. Sprawdź dane uwierzytelniające aplikacji.",
-      "fleet_not_registered": "Tesla odrzuciła aplikację deweloperską (HTTP 412): jej domena nie jest zarejestrowana w Tesli dla regionu Twojego konta. Zarejestruj ją zgodnie z [instrukcją konfiguracji](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md#registering-with-the-fleet-api-developers), a potem zaloguj się ponownie."
+      "fleet_not_registered": "Tesla odrzuciła aplikację deweloperską (HTTP 412): jej domena nie jest zarejestrowana w Tesli dla regionu Twojego konta. Zarejestruj ją zgodnie z [instrukcją konfiguracji]({docs_url}), a potem zaloguj się ponownie."
     }
   },
   "options": {

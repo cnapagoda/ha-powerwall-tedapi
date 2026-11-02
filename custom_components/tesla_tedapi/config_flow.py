@@ -118,6 +118,12 @@ KEY_FILE = FileSelector(FileSelectorConfig(accept=".pem,.key,.txt"))
 VERIFY_POLL_SECONDS = 10
 # Reauth data flag: a new key was asked for in the options, nothing failed.
 NEW_KEY = "new_key"
+# Placeholders for links (translations can't hold URLs themselves).
+LINKS = {
+    "docs_url": "https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md"
+                "#registering-with-the-fleet-api-developers",
+    "console_url": "https://teslemetry.com/console",
+}
 # Reauth data flag: sign in to the Fleet API (from the options or a repair).
 FLEET_SIGNIN = "fleet_signin"
 VERIFY_WINDOW_SECONDS = 600
@@ -549,7 +555,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             return await self._async_fleet_sites(api)
         except fleet.FleetNotRegistered as err:
             _LOGGER.warning("Tesla Fleet: the developer app isn't registered in this region: %s", err)
-            return self.async_abort(reason="fleet_not_registered")
+            return self.async_abort(reason="fleet_not_registered", description_placeholders=LINKS)
         except fleet.FleetAuthError as err:
             _LOGGER.warning("Tesla Fleet refused the new sign-in: %s", err)
             return self.async_abort(reason="fleet_refused")
@@ -578,6 +584,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         return self.async_show_form(
             step_id="teslemetry",
             data_schema=vol.Schema({vol.Required(CONF_ACCESS_TOKEN): PASSWORD}),
+            description_placeholders=LINKS,
             errors=errors,
         )
 
@@ -679,7 +686,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             self._key_state = await self._async_register()
         except _REGISTER_ERRORS as err:
             _LOGGER.warning("Key registration failed: %s", err)
-            return self.async_abort(reason=_register_failure(err))
+            return self.async_abort(reason=_register_failure(err), description_placeholders=LINKS)
         self._data[CONF_RSA_KEY_PATH] = key_path
         if self._key_state == tesla_cloud.KEY_VERIFIED:
             return await self._async_connect()

@@ -155,7 +155,7 @@
       },
       "teslemetry": {
         "title": "Teslemetry",
-        "description": "Paste an access token from the [Teslemetry console](https://teslemetry.com/console). It needs the energy device data and energy commands permissions. The token isn't refreshed here: if Teslemetry stops accepting it, sign in again with a new one.",
+        "description": "Paste an access token from the [Teslemetry console]({console_url}). It needs the energy device data and energy commands permissions. The token isn't refreshed here: if Teslemetry stops accepting it, sign in again with a new one.",
         "data": {
           "access_token": "Access token"
         }
@@ -205,7 +205,7 @@
       "missing_credentials": "Add the Tesla developer app under Settings → Application credentials first.",
       "missing_configuration": "Add the Tesla developer app under Settings → Application credentials first.",
       "oauth_implementation_unavailable": "The Tesla developer app isn't available. Check the application credentials.",
-      "fleet_not_registered": "Tesla refused the developer app (HTTP 412): its domain isn't registered with Tesla for your account's region. Register it as described in the [setup guide](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md#registering-with-the-fleet-api-developers), then sign in again."
+      "fleet_not_registered": "Tesla refused the developer app (HTTP 412): its domain isn't registered with Tesla for your account's region. Register it as described in the [setup guide]({docs_url}), then sign in again."
     }
   },
   "options": {

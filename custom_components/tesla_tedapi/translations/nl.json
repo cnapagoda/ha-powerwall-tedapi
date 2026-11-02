@@ -155,7 +155,7 @@
       },
       "teslemetry": {
         "title": "Teslemetry",
-        "description": "Plak een toegangstoken uit de [Teslemetry-console](https://teslemetry.com/console). Het heeft de rechten voor energiegegevens en energieopdrachten nodig. Het token wordt hier niet vernieuwd: als Teslemetry het niet meer accepteert, meld je dan opnieuw aan met een nieuw token.",
+        "description": "Plak een toegangstoken uit de [Teslemetry-console]({console_url}). Het heeft de rechten voor energiegegevens en energieopdrachten nodig. Het token wordt hier niet vernieuwd: als Teslemetry het niet meer accepteert, meld je dan opnieuw aan met een nieuw token.",
         "data": {
           "access_token": "Toegangstoken"
         }
@@ -205,7 +205,7 @@
       "missing_credentials": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
       "missing_configuration": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
       "oauth_implementation_unavailable": "De Tesla-ontwikkelaarsapp is niet beschikbaar. Controleer de applicatiegegevens.",
-      "fleet_not_registered": "Tesla weigerde de ontwikkelaarsapp (HTTP 412): het domein is voor de regio van je account niet bij Tesla geregistreerd. Registreer het zoals beschreven in de [installatiehandleiding](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md#registering-with-the-fleet-api-developers) en meld je daarna opnieuw aan."
+      "fleet_not_registered": "Tesla weigerde de ontwikkelaarsapp (HTTP 412): het domein is voor de regio van je account niet bij Tesla geregistreerd. Registreer het zoals beschreven in de [installatiehandleiding]({docs_url}) en meld je daarna opnieuw aan."
     }
   },
   "options": {

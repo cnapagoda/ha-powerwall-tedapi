@@ -155,7 +155,7 @@
       },
       "teslemetry": {
         "title": "Teslemetry",
-        "description": "Collez un jeton d'accès de la [console Teslemetry](https://teslemetry.com/console). Il lui faut les autorisations de données et de commandes d'énergie. Le jeton n'est pas renouvelé ici : si Teslemetry ne l'accepte plus, reconnectez-vous avec un nouveau.",
+        "description": "Collez un jeton d'accès de la [console Teslemetry]({console_url}). Il lui faut les autorisations de données et de commandes d'énergie. Le jeton n'est pas renouvelé ici : si Teslemetry ne l'accepte plus, reconnectez-vous avec un nouveau.",
         "data": {
           "access_token": "Jeton d'accès"
         }
@@ -205,7 +205,7 @@
       "missing_credentials": "Ajoutez d'abord l'app développeur Tesla dans Paramètres → Identifiants d'application.",
       "missing_configuration": "Ajoutez d'abord l'app développeur Tesla dans Paramètres → Identifiants d'application.",
       "oauth_implementation_unavailable": "L'app développeur Tesla n'est pas disponible. Vérifiez les identifiants d'application.",
-      "fleet_not_registered": "Tesla a refusé l'app développeur (HTTP 412) : son domaine n'est pas enregistré auprès de Tesla pour la région de votre compte. Enregistrez-le comme décrit dans le [guide d'installation](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md#registering-with-the-fleet-api-developers), puis reconnectez-vous."
+      "fleet_not_registered": "Tesla a refusé l'app développeur (HTTP 412) : son domaine n'est pas enregistré auprès de Tesla pour la région de votre compte. Enregistrez-le comme décrit dans le [guide d'installation]({docs_url}), puis reconnectez-vous."
     }
   },
   "options": {

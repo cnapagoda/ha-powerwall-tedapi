@@ -155,7 +155,7 @@
       },
       "teslemetry": {
         "title": "Teslemetry",
-        "description": "Cole um token de acesso do [console do Teslemetry](https://teslemetry.com/console). Ele precisa das permissões de dados e comandos de energia. O token não é renovado aqui: se o Teslemetry deixar de aceitá-lo, entre novamente com um novo.",
+        "description": "Cole um token de acesso do [console do Teslemetry]({console_url}). Ele precisa das permissões de dados e comandos de energia. O token não é renovado aqui: se o Teslemetry deixar de aceitá-lo, entre novamente com um novo.",
         "data": {
           "access_token": "Token de acesso"
         }
@@ -205,7 +205,7 @@
       "missing_credentials": "Adicione primeiro o app de desenvolvedor Tesla em Configurações → Credenciais do aplicativo.",
       "missing_configuration": "Adicione primeiro o app de desenvolvedor Tesla em Configurações → Credenciais do aplicativo.",
       "oauth_implementation_unavailable": "O app de desenvolvedor Tesla não está disponível. Verifique as credenciais do aplicativo.",
-      "fleet_not_registered": "A Tesla recusou o app de desenvolvedor (HTTP 412): o domínio dele não está registrado na Tesla para a região da sua conta. Registre-o como descrito no [guia de configuração](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md#registering-with-the-fleet-api-developers) e entre novamente."
+      "fleet_not_registered": "A Tesla recusou o app de desenvolvedor (HTTP 412): o domínio dele não está registrado na Tesla para a região da sua conta. Registre-o como descrito no [guia de configuração]({docs_url}) e entre novamente."
     }
   },
   "options": {
