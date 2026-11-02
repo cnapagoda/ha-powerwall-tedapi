@@ -183,24 +183,50 @@
       },
       "settings": {
         "title": "Settings",
-        "data": {
-          "scan_interval": "Polling interval",
-          "restore_export": "Restore settings when the Powerwall drops them",
-          "status_alert_events": "Alert events for status alerts too",
-          "problem_minutes": "Problem delay",
-          "dispatch_floor_reserve": "Discharges stop at the backup reserve",
-          "dispatch_max_watts": "Largest dispatch power",
-          "tesla_tariff": "Tesla tariff (cloud)",
-          "diagnostics_gateway_config": "Gateway configuration in diagnostics"
-        },
-        "data_description": {
-          "restore_export": "The Powerwall sometimes loses its grid export rule and its grid charging setting from its own settings (seen hourly on a Powerwall 3); grid charging then turns on. When on, the setting you chose is written back within a minute or two (signed connection only).",
-          "status_alert_events": "Status alerts such as \"Export limited\" describe normal operation and some come and go every few minutes; by default only notices, warnings and faults create Alert events.",
-          "problem_minutes": "How long a warning or fault must last before the Problem sensor turns on and a repair is raised.",
-          "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",
-          "dispatch_max_watts": "Dispatch calls above this power are refused.",
-          "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensor and get/set tariff actions). Cloud only.",
-          "diagnostics_gateway_config": "Add the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports."
+        "sections": {
+          "general": {
+            "name": "General",
+            "data": {
+              "scan_interval": "Polling interval",
+              "restore_export": "Restore settings when the Powerwall drops them"
+            },
+            "data_description": {
+              "restore_export": "The Powerwall sometimes loses its grid export rule and its grid charging setting from its own settings (seen hourly on a Powerwall 3); grid charging then turns on. When on, the setting you chose is written back within a minute or two (signed connection only)."
+            }
+          },
+          "alerts": {
+            "name": "Alerts",
+            "data": {
+              "status_alert_events": "Alert events for status alerts too",
+              "problem_minutes": "Problem delay"
+            },
+            "data_description": {
+              "status_alert_events": "Status alerts such as \"Export limited\" describe normal operation and some come and go every few minutes; by default only notices, warnings and faults create Alert events.",
+              "problem_minutes": "How long a warning or fault must last before the Problem sensor turns on and a repair is raised."
+            }
+          },
+          "dispatch": {
+            "name": "Battery dispatch",
+            "data": {
+              "dispatch_floor_reserve": "Discharges stop at the backup reserve",
+              "dispatch_max_watts": "Largest dispatch power"
+            },
+            "data_description": {
+              "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",
+              "dispatch_max_watts": "Dispatch calls above this power are refused."
+            }
+          },
+          "advanced": {
+            "name": "Advanced",
+            "data": {
+              "tesla_tariff": "Tesla tariff (cloud)",
+              "diagnostics_gateway_config": "Gateway configuration in diagnostics"
+            },
+            "data_description": {
+              "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensor and get/set tariff actions). Cloud only.",
+              "diagnostics_gateway_config": "Add the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports."
+            }
+          }
         }
       },
       "cloud_backup": {
@@ -335,7 +361,12 @@
         "name": "Battery state of energy"
       },
       "grid_status": {
-        "name": "Grid status"
+        "name": "Grid status",
+        "state": {
+          "up": "Up",
+          "down": "Down",
+          "syncing": "Syncing"
+        }
       },
       "grid_frequency": {
         "name": "Grid frequency"
@@ -809,7 +840,7 @@
         },
         "tou_settings": {
           "name": "Time-of-use settings",
-          "description": "Tesla's write format: an object with tariff_content_v2 (not the format get_tariff returns; see the wiki)."
+          "description": "Tesla's write format: an object with tariff_content_v2 (not the format get_tariff returns; see docs/tesla-tariff.md)."
         },
         "dry_run": {
           "name": "Dry run",
@@ -937,6 +968,92 @@
         "full": "Full (up to 25 s)",
         "once": "Once",
         "none": "None"
+      }
+    },
+    "alert_description": {
+      "options": {
+        "systemconnectedtogrid": "Connected to the grid",
+        "fwupdatesucceeded": "The last firmware update installed successfully",
+        "baggr_a007_endofcharge": "Battery is full",
+        "backfeedlimited": "Export to the grid is being limited (export setting or export limit)",
+        "chargeonlyfromsolaroverride": "Charging from the grid is not allowed; charging from solar only",
+        "selfconsumptionreservedlimit": "Battery is at the backup reserve",
+        "pch_a054_pwsdisabledmpptenableline": "The Powerwall's built-in solar inputs (MPPT) are off, normal when solar uses a separate inverter",
+        "bms_a045_sw_soc_change": "Battery recalibrated its state of charge",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Battery updated its ageing estimate",
+        "energyaccumulatorirrational": "An energy counter jumped implausibly",
+        "islandchecksfailed": "Backup readiness check failed (normal for a few minutes when the battery fills or after a restart)",
+        "pvinvertercomms": "Lost communication with the solar inverter",
+        "ieee1547trip": "Grid-connection protection tripped (grid voltage or frequency out of range)",
+        "disallowservice": "Gateway is not ready for service",
+        "pch_a053_pwsdisabledinvenableline": "Inverter is disabled",
+        "pch_a055_pwsdisableddcdcenableline": "Battery DC-DC converter is disabled",
+        "pws_a014_hvpnotactive": "Battery high-voltage controller is not active",
+        "pws_a021_hvpmia": "Battery high-voltage controller is not responding",
+        "baggr_a005_numbatteriesexpectedmismatch": "Fewer battery packs found than expected",
+        "bms_a037_sw_nvram_config_error": "Battery management settings could not be read",
+        "batteryfault": "Battery fault",
+        "systemshutdown": "System shut down",
+        "pws_a009_rsd": "Rapid shutdown is active (On/Off switch or rapid-shutdown button)",
+        "pws_a014_hvpfault": "Battery high-voltage controller fault",
+        "pws_a044_hvprsdfault": "Battery rapid-shutdown fault",
+        "pws_a045_battvrationality": "Battery voltage reading is implausible"
+      }
+    },
+    "alert_short": {
+      "options": {
+        "fwupdatesucceeded": "Firmware update succeeded",
+        "backfeedlimited": "Export limited",
+        "chargeonlyfromsolaroverride": "Solar-only charging",
+        "selfconsumptionreservedlimit": "At backup reserve",
+        "pch_a054_pwsdisabledmpptenableline": "Built-in solar inputs off",
+        "bms_a045_sw_soc_change": "Charge level recalibrated",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Ageing estimate updated",
+        "energyaccumulatorirrational": "Energy counter jump",
+        "islandchecksfailed": "Backup check failed",
+        "pvinvertercomms": "Solar inverter comms lost",
+        "ieee1547trip": "Grid protection trip",
+        "disallowservice": "Gateway not ready",
+        "pch_a053_pwsdisabledinvenableline": "Inverter disabled",
+        "pch_a055_pwsdisableddcdcenableline": "DC-DC converter disabled",
+        "pws_a014_hvpnotactive": "Battery controller inactive",
+        "pws_a021_hvpmia": "Battery controller not responding",
+        "baggr_a005_numbatteriesexpectedmismatch": "Battery packs missing",
+        "bms_a037_sw_nvram_config_error": "Battery settings error",
+        "pws_a009_rsd": "Rapid shutdown active",
+        "pws_a014_hvpfault": "Battery controller fault",
+        "pws_a044_hvprsdfault": "Rapid-shutdown fault",
+        "pws_a045_battvrationality": "Battery voltage implausible",
+        "no_alerts": "None"
+      }
+    },
+    "logbook": {
+      "options": {
+        "firmware_updated": "firmware updated from {previous} to {version}",
+        "outage_started": "grid outage started",
+        "outage_ended": "grid back after an outage of {minutes} min",
+        "outage_ended_unknown": "grid back after an outage",
+        "dispatch_ended": "battery dispatch ended ({reason})",
+        "off_grid_ended": "off-grid run ended ({reason})"
+      }
+    },
+    "dispatch_end_reason": {
+      "options": {
+        "completed": "time up",
+        "target_reached": "target reached",
+        "min_soc": "lower limit reached",
+        "max_soc": "upper limit reached",
+        "stopped": "stopped",
+        "connection_lost": "connection lost",
+        "unloaded": "integration unloaded"
+      }
+    },
+    "off_grid_end_reason": {
+      "options": {
+        "completed": "time up",
+        "min_soc": "battery at the reconnect level",
+        "requested": "reconnect requested",
+        "reconnected_elsewhere": "reconnected elsewhere"
       }
     }
   }

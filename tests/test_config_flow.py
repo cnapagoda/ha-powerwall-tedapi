@@ -253,11 +253,17 @@ async def test_options_settings_and_unlink(hass: HomeAssistant) -> None:
         assert result["type"] is FlowResultType.MENU
         assert "unlink_account" in result["menu_options"]
         result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})
+        # The form is in sections; the options are saved flat.
+        assert list(result["data_schema"].schema) == ["general", "alerts", "dispatch", "advanced"]
         result = await hass.config_entries.options.async_configure(result["flow_id"], {
-            "scan_interval": 45, "restore_export": False, "status_alert_events": True,
-            "problem_minutes": 20, "dispatch_floor_reserve": True, "dispatch_max_watts": 5000})
+            "general": {"scan_interval": 45, "restore_export": False},
+            "alerts": {"status_alert_events": True, "problem_minutes": 20},
+            "dispatch": {"dispatch_floor_reserve": True, "dispatch_max_watts": 5000},
+            "advanced": {"diagnostics_gateway_config": False}})
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert entry.options["problem_minutes"] == 20
+        assert entry.options["dispatch_max_watts"] == 5000
+        assert "general" not in entry.options
         result = await hass.config_entries.options.async_init(entry.entry_id)
         result = await hass.config_entries.options.async_configure(
             result["flow_id"], {"next_step_id": "unlink_account"})

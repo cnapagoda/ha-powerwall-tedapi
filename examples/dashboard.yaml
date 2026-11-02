@@ -1,0 +1,173 @@
+# Example dashboard for Tesla Powerwall TEDAPI.
+#
+# To use it: Settings -> Dashboards -> Add dashboard -> New dashboard from
+# scratch, open it, then ⋮ -> Edit dashboard -> ⋮ -> Raw configuration editor,
+# and paste this file.
+#
+# Entity IDs assume the device "Powerwall TEDAPI" with no area. If yours start
+# with an area (for example sensor.garage_powerwall_tedapi_...) or end in _2,
+# use the editor's search and replace. Per-pack sensors are named after the
+# pack ("powerwall_3", "expansion_pack", ...): check the device page.
+#
+# Only core cards are used. For a live power flow animation, see
+# docs/dashboards.md (Power Flow Card Plus, from HACS).
+
+title: Powerwall
+views:
+  - title: Overview
+    path: powerwall
+    icon: mdi:home-battery
+    cards:
+      - type: gauge
+        entity: sensor.powerwall_tedapi_battery_level
+        name: Battery
+        min: 0
+        max: 100
+        needle: true
+        severity:
+          red: 0
+          yellow: 20
+          green: 40
+
+      - type: glance
+        columns: 4
+        entities:
+          - entity: sensor.powerwall_tedapi_solar_power
+            name: Solar
+          - entity: sensor.powerwall_tedapi_battery_power
+            name: Battery
+          - entity: sensor.powerwall_tedapi_grid_power
+            name: Grid
+          - entity: sensor.powerwall_tedapi_home_power
+            name: Home
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: sensor.powerwall_tedapi_alert_level
+            state_not: ok
+        card:
+          type: markdown
+          title: Powerwall alerts
+          content: >-
+            {% set icon = {'fault': '🔴', 'warning': '🟠', 'notice': '🔵', 'status': '⚪'} %}
+            {% for a in state_attr('sensor.powerwall_tedapi_alerts', 'details') or []
+               if a.severity != 'status' %}
+            {{ icon[a.severity] }} **{{ a.description }}** · since {{ as_timestamp(a.since) | timestamp_custom('%d %b %H:%M') }}
+            {% endfor %}
+
+      - type: conditional
+        conditions:
+          - condition: state
+            entity: binary_sensor.powerwall_tedapi_dispatch_active
+            state: "on"
+        card:
+          type: markdown
+          content: >-
+            {% set e = 'binary_sensor.powerwall_tedapi_dispatch_active' %}
+            **Dispatch running:** {{ state_attr(e, 'power_watts') | int }} W
+            until {{ as_timestamp(state_attr(e, 'ends')) | timestamp_custom('%H:%M') }}
+            {%- if state_attr(e, 'target_soc') %}, target {{ state_attr(e, 'target_soc') }} %{% endif %}.
+
+      - type: entities
+        title: Settings
+        entities:
+          - select.powerwall_tedapi_operation_mode
+          - number.powerwall_tedapi_backup_reserve
+          - switch.powerwall_tedapi_grid_charging
+          - select.powerwall_tedapi_grid_export_mode
+
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: button
+            name: Stop dispatch
+            icon: mdi:battery-sync-outline
+            tap_action:
+              action: perform-action
+              perform_action: tesla_tedapi.resume_battery_operation
+              confirmation:
+                text: Hand the battery back to the Powerwall?
+          - type: button
+            name: Max backup 6 h
+            icon: mdi:shield-home
+            tap_action:
+              action: perform-action
+              perform_action: tesla_tedapi.start_max_backup
+              data:
+                duration_minutes: 360
+              confirmation:
+                text: Charge to full and hold it for 6 hours?
+          - type: button
+            name: Cancel max backup
+            icon: mdi:shield-off-outline
+            tap_action:
+              action: perform-action
+              perform_action: tesla_tedapi.cancel_max_backup
+              confirmation:
+                text: End the max backup?
+
+      - type: entities
+        title: Today
+        entities:
+          - entity: sensor.powerwall_tedapi_solar_energy_produced_today
+            name: Solar
+          - entity: sensor.powerwall_tedapi_home_energy_consumed_today
+            name: Home
+          - entity: sensor.powerwall_tedapi_grid_energy_imported_today
+            name: Imported
+          - entity: sensor.powerwall_tedapi_grid_energy_exported_today
+            name: Exported
+          - entity: sensor.powerwall_tedapi_battery_energy_charged_today
+            name: Battery in
+          - entity: sensor.powerwall_tedapi_battery_energy_discharged_today
+            name: Battery out
+
+      - type: history-graph
+        title: Last 24 hours
+        hours_to_show: 24
+        entities:
+          - entity: sensor.powerwall_tedapi_solar_power
+            name: Solar
+          - entity: sensor.powerwall_tedapi_home_power
+            name: Home
+          - entity: sensor.powerwall_tedapi_grid_power
+            name: Grid
+          - entity: sensor.powerwall_tedapi_battery_power
+            name: Battery
+
+  - title: Grid & health
+    path: powerwall-health
+    icon: mdi:heart-pulse
+    cards:
+      - type: entities
+        title: Grid
+        entities:
+          - binary_sensor.powerwall_tedapi_grid_connected
+          - sensor.powerwall_tedapi_grid_voltage
+          - sensor.powerwall_tedapi_grid_frequency
+          - sensor.powerwall_tedapi_backup_time_remaining
+          - sensor.powerwall_tedapi_last_grid_outage
+          - sensor.powerwall_tedapi_last_grid_outage_duration
+          - sensor.powerwall_tedapi_grid_outages_this_month
+          - sensor.powerwall_tedapi_grid_outage_time_this_month
+
+      - type: entities
+        title: Battery
+        entities:
+          - sensor.powerwall_tedapi_battery_health
+          - sensor.powerwall_tedapi_battery_full_capacity
+          - sensor.powerwall_tedapi_battery_energy_remaining
+          - binary_sensor.powerwall_tedapi_backup_event
+
+      - type: entities
+        title: System
+        entities:
+          - sensor.powerwall_tedapi_setup_health
+          - binary_sensor.powerwall_tedapi_problem
+          - sensor.powerwall_tedapi_alert_level
+          - sensor.powerwall_tedapi_active_alerts
+          - sensor.powerwall_tedapi_firmware_version
+          - sensor.powerwall_tedapi_gateway_last_started
+          - sensor.powerwall_tedapi_inverter_ambient_temperature

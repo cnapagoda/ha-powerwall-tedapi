@@ -2,13 +2,17 @@
 
 Tesla does not document these codes. The descriptions below come from the
 code names and from how the alerts behave on real systems (pypowerwall and
-community reports); anything not listed is shown under its raw name as
-"unknown"."""
+community reports); anything not listed is shown under its raw name as a
+notice. The English texts here are the fallback: the translations live in
+strings.json (selector.alert_description and selector.alert_short, keyed by
+the lower-case code)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
+
+from .texts import ALERT_DESCRIPTION, ALERT_SHORT, ENGLISH, Texts
 
 SEVERITY_STATUS = "status"    # normal operation, nothing to do
 SEVERITY_NOTICE = "notice"    # unusual but harmless, or unknown
@@ -106,8 +110,14 @@ def problem_after(name: str, after: timedelta) -> timedelta:
 MAX_STATE_LENGTH = 255
 
 
-def short(name: str) -> str:
-    return SHORT.get(name) or describe(name)[1]
+# The Active alerts state when there are none (selector.alert_short.options).
+NO_ALERTS_KEY = "no_alerts"
+
+
+def short(name: str, texts: Texts = ENGLISH) -> str:
+    if name in SHORT:
+        return texts.get(ALERT_SHORT, name, SHORT[name])
+    return describe(name, texts)[1]
 
 
 def level(names: list[str]) -> str:
@@ -119,19 +129,23 @@ def level(names: list[str]) -> str:
     return worst
 
 
-def summary(names: list[str]) -> str:
+def summary(names: list[str], texts: Texts = ENGLISH) -> str:
     """Short labels, most serious first, within a state's 255 characters."""
     order = {s: i for i, s in enumerate(reversed(SEVERITIES))}
-    labels = [short(n) for n in sorted(names, key=lambda n: (order[describe(n)[0]], short(n)))]
-    text = " · ".join(labels) if labels else "None"
+    labels = [short(n, texts) for n in sorted(names, key=lambda n: (order[describe(n)[0]], short(n, texts)))]
+    text = " · ".join(labels) if labels else texts.get(ALERT_SHORT, NO_ALERTS_KEY, "None")
     if len(text) > MAX_STATE_LENGTH:
         text = text[: MAX_STATE_LENGTH - 1].rstrip(" ·") + "…"
     return text
 
 
-def describe(name: str) -> tuple[str, str]:
-    """(severity, description) for an alert code."""
-    return CATALOGUE.get(name, (SEVERITY_NOTICE, name))
+def describe(name: str, texts: Texts = ENGLISH) -> tuple[str, str]:
+    """(severity, description) for an alert code, the description in the
+    language of `texts`. Unknown codes are notices described by their name."""
+    if name not in CATALOGUE:
+        return SEVERITY_NOTICE, name
+    severity, description = CATALOGUE[name]
+    return severity, texts.get(ALERT_DESCRIPTION, name, description)
 
 
 @dataclass
@@ -147,10 +161,12 @@ class AlertTracker:
     """Remembers when each alert appeared, so changes and lasting problems
     can be reported."""
 
-    def __init__(self) -> None:
+    def __init__(self, texts: Texts = ENGLISH) -> None:
         self.since: dict[str, datetime] = {}
         self.sources: dict[str, list[str]] = {}
         self._initialised = False
+        # Language of the descriptions in changes and details.
+        self.texts = texts
 
     def update(self, gateway: list[str] | None, packs: dict[str, list[str]], now: datetime) -> list[AlertChange]:
         """Feed one reading; returns what was raised or cleared since the last one.
@@ -165,9 +181,10 @@ class AlertTracker:
         changes: list[AlertChange] = []
         if self._initialised:
             for name in sorted(current.keys() - self.since.keys()):
-                changes.append(AlertChange("raised", name, *describe(name), current[name]))
+                changes.append(AlertChange("raised", name, *describe(name, self.texts), current[name]))
             for name in sorted(self.since.keys() - current.keys()):
-                changes.append(AlertChange("cleared", name, *describe(name), self.sources.get(name, [])))
+                changes.append(AlertChange("cleared", name, *describe(name, self.texts),
+                                           self.sources.get(name, [])))
         self._initialised = True
 
         self.since = {name: self.since.get(name, now) for name in current}
@@ -197,7 +214,7 @@ class AlertTracker:
         order = {s: i for i, s in enumerate(reversed(SEVERITIES))}
         rows = []
         for name, since in self.since.items():
-            severity, description = describe(name)
+            severity, description = describe(name, self.texts)
             rows.append({
                 "alert": name,
                 "severity": severity,

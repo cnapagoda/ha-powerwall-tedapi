@@ -18,7 +18,8 @@ except ImportError:  # Home Assistant < 2025.2
     )
 
 from .const import DOMAIN, DROPPABLE_SETTINGS
-from .coordinator import TedapiCoordinator
+from .coordinator import TedapiCoordinator, model_id
+from .firmware import split_version
 
 __all__ = ["AddConfigEntryEntitiesCallback", "TedapiCloudEntity", "TedapiControlEntity", "TedapiEntity",
            "add_when_reported"]
@@ -37,9 +38,11 @@ class TedapiEntity(CoordinatorEntity[TedapiCoordinator]):
             identifiers={(DOMAIN, din)},
             name="Powerwall TEDAPI",
             manufacturer="Tesla",
-            model="Powerwall",
+            # Kept current by the coordinator (firmware updates, packs).
+            model=coordinator.model,
+            model_id=model_id(coordinator.din),
             serial_number=din,
-            sw_version=coordinator.firmware_version,
+            sw_version=split_version(coordinator.firmware_version)[0],
         )
 
     @property

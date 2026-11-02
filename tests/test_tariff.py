@@ -411,7 +411,8 @@ async def test_option_offered_only_with_cloud(hass: HomeAssistant, fake_powerwal
     entry = await _setup(hass, data)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})
-    assert ("tesla_tariff" in result["data_schema"].schema) is offered
+    advanced = result["data_schema"].schema["advanced"].schema.schema
+    assert ("tesla_tariff" in advanced) is offered
 
 
 def test_check_write_with_only_empty_seasons() -> None:

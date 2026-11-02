@@ -32,12 +32,17 @@ class AlertEvent(TedapiEntity, EventEntity):
 
     def __init__(self, coordinator: TedapiCoordinator) -> None:
         super().__init__(coordinator, "alert_event")
-        self._include_status = coordinator.config_entry.options.get(CONF_STATUS_EVENTS, False)
+
+    @property
+    def _include_status(self) -> bool:
+        # Read on every reading: the option changes without a reload.
+        return bool(self.coordinator.config_entry.options.get(CONF_STATUS_EVENTS, False))
 
     @callback
     def _handle_coordinator_update(self) -> None:
+        include_status = self._include_status
         for change in self.coordinator.alert_changes:
-            if change.severity == SEVERITY_STATUS and not self._include_status:
+            if change.severity == SEVERITY_STATUS and not include_status:
                 continue
             self._trigger_event(change.kind, {
                 "alert": change.name,

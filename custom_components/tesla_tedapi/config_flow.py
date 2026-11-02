@@ -26,6 +26,7 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers.selector import (
     FileSelector,
     FileSelectorConfig,
@@ -95,6 +96,8 @@ CONF_KEY_FILE = "key_file"
 CONF_FOUND = "found"
 CONF_BACKUP = "backup"
 MANUAL = "manual"
+# Sections of the Settings form (strings.json: options.step.settings.sections).
+SETTINGS_SECTIONS = ("general", "alerts", "dispatch", "advanced")
 
 PASSWORD = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 KEY_FILE = FileSelector(FileSelectorConfig(accept=".pem,.key,.txt"))
@@ -764,8 +767,12 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         return self.async_abort(reason="new_key_started")
 
     async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The settings, in sections (general, alerts, dispatch, advanced).
+        Saved flat in the options, as before."""
         if user_input is not None:
-            return self.async_create_entry(data={**self.config_entry.options, **user_input})
+            flat = {key: value for name in SETTINGS_SECTIONS
+                    for key, value in (user_input.get(name) or {}).items()}
+            return self.async_create_entry(data={**self.config_entry.options, **flat})
         opts = self.config_entry.options
         scan = opts.get(CONF_SCAN_INTERVAL, self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
 
@@ -773,24 +780,34 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             return NumberSelector(NumberSelectorConfig(
                 min=lo, max=hi, step=step, unit_of_measurement=unit, mode=NumberSelectorMode.BOX))
 
+        advanced: dict[Any, Any] = {
+            # Tesla tariff (cloud only): offered once a cloud backup is set up.
+            **({vol.Required(CONF_TESLA_TARIFF, default=opts.get(CONF_TESLA_TARIFF, False)): bool}
+               if cloud_choice(self.config_entry.data, opts) != CLOUD_NONE else {}),
+            vol.Required(CONF_DIAGNOSTICS_GATEWAY, default=opts.get(CONF_DIAGNOSTICS_GATEWAY, False)): bool,
+        }
         return self.async_show_form(
             step_id="settings",
             data_schema=vol.Schema({
-                vol.Required(CONF_SCAN_INTERVAL, default=scan): vol.All(
-                    box(MIN_SCAN_INTERVAL, MAX_SCAN_INTERVAL, 1, "s"), vol.Coerce(int)),
-                vol.Required(CONF_RESTORE_EXPORT, default=opts.get(CONF_RESTORE_EXPORT, True)): bool,
-                vol.Required(CONF_STATUS_EVENTS, default=opts.get(CONF_STATUS_EVENTS, False)): bool,
-                vol.Required(CONF_PROBLEM_MINUTES, default=opts.get(
-                    CONF_PROBLEM_MINUTES, DEFAULT_PROBLEM_MINUTES)): vol.All(box(1, 240, 1, "min"), vol.Coerce(int)),
-                vol.Required(CONF_DISPATCH_FLOOR_RESERVE, default=opts.get(
-                    CONF_DISPATCH_FLOOR_RESERVE, True)): bool,
-                vol.Required(CONF_DISPATCH_MAX_WATTS, default=opts.get(
-                    CONF_DISPATCH_MAX_WATTS, DISPATCH_MAX_WATTS)): vol.All(
-                        box(100, DISPATCH_MAX_WATTS, 100, "W"), vol.Coerce(int)),
-                # Tesla tariff (cloud only): offered once a cloud backup is set up.
-                **({vol.Required(CONF_TESLA_TARIFF, default=opts.get(CONF_TESLA_TARIFF, False)): bool}
-                   if cloud_choice(self.config_entry.data, opts) != CLOUD_NONE else {}),
-                vol.Required(CONF_DIAGNOSTICS_GATEWAY, default=opts.get(CONF_DIAGNOSTICS_GATEWAY, False)): bool,
+                vol.Required("general"): section(vol.Schema({
+                    vol.Required(CONF_SCAN_INTERVAL, default=scan): vol.All(
+                        box(MIN_SCAN_INTERVAL, MAX_SCAN_INTERVAL, 1, "s"), vol.Coerce(int)),
+                    vol.Required(CONF_RESTORE_EXPORT, default=opts.get(CONF_RESTORE_EXPORT, True)): bool,
+                }), {"collapsed": False}),
+                vol.Required("alerts"): section(vol.Schema({
+                    vol.Required(CONF_STATUS_EVENTS, default=opts.get(CONF_STATUS_EVENTS, False)): bool,
+                    vol.Required(CONF_PROBLEM_MINUTES, default=opts.get(
+                        CONF_PROBLEM_MINUTES, DEFAULT_PROBLEM_MINUTES)): vol.All(
+                            box(1, 240, 1, "min"), vol.Coerce(int)),
+                }), {"collapsed": False}),
+                vol.Required("dispatch"): section(vol.Schema({
+                    vol.Required(CONF_DISPATCH_FLOOR_RESERVE, default=opts.get(
+                        CONF_DISPATCH_FLOOR_RESERVE, True)): bool,
+                    vol.Required(CONF_DISPATCH_MAX_WATTS, default=opts.get(
+                        CONF_DISPATCH_MAX_WATTS, DISPATCH_MAX_WATTS)): vol.All(
+                            box(100, DISPATCH_MAX_WATTS, 100, "W"), vol.Coerce(int)),
+                }), {"collapsed": False}),
+                vol.Required("advanced"): section(vol.Schema(advanced), {"collapsed": True}),
             }),
         )
 

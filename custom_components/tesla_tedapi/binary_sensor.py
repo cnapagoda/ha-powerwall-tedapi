@@ -82,9 +82,10 @@ class AlertProblemSensor(TedapiEntity, BinarySensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
+        texts = self.coordinator.texts
         return {
             "problems": [
-                {"alert": name, "description": describe(name)[1], "severity": describe(name)[0]}
+                {"alert": name, "description": describe(name, texts)[1], "severity": describe(name, texts)[0]}
                 for name in self.data.get("alert_problems") or []
             ],
             "minutes_before_problem": int(self.coordinator.problem_after.total_seconds() // 60),

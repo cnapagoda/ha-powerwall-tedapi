@@ -1,0 +1,82 @@
+name: Hardware report
+description: Tell us how the integration works on your Powerwall (helps the compatibility list)
+labels: [hardware report]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Reports from Powerwall 2, Powerwall+, expansion packs, several Powerwalls and new firmware are especially useful. They go into [Compatibility](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/compatibility.md).
+
+        Only test what you're comfortable with. For dispatch or going off-grid, use short durations and a battery level limit, and read [Safety](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/safety.md) first.
+  - type: dropdown
+    id: model
+    attributes:
+      label: Powerwall model
+      options:
+        - Powerwall 3
+        - Powerwall 3 with Expansion Pack(s)
+        - Powerwall 2
+        - Powerwall+
+        - Several Powerwalls
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Powerwall firmware
+      placeholder: "26.34.1"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      placeholder: "2.5.0"
+    validations:
+      required: true
+  - type: input
+    id: region
+    attributes:
+      label: Country or region
+      placeholder: "Australia"
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection
+      options:
+        - Signed (v1r), home network address
+        - Signed (v1r), Powerwall Wi-Fi hotspot
+        - Wi-Fi password
+    validations:
+      required: true
+  - type: dropdown
+    id: solar
+    attributes:
+      label: Solar
+      options:
+        - On the Powerwall's built-in inputs
+        - Separate solar inverter
+        - Both
+        - No solar
+  - type: checkboxes
+    id: works
+    attributes:
+      label: What works
+      description: Tick what you tried and saw working.
+      options:
+        - label: Key registration (switch toggle confirmed the key)
+        - label: Power, battery level and energy counters
+        - label: Solar input sensors
+        - label: Battery pack sensors (capacity, temperature, health)
+        - label: Fan speed sensors
+        - label: Changing operation mode, reserve, grid charging or export locally
+        - label: Battery dispatch / charge_to / discharge_to
+        - label: Max backup
+        - label: Go off-grid and reconnect
+        - label: Dropped settings restored (restored_count goes up)
+  - type: textarea
+    id: notes
+    attributes:
+      label: What didn't work, or anything unusual
+      description: Missing sensors, odd values, error messages, alert codes the integration doesn't know.

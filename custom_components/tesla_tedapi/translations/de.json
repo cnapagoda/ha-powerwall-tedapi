@@ -183,24 +183,50 @@
       },
       "settings": {
         "title": "Einstellungen",
-        "data": {
-          "scan_interval": "Abfrageintervall",
-          "restore_export": "Einstellungen wiederherstellen, wenn die Powerwall sie verliert",
-          "status_alert_events": "Alarm-Ereignisse auch für Statusmeldungen",
-          "problem_minutes": "Problem-Verzögerung",
-          "dispatch_floor_reserve": "Entladungen stoppen bei der Backup-Reserve",
-          "dispatch_max_watts": "Größte Dispatch-Leistung",
-          "tesla_tariff": "Tesla-Tarif (Cloud)",
-          "diagnostics_gateway_config": "Gateway-Konfiguration in der Diagnose"
-        },
-        "data_description": {
-          "restore_export": "Die Powerwall verliert manchmal ihre Netzeinspeiseregel und ihre Einstellung zum Laden aus dem Netz (stündlich bei einer Powerwall 3 beobachtet); das Laden aus dem Netz schaltet sich dann ein. Wenn aktiv, wird die gewählte Einstellung innerhalb von ein bis zwei Minuten zurückgeschrieben (nur signierte Verbindung).",
-          "status_alert_events": "Statusmeldungen wie \"Export limited\" beschreiben den normalen Betrieb, und manche kommen und gehen alle paar Minuten; standardmäßig erzeugen nur Hinweise, Warnungen und Fehler Alarm-Ereignisse.",
-          "problem_minutes": "Wie lange eine Warnung oder ein Fehler bestehen muss, bevor der Problem-Sensor einschaltet und eine Reparatur gemeldet wird.",
-          "dispatch_floor_reserve": "Eine ohne `min_soc` gestartete Entladung stoppt, wenn die Batterie die Backup-Reserve erreicht.",
-          "dispatch_max_watts": "Dispatch-Aufrufe über dieser Leistung werden abgelehnt.",
-          "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensor und Aktionen zum Lesen/Setzen). Nur Cloud.",
-          "diagnostics_gateway_config": "Die Konfiguration des Gateways zu Diagnose-Downloads hinzufügen, ohne Seriennummern, Standort, Namen und Zugangsdaten. Hilfreich für Fehlerberichte."
+        "sections": {
+          "general": {
+            "name": "Allgemein",
+            "data": {
+              "scan_interval": "Abfrageintervall",
+              "restore_export": "Einstellungen wiederherstellen, wenn die Powerwall sie verliert"
+            },
+            "data_description": {
+              "restore_export": "Die Powerwall verliert manchmal ihre Netzeinspeiseregel und ihre Einstellung zum Laden aus dem Netz (stündlich bei einer Powerwall 3 beobachtet); das Laden aus dem Netz schaltet sich dann ein. Wenn aktiv, wird die gewählte Einstellung innerhalb von ein bis zwei Minuten zurückgeschrieben (nur signierte Verbindung)."
+            }
+          },
+          "alerts": {
+            "name": "Alarme",
+            "data": {
+              "status_alert_events": "Alarm-Ereignisse auch für Statusmeldungen",
+              "problem_minutes": "Problem-Verzögerung"
+            },
+            "data_description": {
+              "status_alert_events": "Statusmeldungen wie \"Export limited\" beschreiben den normalen Betrieb, und manche kommen und gehen alle paar Minuten; standardmäßig erzeugen nur Hinweise, Warnungen und Fehler Alarm-Ereignisse.",
+              "problem_minutes": "Wie lange eine Warnung oder ein Fehler bestehen muss, bevor der Problem-Sensor einschaltet und eine Reparatur gemeldet wird."
+            }
+          },
+          "dispatch": {
+            "name": "Batteriesteuerung",
+            "data": {
+              "dispatch_floor_reserve": "Entladungen stoppen bei der Backup-Reserve",
+              "dispatch_max_watts": "Größte Dispatch-Leistung"
+            },
+            "data_description": {
+              "dispatch_floor_reserve": "Eine ohne `min_soc` gestartete Entladung stoppt, wenn die Batterie die Backup-Reserve erreicht.",
+              "dispatch_max_watts": "Dispatch-Aufrufe über dieser Leistung werden abgelehnt."
+            }
+          },
+          "advanced": {
+            "name": "Erweitert",
+            "data": {
+              "tesla_tariff": "Tesla-Tarif (Cloud)",
+              "diagnostics_gateway_config": "Gateway-Konfiguration in der Diagnose"
+            },
+            "data_description": {
+              "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensor und Aktionen zum Lesen/Setzen). Nur Cloud.",
+              "diagnostics_gateway_config": "Die Konfiguration des Gateways zu Diagnose-Downloads hinzufügen, ohne Seriennummern, Standort, Namen und Zugangsdaten. Hilfreich für Fehlerberichte."
+            }
+          }
         }
       },
       "cloud_backup": {
@@ -335,7 +361,12 @@
         "name": "Batterie-Energiestand"
       },
       "grid_status": {
-        "name": "Netzstatus"
+        "name": "Netzstatus",
+        "state": {
+          "up": "Verbunden",
+          "down": "Ausgefallen",
+          "syncing": "Synchronisierung"
+        }
       },
       "grid_frequency": {
         "name": "Netzfrequenz"
@@ -809,7 +840,7 @@
         },
         "tou_settings": {
           "name": "Zeittarif-Einstellungen",
-          "description": "Teslas Schreibformat: ein Objekt mit tariff_content_v2 (nicht das Format von get_tariff; siehe Wiki)."
+          "description": "Teslas Schreibformat: ein Objekt mit tariff_content_v2 (nicht das Format von get_tariff; siehe docs/tesla-tariff.md)."
         },
         "dry_run": {
           "name": "Probelauf",
@@ -937,6 +968,92 @@
         "full": "Vollständig (bis 25 s)",
         "once": "Einmal",
         "none": "Keins"
+      }
+    },
+    "alert_description": {
+      "options": {
+        "systemconnectedtogrid": "Mit dem Netz verbunden",
+        "fwupdatesucceeded": "Das letzte Firmware-Update wurde erfolgreich installiert",
+        "baggr_a007_endofcharge": "Batterie ist voll",
+        "backfeedlimited": "Die Einspeisung ins Netz wird begrenzt (Einspeiseeinstellung oder Einspeisegrenze)",
+        "chargeonlyfromsolaroverride": "Laden aus dem Netz ist nicht erlaubt; nur Laden mit Solarstrom",
+        "selfconsumptionreservedlimit": "Batterie ist auf der Backup-Reserve",
+        "pch_a054_pwsdisabledmpptenableline": "Die eingebauten Solareingänge (MPPT) der Powerwall sind aus; normal, wenn die Solaranlage einen eigenen Wechselrichter hat",
+        "bms_a045_sw_soc_change": "Batterie hat ihren Ladestand neu kalibriert",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Batterie hat ihre Alterungsschätzung aktualisiert",
+        "energyaccumulatorirrational": "Ein Energiezähler ist unplausibel gesprungen",
+        "islandchecksfailed": "Backup-Bereitschaftsprüfung fehlgeschlagen (für einige Minuten normal, wenn die Batterie voll wird oder nach einem Neustart)",
+        "pvinvertercomms": "Verbindung zum Solar-Wechselrichter verloren",
+        "ieee1547trip": "Netzschutz hat ausgelöst (Netzspannung oder -frequenz außerhalb des Bereichs)",
+        "disallowservice": "Gateway ist nicht betriebsbereit",
+        "pch_a053_pwsdisabledinvenableline": "Wechselrichter ist deaktiviert",
+        "pch_a055_pwsdisableddcdcenableline": "DC/DC-Wandler der Batterie ist deaktiviert",
+        "pws_a014_hvpnotactive": "Hochvolt-Steuerung der Batterie ist nicht aktiv",
+        "pws_a021_hvpmia": "Hochvolt-Steuerung der Batterie antwortet nicht",
+        "baggr_a005_numbatteriesexpectedmismatch": "Weniger Batteriemodule gefunden als erwartet",
+        "bms_a037_sw_nvram_config_error": "Einstellungen des Batteriemanagements konnten nicht gelesen werden",
+        "batteryfault": "Batteriestörung",
+        "systemshutdown": "System heruntergefahren",
+        "pws_a009_rsd": "Schnellabschaltung ist aktiv (Ein/Aus-Schalter oder Not-Aus-Taster)",
+        "pws_a014_hvpfault": "Störung der Hochvolt-Steuerung der Batterie",
+        "pws_a044_hvprsdfault": "Störung der Schnellabschaltung der Batterie",
+        "pws_a045_battvrationality": "Batteriespannung ist unplausibel"
+      }
+    },
+    "alert_short": {
+      "options": {
+        "fwupdatesucceeded": "Firmware-Update erfolgreich",
+        "backfeedlimited": "Einspeisung begrenzt",
+        "chargeonlyfromsolaroverride": "Nur Solarladen",
+        "selfconsumptionreservedlimit": "Auf Backup-Reserve",
+        "pch_a054_pwsdisabledmpptenableline": "Solareingänge aus",
+        "bms_a045_sw_soc_change": "Ladestand kalibriert",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Alterung aktualisiert",
+        "energyaccumulatorirrational": "Zählersprung",
+        "islandchecksfailed": "Backup-Prüfung fehlgeschlagen",
+        "pvinvertercomms": "Solar-Wechselrichter getrennt",
+        "ieee1547trip": "Netzschutz ausgelöst",
+        "disallowservice": "Gateway nicht bereit",
+        "pch_a053_pwsdisabledinvenableline": "Wechselrichter deaktiviert",
+        "pch_a055_pwsdisableddcdcenableline": "DC/DC-Wandler deaktiviert",
+        "pws_a014_hvpnotactive": "Batteriesteuerung inaktiv",
+        "pws_a021_hvpmia": "Batteriesteuerung antwortet nicht",
+        "baggr_a005_numbatteriesexpectedmismatch": "Batteriemodule fehlen",
+        "bms_a037_sw_nvram_config_error": "Fehler in Batterieeinstellungen",
+        "pws_a009_rsd": "Schnellabschaltung aktiv",
+        "pws_a014_hvpfault": "Störung Batteriesteuerung",
+        "pws_a044_hvprsdfault": "Störung Schnellabschaltung",
+        "pws_a045_battvrationality": "Batteriespannung unplausibel",
+        "no_alerts": "Keine"
+      }
+    },
+    "logbook": {
+      "options": {
+        "firmware_updated": "Firmware von {previous} auf {version} aktualisiert",
+        "outage_started": "Netzausfall begonnen",
+        "outage_ended": "Netz nach {minutes} Min. Ausfall zurück",
+        "outage_ended_unknown": "Netz nach einem Ausfall zurück",
+        "dispatch_ended": "Batteriesteuerung beendet ({reason})",
+        "off_grid_ended": "Inselbetrieb beendet ({reason})"
+      }
+    },
+    "dispatch_end_reason": {
+      "options": {
+        "completed": "Zeit abgelaufen",
+        "target_reached": "Ziel erreicht",
+        "min_soc": "untere Grenze erreicht",
+        "max_soc": "obere Grenze erreicht",
+        "stopped": "gestoppt",
+        "connection_lost": "Verbindung verloren",
+        "unloaded": "Integration entladen"
+      }
+    },
+    "off_grid_end_reason": {
+      "options": {
+        "completed": "Zeit abgelaufen",
+        "min_soc": "Batterie auf Wiederverbindungsgrenze",
+        "requested": "Wiederverbindung angefordert",
+        "reconnected_elsewhere": "anderswo wieder verbunden"
       }
     }
   }

@@ -140,7 +140,7 @@ def validate_write(tou_settings: Any) -> list[str]:
     if content is None:
         if any(key in tou_settings for key in READ_FORMAT_KEYS):
             return ["this looks like the format get_tariff returns; writes need it wrapped and converted "
-                    "as {\"tariff_content_v2\": {...}} (see the wiki)"]
+                    "as {\"tariff_content_v2\": {...}} (see docs/tesla-tariff.md)"]
         return ["tariff_content_v2 is missing"]
     if other := sorted(set(tou_settings) - {"tariff_content_v2"}):
         return [f"only tariff_content_v2 can be sent; remove {', '.join(other)}"]

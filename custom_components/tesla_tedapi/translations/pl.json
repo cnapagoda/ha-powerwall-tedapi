@@ -183,24 +183,50 @@
       },
       "settings": {
         "title": "Ustawienia",
-        "data": {
-          "scan_interval": "Interwał odpytywania",
-          "restore_export": "Przywracaj ustawienia, gdy Powerwall je utraci",
-          "status_alert_events": "Zdarzenia alertów także dla alertów stanu",
-          "problem_minutes": "Opóźnienie problemu",
-          "dispatch_floor_reserve": "Rozładowanie zatrzymuje się na rezerwie awaryjnej",
-          "dispatch_max_watts": "Największa moc sterowania",
-          "tesla_tariff": "Taryfa Tesla (chmura)",
-          "diagnostics_gateway_config": "Konfiguracja bramy w diagnostyce"
-        },
-        "data_description": {
-          "restore_export": "Powerwall czasem gubi swoją regułę oddawania do sieci i ustawienie ładowania z sieci (co godzinę na Powerwall 3); ładowanie z sieci się wtedy włącza. Gdy włączone, wybrane ustawienie jest zapisywane z powrotem w ciągu minuty lub dwóch (tylko połączenie podpisane).",
-          "status_alert_events": "Alerty stanu, takie jak \"Export limited\", opisują normalną pracę, a niektóre pojawiają się i znikają co kilka minut; domyślnie zdarzenia alertów tworzą tylko powiadomienia, ostrzeżenia i usterki.",
-          "problem_minutes": "Jak długo ostrzeżenie lub usterka musi trwać, zanim czujnik Problem się włączy i zostanie zgłoszona naprawa.",
-          "dispatch_floor_reserve": "Rozładowanie uruchomione bez `min_soc` zatrzymuje się, gdy bateria osiągnie rezerwę awaryjną.",
-          "dispatch_max_watts": "Wywołania sterowania powyżej tej mocy są odrzucane.",
-          "tesla_tariff": "Odczytuj z kopii w chmurze taryfę, której Tesla używa do sterowania czasowego (czujnik i akcje odczytu/ustawienia). Tylko chmura.",
-          "diagnostics_gateway_config": "Dodaj konfigurację bramy do pobieranej diagnostyki, bez numerów seryjnych, lokalizacji, nazw i danych logowania. Przydatne przy zgłaszaniu błędów."
+        "sections": {
+          "general": {
+            "name": "Ogólne",
+            "data": {
+              "scan_interval": "Interwał odpytywania",
+              "restore_export": "Przywracaj ustawienia, gdy Powerwall je utraci"
+            },
+            "data_description": {
+              "restore_export": "Powerwall czasem gubi swoją regułę oddawania do sieci i ustawienie ładowania z sieci (co godzinę na Powerwall 3); ładowanie z sieci się wtedy włącza. Gdy włączone, wybrane ustawienie jest zapisywane z powrotem w ciągu minuty lub dwóch (tylko połączenie podpisane)."
+            }
+          },
+          "alerts": {
+            "name": "Alerty",
+            "data": {
+              "status_alert_events": "Zdarzenia alertów także dla alertów stanu",
+              "problem_minutes": "Opóźnienie problemu"
+            },
+            "data_description": {
+              "status_alert_events": "Alerty stanu, takie jak \"Export limited\", opisują normalną pracę, a niektóre pojawiają się i znikają co kilka minut; domyślnie zdarzenia alertów tworzą tylko powiadomienia, ostrzeżenia i usterki.",
+              "problem_minutes": "Jak długo ostrzeżenie lub usterka musi trwać, zanim czujnik Problem się włączy i zostanie zgłoszona naprawa."
+            }
+          },
+          "dispatch": {
+            "name": "Sterowanie baterią",
+            "data": {
+              "dispatch_floor_reserve": "Rozładowanie zatrzymuje się na rezerwie awaryjnej",
+              "dispatch_max_watts": "Największa moc sterowania"
+            },
+            "data_description": {
+              "dispatch_floor_reserve": "Rozładowanie uruchomione bez `min_soc` zatrzymuje się, gdy bateria osiągnie rezerwę awaryjną.",
+              "dispatch_max_watts": "Wywołania sterowania powyżej tej mocy są odrzucane."
+            }
+          },
+          "advanced": {
+            "name": "Zaawansowane",
+            "data": {
+              "tesla_tariff": "Taryfa Tesla (chmura)",
+              "diagnostics_gateway_config": "Konfiguracja bramy w diagnostyce"
+            },
+            "data_description": {
+              "tesla_tariff": "Odczytuj z kopii w chmurze taryfę, której Tesla używa do sterowania czasowego (czujnik i akcje odczytu/ustawienia). Tylko chmura.",
+              "diagnostics_gateway_config": "Dodaj konfigurację bramy do pobieranej diagnostyki, bez numerów seryjnych, lokalizacji, nazw i danych logowania. Przydatne przy zgłaszaniu błędów."
+            }
+          }
         }
       },
       "cloud_backup": {
@@ -335,7 +361,12 @@
         "name": "Stan energii baterii"
       },
       "grid_status": {
-        "name": "Stan sieci"
+        "name": "Stan sieci",
+        "state": {
+          "up": "Podłączona",
+          "down": "Awaria",
+          "syncing": "Synchronizacja"
+        }
       },
       "grid_frequency": {
         "name": "Częstotliwość sieci"
@@ -809,7 +840,7 @@
         },
         "tou_settings": {
           "name": "Ustawienia taryfy czasowej",
-          "description": "Format zapisu Tesli: obiekt z tariff_content_v2 (nie format zwracany przez get_tariff; zobacz wiki)."
+          "description": "Format zapisu Tesli: obiekt z tariff_content_v2 (nie format zwracany przez get_tariff; zobacz docs/tesla-tariff.md)."
         },
         "dry_run": {
           "name": "Próba",
@@ -937,6 +968,92 @@
         "full": "Pełny (do 25 s)",
         "once": "Raz",
         "none": "Brak"
+      }
+    },
+    "alert_description": {
+      "options": {
+        "systemconnectedtogrid": "Połączono z siecią",
+        "fwupdatesucceeded": "Ostatnia aktualizacja oprogramowania zainstalowała się poprawnie",
+        "baggr_a007_endofcharge": "Bateria jest pełna",
+        "backfeedlimited": "Oddawanie energii do sieci jest ograniczone (ustawienie lub limit eksportu)",
+        "chargeonlyfromsolaroverride": "Ładowanie z sieci jest niedozwolone; tylko ładowanie z fotowoltaiki",
+        "selfconsumptionreservedlimit": "Bateria jest na poziomie rezerwy awaryjnej",
+        "pch_a054_pwsdisabledmpptenableline": "Wbudowane wejścia fotowoltaiczne (MPPT) Powerwall są wyłączone; to normalne, gdy instalacja ma osobny falownik",
+        "bms_a045_sw_soc_change": "Bateria ponownie skalibrowała poziom naładowania",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Bateria zaktualizowała szacunek zużycia",
+        "energyaccumulatorirrational": "Licznik energii skoczył w nieprawdopodobny sposób",
+        "islandchecksfailed": "Test gotowości zasilania awaryjnego nie powiódł się (normalne przez kilka minut, gdy bateria się zapełnia lub po restarcie)",
+        "pvinvertercomms": "Utracono komunikację z falownikiem fotowoltaicznym",
+        "ieee1547trip": "Zadziałało zabezpieczenie przyłącza (napięcie lub częstotliwość sieci poza zakresem)",
+        "disallowservice": "Bramka nie jest gotowa do pracy",
+        "pch_a053_pwsdisabledinvenableline": "Falownik jest wyłączony",
+        "pch_a055_pwsdisableddcdcenableline": "Przetwornica DC-DC baterii jest wyłączona",
+        "pws_a014_hvpnotactive": "Sterownik wysokiego napięcia baterii nie jest aktywny",
+        "pws_a021_hvpmia": "Sterownik wysokiego napięcia baterii nie odpowiada",
+        "baggr_a005_numbatteriesexpectedmismatch": "Znaleziono mniej modułów baterii niż oczekiwano",
+        "bms_a037_sw_nvram_config_error": "Nie można odczytać ustawień zarządzania baterią",
+        "batteryfault": "Usterka baterii",
+        "systemshutdown": "System wyłączony",
+        "pws_a009_rsd": "Szybkie wyłączenie jest aktywne (włącznik lub przycisk szybkiego wyłączenia)",
+        "pws_a014_hvpfault": "Usterka sterownika wysokiego napięcia baterii",
+        "pws_a044_hvprsdfault": "Usterka szybkiego wyłączenia baterii",
+        "pws_a045_battvrationality": "Odczyt napięcia baterii jest nieprawdopodobny"
+      }
+    },
+    "alert_short": {
+      "options": {
+        "fwupdatesucceeded": "Aktualizacja udana",
+        "backfeedlimited": "Eksport ograniczony",
+        "chargeonlyfromsolaroverride": "Ładowanie tylko z PV",
+        "selfconsumptionreservedlimit": "Na rezerwie",
+        "pch_a054_pwsdisabledmpptenableline": "Wejścia PV wyłączone",
+        "bms_a045_sw_soc_change": "Poziom naładowania skalibrowany",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Zużycie zaktualizowane",
+        "energyaccumulatorirrational": "Skok licznika",
+        "islandchecksfailed": "Test zasilania awaryjnego nieudany",
+        "pvinvertercomms": "Brak łączności z falownikiem",
+        "ieee1547trip": "Zadziałało zabezpieczenie sieci",
+        "disallowservice": "Bramka niegotowa",
+        "pch_a053_pwsdisabledinvenableline": "Falownik wyłączony",
+        "pch_a055_pwsdisableddcdcenableline": "Przetwornica DC-DC wyłączona",
+        "pws_a014_hvpnotactive": "Sterownik baterii nieaktywny",
+        "pws_a021_hvpmia": "Sterownik baterii nie odpowiada",
+        "baggr_a005_numbatteriesexpectedmismatch": "Brak modułów baterii",
+        "bms_a037_sw_nvram_config_error": "Błąd ustawień baterii",
+        "pws_a009_rsd": "Szybkie wyłączenie aktywne",
+        "pws_a014_hvpfault": "Usterka sterownika baterii",
+        "pws_a044_hvprsdfault": "Usterka szybkiego wyłączenia",
+        "pws_a045_battvrationality": "Napięcie baterii nieprawdopodobne",
+        "no_alerts": "Brak"
+      }
+    },
+    "logbook": {
+      "options": {
+        "firmware_updated": "oprogramowanie zaktualizowane z {previous} do {version}",
+        "outage_started": "rozpoczęła się awaria sieci",
+        "outage_ended": "sieć wróciła po awarii trwającej {minutes} min",
+        "outage_ended_unknown": "sieć wróciła po awarii",
+        "dispatch_ended": "sterowanie baterią zakończone ({reason})",
+        "off_grid_ended": "praca wyspowa zakończona ({reason})"
+      }
+    },
+    "dispatch_end_reason": {
+      "options": {
+        "completed": "czas minął",
+        "target_reached": "cel osiągnięty",
+        "min_soc": "osiągnięto dolny limit",
+        "max_soc": "osiągnięto górny limit",
+        "stopped": "zatrzymano",
+        "connection_lost": "utracono połączenie",
+        "unloaded": "integracja wyłączona"
+      }
+    },
+    "off_grid_end_reason": {
+      "options": {
+        "completed": "czas minął",
+        "min_soc": "bateria na poziomie ponownego podłączenia",
+        "requested": "zażądano ponownego podłączenia",
+        "reconnected_elsewhere": "podłączono gdzie indziej"
       }
     }
   }

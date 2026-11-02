@@ -16,9 +16,9 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers import device_registry as dr, issue_registry as ir
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -56,6 +56,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     DROPPABLE_SETTINGS,
+    ENERGY_RESET_POLLS,
     EVENT_FIRMWARE_UPDATED,
     EVENT_GRID_OUTAGE,
     KEY_REFUSED_POLLS,
@@ -76,6 +77,7 @@ from .daily import DailyEnergy, GridCheck
 from .firmware import FirmwareTracker, split_version
 from .fleet import FleetBackup, FleetTimeout, fleet_starting
 from .outages import OutageTracker
+from .texts import texts as shared_texts
 
 if TYPE_CHECKING:
     from .dispatch import DispatchSession
@@ -118,6 +120,28 @@ ENERGY_COUNTERS: dict[str, tuple[str, str]] = {
 
 # Battery pack part numbers -> friendly names (TEPOD vitals blocks).
 PACK_NAMES = {"1707000": "Powerwall 3", "1807000": "Expansion Pack"}
+# Part numbers that name the system's model, from the gateway's DIN or a
+# battery pack (a Powerwall 3 is its own gateway). Anything else is shown as
+# "Powerwall".
+MODELS = {"1707000": "Powerwall 3"}
+DEFAULT_MODEL = "Powerwall"
+
+
+def detect_model(din: str | None, packs: dict[str, dict[str, Any]] | None) -> str:
+    """The model for the device page, from the DIN's part number or a pack's."""
+    parts = [(din or "").split("--")[0]] + [str(p.get("part_number") or "") for p in (packs or {}).values()]
+    for part in parts:
+        model = MODELS.get(part.split("-")[0])
+        if model:
+            return model
+    return DEFAULT_MODEL
+
+
+def model_id(din: str | None) -> str | None:
+    """The gateway's part number from its DIN ("1707000-11-J--TG1..." ->
+    "1707000-11-J")."""
+    part = (din or "").split("--")[0]
+    return part if part and part != din else None
 
 
 def _extract_pinv_value(vitals: dict, *keys: str) -> float | None:
@@ -255,6 +279,10 @@ class TedapiRuntimeData:
     coordinator: TedapiCoordinator
     dispatch: DispatchSession | None = field(default=None)
     off_grid: OffGridSession | None = field(default=None)
+    # The entry data and options this setup runs with: an options change
+    # is applied in place when only LIVE_OPTIONS differ from these.
+    applied_data: dict[str, Any] = field(default_factory=dict)
+    applied_options: dict[str, Any] = field(default_factory=dict)
 
 
 type TedapiConfigEntry = ConfigEntry[TedapiRuntimeData]
@@ -276,8 +304,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._owners_authpath: str = data.get(CONF_OWNERS_AUTHPATH, "") or hass.config.config_dir
         self._site_id: int | None = data.get(CONF_SITE_ID)
         options = entry.options
-        self.restore_settings: bool = options.get(CONF_RESTORE_EXPORT, True)
-        self.problem_after = timedelta(minutes=options.get(CONF_PROBLEM_MINUTES, DEFAULT_PROBLEM_MINUTES))
+        self.restore_settings: bool = True
+        self.problem_after = timedelta(minutes=DEFAULT_PROBLEM_MINUTES)
+        self._apply_live_options(options)
 
         self.backends: list[CloudBackend] = self._make_backends(hass, data, options)
         self.cloud_enabled: bool = bool(self.backends)
@@ -301,10 +330,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._pw = None
         # Last good lifetime counters: a missing, zero or lower reading keeps the
         # previous value so total_increasing statistics never see a fake reset.
+        # A lower reading that persists (ENERGY_RESET_POLLS) is a real reset.
         self._energy_last: dict[str, float] = {}
+        self._energy_lower: dict[str, int] = {}
         self.din: str | None = entry.unique_id
         self.firmware_version: str | None = None
-        self.alerts = AlertTracker()
+        self.model: str = detect_model(self.din, None)
+        # Alert descriptions and summaries in Home Assistant's language.
+        self.texts = shared_texts(hass)
+        self.alerts = AlertTracker(self.texts)
         # Alerts raised or cleared by the latest reading (for the event entity).
         self.alert_changes: list[AlertChange] = []
         self._issues: set[str] = set()
@@ -335,14 +369,32 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._backup_events: tuple[float, dict[str, Any]] | None = None
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
 
-        scan = entry.options.get(CONF_SCAN_INTERVAL, data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
         super().__init__(
             hass,
             _LOGGER,
             config_entry=entry,
             name=DOMAIN,
-            update_interval=timedelta(seconds=scan),
+            update_interval=self._scan_interval(entry),
         )
+
+    @staticmethod
+    def _scan_interval(entry: TedapiConfigEntry) -> timedelta:
+        return timedelta(seconds=entry.options.get(
+            CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)))
+
+    def _apply_live_options(self, options: Any) -> None:
+        self.restore_settings = options.get(CONF_RESTORE_EXPORT, True)
+        self.problem_after = timedelta(minutes=options.get(CONF_PROBLEM_MINUTES, DEFAULT_PROBLEM_MINUTES))
+
+    @callback
+    def async_apply_options(self) -> None:
+        """Options that need no reload (LIVE_OPTIONS) changed: use them now.
+        The dispatch limits and the diagnostics option are read from the
+        options when they're used, and the Alert event entity reads its
+        option on every reading."""
+        self._apply_live_options(self.config_entry.options)
+        self.update_interval = self._scan_interval(self.config_entry)
+        self.async_update_listeners()
 
     def _make_backends(self, hass: HomeAssistant, data: Any, options: Any) -> list[CloudBackend]:
         """The cloud backups in the order chosen in the options."""
@@ -643,6 +695,28 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             _LOGGER.warning("The Powerwall dropped its %s setting; restoring %s failed", name, wanted)
         return True
 
+    def _take_energy(self, key: str, value: Any) -> None:
+        """Keep a lifetime counter reading (Wh) if it's plausible: positive and
+        not lower than the last one. A lower reading only counts once it has
+        stayed lower for ENERGY_RESET_POLLS readings in a row: the counter was
+        reset, and Home Assistant's statistics start a new cycle from it."""
+        if not isinstance(value, (int, float)) or isinstance(value, bool) or value <= 0:
+            return
+        kwh = round(value / 1000, 3)
+        last = self._energy_last.get(key)
+        if last is None or kwh >= last:
+            self._energy_last[key] = kwh
+            self._energy_lower.pop(key, None)
+            return
+        lower = self._energy_lower.get(key, 0) + 1
+        if lower < ENERGY_RESET_POLLS:
+            self._energy_lower[key] = lower
+            return
+        _LOGGER.warning("The Powerwall's %s counter went back from %s to %s kWh and stayed there; "
+                        "taking it as a counter reset", key.replace("_", " "), last, kwh)
+        self._energy_last[key] = kwh
+        self._energy_lower.pop(key, None)
+
     def _read_backup_event(self, pw) -> dict[str, Any] | None:
         """The backup event running now (manual "max backup" or one the Tesla
         cloud scheduled, such as Storm Watch), from the gateway over signed
@@ -687,10 +761,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         energy: dict[str, float | None] = {}
         for key, (section, fld) in ENERGY_COUNTERS.items():
             value = (aggregates.get(section) or {}).get(fld)
-            last = self._energy_last.get(key)
-            if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0 \
-                    and (last is None or value / 1000 >= last):
-                self._energy_last[key] = round(value / 1000, 3)
+            self._take_energy(key, value)
             energy[key] = self._energy_last.get(key)
 
         full_wh = remaining_wh = None
@@ -1177,6 +1248,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.din = data["din"]
         if data.get("firmware_version"):
             self.firmware_version = data["firmware_version"]
+        if data.get("local_ok"):
+            self.model = detect_model(self.din, data.get("packs"))
         due = [backend for backend in self.backends if self._cloud_check_due(backend)]
         if due:
             for backend in due:
@@ -1205,8 +1278,29 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             data[f"{key}_restores"] = self.restores[key]
             data[f"{key}_last_restored"] = self.last_restored[key]
         data["health"] = await self._async_health(data)
+        self._sync_device()
         self._store.async_delay_save(self._state_to_save, 10)
         return data
+
+    @callback
+    def _sync_device(self) -> None:
+        """Keep the device page's firmware version and model current. The
+        entities only set them when they're created, so a firmware update
+        would otherwise show the old version until Home Assistant restarts."""
+        if not self.din:
+            return
+        registry = dr.async_get(self.hass)
+        device = registry.async_get_device(identifiers={(DOMAIN, self.din)})
+        if device is None:
+            return  # not created yet: the entities create it with these values
+        changes: dict[str, Any] = {}
+        version = split_version(self.firmware_version)[0]
+        if version and device.sw_version != version:
+            changes["sw_version"] = version
+        if device.model != self.model:
+            changes["model"] = self.model
+        if changes:
+            registry.async_update_device(device.id, **changes)
 
     def _track_outages(self, data: dict[str, Any]) -> None:
         """Only the gateway's own readings count: unreachable is not an outage."""
@@ -1464,7 +1558,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.info("Powerwall alert %s: %s (%s)", change.kind, change.name, change.description)
         active = list(self.alerts.since)
         data["alert_level"] = level(active)
-        data["alert_summary"] = summary(active)
+        data["alert_summary"] = summary(active, self.texts)
         data["alert_details"] = self.alerts.details()
         data["alert_problems"] = self.alerts.problems(now, self.problem_after)
         self._sync_issues(data["alert_problems"])
@@ -1475,7 +1569,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         for issue_id, name in wanted.items():
             if issue_id in self._issues:
                 continue
-            severity, description = describe(name)
+            severity, description = describe(name, self.texts)
             ir.async_create_issue(
                 self.hass, DOMAIN, issue_id,
                 is_fixable=False,

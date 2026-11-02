@@ -65,7 +65,11 @@
         "default": "mdi:home-lightning-bolt"
       },
       "grid_status": {
-        "default": "mdi:transmission-tower"
+        "default": "mdi:transmission-tower",
+        "state": {
+          "down": "mdi:transmission-tower-off",
+          "syncing": "mdi:sync"
+        }
       },
       "grid_frequency": {
         "default": "mdi:sine-wave"

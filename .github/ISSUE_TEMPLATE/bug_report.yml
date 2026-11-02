@@ -4,12 +4,43 @@ labels: [bug]
 body:
   - type: markdown
     attributes:
-      value: Please attach the integration's diagnostics (Settings → Devices & services → Powerwall TEDAPI → ⋮ → Download diagnostics). It hides passwords, email and serial numbers.
+      value: |
+        Thanks for reporting. Please check [Troubleshooting](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/troubleshooting.md) and the [FAQ](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/faq.md) first.
+
+        **Never post** the key (`tedapi_rsa_private.pem`), Tesla tokens (`.pypowerwall.auth`) or the gateway password.
   - type: input
-    id: versions
+    id: version
     attributes:
-      label: Versions
-      description: Integration version, Home Assistant version, Powerwall model and firmware
+      label: Integration version
+      placeholder: "2.5.0"
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2026.10.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: model
+    attributes:
+      label: Powerwall model
+      options:
+        - Powerwall 3
+        - Powerwall 3 with Expansion Pack(s)
+        - Powerwall 2
+        - Powerwall+
+        - Several Powerwalls
+        - Other / not sure
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Powerwall firmware
+      description: The **Firmware version** sensor, or the Tesla app.
+      placeholder: "26.34.1"
     validations:
       required: true
   - type: dropdown
@@ -22,15 +53,39 @@ body:
         - Wi-Fi password
     validations:
       required: true
+  - type: dropdown
+    id: cloud
+    attributes:
+      label: Cloud backup
+      options:
+        - None
+        - Owner API (Tesla account linked here)
+        - Tesla Fleet or Teslemetry
+        - Both
+    validations:
+      required: true
   - type: textarea
     id: what
     attributes:
       label: What happened, and what did you expect?
+      description: Include the exact error message, and what **Setup health** says if it's relevant.
     validations:
       required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: "Drag the file here: Settings → Devices & services → Tesla Powerwall TEDAPI → ⋮ → Download diagnostics. It hides passwords, email and serial numbers, but check it first."
   - type: textarea
     id: logs
     attributes:
       label: Debug log
-      description: "Add `logger: logs: custom_components.tesla_tedapi: debug` and `pypowerwall: debug`, reproduce, and paste the relevant lines."
+      description: "Turn on **Enable debug logging** on the integration's page (or set `custom_components.tesla_tedapi: debug` and `pypowerwall: debug` under `logger:`), reproduce, and paste the relevant lines."
       render: text

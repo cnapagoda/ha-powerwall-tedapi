@@ -183,24 +183,50 @@
       },
       "settings": {
         "title": "Instellingen",
-        "data": {
-          "scan_interval": "Pollinginterval",
-          "restore_export": "Instellingen herstellen als de Powerwall ze kwijtraakt",
-          "status_alert_events": "Waarschuwingsgebeurtenissen ook voor statusmeldingen",
-          "problem_minutes": "Probleemvertraging",
-          "dispatch_floor_reserve": "Ontladen stopt bij de back-upreserve",
-          "dispatch_max_watts": "Grootste dispatch-vermogen",
-          "tesla_tariff": "Tesla-tarief (cloud)",
-          "diagnostics_gateway_config": "Gatewayconfiguratie in diagnostiek"
-        },
-        "data_description": {
-          "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding).",
-          "status_alert_events": "Statusmeldingen zoals \"Export limited\" beschrijven normale werking en sommige komen en gaan om de paar minuten; standaard maken alleen mededelingen, waarschuwingen en storingen waarschuwingsgebeurtenissen aan.",
-          "problem_minutes": "Hoe lang een waarschuwing of storing moet duren voordat de probleemsensor aangaat en een reparatie wordt gemeld.",
-          "dispatch_floor_reserve": "Een ontlading die zonder `min_soc` is gestart, stopt als de batterij de back-upreserve bereikt.",
-          "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd.",
-          "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensor en acties om te lezen/instellen). Alleen cloud.",
-          "diagnostics_gateway_config": "De configuratie van de gateway toevoegen aan diagnostiekdownloads, zonder serienummers, locatie, namen en inloggegevens. Handig voor bugmeldingen."
+        "sections": {
+          "general": {
+            "name": "Algemeen",
+            "data": {
+              "scan_interval": "Pollinginterval",
+              "restore_export": "Instellingen herstellen als de Powerwall ze kwijtraakt"
+            },
+            "data_description": {
+              "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding)."
+            }
+          },
+          "alerts": {
+            "name": "Waarschuwingen",
+            "data": {
+              "status_alert_events": "Waarschuwingsgebeurtenissen ook voor statusmeldingen",
+              "problem_minutes": "Probleemvertraging"
+            },
+            "data_description": {
+              "status_alert_events": "Statusmeldingen zoals \"Export limited\" beschrijven normale werking en sommige komen en gaan om de paar minuten; standaard maken alleen mededelingen, waarschuwingen en storingen waarschuwingsgebeurtenissen aan.",
+              "problem_minutes": "Hoe lang een waarschuwing of storing moet duren voordat de probleemsensor aangaat en een reparatie wordt gemeld."
+            }
+          },
+          "dispatch": {
+            "name": "Batterijsturing",
+            "data": {
+              "dispatch_floor_reserve": "Ontladen stopt bij de back-upreserve",
+              "dispatch_max_watts": "Grootste dispatch-vermogen"
+            },
+            "data_description": {
+              "dispatch_floor_reserve": "Een ontlading die zonder `min_soc` is gestart, stopt als de batterij de back-upreserve bereikt.",
+              "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd."
+            }
+          },
+          "advanced": {
+            "name": "Geavanceerd",
+            "data": {
+              "tesla_tariff": "Tesla-tarief (cloud)",
+              "diagnostics_gateway_config": "Gatewayconfiguratie in diagnostiek"
+            },
+            "data_description": {
+              "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensor en acties om te lezen/instellen). Alleen cloud.",
+              "diagnostics_gateway_config": "De configuratie van de gateway toevoegen aan diagnostiekdownloads, zonder serienummers, locatie, namen en inloggegevens. Handig voor bugmeldingen."
+            }
+          }
         }
       },
       "cloud_backup": {
@@ -335,7 +361,12 @@
         "name": "Energiestand batterij"
       },
       "grid_status": {
-        "name": "Netstatus"
+        "name": "Netstatus",
+        "state": {
+          "up": "Verbonden",
+          "down": "Uitgevallen",
+          "syncing": "Synchroniseren"
+        }
       },
       "grid_frequency": {
         "name": "Netfrequentie"
@@ -809,7 +840,7 @@
         },
         "tou_settings": {
           "name": "Tijdtarief-instellingen",
-          "description": "Het schrijfformaat van Tesla: een object met tariff_content_v2 (niet het formaat van get_tariff; zie de wiki)."
+          "description": "Het schrijfformaat van Tesla: een object met tariff_content_v2 (niet het formaat van get_tariff; zie docs/tesla-tariff.md)."
         },
         "dry_run": {
           "name": "Proefrun",
@@ -937,6 +968,92 @@
         "full": "Volledig (tot 25 s)",
         "once": "Eén keer",
         "none": "Geen"
+      }
+    },
+    "alert_description": {
+      "options": {
+        "systemconnectedtogrid": "Verbonden met het net",
+        "fwupdatesucceeded": "De laatste firmware-update is geïnstalleerd",
+        "baggr_a007_endofcharge": "Batterij is vol",
+        "backfeedlimited": "Teruglevering aan het net wordt beperkt (terugleverinstelling of -limiet)",
+        "chargeonlyfromsolaroverride": "Laden van het net is niet toegestaan; alleen laden met zonne-energie",
+        "selfconsumptionreservedlimit": "Batterij staat op de back-upreserve",
+        "pch_a054_pwsdisabledmpptenableline": "De ingebouwde zonne-ingangen (MPPT) van de Powerwall staan uit; normaal als de panelen een eigen omvormer hebben",
+        "bms_a045_sw_soc_change": "Batterij heeft haar laadniveau opnieuw gekalibreerd",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Batterij heeft haar verouderingsschatting bijgewerkt",
+        "energyaccumulatorirrational": "Een energieteller sprong onwaarschijnlijk",
+        "islandchecksfailed": "Controle van de back-upgereedheid mislukt (enkele minuten normaal als de batterij vol raakt of na een herstart)",
+        "pvinvertercomms": "Communicatie met de zonne-omvormer verloren",
+        "ieee1547trip": "Netbeveiliging heeft ingegrepen (netspanning of -frequentie buiten bereik)",
+        "disallowservice": "Gateway is niet gereed",
+        "pch_a053_pwsdisabledinvenableline": "Omvormer is uitgeschakeld",
+        "pch_a055_pwsdisableddcdcenableline": "DC-DC-omzetter van de batterij is uitgeschakeld",
+        "pws_a014_hvpnotactive": "Hoogspanningsregelaar van de batterij is niet actief",
+        "pws_a021_hvpmia": "Hoogspanningsregelaar van de batterij reageert niet",
+        "baggr_a005_numbatteriesexpectedmismatch": "Minder batterijpakketten gevonden dan verwacht",
+        "bms_a037_sw_nvram_config_error": "Instellingen van het batterijbeheer konden niet worden gelezen",
+        "batteryfault": "Batterijstoring",
+        "systemshutdown": "Systeem uitgeschakeld",
+        "pws_a009_rsd": "Snelle uitschakeling is actief (aan/uit-schakelaar of noodstopknop)",
+        "pws_a014_hvpfault": "Storing in de hoogspanningsregelaar van de batterij",
+        "pws_a044_hvprsdfault": "Storing in de snelle uitschakeling van de batterij",
+        "pws_a045_battvrationality": "Batterijspanning is onwaarschijnlijk"
+      }
+    },
+    "alert_short": {
+      "options": {
+        "fwupdatesucceeded": "Firmware-update geslaagd",
+        "backfeedlimited": "Teruglevering beperkt",
+        "chargeonlyfromsolaroverride": "Alleen zonneladen",
+        "selfconsumptionreservedlimit": "Op back-upreserve",
+        "pch_a054_pwsdisabledmpptenableline": "Zonne-ingangen uit",
+        "bms_a045_sw_soc_change": "Laadniveau gekalibreerd",
+        "bms_a089_lifemodel_stodcrgrowth_change": "Veroudering bijgewerkt",
+        "energyaccumulatorirrational": "Tellersprong",
+        "islandchecksfailed": "Back-upcontrole mislukt",
+        "pvinvertercomms": "Zonne-omvormer onbereikbaar",
+        "ieee1547trip": "Netbeveiliging aangesproken",
+        "disallowservice": "Gateway niet gereed",
+        "pch_a053_pwsdisabledinvenableline": "Omvormer uitgeschakeld",
+        "pch_a055_pwsdisableddcdcenableline": "DC-DC-omzetter uitgeschakeld",
+        "pws_a014_hvpnotactive": "Batterijregelaar inactief",
+        "pws_a021_hvpmia": "Batterijregelaar reageert niet",
+        "baggr_a005_numbatteriesexpectedmismatch": "Batterijpakketten ontbreken",
+        "bms_a037_sw_nvram_config_error": "Fout in batterij-instellingen",
+        "pws_a009_rsd": "Snelle uitschakeling actief",
+        "pws_a014_hvpfault": "Storing batterijregelaar",
+        "pws_a044_hvprsdfault": "Storing snelle uitschakeling",
+        "pws_a045_battvrationality": "Batterijspanning onwaarschijnlijk",
+        "no_alerts": "Geen"
+      }
+    },
+    "logbook": {
+      "options": {
+        "firmware_updated": "firmware bijgewerkt van {previous} naar {version}",
+        "outage_started": "netstoring begonnen",
+        "outage_ended": "net terug na een storing van {minutes} min",
+        "outage_ended_unknown": "net terug na een storing",
+        "dispatch_ended": "batterijsturing beëindigd ({reason})",
+        "off_grid_ended": "off-grid-periode beëindigd ({reason})"
+      }
+    },
+    "dispatch_end_reason": {
+      "options": {
+        "completed": "tijd verstreken",
+        "target_reached": "doel bereikt",
+        "min_soc": "ondergrens bereikt",
+        "max_soc": "bovengrens bereikt",
+        "stopped": "gestopt",
+        "connection_lost": "verbinding verloren",
+        "unloaded": "integratie ontladen"
+      }
+    },
+    "off_grid_end_reason": {
+      "options": {
+        "completed": "tijd verstreken",
+        "min_soc": "batterij op het herverbindingsniveau",
+        "requested": "herverbinding gevraagd",
+        "reconnected_elsewhere": "elders opnieuw verbonden"
       }
     }
   }

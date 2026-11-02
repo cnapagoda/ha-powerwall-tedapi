@@ -135,9 +135,11 @@ async def test_baseline_survives_a_restart(hass: HomeAssistant, fake_powerwall) 
      "firmware updated from 26.34.2 to 26.34.3"),
     (EVENT_GRID_OUTAGE, {"phase": "started"}, "grid outage started"),
     (EVENT_GRID_OUTAGE, {"phase": "ended", "duration_seconds": 750}, "grid back after an outage of 12 min"),
-    (EVENT_GRID_OUTAGE, {"phase": "ended"}, "grid back after an outage of ?"),
-    (EVENT_DISPATCH_ENDED, {"reason": "target_reached"}, "battery dispatch ended (target_reached)"),
-    (EVENT_OFF_GRID_ENDED, {"reason": "completed"}, "off-grid run ended (completed)"),
+    (EVENT_GRID_OUTAGE, {"phase": "ended"}, "grid back after an outage"),
+    (EVENT_DISPATCH_ENDED, {"reason": "target_reached"}, "battery dispatch ended (target reached)"),
+    (EVENT_DISPATCH_ENDED, {"reason": "something_new"}, "battery dispatch ended (something_new)"),
+    (EVENT_OFF_GRID_ENDED, {"reason": "completed"}, "off-grid run ended (time up)"),
+    (EVENT_OFF_GRID_ENDED, {"reason": "reconnected_elsewhere"}, "off-grid run ended (reconnected elsewhere)"),
 ])
 async def test_logbook_messages(hass: HomeAssistant, fake_powerwall, event_type, data, message) -> None:
     entry = await _setup(hass, V1R)
