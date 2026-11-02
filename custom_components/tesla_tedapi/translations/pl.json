@@ -99,7 +99,8 @@
         "menu_options": {
           "reauth_password": "Wpisz ponownie hasło bramy",
           "register": "Zarejestruj klucz ponownie",
-          "key_upload": "Prześlij inny klucz"
+          "key_upload": "Prześlij inny klucz",
+          "fleet_signin": "Zaloguj się ponownie do Tesla Fleet lub Teslemetry"
         }
       },
       "reauth_password": {
@@ -152,17 +153,9 @@
           "teslemetry": "Teslemetry (token dostępu)"
         }
       },
-      "fleet_credentials": {
-        "title": "Aplikacja deweloperska Tesla",
-        "description": "Tesla Fleet wymaga własnej aplikacji z [panelu deweloperskiego Tesli]({developer_url}), z uprawnieniami do danych i poleceń energii oraz `{redirect_url}` jako dozwolonym adresem przekierowania. Aplikacja używana w integracji Tesla Fleet w Home Assistant też zadziała.",
-        "data": {
-          "client_id": "Identyfikator klienta",
-          "client_secret": "Sekret klienta"
-        }
-      },
       "teslemetry": {
         "title": "Teslemetry",
-        "description": "Wklej token dostępu z konsoli Teslemetry. Potrzebuje uprawnień do danych i poleceń energii.",
+        "description": "Wklej token dostępu z [konsoli Teslemetry](https://teslemetry.com/console). Potrzebuje uprawnień do danych i poleceń energii. Token nie jest tu odświeżany: gdy Teslemetry przestanie go akceptować, zaloguj się ponownie nowym tokenem.",
         "data": {
           "access_token": "Token dostępu"
         }
@@ -211,7 +204,8 @@
       "no_url_available": "Home Assistant nie ma adresu URL, do którego może wrócić logowanie. Ustaw go w Ustawienia → System → Sieć.",
       "missing_credentials": "Najpierw dodaj aplikację deweloperską Tesla w Ustawienia → Dane uwierzytelniające aplikacji.",
       "missing_configuration": "Najpierw dodaj aplikację deweloperską Tesla w Ustawienia → Dane uwierzytelniające aplikacji.",
-      "oauth_implementation_unavailable": "Aplikacja deweloperska Tesla jest niedostępna. Sprawdź dane uwierzytelniające aplikacji."
+      "oauth_implementation_unavailable": "Aplikacja deweloperska Tesla jest niedostępna. Sprawdź dane uwierzytelniające aplikacji.",
+      "fleet_not_registered": "Tesla odrzuciła aplikację deweloperską (HTTP 412): jej domena nie jest zarejestrowana w Tesli dla regionu Twojego konta. Zarejestruj ją zgodnie z [instrukcją konfiguracji](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md#registering-with-the-fleet-api-developers), a potem zaloguj się ponownie."
     }
   },
   "options": {

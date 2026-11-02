@@ -99,7 +99,8 @@
         "menu_options": {
           "reauth_password": "Enter the gateway password again",
           "register": "Register the key again",
-          "key_upload": "Upload a different key"
+          "key_upload": "Upload a different key",
+          "fleet_signin": "Sign in to Tesla Fleet or Teslemetry again"
         }
       },
       "reauth_password": {
@@ -152,17 +153,9 @@
           "teslemetry": "Teslemetry (access token)"
         }
       },
-      "fleet_credentials": {
-        "title": "Tesla developer app",
-        "description": "Tesla Fleet needs your own app from the [Tesla developer dashboard]({developer_url}), with the energy device data and energy commands scopes and `{redirect_url}` as an allowed redirect URL. The app you use for Home Assistant's Tesla Fleet integration works too.",
-        "data": {
-          "client_id": "Client ID",
-          "client_secret": "Client secret"
-        }
-      },
       "teslemetry": {
         "title": "Teslemetry",
-        "description": "Paste an access token from the Teslemetry console. It needs the energy device data and energy commands permissions.",
+        "description": "Paste an access token from the [Teslemetry console](https://teslemetry.com/console). It needs the energy device data and energy commands permissions. The token isn't refreshed here: if Teslemetry stops accepting it, sign in again with a new one.",
         "data": {
           "access_token": "Access token"
         }
@@ -211,7 +204,8 @@
       "no_url_available": "Home Assistant has no URL for the sign-in to return to. Set one under Settings → System → Network.",
       "missing_credentials": "Add the Tesla developer app under Settings → Application credentials first.",
       "missing_configuration": "Add the Tesla developer app under Settings → Application credentials first.",
-      "oauth_implementation_unavailable": "The Tesla developer app isn't available. Check the application credentials."
+      "oauth_implementation_unavailable": "The Tesla developer app isn't available. Check the application credentials.",
+      "fleet_not_registered": "Tesla refused the developer app (HTTP 412): its domain isn't registered with Tesla for your account's region. Register it as described in the [setup guide](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md#registering-with-the-fleet-api-developers), then sign in again."
     }
   },
   "options": {

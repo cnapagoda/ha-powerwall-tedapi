@@ -73,6 +73,7 @@
 | *Fleet API cloud backup can't change settings* | Select it to sign in again, and allow the energy commands (`energy_cmds`) permission. |
 | *Sign in to Tesla Fleet or Teslemetry* repair | Set up before 2.6 through another integration's sign-in. Select it to sign in here. |
 | The Fleet API isn't offered under **Cloud backup** | Sign in first: **Configure → Sign in to Tesla Fleet or Teslemetry**. |
+| Tesla Fleet sign-in: *Tesla refused the developer app (HTTP 412)* | The app's domain isn't registered with Tesla in your account's region. See [Setup](setup.md#registering-with-the-fleet-api-developers). (A wrong region is found by itself.) |
 | Tesla Fleet sign-in: *Tesla Fleet refused the new sign-in* | The app needs the energy scopes and a domain registered with Tesla. See [Setup](setup.md#registering-with-the-fleet-api-developers). |
 | **Setup health** says *Needs attention* about the cloud | No backup can change settings. `cloud_backends` shows which backup fails and why. |
 | *A cloud change did not apply as set* | Tesla accepted it but the Powerwall reports another value after 5 minutes. Check the Tesla app; your retailer or VPP may override it. |

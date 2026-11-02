@@ -16,7 +16,7 @@ A cloud backup is optional. Without one, everything that runs locally still work
 | What it uses | A Tesla account linked here (refresh token or browser sign-in) | A sign-in made here, to Tesla's official Fleet API: **Tesla Fleet** (your own Tesla developer app) or **Teslemetry** (an access token) |
 | You need | A Tesla sign-in ([how](setup.md#signing-in-to-tesla)) | Tesla Fleet: a developer app ([details](setup.md#tesla-fleet-your-own-developer-app)). Teslemetry: a Teslemetry plan. Either way the energy permissions: `energy_device_data` to read, `energy_cmds` to change settings |
 | Reads | Tesla's site settings, at most every 5 minutes while needed | The same; Storm Watch and the other cloud-only values every 30 minutes |
-| Token | Kept and refreshed here (`config/tesla_tedapi/.pypowerwall.auth`) | Kept in this integration's entry; a Tesla Fleet token is refreshed here |
+| Token | Kept and refreshed here (`config/tesla_tedapi/.pypowerwall.auth`) | Kept in this integration's entry. A Tesla Fleet token is refreshed here; a Teslemetry access token ([from its console](https://teslemetry.com/console)) isn't: when it stops working, sign in again with a new one |
 | Cost | None | Calls count on your Tesla developer account (Tesla Fleet) or Teslemetry plan |
 | Risk | Tesla may stop accepting Owner API tokens one day | Tesla Fleet needs a developer app and key hosting ([details](setup.md#registering-with-the-fleet-api-developers)) |
 

@@ -14,6 +14,8 @@ import asyncio
 import base64
 from collections.abc import Awaitable, Callable
 import json
+import re
+import threading
 import time
 from typing import Any
 
@@ -44,6 +46,8 @@ FLEET_SERVERS = {
     "cn": "https://fleet-api.prd.cn.vn.cloud.tesla.cn",
 }
 TESLEMETRY_SERVER = "https://api.teslemetry.com"
+# Teslemetry's regional servers: https://{region}.teslemetry.com.
+TESLEMETRY_REGION = re.compile(r"[a-z]{2,8}")
 LABELS = {PROVIDER_TESLEMETRY: "Teslemetry"}
 CALL_TIMEOUT = 30
 # How long a worker thread waits for a request on the event loop.
@@ -62,6 +66,15 @@ class FleetError(Exception):
 
 class FleetAuthError(FleetError):
     """The sign-in is no longer accepted: sign in again."""
+
+
+class FleetNotRegistered(FleetError):
+    """HTTP 412: the developer app's domain isn't registered with Tesla in
+    the account's region (Tesla's partner registration)."""
+
+
+class FleetWrongRegion(FleetError):
+    """HTTP 421: the account is served from another region's server."""
 
 
 class FleetUnavailable(Exception):
@@ -97,17 +110,49 @@ class FleetApi:
     """The few Fleet API calls used here (async)."""
 
     def __init__(self, session: aiohttp.ClientSession, token: Callable[[], Awaitable[str]],
-                 server: str, provider: str) -> None:
+                 server: str, provider: str, on_server: Callable[[str], None] | None = None) -> None:
         self._session = session
         self._token = token
         self.server = server.rstrip("/")
         self.provider = provider
+        # Told when another region's server turns out to be the right one.
+        self._on_server = on_server
 
     @property
     def teslemetry(self) -> bool:
         return self.provider == PROVIDER_TESLEMETRY
 
     async def request(self, method: str, path: str, body: dict[str, Any] | None = None) -> Any:
+        """One call. Tesla Fleet answers 421 from the wrong region's server:
+        then the account's region is looked up once and the call repeated."""
+        try:
+            return await self._send(method, path, body)
+        except FleetWrongRegion:
+            if self.teslemetry:
+                raise
+            await self.find_server()
+            return await self._send(method, path, body)
+
+    async def find_server(self) -> None:
+        """The account's own server, from Tesla's region endpoint (asked on
+        each regional server until one answers, as Home Assistant's Tesla
+        Fleet integration does)."""
+        tried = self.server
+        for server in [tried, *(s for s in FLEET_SERVERS.values() if s != tried)]:
+            self.server = server
+            try:
+                resp = await self._send("GET", "api/1/users/region")
+            except FleetWrongRegion:
+                continue
+            found = (resp.get("response") or {}).get("fleet_api_base_url") if isinstance(resp, dict) else None
+            self.server = str(found or server).rstrip("/")
+            if self.server != tried and self._on_server is not None:
+                self._on_server(self.server)
+            return
+        self.server = tried
+        raise FleetWrongRegion("no Tesla region serves this account", 421)
+
+    async def _send(self, method: str, path: str, body: dict[str, Any] | None = None) -> Any:
         token = await self._token()
         try:
             async with asyncio.timeout(CALL_TIMEOUT):
@@ -126,6 +171,10 @@ class FleetApi:
         error = data.get("error") if isinstance(data, dict) else None
         if status == 401:
             raise FleetAuthError(str(error or "token not accepted"), status)
+        if status == 412:
+            raise FleetNotRegistered(str(error or "developer app not registered in this region"), status)
+        if status == 421:
+            raise FleetWrongRegion(str(error or "wrong region"), status)
         if status >= 400 or error:
             raise FleetError(str(error or f"HTTP {status}"), status)
         return data
@@ -158,6 +207,14 @@ class FleetApi:
         else:
             scopes = token_claims(await self._token()).get("scp")
         return {str(scope) for scope in scopes} if isinstance(scopes, list) else None
+
+    async def use_teslemetry_region(self) -> None:
+        """Teslemetry: switch to the account's regional server, as named by
+        its metadata (read once, at sign-in). Also checks the token."""
+        resp = await self.request("GET", "api/metadata")
+        region = str(resp.get("region") or "").lower() if isinstance(resp, dict) else ""
+        if TESLEMETRY_REGION.fullmatch(region):
+            self.server = f"https://{region}.teslemetry.com"
 
     async def add_authorized_client(self, site_id: int, public_der: bytes) -> Any:
         message = {"key_type": 1, "public_key": base64.b64encode(public_der).decode(),
@@ -211,23 +268,35 @@ def entry_api(hass: HomeAssistant, entry: ConfigEntry) -> FleetApi | None:
     async def token() -> str:
         from homeassistant.helpers import config_entry_oauth2_flow as oauth2  # noqa: PLC0415
 
-        try:
-            if "session" not in oauth:
+        # Home Assistant 2026.2+: a credentials provider that is down for now.
+        unavailable = getattr(oauth2, "ImplementationUnavailableError", None) or ()
+        if "session" not in oauth:
+            try:
                 implementation = await oauth2.async_get_config_entry_implementation(hass, entry)
-                oauth["session"] = oauth2.OAuth2Session(hass, entry, implementation)
+            except unavailable as err:
+                raise FleetError("the application credentials are not available yet") from err
+            except ValueError as err:
+                # The application credentials were removed (Home Assistant's
+                # UnknownImplementationError is a ValueError too): sign in again.
+                raise FleetAuthError("the Tesla developer app's credentials are gone") from err
+            oauth["session"] = oauth2.OAuth2Session(hass, entry, implementation)
+        try:
             await oauth["session"].async_ensure_token_valid()
-        except Exception as err:  # noqa: BLE001
-            # No application credentials any more, or Tesla refused the
-            # refresh token: sign in again. Anything else may pass.
-            status = getattr(err, "status", None)
-            if isinstance(err, ValueError) or "Implementation" in type(err).__name__ \
-                    or "Reauth" in type(err).__name__ or status in (400, 401):
-                raise FleetAuthError(str(err) or type(err).__name__, status) from err
-            raise FleetError(str(err) or type(err).__name__, status) from err
+        except aiohttp.ClientResponseError as err:
+            # Tesla refused the refresh token: sign in again. Other statuses
+            # (busy, server errors) pass.
+            if err.status in (400, 401):
+                raise FleetAuthError("Tesla refused the refresh token", err.status) from err
+            raise FleetError(f"token refresh failed: HTTP {err.status}", err.status) from err
+        except aiohttp.ClientError as err:
+            raise FleetError(f"token refresh failed: {err or type(err).__name__}") from err
         return str(oauth["session"].token["access_token"])
 
+    def on_server(server: str) -> None:
+        hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_FLEET_SERVER: server})
+
     server = data.get(CONF_FLEET_SERVER) or fleet_server(str(data[CONF_OAUTH_TOKEN].get("access_token") or ""))
-    return FleetApi(session, token, server, provider)
+    return FleetApi(session, token, server, provider, on_server)
 
 
 class FleetBackup:
@@ -246,6 +315,10 @@ class FleetBackup:
         self._scopes_read = False
 
     def _run(self, call: Callable[[FleetApi], Awaitable[Any]]) -> Any:
+        """Run a request on the event loop and wait for it, from a worker
+        thread only: waiting on the loop's own thread would freeze it."""
+        if threading.get_ident() == self._hass.loop_thread_id:
+            raise RuntimeError("FleetBackup must be called from a worker thread, not the event loop")
         future = asyncio.run_coroutine_threadsafe(call(self._api), self._hass.loop)
         try:
             return future.result(RUN_TIMEOUT)

@@ -99,7 +99,8 @@
         "menu_options": {
           "reauth_password": "Gateway-wachtwoord opnieuw invoeren",
           "register": "De sleutel opnieuw registreren",
-          "key_upload": "Een andere sleutel uploaden"
+          "key_upload": "Een andere sleutel uploaden",
+          "fleet_signin": "Opnieuw aanmelden bij Tesla Fleet of Teslemetry"
         }
       },
       "reauth_password": {
@@ -152,17 +153,9 @@
           "teslemetry": "Teslemetry (toegangstoken)"
         }
       },
-      "fleet_credentials": {
-        "title": "Tesla-ontwikkelaarsapp",
-        "description": "Tesla Fleet heeft je eigen app nodig uit het [Tesla-ontwikkelaarsdashboard]({developer_url}), met de rechten voor energiegegevens en energieopdrachten en `{redirect_url}` als toegestane omleidings-URL. De app voor de Tesla Fleet-integratie van Home Assistant werkt ook.",
-        "data": {
-          "client_id": "Client-ID",
-          "client_secret": "Clientgeheim"
-        }
-      },
       "teslemetry": {
         "title": "Teslemetry",
-        "description": "Plak een toegangstoken uit de Teslemetry-console. Het heeft de rechten voor energiegegevens en energieopdrachten nodig.",
+        "description": "Plak een toegangstoken uit de [Teslemetry-console](https://teslemetry.com/console). Het heeft de rechten voor energiegegevens en energieopdrachten nodig. Het token wordt hier niet vernieuwd: als Teslemetry het niet meer accepteert, meld je dan opnieuw aan met een nieuw token.",
         "data": {
           "access_token": "Toegangstoken"
         }
@@ -211,7 +204,8 @@
       "no_url_available": "Home Assistant heeft geen URL waar de aanmelding naar kan terugkeren. Stel er een in onder Instellingen → Systeem → Netwerk.",
       "missing_credentials": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
       "missing_configuration": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
-      "oauth_implementation_unavailable": "De Tesla-ontwikkelaarsapp is niet beschikbaar. Controleer de applicatiegegevens."
+      "oauth_implementation_unavailable": "De Tesla-ontwikkelaarsapp is niet beschikbaar. Controleer de applicatiegegevens.",
+      "fleet_not_registered": "Tesla weigerde de ontwikkelaarsapp (HTTP 412): het domein is voor de regio van je account niet bij Tesla geregistreerd. Registreer het zoals beschreven in de [installatiehandleiding](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md#registering-with-the-fleet-api-developers) en meld je daarna opnieuw aan."
     }
   },
   "options": {

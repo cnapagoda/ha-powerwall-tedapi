@@ -89,7 +89,7 @@ Either Tesla API can send the registration:
 1. **Sign in**, one of:
    - **Tesla account (Owner API):** a refresh token or a browser sign-in ([how](#signing-in-to-tesla)).
    - **Tesla Fleet:** your own developer app ([below](#tesla-fleet-your-own-developer-app)).
-   - **Teslemetry:** an access token from the Teslemetry console, with the energy permissions.
+   - **Teslemetry:** an access token from the [Teslemetry console](https://teslemetry.com/console), with the energy permissions. It's used as it is and never refreshed here: if Teslemetry stops accepting it (for example you revoke it), sign in again with a new one (**Configure → Sign in to Tesla Fleet or Teslemetry**). The sign-in uses your account's Teslemetry region.
 2. **The energy site** with this gateway is picked automatically. You only choose when the wizard can't tell.
 3. **Confirm at the Powerwall.** The wizard creates an RSA-4096 key in `config/tesla_tedapi/` and registers it with your Powerwall. Within about **10 minutes**:
    - **Powerwall 3:** switch the **On/Off switch** (left side) **OFF for about 15 seconds, then back ON**. A quick flick is ignored. Don't leave it off until the unit powers down.
@@ -112,7 +112,7 @@ The sign-in is kept (a Tesla account in `config/tesla_tedapi/.pypowerwall.auth`,
 
 ### Tesla Fleet: your own developer app
 
-Tesla Fleet signs in with your own Tesla developer app. The app you use for Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration works too; the two sign-ins are separate. The first time, the wizard asks for the app's **Client ID** and **Client Secret** and keeps them under **Settings → Application credentials**. Then Tesla's sign-in page opens: allow the energy permissions.
+Tesla Fleet signs in with your own Tesla developer app. The app you use for Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration works too; the two sign-ins are separate. If the app isn't added yet, Home Assistant opens its **Add application credentials** dialog for the app's **Client ID** and **Client Secret** (kept under **Settings → Application credentials**). Then Tesla's sign-in page opens: allow the energy permissions.
 
 The app needs the energy scopes, `https://my.home-assistant.io/redirect/oauth` as a redirect URI, and a registered domain. Making one is described [below](#registering-with-the-fleet-api-developers).
 

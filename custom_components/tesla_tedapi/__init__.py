@@ -31,6 +31,7 @@ from .const import (
     ATTR_SOURCE_DISCHARGED,
     ATTR_TARGET_SOC,
     ATTR_TOU_SETTINGS,
+    CONF_FLEET_SERVER,
     CONF_OAUTH_TOKEN,
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
@@ -301,8 +302,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
     return True
 
 
+# Entry data the Fleet API client updates itself (a refreshed token, the
+# account's region server): saved without a reload.
+SELF_UPDATED = (CONF_OAUTH_TOKEN, CONF_FLEET_SERVER)
+
+
 def _without_token(data: Mapping[str, Any]) -> dict[str, Any]:
-    return {key: value for key, value in data.items() if key != CONF_OAUTH_TOKEN}
+    return {key: value for key, value in data.items() if key not in SELF_UPDATED}
 
 
 async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) -> None:
@@ -313,7 +319,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) 
     changed = {key for key in runtime.applied_options.keys() | entry.options.keys()
                if runtime.applied_options.get(key) != entry.options.get(key)}
     if _without_token(entry.data) == _without_token(runtime.applied_data) and changed <= LIVE_OPTIONS:
-        # A refreshed Tesla Fleet token is saved in the data: no reload.
+        # A refreshed Tesla Fleet token or region is saved in the data: no reload.
         runtime.applied_data = dict(entry.data)
         runtime.applied_options = dict(entry.options)
         if changed:

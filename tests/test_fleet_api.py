@@ -141,20 +141,121 @@ async def test_entry_api_refreshes_the_tesla_fleet_token(hass: HomeAssistant) ->
     assert session.async_ensure_token_valid.await_count == 2
 
 
+def _refused(status: int) -> aiohttp.ClientResponseError:
+    return aiohttp.ClientResponseError(request_info=None, history=(), status=status)  # type: ignore[arg-type]
+
+
 @pytest.mark.parametrize(("error", "expected"), [
-    (ValueError("Implementation not available"), fleet_mod.FleetAuthError),
-    (type("ImplementationUnavailableError", (Exception,), {})(), fleet_mod.FleetAuthError),
-    (type("OAuth2TokenRequestReauthError", (Exception,), {})(), fleet_mod.FleetAuthError),
-    (type("Refused", (Exception,), {"status": 400})(), fleet_mod.FleetAuthError),
-    (type("Busy", (Exception,), {"status": 503})(), fleet_mod.FleetError),
+    (_refused(400), fleet_mod.FleetAuthError),
+    (_refused(401), fleet_mod.FleetAuthError),
+    (_refused(503), fleet_mod.FleetError),
+    (aiohttp.ClientConnectionError("no route"), fleet_mod.FleetError),
 ])
-async def test_entry_api_token_errors(hass: HomeAssistant, error, expected) -> None:
+async def test_token_refresh_errors(hass: HomeAssistant, error, expected) -> None:
+    """Refused (400/401): sign in again. Anything else: temporary."""
     entry = MockConfigEntry(domain=DOMAIN, data={"fleet_provider": "tesla_fleet", "fleet_site_id": 42,
                                                  "fleet_server": SERVER, "token": {"access_token": "x"}})
     api = fleet_mod.entry_api(hass, entry)
     assert api.server == SERVER
-    with (patch("homeassistant.helpers.config_entry_oauth2_flow.async_get_config_entry_implementation",
-                side_effect=error),
+    session = AsyncMock()
+    session.async_ensure_token_valid.side_effect = error
+    oauth2 = "homeassistant.helpers.config_entry_oauth2_flow"
+    with (patch(f"{oauth2}.async_get_config_entry_implementation", return_value=object()),
+          patch(f"{oauth2}.OAuth2Session", return_value=session),
           pytest.raises(expected) as err):
         await api._token()
     assert type(err.value) is expected
+
+
+async def test_missing_or_unavailable_credentials(hass: HomeAssistant) -> None:
+    from homeassistant.helpers import config_entry_oauth2_flow as oauth2  # noqa: PLC0415
+
+    entry = MockConfigEntry(domain=DOMAIN, data={"fleet_provider": "tesla_fleet", "fleet_site_id": 42,
+                                                 "auth_implementation": "gone", "token": {"access_token": "x"}})
+    api = fleet_mod.entry_api(hass, entry)
+    # The application credentials were removed: sign in again.
+    with pytest.raises(fleet_mod.FleetAuthError):
+        await api._token()
+    # A credentials provider that is down (Home Assistant 2026.2+): temporary.
+    with (patch(f"{oauth2.__name__}.async_get_config_entry_implementation",
+                side_effect=oauth2.ImplementationUnavailableError("cloud down")),
+          pytest.raises(fleet_mod.FleetError) as err):
+        await api._token()
+    assert type(err.value) is fleet_mod.FleetError
+    # Older Home Assistant without that error: only a missing app counts.
+    with (patch.object(oauth2, "ImplementationUnavailableError", None, create=False),
+          patch(f"{oauth2.__name__}.async_get_config_entry_implementation", side_effect=ValueError("gone")),
+          pytest.raises(fleet_mod.FleetAuthError)):
+        await api._token()
+
+
+async def test_app_not_registered_in_the_region(hass: HomeAssistant, aioclient_mock) -> None:
+    aioclient_mock.get(f"{SERVER}/api/1/products", status=412, json={"error": "must be registered"})
+    with pytest.raises(fleet_mod.FleetNotRegistered) as err:
+        await _api(hass).energy_sites()
+    assert err.value.status == 412
+
+
+async def test_wrong_region_finds_the_right_one(hass: HomeAssistant, aioclient_mock) -> None:
+    na, eu = fleet_mod.FLEET_SERVERS["na"], fleet_mod.FLEET_SERVERS["eu"]
+    aioclient_mock.get(f"{na}/api/1/products", status=421, json={"error": "user out of region"})
+    aioclient_mock.get(f"{na}/api/1/users/region", status=421)
+    aioclient_mock.get(f"{eu}/api/1/users/region", json={"response": {"region": "eu", "fleet_api_base_url": eu}})
+    aioclient_mock.get(f"{eu}/api/1/products", json={"response": [{"energy_site_id": 42}]})
+    found: list[str] = []
+    api = fleet_mod.FleetApi(async_get_clientsession(hass), fleet_mod.static_token("t"), na, "tesla_fleet",
+                             found.append)
+    assert [s.site_id for s in await api.energy_sites()] == [42]
+    assert api.server == eu and found == [eu]
+
+
+async def test_no_region_serves_the_account(hass: HomeAssistant, aioclient_mock) -> None:
+    for server in fleet_mod.FLEET_SERVERS.values():
+        aioclient_mock.get(f"{server}/api/1/users/region", status=421)
+    aioclient_mock.get(f"{SERVER}/api/1/products", status=421)
+    aioclient_mock.get(f"{SERVER}/api/1/users/region", status=421)
+    api = _api(hass)
+    with pytest.raises(fleet_mod.FleetWrongRegion):
+        await api.energy_sites()
+    assert api.server == SERVER
+    # The right server answering without a URL keeps it.
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(f"{SERVER}/api/1/users/region", json={"response": {}})
+    await api.find_server()
+    assert api.server == SERVER
+    # Teslemetry routes itself: no region lookup.
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(f"{SERVER}/api/1/products", status=421)
+    with pytest.raises(fleet_mod.FleetWrongRegion):
+        await _api(hass, "teslemetry").energy_sites()
+    assert len(aioclient_mock.mock_calls) == 1
+
+
+async def test_found_region_is_saved_without_a_reload(hass: HomeAssistant) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, data={"fleet_provider": "tesla_fleet", "fleet_site_id": 42,
+                                                 "fleet_server": SERVER, "token": {"access_token": "x"}})
+    entry.add_to_hass(hass)
+    api = fleet_mod.entry_api(hass, entry)
+    api._on_server("https://other.example")
+    assert entry.data["fleet_server"] == "https://other.example"
+
+
+async def test_never_waits_on_the_event_loop(hass: HomeAssistant) -> None:
+    """Called from the event loop itself, it refuses at once instead of
+    freezing Home Assistant while it waits for the loop."""
+    client = fleet_mod.FleetBackup(hass, _api(hass), 42)
+    with pytest.raises(RuntimeError, match="worker thread"):
+        client.get_mode()
+
+
+@pytest.mark.parametrize(("metadata", "server"), [
+    ({"region": "na", "scopes": []}, "https://na.teslemetry.com"),
+    ({"region": "../evil"}, SERVER),
+    ({}, SERVER),
+    (["list"], SERVER),
+])
+async def test_teslemetry_region(hass: HomeAssistant, aioclient_mock, metadata, server) -> None:
+    aioclient_mock.get(f"{SERVER}/api/metadata", json=metadata)
+    api = _api(hass, "teslemetry")
+    await api.use_teslemetry_region()
+    assert api.server == server

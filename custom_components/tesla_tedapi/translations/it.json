@@ -99,7 +99,8 @@
         "menu_options": {
           "reauth_password": "Inserisci di nuovo la password del gateway",
           "register": "Registra di nuovo la chiave",
-          "key_upload": "Carica un'altra chiave"
+          "key_upload": "Carica un'altra chiave",
+          "fleet_signin": "Accedi di nuovo a Tesla Fleet o Teslemetry"
         }
       },
       "reauth_password": {
@@ -152,17 +153,9 @@
           "teslemetry": "Teslemetry (token di accesso)"
         }
       },
-      "fleet_credentials": {
-        "title": "App sviluppatore Tesla",
-        "description": "Tesla Fleet richiede una tua app dalla [dashboard sviluppatori Tesla]({developer_url}), con i permessi per dati e comandi energia e `{redirect_url}` come URL di reindirizzamento consentito. Va bene anche l'app usata per l'integrazione Tesla Fleet di Home Assistant.",
-        "data": {
-          "client_id": "ID client",
-          "client_secret": "Segreto client"
-        }
-      },
       "teslemetry": {
         "title": "Teslemetry",
-        "description": "Incolla un token di accesso dalla console Teslemetry. Servono i permessi per dati e comandi energia.",
+        "description": "Incolla un token di accesso dalla [console Teslemetry](https://teslemetry.com/console). Servono i permessi per dati e comandi energia. Il token non viene rinnovato qui: se Teslemetry smette di accettarlo, accedi di nuovo con uno nuovo.",
         "data": {
           "access_token": "Token di accesso"
         }
@@ -211,7 +204,8 @@
       "no_url_available": "Home Assistant non ha un URL a cui l'accesso possa tornare. Impostane uno in Impostazioni → Sistema → Rete.",
       "missing_credentials": "Aggiungi prima l'app sviluppatore Tesla in Impostazioni → Credenziali dell'applicazione.",
       "missing_configuration": "Aggiungi prima l'app sviluppatore Tesla in Impostazioni → Credenziali dell'applicazione.",
-      "oauth_implementation_unavailable": "L'app sviluppatore Tesla non è disponibile. Controlla le credenziali dell'applicazione."
+      "oauth_implementation_unavailable": "L'app sviluppatore Tesla non è disponibile. Controlla le credenziali dell'applicazione.",
+      "fleet_not_registered": "Tesla ha rifiutato l'app sviluppatore (HTTP 412): il suo dominio non è registrato presso Tesla per la regione del tuo account. Registralo come descritto nella [guida di configurazione](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md#registering-with-the-fleet-api-developers), poi accedi di nuovo."
     }
   },
   "options": {

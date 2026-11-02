@@ -115,6 +115,15 @@ async def test_register_through_teslemetry(hass: HomeAssistant, tmp_path, fleet)
     assert result["options"] == {"cloud_backends": "tesla_fleet"}
 
 
+async def test_teslemetry_uses_the_account_region(hass: HomeAssistant, tmp_path, fleet) -> None:
+    fleet.region = "EU"
+    with KeyServer(fleet, [3]).patch, _key(tmp_path), patch(SETUP, return_value=True):
+        result = await _teslemetry(hass, await _to_signin(hass))
+        await hass.async_block_till_done()
+        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    assert result["data"]["fleet_server"] == "https://eu.teslemetry.com"
+
+
 async def test_teslemetry_token_errors(hass: HomeAssistant, fleet) -> None:
     result = await _to_signin(hass)
     fleet.fail = fleet_mod.FleetAuthError("invalid token", 401)
@@ -180,6 +189,25 @@ async def test_registration_fails(hass: HomeAssistant, tmp_path, fleet, error, r
 def test_unavailable_sign_in_reason() -> None:
     assert config_flow._register_failure(fleet_mod.FleetUnavailable("no energy_cmds")) \
         == "register_fleet_unavailable"
+    assert config_flow._register_failure(fleet_mod.FleetNotRegistered("412", 412)) == "fleet_not_registered"
+
+
+async def test_reauth_offers_the_fleet_sign_in(hass: HomeAssistant, fleet) -> None:
+    """Home Assistant starts a plain reauth when Tesla refuses the refresh
+    token: with a Fleet API sign-in, its menu offers signing in again."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={**V1R, **TESLEMETRY})
+    entry.add_to_hass(hass)
+    with patch(SETUP, return_value=True):
+        entry.async_start_reauth(hass)
+        await hass.async_block_till_done()
+        flow = hass.config_entries.flow.async_progress_by_handler(DOMAIN)[0]
+        result = await hass.config_entries.flow.async_configure(flow["flow_id"])
+        assert result["menu_options"] == ["reauth_password", "register", "key_upload", "fleet_signin"]
+        result = await hass.config_entries.flow.async_configure(flow["flow_id"], {"next_step_id": "fleet_signin"})
+        assert result["menu_options"] == ["fleet_oauth", "teslemetry"]
+        result = await _teslemetry(hass, result, "tm-new")
+    assert result["reason"] == "reauth_successful"
+    assert entry.data["fleet_token"] == "tm-new"
 
 
 def test_key_state_only_for_our_key() -> None:
@@ -269,15 +297,25 @@ TOKEN = {"access_token": _jwt({"ou_code": "EU", "scp": ["openid", "energy_device
          "refresh_token": "rt", "expires_in": 28800, "token_type": "Bearer"}
 
 
+async def _add_app(hass: HomeAssistant) -> None:
+    """The developer app, as Home Assistant's Add application credentials
+    dialog saves it."""
+    from homeassistant.components.application_credentials import (  # noqa: PLC0415
+        ClientCredential,
+        async_import_client_credential,
+    )
+    from homeassistant.setup import async_setup_component  # noqa: PLC0415
+
+    assert await async_setup_component(hass, "application_credentials", {})
+    await async_import_client_credential(hass, DOMAIN, ClientCredential("my-app", "s3cret", name="Tesla Fleet"))
+
+
 async def _oauth(hass: HomeAssistant, aioclient_mock, flow_id: str, *, credentials: bool = True) -> dict:
-    """fleet_oauth → (credentials) → pick the app → Tesla's sign-in page → back."""
+    """fleet_oauth → pick the app → Tesla's sign-in page → back."""
     hass.config.components.add("my")  # redirect through my.home-assistant.io
-    result = await hass.config_entries.flow.async_configure(flow_id, {"next_step_id": "fleet_oauth"})
     if credentials:
-        assert result["step_id"] == "fleet_credentials"
-        assert "developer.tesla.com" in result["description_placeholders"]["developer_url"]
-        result = await hass.config_entries.flow.async_configure(
-            flow_id, {"client_id": " my-app ", "client_secret": "s3cret"})
+        await _add_app(hass)
+    result = await hass.config_entries.flow.async_configure(flow_id, {"next_step_id": "fleet_oauth"})
     if result["step_id"] == "pick_implementation":
         result = await hass.config_entries.flow.async_configure(
             flow_id, {"implementation": next(iter(result["data_schema"].schema["implementation"].container))})
@@ -310,16 +348,19 @@ async def test_register_through_tesla_fleet(hass: HomeAssistant, tmp_path, fleet
     assert message["add_authorized_client_request"]["public_key"] == _b64(PUB)
 
 
-async def test_tesla_fleet_with_credentials_already_added(hass: HomeAssistant, tmp_path, fleet,
-                                                          aioclient_mock) -> None:
-    from homeassistant.components.application_credentials import (  # noqa: PLC0415
-        ClientCredential,
-        async_import_client_credential,
-    )
+async def test_without_credentials_home_assistant_asks_for_them(hass: HomeAssistant) -> None:
+    """No app added yet: the standard step stops with missing_credentials,
+    which makes the frontend open its Add application credentials dialog."""
     from homeassistant.setup import async_setup_component  # noqa: PLC0415
 
     assert await async_setup_component(hass, "application_credentials", {})
-    await async_import_client_credential(hass, DOMAIN, ClientCredential("my-app", "s3cret", name="Tesla Fleet"))
+    result = await _to_signin(hass)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "fleet_oauth"})
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "missing_credentials"
+
+
+async def test_tesla_fleet_sign_in_later(hass: HomeAssistant, tmp_path, fleet, aioclient_mock) -> None:
+    await _add_app(hass)
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R)
     entry.add_to_hass(hass)
     with patch(SETUP, return_value=True):
@@ -332,6 +373,7 @@ async def test_tesla_fleet_with_credentials_already_added(hass: HomeAssistant, t
 
 @pytest.mark.parametrize(("error", "reason"), [
     (fleet_mod.FleetAuthError("missing scopes", 401), "fleet_refused"),
+    (fleet_mod.FleetNotRegistered("not registered", 412), "fleet_not_registered"),
     (fleet_mod.FleetError("HTTP 503", 503), "fleet_error"),
 ])
 async def test_tesla_fleet_sign_in_refused(hass: HomeAssistant, fleet, aioclient_mock, error, reason) -> None:

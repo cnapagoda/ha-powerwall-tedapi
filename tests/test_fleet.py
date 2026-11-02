@@ -454,6 +454,10 @@ async def test_token_refresh_does_not_reload(hass: HomeAssistant, fake_powerwall
     await hass.async_block_till_done()
     assert entry.runtime_data.coordinator is coordinator
     assert entry.runtime_data.applied_data["token"] == {"access_token": "b"}
+    # So does the account's region server, once found.
+    hass.config_entries.async_update_entry(entry, data={**entry.data, "fleet_server": "https://eu.example"})
+    await hass.async_block_till_done()
+    assert entry.runtime_data.coordinator is coordinator
     # Any other data change still reloads.
     hass.config_entries.async_update_entry(entry, data={**entry.data, "fleet_token": "new"})
     await hass.async_block_till_done()

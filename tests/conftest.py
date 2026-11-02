@@ -409,6 +409,7 @@ class FakeFleetServer:
         self.info: dict[str, Any] = copy.deepcopy(SITE_INFO)
         self.live: dict[str, Any] = {"island_status": "on_grid", "storm_mode_active": False}
         self.scopes: list[str] | None = list(SCOPES)
+        self.region: str | None = None  # Teslemetry's metadata region
         self.sites = [{"energy_site_id": 42, "gateway_id": DIN, "site_name": "Home"}]
         self.tariff: dict | None = None
         self.fail: Exception | None = None
@@ -431,7 +432,8 @@ class FakeFleetServer:
         if path == "api/1/products":
             return {"response": self.sites}
         if path == "api/metadata":
-            return {"scopes": self.scopes} if self.scopes is not None else {}
+            return {**({"scopes": self.scopes} if self.scopes is not None else {}),
+                    **({"region": self.region} if self.region else {})}
         if path.endswith("/site_info"):
             return {"response": {**self.info, **({"tariff_content_v2": self.tariff} if self.tariff else {})}}
         if path.endswith("/live_status"):

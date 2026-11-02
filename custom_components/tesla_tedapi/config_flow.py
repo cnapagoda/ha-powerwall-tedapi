@@ -106,8 +106,6 @@ CONF_SITE = "site"
 CONF_KEY_FILE = "key_file"
 CONF_FOUND = "found"
 CONF_BACKUP = "backup"
-CONF_CLIENT_ID = "client_id"
-CONF_CLIENT_SECRET = "client_secret"
 CONF_ACCESS_TOKEN = "access_token"
 MANUAL = "manual"
 # Sections of the Settings form (strings.json: options.step.settings.sections).
@@ -130,6 +128,8 @@ def _register_failure(err: Exception) -> str:
     status = getattr(err, "status", None)
     if isinstance(err, fleet.FleetUnavailable):
         return "register_fleet_unavailable"
+    if isinstance(err, fleet.FleetNotRegistered):
+        return "fleet_not_registered"
     if isinstance(err, (tesla_cloud.TeslaAuthError, fleet.FleetAuthError)):
         return "register_token_refused"
     if isinstance(err, fleet.FleetTimeout):
@@ -526,32 +526,16 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         return self.async_show_menu(step_id="signin", menu_options=["login", "fleet_oauth", "teslemetry"])
 
     async def async_step_fleet_signin(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        """A Fleet API sign-in only (reauth from the options or a repair)."""
+        """A Fleet API sign-in only (reauth from the options, a repair, or
+        Home Assistant asking after Tesla refused the refresh token)."""
+        self._fleet_only = True
         return self.async_show_menu(step_id="fleet_signin", menu_options=["fleet_oauth", "teslemetry"])
 
     async def async_step_fleet_oauth(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Tesla Fleet: the user's own developer app. Without application
-        credentials yet, ask for them here first."""
-        if not await config_entry_oauth2_flow.async_get_implementations(self.hass, DOMAIN):
-            return await self.async_step_fleet_credentials()
+        credentials, the standard step stops with missing_credentials and
+        Home Assistant offers to add them."""
         return await self.async_step_pick_implementation()
-
-    async def async_step_fleet_credentials(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        if user_input is not None:
-            from homeassistant.components.application_credentials import (  # noqa: PLC0415
-                ClientCredential,
-                async_import_client_credential,
-            )
-
-            await async_import_client_credential(self.hass, DOMAIN, ClientCredential(
-                user_input[CONF_CLIENT_ID].strip(), user_input[CONF_CLIENT_SECRET].strip(), name="Tesla Fleet"))
-            return await self.async_step_pick_implementation()
-        return self.async_show_form(
-            step_id="fleet_credentials",
-            data_schema=vol.Schema({vol.Required(CONF_CLIENT_ID): str, vol.Required(CONF_CLIENT_SECRET): PASSWORD}),
-            description_placeholders={"developer_url": "https://developer.tesla.com/dashboard",
-                                      "redirect_url": "https://my.home-assistant.io/redirect/oauth"},
-        )
 
     async def async_oauth_create_entry(self, data: dict[str, Any]) -> ConfigFlowResult:
         """Tesla Fleet signed in: find this Powerwall's site (no entry yet)."""
@@ -563,6 +547,9 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                        "auth_implementation": data["auth_implementation"], "token": token}
         try:
             return await self._async_fleet_sites(api)
+        except fleet.FleetNotRegistered as err:
+            _LOGGER.warning("Tesla Fleet: the developer app isn't registered in this region: %s", err)
+            return self.async_abort(reason="fleet_not_registered")
         except fleet.FleetAuthError as err:
             _LOGGER.warning("Tesla Fleet refused the new sign-in: %s", err)
             return self.async_abort(reason="fleet_refused")
@@ -579,6 +566,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             self._fleet = {CONF_FLEET_PROVIDER: PROVIDER_TESLEMETRY, CONF_FLEET_SERVER: fleet.TESLEMETRY_SERVER,
                            CONF_FLEET_TOKEN: token}
             try:
+                await api.use_teslemetry_region()  # saved with the sign-in
                 return await self._async_fleet_sites(api)
             except fleet.FleetAuthError as err:
                 _LOGGER.debug("Teslemetry refused the token: %s", err)
@@ -598,6 +586,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         its DIN, the only one, or chosen."""
         self._sites = await api.energy_sites()
         self._fleet_api = api
+        if self._fleet is not None:
+            self._fleet[CONF_FLEET_SERVER] = api.server  # the region that answered
         if not self._sites:
             return self.async_abort(reason="no_sites")
         matching = [s for s in self._sites if self._din and s.din == self._din]
@@ -828,8 +818,12 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         return self.async_show_menu(step_id="new_key", menu_options=["register", "key_upload"])
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        return self.async_show_menu(step_id="reauth_confirm",
-                                    menu_options=["reauth_password", "register", "key_upload"])
+        menu = ["reauth_password", "register", "key_upload"]
+        if fleet.signed_in(self._get_reauth_entry().data):
+            # Home Assistant also asks here when Tesla refuses the Fleet API
+            # refresh token.
+            menu.append("fleet_signin")
+        return self.async_show_menu(step_id="reauth_confirm", menu_options=menu)
 
     async def async_step_reauth_password(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}
