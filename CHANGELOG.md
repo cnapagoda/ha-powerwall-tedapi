@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **Documentation reorganised.** The README is now a short overview with a quick start; the details moved to [`docs/`](docs/README.md), one page per topic.
+- New pages: **Quick start**, **Migrating from another integration** (keeping Energy dashboard history, which integrations can stay), **Energy dashboard** (which sensor goes where), **Dashboards** (ready-to-paste cards), **Events** (every event and its data), **Compatibility** (models, features, firmware), **FAQ**, and **Tesla tariff** (the write format, dry run and read-back, previously only in the wiki).
+- **Troubleshooting** now lists every repair and the exact error messages from the UI.
+- **Alerts** lists every known alert code with its severity and description.
+- `examples/automations.yaml` uses entity IDs without an area, and a new `examples/dashboard.yaml` is a complete dashboard.
+- Blueprint import links all point to the same release.
+- New issue form for **hardware reports**, and the bug report asks for model, firmware and connection separately.
+
 ## 2.5.0
 
 - **Blueprint "Dynamic price tariff":** every 30 minutes it turns a price forecast (Amber by default; Octopus, Nord Pool and others by setting the attribute and key names) into Tesla's tariff for the next 24 hours and sends it with `set_tariff`, so the Powerwall can stay in Time-Based Control. It skips unchanged rates, refuses a forecast with more than 10 of 48 half hours missing, and has a dry run.

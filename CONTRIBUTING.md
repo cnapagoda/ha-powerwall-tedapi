@@ -30,7 +30,7 @@ The tests use a fake gateway and cloud (`tests/conftest.py`); they never talk to
 - **`ruff check .` clean.**
 - **Translations.** Every user-facing string goes in `strings.json` and in all eight languages under `translations/` (en, de, fr, nl, es, it, pl, pt-BR). If you can't translate, say so in the PR and use English as a placeholder.
 - **A `CHANGELOG.md` line.**
-- **Short docs.** One or two lines in the README per feature: what it does and where to find it.
+- **Docs.** Document the feature in the matching page under [`docs/`](docs/README.md) (entities, actions, events, options, troubleshooting). Keep the README to the overview: add a line there only for a headline feature. New user-visible errors or repairs also go in [Troubleshooting](docs/troubleshooting.md).
 - **No secrets** in code, tests, logs or screenshots.
 
 ## Branches and commits
@@ -45,3 +45,13 @@ Reports from hardware other than a single Powerwall 3 are especially useful: Pow
 - Try changes on your own system only, and only commands you understand.
 - Start read-only. For dispatch or go off-grid, use short durations, a battery level limit, and stay near the Powerwall.
 - Include the firmware version and the integration's diagnostics in your report, and check them for anything private first.
+- Use the [hardware report](https://github.com/cnapagoda/ha-powerwall-tedapi/issues/new?template=hardware_report.yml) form: reports feed [Compatibility](docs/compatibility.md).
+
+## Documentation
+
+The docs are plain Markdown in [`docs/`](docs/README.md), one page per topic, rendered by GitHub. The README is shown in HACS, so it uses absolute links; pages under `docs/` use relative links and images from `docs/images/`.
+
+- Write for someone who has never used the integration: say what something does, then how.
+- Use the UI's exact words for menus, fields and messages (copy them from `strings.json`).
+- Show entity IDs in the default form, `sensor.powerwall_tedapi_…`.
+- Docs-only pull requests are welcome, including corrections from your own hardware.
