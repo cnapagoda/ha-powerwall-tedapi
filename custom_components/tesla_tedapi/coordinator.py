@@ -1291,11 +1291,11 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return
         registry = dr.async_get(self.hass)
         identifier = (DOMAIN, self.din)
-        # Home Assistant 2026.11+ looks devices up per config entry; the
+        # Newer Home Assistant looks devices up per config entry; the
         # identifiers-only lookup stops working in 2027.8.
         if hasattr(registry, "async_get_device_by_identifier"):
             device = registry.async_get_device_by_identifier(identifier, self.config_entry.entry_id)
-        else:  # Home Assistant before 2026.11
+        else:  # older Home Assistant (2026.2 has no per-entry lookup)
             device = registry.async_get_device(identifiers={identifier})
         if device is None:
             return  # not created yet: the entities create it with these values
