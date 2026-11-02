@@ -303,6 +303,17 @@
         "name": "Services du réseau électrique actifs"
       }
     },
+    "button": {
+      "stop_dispatch": {
+        "name": "Arrêter le pilotage de la batterie"
+      },
+      "cancel_max_backup": {
+        "name": "Annuler le secours maximal"
+      },
+      "reconnect_grid": {
+        "name": "Reconnecter au réseau"
+      }
+    },
     "number": {
       "backup_reserve": {
         "name": "Réserve de secours"

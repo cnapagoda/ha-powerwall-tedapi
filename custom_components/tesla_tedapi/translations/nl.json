@@ -303,6 +303,17 @@
         "name": "Netdiensten actief"
       }
     },
+    "button": {
+      "stop_dispatch": {
+        "name": "Batterijsturing stoppen"
+      },
+      "cancel_max_backup": {
+        "name": "Max-back-up annuleren"
+      },
+      "reconnect_grid": {
+        "name": "Opnieuw met het net verbinden"
+      }
+    },
     "number": {
       "backup_reserve": {
         "name": "Back-upreserve"

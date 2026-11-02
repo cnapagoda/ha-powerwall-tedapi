@@ -303,6 +303,17 @@
         "name": "Grid services active"
       }
     },
+    "button": {
+      "stop_dispatch": {
+        "name": "Stop battery dispatch"
+      },
+      "cancel_max_backup": {
+        "name": "Cancel max backup"
+      },
+      "reconnect_grid": {
+        "name": "Reconnect to the grid"
+      }
+    },
     "number": {
       "backup_reserve": {
         "name": "Backup reserve"

@@ -91,7 +91,7 @@ data:
 
 ## `tesla_tedapi.resume_battery_operation`
 
-End a dispatch now and hand the battery back to the Powerwall's normal mode. It also clears a dispatch left over from before a restart, so it's safe to call any time.
+End a dispatch now and hand the battery back to the Powerwall's normal mode. It also clears a dispatch left over from before a restart, so it's safe to call any time. The **Stop battery dispatch** [button](entities.md#buttons) does the same.
 
 ```yaml
 action: tesla_tedapi.resume_battery_operation
@@ -121,7 +121,7 @@ This also charges to 100 %, which a backup reserve set through Tesla's cloud can
 
 ## `tesla_tedapi.cancel_max_backup`
 
-End a max backup started here or in the Tesla app. Events Tesla scheduled (Storm Watch) aren't affected; turn the **Storm Watch** switch off to stop those.
+End a max backup started here or in the Tesla app. Events Tesla scheduled (Storm Watch) aren't affected; turn the **Storm Watch** switch off to stop those. The **Cancel max backup** [button](entities.md#buttons) does the same.
 
 ---
 
@@ -163,7 +163,7 @@ data:
 
 ## `tesla_tedapi.reconnect_grid`
 
-Reconnect the house to the grid, also after *Go off-grid* in the Tesla app. It waits up to 90 seconds for the Powerwall to start syncing to the grid (**Grid connected** turns back on once it has synced). It fails during a real outage, when there's no grid to sync to.
+Reconnect the house to the grid, also after *Go off-grid* in the Tesla app. It waits up to 90 seconds for the Powerwall to start syncing to the grid (**Grid connected** turns back on once it has synced). It fails during a real outage, when there's no grid to sync to. The **Reconnect to the grid** [button](entities.md#buttons) does the same.
 
 **Response** (optional): `grid_status` and the gateway's `response`.
 

@@ -303,6 +303,17 @@
         "name": "Usługi sieciowe aktywne"
       }
     },
+    "button": {
+      "stop_dispatch": {
+        "name": "Zatrzymaj sterowanie baterią"
+      },
+      "cancel_max_backup": {
+        "name": "Anuluj maksymalne zasilanie awaryjne"
+      },
+      "reconnect_grid": {
+        "name": "Podłącz ponownie do sieci"
+      }
+    },
     "number": {
       "backup_reserve": {
         "name": "Rezerwa awaryjna"

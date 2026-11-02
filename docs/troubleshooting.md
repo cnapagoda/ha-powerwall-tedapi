@@ -45,7 +45,7 @@
 | **Solar input** sensors that always read about 0 W | An unused input reported a few watts in standby, so its sensors were created. Disable them on the entity's settings page. |
 | A pack or expansion pack is missing | Packs appear when the gateway first reports them. Check the **Alerts** sensor for *Battery packs missing*. |
 | Energy counters don't move | **Setup health** checks `energy_counters`. Readings that are missing or zero are ignored, and so is a lower reading unless it stays lower for 10 readings in a row (then it's taken as a counter reset, for example after a gateway replacement). |
-| **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. On some gateways this is every day: the counters read higher than the meter. Use your retailer's or Tesla Fleet's grid energy for costs (see [Energy dashboard](energy-dashboard.md#checking-the-numbers)). An occasional day can also come from gaps in readings. |
+| **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. An occasional day can come from gaps in readings. If it lasts, mention it in an issue with diagnostics. |
 | **Inverter heatsink temperature** never changes | Known on some firmware. |
 | Entity IDs start with an area name | Home Assistant 2026.8+ includes the area by default. Replace `powerwall_tedapi_` in the examples with yours, or change the format and use **Recreate entity IDs**. See [conventions](README.md#conventions-in-these-pages). |
 

@@ -21,6 +21,7 @@ All entities belong to one device per gateway, **Powerwall TEDAPI**. Entity IDs 
 - [Grid](#grid)
 - [Settings](#settings)
 - [Backup, dispatch and cloud states](#backup-dispatch-and-cloud-states)
+- [Buttons](#buttons)
 - [Alerts](#alerts)
 - [Hardware](#hardware)
 - [Setup and connection](#setup-and-connection)
@@ -144,6 +145,18 @@ data:
 | Tesla tariff | `sensor.powerwall_tedapi_tesla_tariff` | Only with the **Tesla tariff (cloud)** option. See [Tesla tariff](tesla-tariff.md). |
 
 Cloud states come from Tesla Fleet's data every minute, or from the Owner API every 30 minutes. Their `cloud_backend` attribute says which.
+
+## Buttons
+
+Signed connection only 🔑. Each does the same as the matching [action](actions.md), so you can put it on a dashboard without a script. They're unavailable while the gateway can't be reached, because these commands only work locally. An error (for example the Powerwall refusing the command) is shown when you press.
+
+| Entity | Entity ID | Same as |
+|---|---|---|
+| **Stop battery dispatch** 🔑 | `button.powerwall_tedapi_stop_battery_dispatch` | [`resume_battery_operation`](actions.md#tesla_tedapiresume_battery_operation): ends a dispatch and hands the battery back. Also clears a dispatch left over from before a restart. |
+| **Cancel max backup** 🔑 | `button.powerwall_tedapi_cancel_max_backup` | [`cancel_max_backup`](actions.md#tesla_tedapicancel_max_backup): ends a max backup started here or in the Tesla app. Storm Watch events aren't affected. |
+| **Reconnect to the grid** 🔑 | `button.powerwall_tedapi_reconnect_to_the_grid` | [`reconnect_grid`](actions.md#tesla_tedapireconnect_grid): reconnects the house, also after *Go off-grid* in the Tesla app. |
+
+There's no button to go off-grid or to start a dispatch or a max backup, on purpose: those need a duration and limits, so use the [actions](actions.md).
 
 ## Alerts
 

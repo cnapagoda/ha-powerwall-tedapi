@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.6.0
+
+- **Buttons** (signed connection): **Stop battery dispatch**, **Cancel max backup** and **Reconnect to the grid**, for dashboards. Each does the same as the matching action (`resume_battery_operation`, `cancel_max_backup`, `reconnect_grid`), and is unavailable while the gateway can't be reached. There's no button to go off-grid or to start a dispatch or max backup: those need a duration and limits, so they stay actions.
+- Docs: the dashboard examples use the new buttons, and the Energy dashboard and Troubleshooting pages no longer make claims about how accurate the gateway's grid counters are.
+
 ## 2.5.1
 
 - **Settings apply without a reload.** Polling interval, restore, alert and dispatch options and the diagnostics option now take effect straight away, so a running battery dispatch carries on. The Tesla tariff option, the cloud backup, a linked account and the connection still reload the integration.

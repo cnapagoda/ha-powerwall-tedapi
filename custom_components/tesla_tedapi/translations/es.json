@@ -303,6 +303,17 @@
         "name": "Servicios de red activos"
       }
     },
+    "button": {
+      "stop_dispatch": {
+        "name": "Detener el despacho de la batería"
+      },
+      "cancel_max_backup": {
+        "name": "Cancelar respaldo máximo"
+      },
+      "reconnect_grid": {
+        "name": "Volver a conectar a la red"
+      }
+    },
     "number": {
       "backup_reserve": {
         "name": "Reserva de respaldo"

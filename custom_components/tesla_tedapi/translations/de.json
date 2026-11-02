@@ -303,6 +303,17 @@
         "name": "Netzdienste aktiv"
       }
     },
+    "button": {
+      "stop_dispatch": {
+        "name": "Batteriesteuerung beenden"
+      },
+      "cancel_max_backup": {
+        "name": "Max-Backup abbrechen"
+      },
+      "reconnect_grid": {
+        "name": "Wieder mit dem Netz verbinden"
+      }
+    },
     "number": {
       "backup_reserve": {
         "name": "Backup-Reserve"

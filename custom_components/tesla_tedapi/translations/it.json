@@ -303,6 +303,17 @@
         "name": "Servizi di rete attivi"
       }
     },
+    "button": {
+      "stop_dispatch": {
+        "name": "Interrompi il dispatch della batteria"
+      },
+      "cancel_max_backup": {
+        "name": "Annulla backup massimo"
+      },
+      "reconnect_grid": {
+        "name": "Ricollega alla rete"
+      }
+    },
     "number": {
       "backup_reserve": {
         "name": "Riserva di backup"
