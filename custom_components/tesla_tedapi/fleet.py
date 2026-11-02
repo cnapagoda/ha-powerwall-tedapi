@@ -268,7 +268,8 @@ def entry_api(hass: HomeAssistant, entry: ConfigEntry) -> FleetApi | None:
     async def token() -> str:
         from homeassistant.helpers import config_entry_oauth2_flow as oauth2  # noqa: PLC0415
 
-        # Home Assistant 2026.2+: a credentials provider that is down for now.
+        # A credentials provider that is down for now (newer Home Assistant;
+        # looked up so older releases without it still work).
         unavailable = getattr(oauth2, "ImplementationUnavailableError", None) or ()
         if "session" not in oauth:
             try:

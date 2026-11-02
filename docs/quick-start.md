@@ -6,7 +6,7 @@ This is the recommended path: a **signed connection** over your home network, wi
 
 You need:
 
-- **Home Assistant 2025.1 or newer**, with [HACS](https://hacs.xyz) installed.
+- **Home Assistant 2025.11 or newer**, with [HACS](https://hacs.xyz) installed.
 - **The gateway password.** It's printed on the QR sticker inside the Powerwall's cover. On a Powerwall 3 it's behind the front glass, lower left. Take a photo of it.
 - **Your Tesla account** (email, password, and MFA if you use it). It's needed once, to register the key.
 - **Physical access to the Powerwall** for a few minutes: you'll switch it off and on once.

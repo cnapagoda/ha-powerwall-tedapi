@@ -8,6 +8,7 @@
 - Storm Watch and the other cloud-only values come from a Fleet API backup every 30 minutes (as from the Owner API), not every minute.
 - **Buttons** (signed connection): **Stop battery dispatch**, **Cancel max backup** and **Reconnect to the grid**, for dashboards. Each does the same as the matching action (`resume_battery_operation`, `cancel_max_backup`, `reconnect_grid`), and is unavailable while the gateway can't be reached. There's no button to go off-grid or to start a dispatch or max backup: those need a duration and limits, so they stay actions.
 - Device page updates use Home Assistant's per-entry device lookup, which removes the deprecation warning in the log (the old lookup stops working in 2027.8).
+- **Home Assistant 2025.11 or newer is required** (was 2025.1). Only Home Assistant releases from the last 12 months are supported.
 - The manifest lists the integration's category (Energy: solar & batteries), which clears the HACS validation warning.
 - Setup: with the Wi-Fi password only, a refused password now says so (and that the password alone works only over the Powerwall's own Wi-Fi), instead of "Could not reach the Powerwall".
 - Docs: the dashboard examples use the new buttons, and the Energy dashboard and Troubleshooting pages no longer make claims about how accurate the gateway's grid counters are.

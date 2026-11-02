@@ -42,7 +42,7 @@ The full walkthrough, with screenshots and the other ways to connect, is in **[Q
 
 | | |
 |---|---|
-| Home Assistant | 2025.1 or newer (2026.3 or newer shows the integration's icon). |
+| Home Assistant | 2025.11 or newer (2026.3 or newer shows the integration's icon). Only Home Assistant releases from the last 12 months are supported. |
 | Powerwall | Powerwall 3 is tested. Powerwall 2 / Powerwall+ work for signed access if the firmware supports it, and over Wi-Fi with the gateway password. See [Compatibility](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/compatibility.md). |
 | Network | Home Assistant reaches the gateway on your home network (recommended), or on the Powerwall's own Wi-Fi `192.168.91.1`. |
 | Tesla account | Needed once, to register the access key. Optional afterwards, as the cloud backup. |

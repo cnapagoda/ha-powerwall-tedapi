@@ -52,9 +52,11 @@ Nothing in the local connection depends on the region. The Tesla cloud parts (ke
 
 | Version | |
 |---|---|
-| 2025.1 or newer | Required. |
+| 2025.11 or newer | Required. |
 | 2026.3 or newer | Shows the integration's icon. |
 | 2026.8 or newer | Entity IDs follow **Settings → System → Entity ID format** (area + device + entity by default). |
+
+Only Home Assistant releases from the last 12 months are supported. The minimum version moves up over time, and older releases may stop working with a new version of this integration.
 
 ## Firmware
 
