@@ -23,7 +23,7 @@ This integration uses interfaces Tesla doesn't document, so what works depends o
 | Settings over a signed connection | ✅ | 🟡 firmware dependent |
 | Battery dispatch, `charge_to` / `discharge_to` | ✅ | 🟡 firmware dependent |
 | Max backup | ✅ | 🟡 |
-| Go off-grid / reconnect | 🟡 tested by pypowerwall's authors | ❓ |
+| Go off-grid / reconnect | ✅ | ❓ |
 | Solar input *A–F* sensors | ✅ built-in inverter | ❓ a Powerwall+ solar inverter may report them; reports welcome |
 | Fan speeds | ✅ inverter fans A/B, with duty | 🟡 one fan per Powerwall, with target speed |
 | Per-pack lifetime discharge and cycles | ✅ | ❓ only if the gateway reports the counters |
