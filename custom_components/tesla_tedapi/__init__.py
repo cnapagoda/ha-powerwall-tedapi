@@ -84,8 +84,8 @@ RESUME_SCHEMA = vol.Schema({vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string})
 IMPORT_HISTORY_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
     vol.Optional(ATTR_DRY_RUN, default=True): cv.boolean,
-    vol.Optional(ATTR_SOURCE_CHARGED): cv.entity_id,
-    vol.Optional(ATTR_SOURCE_DISCHARGED): cv.entity_id,
+    vol.Required(ATTR_SOURCE_CHARGED): cv.entity_id,
+    vol.Required(ATTR_SOURCE_DISCHARGED): cv.entity_id,
 })
 SET_TARIFF_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
@@ -223,8 +223,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
         coordinator = _entry(hass, call).runtime_data.coordinator
         return await async_import(hass, coordinator.din, {
-            "battery_energy_charged": call.data.get(ATTR_SOURCE_CHARGED),
-            "battery_energy_discharged": call.data.get(ATTR_SOURCE_DISCHARGED),
+            "battery_energy_charged": call.data[ATTR_SOURCE_CHARGED],
+            "battery_energy_discharged": call.data[ATTR_SOURCE_DISCHARGED],
         }, call.data[ATTR_DRY_RUN])
 
     async def set_tariff(call: ServiceCall) -> ServiceResponse:

@@ -728,9 +728,6 @@
     "tariff_disabled": {
       "message": "Activez d'abord l'option Tarif Tesla (elle nécessite une sauvegarde cloud)."
     },
-    "history_no_source": {
-      "message": "Aucun capteur Tesla Fleet ou Teslemetry trouvé pour {sensor} ; choisissez-le dans les champs source."
-    },
     "history_no_target": {
       "message": "Ce Powerwall n'a pas encore de statistiques d'énergie de batterie ({sensor}) ; réessayez dans quelques heures."
     },
@@ -916,7 +913,7 @@
     },
     "import_battery_history": {
       "name": "Importer l'historique de la batterie",
-      "description": "Une seule fois : copier l'historique de charge et de décharge de la batterie de Tesla Fleet ou Teslemetry dans les statistiques d'énergie de batterie de ce Powerwall, pour la période antérieure à son propre historique. Faites d'abord une sauvegarde de Home Assistant : l'import est difficile à annuler.",
+      "description": "Une seule fois : copier l'historique de charge et de décharge de la batterie des capteurs d'énergie choisis (par exemple de Tesla Fleet ou Teslemetry) dans les statistiques d'énergie de batterie de cette Powerwall, pour la période antérieure à son propre historique. Faites d'abord une sauvegarde de Home Assistant : l'import est difficile à annuler.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -928,11 +925,11 @@
         },
         "source_charged": {
           "name": "Source charge",
-          "description": "Facultatif : le capteur cloud de l'énergie chargée, s'il n'est pas trouvé automatiquement."
+          "description": "Le capteur d'énergie de l'énergie chargée par la batterie, par exemple *Battery charged* de Tesla Fleet ou Teslemetry."
         },
         "source_discharged": {
           "name": "Source décharge",
-          "description": "Facultatif : le capteur cloud de l'énergie déchargée, s'il n'est pas trouvé automatiquement."
+          "description": "Le capteur d'énergie de l'énergie déchargée par la batterie, par exemple *Battery discharged* de Tesla Fleet ou Teslemetry."
         }
       }
     }

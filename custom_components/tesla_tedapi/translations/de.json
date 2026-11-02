@@ -728,9 +728,6 @@
     "tariff_disabled": {
       "message": "Schalte zuerst die Option Tesla-Tarif ein (sie braucht ein Cloud-Backup)."
     },
-    "history_no_source": {
-      "message": "Kein Tesla-Fleet- oder Teslemetry-Sensor für {sensor} gefunden; wähle ihn in den Quellfeldern."
-    },
     "history_no_target": {
       "message": "Diese Powerwall hat noch keine Batterie-Energiestatistik ({sensor}); versuche es in ein paar Stunden erneut."
     },
@@ -916,7 +913,7 @@
     },
     "import_battery_history": {
       "name": "Batterieverlauf importieren",
-      "description": "Einmalig: den Lade- und Entladeverlauf der Batterie aus Tesla Fleet oder Teslemetry in die Batterie-Energiestatistik dieser Powerwall kopieren, für die Zeit vor deren eigenem Verlauf. Erstelle vorher ein Home-Assistant-Backup: der Import lässt sich nur schwer rückgängig machen.",
+      "description": "Einmalig: den Lade- und Entladeverlauf der Batterie aus den gewählten Energiesensoren (zum Beispiel von Tesla Fleet oder Teslemetry) in die Batterie-Energiestatistik dieser Powerwall kopieren, für die Zeit vor deren eigenem Verlauf. Erstelle vorher ein Home-Assistant-Backup: der Import lässt sich nur schwer rückgängig machen.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -928,11 +925,11 @@
         },
         "source_charged": {
           "name": "Quelle geladen",
-          "description": "Optional: der Cloud-Sensor für geladene Energie, falls er nicht automatisch gefunden wird."
+          "description": "Der Energiesensor mit der geladenen Energie der Batterie, zum Beispiel *Battery charged* von Tesla Fleet oder Teslemetry."
         },
         "source_discharged": {
           "name": "Quelle entladen",
-          "description": "Optional: der Cloud-Sensor für entladene Energie, falls er nicht automatisch gefunden wird."
+          "description": "Der Energiesensor mit der entladenen Energie der Batterie, zum Beispiel *Battery discharged* von Tesla Fleet oder Teslemetry."
         }
       }
     }

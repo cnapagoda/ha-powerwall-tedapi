@@ -728,9 +728,6 @@
     "tariff_disabled": {
       "message": "Najpierw włącz opcję Taryfa Tesla (wymaga kopii w chmurze)."
     },
-    "history_no_source": {
-      "message": "Nie znaleziono czujnika Tesla Fleet ani Teslemetry dla {sensor}; wybierz go w polach źródła."
-    },
     "history_no_target": {
       "message": "Ten Powerwall nie ma jeszcze statystyk energii baterii ({sensor}); spróbuj ponownie za kilka godzin."
     },
@@ -916,7 +913,7 @@
     },
     "import_battery_history": {
       "name": "Importuj historię baterii",
-      "description": "Jednorazowo: skopiuj historię ładowania i rozładowania baterii z Tesla Fleet lub Teslemetry do statystyk energii baterii tego Powerwalla, za okres przed jego własną historią. Najpierw zrób kopię zapasową Home Assistant: importu nie da się łatwo cofnąć.",
+      "description": "Jednorazowo: skopiuj historię ładowania i rozładowania baterii z wybranych czujników energii (na przykład z Tesla Fleet lub Teslemetry) do statystyk energii baterii tego Powerwalla, za okres przed jego własną historią. Najpierw zrób kopię zapasową Home Assistant: importu nie da się łatwo cofnąć.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -928,11 +925,11 @@
         },
         "source_charged": {
           "name": "Źródło ładowania",
-          "description": "Opcjonalnie: czujnik w chmurze dla energii ładowanej, jeśli nie zostanie znaleziony automatycznie."
+          "description": "Czujnik energii z energią ładowaną do baterii, na przykład *Battery charged* z Tesla Fleet lub Teslemetry."
         },
         "source_discharged": {
           "name": "Źródło rozładowania",
-          "description": "Opcjonalnie: czujnik w chmurze dla energii rozładowanej, jeśli nie zostanie znaleziony automatycznie."
+          "description": "Czujnik energii z energią rozładowaną z baterii, na przykład *Battery discharged* z Tesla Fleet lub Teslemetry."
         }
       }
     }

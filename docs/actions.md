@@ -188,7 +188,7 @@ Read or write the tariff Tesla uses for Time-Based Control. They need a [cloud b
 
 ## `tesla_tedapi.import_battery_history`
 
-A one-off copy of **Tesla Fleet** or **Teslemetry**'s battery charged and discharged history into this integration's **Battery energy charged** and **Battery energy discharged** statistics, for the time before this integration's own history starts. The imported hours join the existing statistics without a jump, so the Energy dashboard shows one continuous battery history.
+A one-off copy of the battery charged and discharged history of two energy sensors you pick (for example **Tesla Fleet**'s or **Teslemetry**'s *Battery charged* and *Battery discharged*) into this integration's **Battery energy charged** and **Battery energy discharged** statistics, for the time before this integration's own history starts. The imported hours join the existing statistics without a jump, so the Energy dashboard shows one continuous battery history.
 
 > [!IMPORTANT]
 > Take a Home Assistant backup first: an import is hard to undo. Run it with `dry_run: true` (the default) and check the result before you run it for real.
@@ -196,11 +196,11 @@ A one-off copy of **Tesla Fleet** or **Teslemetry**'s battery charged and discha
 | Field | Default | |
 |---|---|---|
 | `dry_run` | `true` | Only show what would be imported. |
-| `source_charged` | (found automatically) | The Tesla Fleet / Teslemetry sensor to copy charged energy from, if it isn't found automatically. |
-| `source_discharged` | (found automatically) | The same for discharged energy. |
+| `source_charged` | (required) | The energy sensor to copy charged energy from. |
+| `source_discharged` | (required) | The energy sensor to copy discharged energy from. |
 | `config_entry_id` | | Only with several Powerwalls. |
 
-The sources are found in the entity registry, by the energy site this Powerwall's cloud sign-in uses (or the only one). The response's `summary` lists, per sensor, the `source`, the number of `hours`, the `kwh`, the period (`from`, `to`) and where it joins (`join`).
+The response's `summary` lists, per sensor, the `source`, the number of `hours`, the `kwh`, the period (`from`, `to`) and where it joins (`join`).
 
 It's refused when there is nothing to import, or when the history was already imported.
 

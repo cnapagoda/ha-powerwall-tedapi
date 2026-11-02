@@ -728,9 +728,6 @@
     "tariff_disabled": {
       "message": "Turn on the Tesla tariff option first (it needs a cloud backup)."
     },
-    "history_no_source": {
-      "message": "No Tesla Fleet or Teslemetry sensor found for {sensor}; choose it with the source fields."
-    },
     "history_no_target": {
       "message": "This Powerwall has no battery energy statistics yet ({sensor}); try again after a few hours."
     },
@@ -916,7 +913,7 @@
     },
     "import_battery_history": {
       "name": "Import battery history",
-      "description": "One-off: copy Tesla Fleet or Teslemetry's battery charged and discharged history into this Powerwall's battery energy statistics, for the time before their own history starts. Take a Home Assistant backup first: the import is hard to undo.",
+      "description": "One-off: copy the battery charged and discharged history of the energy sensors you pick (for example from Tesla Fleet or Teslemetry) into this Powerwall's battery energy statistics, for the time before their own history starts. Take a Home Assistant backup first: the import is hard to undo.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -928,11 +925,11 @@
         },
         "source_charged": {
           "name": "Charged source",
-          "description": "Optional: the cloud sensor to copy charged energy from, if it isn't found automatically."
+          "description": "The energy sensor with the battery's charged energy to copy, for example Tesla Fleet's or Teslemetry's *Battery charged*."
         },
         "source_discharged": {
           "name": "Discharged source",
-          "description": "Optional: the cloud sensor to copy discharged energy from, if it isn't found automatically."
+          "description": "The energy sensor with the battery's discharged energy to copy, for example Tesla Fleet's or Teslemetry's *Battery discharged*."
         }
       }
     }

@@ -3,6 +3,7 @@
 ## 2.6.0
 
 - **Tesla Fleet and Teslemetry sign-in here.** The Fleet API cloud backup and key registration now use a sign-in made in this integration: **Tesla Fleet** (your own Tesla developer app, through Home Assistant's application credentials) or **Teslemetry** (an access token). They no longer use the Tesla Fleet or Teslemetry integration's sign-in. ⚠️ If your cloud backup was *Tesla Fleet*, a repair asks you to sign in once; your cloud backup choice is kept, and a linked Owner API account keeps working meanwhile. New: **Configure → Sign in to Tesla Fleet or Teslemetry**, and setup's sign-in step offers all three (Tesla account, Tesla Fleet, Teslemetry).
+- **`import_battery_history`:** `source_charged` and `source_discharged` are now required (an energy sensor picker); the sources are no longer looked up automatically.
 - Storm Watch and the other cloud-only values come from a Fleet API backup every 30 minutes (as from the Owner API), not every minute.
 - **Buttons** (signed connection): **Stop battery dispatch**, **Cancel max backup** and **Reconnect to the grid**, for dashboards. Each does the same as the matching action (`resume_battery_operation`, `cancel_max_backup`, `reconnect_grid`), and is unavailable while the gateway can't be reached. There's no button to go off-grid or to start a dispatch or max backup: those need a duration and limits, so they stay actions.
 - Device page updates use Home Assistant's per-entry device lookup, which removes the deprecation warning in the log (the old lookup stops working in 2027.8).

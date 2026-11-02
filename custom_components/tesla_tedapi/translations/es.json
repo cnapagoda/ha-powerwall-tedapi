@@ -728,9 +728,6 @@
     "tariff_disabled": {
       "message": "Activa primero la opción Tarifa de Tesla (necesita un respaldo en la nube)."
     },
-    "history_no_source": {
-      "message": "No se encontró ningún sensor de Tesla Fleet o Teslemetry para {sensor}; elígelo en los campos de fuente."
-    },
     "history_no_target": {
       "message": "Este Powerwall aún no tiene estadísticas de energía de batería ({sensor}); vuelve a intentarlo en unas horas."
     },
@@ -916,7 +913,7 @@
     },
     "import_battery_history": {
       "name": "Importar historial de la batería",
-      "description": "Una sola vez: copiar el historial de carga y descarga de la batería de Tesla Fleet o Teslemetry a las estadísticas de energía de batería de este Powerwall, para el periodo anterior a su propio historial. Haz antes una copia de seguridad de Home Assistant: la importación es difícil de deshacer.",
+      "description": "Una sola vez: copiar el historial de carga y descarga de la batería de los sensores de energía que elijas (por ejemplo de Tesla Fleet o Teslemetry) a las estadísticas de energía de batería de esta Powerwall, para el periodo anterior a su propio historial. Haz antes una copia de seguridad de Home Assistant: la importación es difícil de deshacer.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -928,11 +925,11 @@
         },
         "source_charged": {
           "name": "Fuente de carga",
-          "description": "Opcional: el sensor en la nube de energía cargada, si no se encuentra automáticamente."
+          "description": "El sensor de energía con la energía cargada de la batería, por ejemplo *Battery charged* de Tesla Fleet o Teslemetry."
         },
         "source_discharged": {
           "name": "Fuente de descarga",
-          "description": "Opcional: el sensor en la nube de energía descargada, si no se encuentra automáticamente."
+          "description": "El sensor de energía con la energía descargada de la batería, por ejemplo *Battery discharged* de Tesla Fleet o Teslemetry."
         }
       }
     }

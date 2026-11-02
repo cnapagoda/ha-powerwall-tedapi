@@ -9,6 +9,7 @@ from homeassistant.helpers import entity_registry as er
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.components.recorder.common import async_wait_recording_done
+import voluptuous as vol
 
 from custom_components.tesla_tedapi.const import DOMAIN
 
@@ -53,6 +54,7 @@ def _counter(statistic_id: str, start: datetime, hours: int, per_hour: float, *,
 
 
 _HASS: list[HomeAssistant] = []
+_IDS: dict[str, str] = {}
 
 
 async def _setup(hass: HomeAssistant) -> dict[str, str]:
@@ -72,6 +74,8 @@ async def _setup(hass: HomeAssistant) -> dict[str, str]:
         ids[key] = registry.async_get_or_create(
             "sensor", "tesla_fleet", f"{SITE}-{theirs}", translation_key=theirs,
             suggested_object_id=f"fleet_{theirs}").entity_id
+    _IDS.clear()
+    _IDS.update(ids)
     return ids
 
 
@@ -88,6 +92,8 @@ async def _stats(hass: HomeAssistant, statistic_id: str, period: str = "hour",
 
 
 async def _call(hass: HomeAssistant, **data):
+    """The action, with the sources picked (as the user must)."""
+    data = {"source_charged": _IDS["src_charged"], "source_discharged": _IDS["src_discharged"], **data}
     return await hass.services.async_call(DOMAIN, "import_battery_history", data, blocking=True,
                                           return_response=True)
 
@@ -164,26 +170,15 @@ async def test_refusals(hass: HomeAssistant, fake_powerwall) -> None:
     assert err.value.translation_key == "history_already_imported"
 
 
-async def test_sources_found_by_site_or_override(hass: HomeAssistant, fake_powerwall) -> None:
-    from custom_components.tesla_tedapi.history_import import find_sources  # noqa: PLC0415
-
-    ids = await _setup(hass)
-    registry = er.async_get(hass)
-    # A second site makes the lookup ambiguous...
-    other = registry.async_get_or_create("sensor", "teslemetry", "999-total_battery_charge",
-                                         translation_key="total_battery_charge").entity_id
-    with pytest.raises(ServiceValidationError):
-        find_sources(hass, DIN, {})
-    # ...unless this Powerwall's entry knows its energy site (its own sign-in)...
-    entry = hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, DIN)
-    hass.config_entries.async_update_entry(entry, data={**entry.data, "fleet_site_id": int(SITE)})
-    found = find_sources(hass, DIN, {})
-    assert found == {"battery_energy_charged": ids["src_charged"],
-                     "battery_energy_discharged": ids["src_discharged"]}
-    # ...or the source is chosen.
-    found = find_sources(hass, DIN, {"battery_energy_charged": other,
-                                     "battery_energy_discharged": ids["src_discharged"]})
-    assert found["battery_energy_charged"] == other
+async def test_sources_must_be_picked(hass: HomeAssistant, fake_powerwall) -> None:
+    """No guessing at other integrations' sensors: both sources are required."""
+    await _setup(hass)
+    for missing in ("source_charged", "source_discharged"):
+        data = {"source_charged": _IDS["src_charged"], "source_discharged": _IDS["src_discharged"]}
+        del data[missing]
+        with pytest.raises(vol.Invalid):
+            await hass.services.async_call(DOMAIN, "import_battery_history", data, blocking=True,
+                                           return_response=True)
 
 
 async def test_missing_target_entities(hass: HomeAssistant, fake_powerwall) -> None:
@@ -191,4 +186,5 @@ async def test_missing_target_entities(hass: HomeAssistant, fake_powerwall) -> N
 
     await _setup(hass)
     with pytest.raises(ServiceValidationError):
-        await async_import(hass, "OTHER-DIN", {}, True)
+        await async_import(hass, "OTHER-DIN", {"battery_energy_charged": "sensor.a",
+                                               "battery_energy_discharged": "sensor.b"}, True)

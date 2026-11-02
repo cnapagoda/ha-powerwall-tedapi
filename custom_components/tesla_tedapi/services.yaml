@@ -231,12 +231,14 @@ import_battery_history:
       selector:
         boolean:
     source_charged:
-      required: false
+      required: true
       selector:
         entity:
           domain: sensor
+          device_class: energy
     source_discharged:
-      required: false
+      required: true
       selector:
         entity:
           domain: sensor
+          device_class: energy
