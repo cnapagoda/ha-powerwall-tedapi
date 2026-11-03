@@ -11,25 +11,27 @@ A cloud backup is optional. Without one, everything that runs locally still work
 
 ## The two backups
 
-| | Owner API | Tesla Fleet |
+| | Owner API | Fleet API |
 |---|---|---|
-| What it uses | A Tesla account linked here (refresh token or browser sign-in) | Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) or [Teslemetry](https://www.home-assistant.io/integrations/teslemetry) integration (Tesla's official Fleet API) |
-| You need | A Tesla sign-in ([how](setup.md#signing-in-to-tesla)) | That integration enabled and loaded, on the Tesla account with this Powerwall, with the energy permissions (`energy_device_data` to read, `energy_cmds` to change settings) |
-| Reads | Tesla's site settings, at most every 5 minutes while needed | The site data that integration already reads every minute: no extra Tesla calls |
-| Token | Kept and refreshed here (`config/tesla_tedapi/.pypowerwall.auth`) | That integration's own; used but never refreshed here, so it stays signed in |
-| Cost | None | A change of setting is a command on your Tesla developer account (Tesla Fleet) or Teslemetry subscription |
+| What it uses | A Tesla account linked here (refresh token or browser sign-in) | A sign-in made here, to Tesla's official Fleet API: **Tesla Fleet** (your own Tesla developer app) or **Teslemetry** (an access token) |
+| You need | A Tesla sign-in ([how](setup.md#signing-in-to-tesla)) | Tesla Fleet: a developer app ([details](setup.md#tesla-fleet-your-own-developer-app)). Teslemetry: a Teslemetry plan. Either way the energy permissions: `energy_device_data` to read, `energy_cmds` to change settings |
+| Reads | Tesla's site settings, at most every 5 minutes while needed | The same; Storm Watch and the other cloud-only values every 30 minutes |
+| Token | Kept and refreshed here (`config/tesla_tedapi/.pypowerwall.auth`) | Kept in this integration's entry. A Tesla Fleet token is refreshed here; a Teslemetry access token ([from its console](https://teslemetry.com/console)) isn't: when it stops working, sign in again with a new one |
+| Cost | None | Calls count on your Tesla developer account (Tesla Fleet) or Teslemetry plan |
 | Risk | Tesla may stop accepting Owner API tokens one day | Tesla Fleet needs a developer app and key hosting ([details](setup.md#registering-with-the-fleet-api-developers)) |
 
-**If you already use Teslemetry or Tesla Fleet, use it.** It adds no extra Tesla calls and uses Tesla's official API. Add the Owner API as a second backup if you like.
+The Fleet API is Tesla's official API. Add the Owner API as a second backup if you like. If you also use Home Assistant's Tesla Fleet or Teslemetry integration, the sign-in here is separate: neither changes the other.
 
 ## Setting it up
 
 - **Owner API:** sign in to Tesla during setup (path A does it anyway), or later with **Configure → Link a Tesla account (Owner API)**.
-- **Tesla Fleet / Teslemetry:** set up that integration first, then choose it under **Configure → Cloud backup**.
+- **Fleet API:** sign in to Tesla Fleet or Teslemetry during setup (path A offers both), or later with **Configure → Sign in to Tesla Fleet or Teslemetry**. That continues as a reauthentication on the integration's card. The energy site with this gateway is picked automatically.
 
-**Configure → Cloud backup** offers the choices that are available: *None (local only)*, *Owner API*, *Tesla Fleet (or Teslemetry)*, *Tesla Fleet, then Owner API* and *Owner API, then Tesla Fleet*. Tesla Fleet is only offered when a loaded Tesla Fleet or Teslemetry entry has this Powerwall's site (matched by the gateway's serial; a single site with no serials listed is used too). Without a choice, a linked Tesla account is the backup.
+**Configure → Cloud backup** offers the choices that are available: *None (local only)*, *Owner API*, *Fleet API*, *Fleet API, then Owner API* and *Owner API, then Fleet API*. Without a choice, a linked Tesla account is the backup.
 
-**Configure → Unlink a cloud backup** stops using one. *Owner API* removes the Tesla account linked here. *Tesla Fleet* only stops this integration using it; the Tesla Fleet or Teslemetry integration isn't changed.
+**Configure → Unlink a cloud backup** stops using one and removes its sign-in here.
+
+**Upgrading from 2.5 or earlier:** the Tesla Fleet backup used to borrow the sign-in of Home Assistant's Tesla Fleet or Teslemetry integration. It now needs its own. A repair, *Sign in to Tesla Fleet or Teslemetry*, asks for it; your cloud backup choice is kept, and a linked Owner API account keeps working meanwhile.
 
 ## How it behaves
 
@@ -39,17 +41,17 @@ A cloud backup is optional. Without one, everything that runs locally still work
 - **Tesla's cloud caps the backup reserve at 80 %.** Locally any value up to 100 % works. To charge to full and hold it, use a [max backup](actions.md#tesla_tedapistart_max_backup).
 - Each backup is checked with a real read about once an hour (10 minutes after a failure). This keeps the Owner API sign-in fresh, so a broken sign-in shows up before you need it.
 - When the gateway can't be reached but the cloud keeps the settings working, this is logged once as a warning, and again when the gateway answers.
-- After a restart, Tesla Fleet can load after this integration. For up to 10 minutes it counts as *starting*, not as failing. A disabled entry, or one that keeps failing to load, counts as not working.
 
 ## When a backup stops working
 
-**Setup health** lists each backup under `cloud_backends` (`ok`, `starting`, `can_change_settings`, `failures`, `last_ok`). It only shows *Needs attention* when **no** backup can change settings. A backup that needs attention gets its own repair under **Settings → Repairs**:
+**Setup health** lists each backup under `cloud_backends` (`ok`, `can_change_settings`, `failures`, `last_ok`). It only shows *Needs attention* when **no** backup can change settings. A backup that needs attention gets its own repair under **Settings → Repairs**:
 
 | Repair | What to do |
 |---|---|
 | *Sign in to Tesla again* | Select it and sign in again (refresh token or browser). Tesla tokens stop working when you change your password, or when another app refreshes the same token. |
-| *Tesla Fleet cloud backup is not working* | Check that the Tesla Fleet or Teslemetry integration is enabled, loaded and signed in (re-authenticate it if it asks), and has this Powerwall on its account. |
-| *Tesla Fleet cloud backup can't change settings* | Sign in to that integration again and allow the energy commands (`energy_cmds`) permission. |
+| *Fleet API cloud backup is not working* | Select it to sign in to Tesla Fleet or Teslemetry again. |
+| *Fleet API cloud backup can't change settings* | Select it to sign in again, and allow the energy commands (`energy_cmds`) permission. |
+| *Sign in to Tesla Fleet or Teslemetry* | Set up before 2.6 through another integration's sign-in: select it to sign in here. |
 
 ## What never goes through the cloud
 

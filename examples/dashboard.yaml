@@ -82,11 +82,13 @@ views:
         square: false
         cards:
           - type: button
+            entity: button.powerwall_tedapi_stop_battery_dispatch
             name: Stop dispatch
-            icon: mdi:battery-sync-outline
             tap_action:
               action: perform-action
-              perform_action: tesla_tedapi.resume_battery_operation
+              perform_action: button.press
+              target:
+                entity_id: button.powerwall_tedapi_stop_battery_dispatch
               confirmation:
                 text: Hand the battery back to the Powerwall?
           - type: button
@@ -100,11 +102,13 @@ views:
               confirmation:
                 text: Charge to full and hold it for 6 hours?
           - type: button
+            entity: button.powerwall_tedapi_cancel_max_backup
             name: Cancel max backup
-            icon: mdi:shield-off-outline
             tap_action:
               action: perform-action
-              perform_action: tesla_tedapi.cancel_max_backup
+              perform_action: button.press
+              target:
+                entity_id: button.powerwall_tedapi_cancel_max_backup
               confirmation:
                 text: End the max backup?
 

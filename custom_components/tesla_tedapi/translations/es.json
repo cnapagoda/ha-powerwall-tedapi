@@ -34,7 +34,6 @@
         "title": "Elige cómo conectar",
         "description": "El acceso firmado (v1r) necesita una clave en la que esta Powerwall confíe.",
         "menu_options": {
-          "register_fleet": "Registrar una clave nueva con mi integración Tesla Fleet o Teslemetry (sin iniciar sesión en Tesla)",
           "register": "Registrar una clave nueva (recomendado)",
           "key_upload": "Subir una clave ya registrada",
           "wifi": "Sin clave: solo contraseña Wi-Fi (supervisión)"
@@ -98,10 +97,10 @@
         "title": "La Powerwall ya no acepta a Home Assistant",
         "description": "La pasarela sigue rechazando la contraseña o la clave. Las lecturas se detienen hasta que se corrija; los ajustes siguen funcionando a través de la nube de Tesla si hay una cuenta vinculada.",
         "menu_options": {
-          "register_fleet": "Registrar la clave de nuevo con mi integración Tesla Fleet o Teslemetry",
           "reauth_password": "Introducir de nuevo la contraseña de la pasarela",
           "register": "Registrar la clave de nuevo",
-          "key_upload": "Subir otra clave"
+          "key_upload": "Subir otra clave",
+          "fleet_signin": "Volver a iniciar sesión en Tesla Fleet o Teslemetry"
         }
       },
       "reauth_password": {
@@ -133,10 +132,36 @@
         "title": "Registrar una clave nueva",
         "description": "Registrar otra clave firmada para esta Powerwall. La clave actual sigue funcionando; Home Assistant solo cambia a la clave nueva cuando la Powerwall la confirma.",
         "menu_options": {
-          "register_fleet": "Registrar una clave nueva con mi integración Tesla Fleet o Teslemetry (sin iniciar sesión en Tesla)",
           "register": "Registrar una clave nueva (recomendado)",
           "key_upload": "Subir una clave ya registrada"
         }
+      },
+      "signin": {
+        "title": "Iniciar sesión en Tesla",
+        "description": "El inicio de sesión registra la clave en la Powerwall y sirve de respaldo en la nube para cambiar ajustes cuando la conexión local falla.",
+        "menu_options": {
+          "login": "Cuenta de Tesla (Owner API)",
+          "fleet_oauth": "Tesla Fleet (tu propia app de desarrollador de Tesla)",
+          "teslemetry": "Teslemetry (token de acceso)"
+        }
+      },
+      "fleet_signin": {
+        "title": "Iniciar sesión en Tesla Fleet o Teslemetry",
+        "description": "El inicio de sesión es el respaldo en la nube para cambiar ajustes (Fleet API de Tesla).",
+        "menu_options": {
+          "fleet_oauth": "Tesla Fleet (tu propia app de desarrollador de Tesla)",
+          "teslemetry": "Teslemetry (token de acceso)"
+        }
+      },
+      "teslemetry": {
+        "title": "Teslemetry",
+        "description": "Pega un token de acceso de la [consola de Teslemetry]({console_url}). Necesita los permisos de datos y comandos de energía. El token no se renueva aquí: si Teslemetry deja de aceptarlo, vuelve a iniciar sesión con uno nuevo.",
+        "data": {
+          "access_token": "Token de acceso"
+        }
+      },
+      "pick_implementation": {
+        "title": "Elige la app de desarrollador de Tesla"
       }
     },
     "progress": {
@@ -144,6 +169,7 @@
     },
     "error": {
       "cannot_connect": "No se pudo llegar a la Powerwall en esa dirección. Revisa la dirección (tu router muestra la pasarela como `teslapw_…`), que la Powerwall esté encendida y en la misma red que Home Assistant, y vuelve a intentarlo.",
+      "wifi_password_refused": "El Powerwall respondió pero rechazó la contraseña. Compruébala en la etiqueta QR (las letras van en mayúsculas). La contraseña sola solo funciona a través de la Wi-Fi propia del Powerwall (`192.168.91.1`), no en su dirección de la red doméstica: allí, usa una conexión firmada.",
       "invalid_gw_pwd": "La pasarela rechazó esta contraseña. Revisa la etiqueta QR (las letras son mayúsculas).",
       "password_required": "El acceso firmado necesita la contraseña de la pasarela.",
       "invalid_rsa_key": "Eso no es una clave privada RSA en formato PEM. Sube el archivo de clave privada (empieza por `-----BEGIN`), no la clave pública.",
@@ -166,7 +192,20 @@
       "register_token_refused": "Tesla rechazó el token de inicio de sesión al registrar la clave. Vuelve a empezar la configuración e inicia sesión de nuevo (en el navegador, o con un token de actualización nuevo).",
       "register_wrong_site": "Tesla no conoce ese sitio de energía en esta cuenta. Vuelve a empezar la configuración y elige el sitio con esta Powerwall, con la sesión iniciada en la cuenta de Tesla propietaria.",
       "register_unreachable": "Tesla no pudo llegar a la Powerwall para registrar la clave. Comprueba que aparece en línea en la app de Tesla (su conexión a internet), espera unos minutos y vuelve a empezar la configuración.",
-      "register_fleet_unavailable": "La integración Tesla Fleet o Teslemetry ya no se puede usar para esta Powerwall: no está cargada, no tiene esta Powerwall, o su sesión no puede enviar órdenes (necesita el permiso energy_cmds). Revisa esa integración, o vuelve a iniciar la configuración y registra con un inicio de sesión de Tesla."
+      "register_fleet_unavailable": "El inicio de sesión de Fleet API no puede enviar comandos a esta Powerwall: necesita el permiso de comandos de energía. Vuelve a iniciar sesión y permítelo, o elige otro inicio de sesión.",
+      "fleet_refused": "Tesla Fleet rechazó el nuevo inicio de sesión. Comprueba que la app tiene los permisos de energía y vuelve a intentarlo.",
+      "fleet_error": "Tesla Fleet devolvió un error. Vuelve a intentarlo en un minuto.",
+      "oauth_error": "Tesla devolvió un inicio de sesión no válido. Vuelve a intentarlo.",
+      "oauth_failed": "No se pudo obtener el inicio de sesión de Tesla. Vuelve a intentarlo.",
+      "oauth_timeout": "Tesla tardó demasiado en completar el inicio de sesión. Vuelve a intentarlo.",
+      "oauth_unauthorized": "Tesla rechazó el ID o el secreto de cliente de la app. Revisa las credenciales de aplicación.",
+      "user_rejected_authorize": "Se canceló el inicio de sesión: {error}",
+      "authorize_url_timeout": "Crear el enlace de inicio de sesión tardó demasiado. Vuelve a intentarlo.",
+      "no_url_available": "Home Assistant no tiene una URL a la que pueda volver el inicio de sesión. Configura una en Ajustes → Sistema → Red.",
+      "missing_credentials": "Añade primero la app de desarrollador de Tesla en Ajustes → Credenciales de aplicación.",
+      "missing_configuration": "Añade primero la app de desarrollador de Tesla en Ajustes → Credenciales de aplicación.",
+      "oauth_implementation_unavailable": "La app de desarrollador de Tesla no está disponible. Revisa las credenciales de aplicación.",
+      "fleet_not_registered": "Tesla rechazó la app de desarrollador (HTTP 412): su dominio no está registrado en Tesla para la región de tu cuenta. Regístralo como se describe en la [guía de configuración]({docs_url}) y vuelve a iniciar sesión."
     }
   },
   "options": {
@@ -175,8 +214,9 @@
         "title": "Opciones de Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Ajustes",
-          "cloud_backup": "Respaldo en la nube (Owner API, Tesla Fleet)",
+          "cloud_backup": "Respaldo en la nube (Owner API, Fleet API)",
           "link_account": "Vincular una cuenta de Tesla (Owner API)",
+          "fleet_signin": "Iniciar sesión en Tesla Fleet o Teslemetry",
           "unlink_account": "Desvincular un respaldo en la nube",
           "new_key": "Registrar una clave firmada nueva"
         }
@@ -231,12 +271,12 @@
       },
       "cloud_backup": {
         "title": "Respaldo en la nube",
-        "description": "Cuando la conexión local no puede leer o cambiar un ajuste, pasa por la nube de Tesla. Se pueden usar dos respaldos, solos o uno tras otro:\n\n- **Owner API**: una cuenta de Tesla vinculada aquí (*Vincular una cuenta de Tesla*). Actualmente {owner}.\n- **Tesla Fleet**: el inicio de sesión de la integración Tesla Fleet o Teslemetry de Home Assistant, que usan la Fleet API oficial de Tesla. Una entrada cargada con esta Powerwall está actualmente {fleet}. Sus datos del sitio se leen sin llamadas adicionales a Tesla, y su token nunca se renueva aquí, así que sigue con la sesión iniciada.\n\nCon ambos, los ajustes se leen del primero que responde, y un cambio va al primero que lo acepta. Cada respaldo se comprueba aproximadamente una vez por hora; el que deja de funcionar recibe su propia reparación mientras el otro sigue.",
+        "description": "Cuando la conexión local no puede leer o cambiar un ajuste, se usa la nube de Tesla. Se pueden usar dos respaldos, solos o uno tras otro:\n\n- **Owner API**: una cuenta de Tesla vinculada aquí (*Vincular una cuenta de Tesla*). Ahora: {owner}.\n- **Fleet API**: un inicio de sesión en Tesla Fleet o Teslemetry hecho aquí (*Iniciar sesión en Tesla Fleet o Teslemetry*). Ahora: {fleet}.\n\nCon ambos, los ajustes se leen del primero que responde y un cambio va al primero que lo acepta. Cada respaldo se comprueba aproximadamente cada hora; el que deja de funcionar recibe su propia reparación mientras el otro sigue.",
         "data": {
           "cloud_backends": "Respaldo en la nube"
         },
         "data_description": {
-          "cloud_backends": "Solo se ofrecen los respaldos configurados. Cambiar un ajuste a través de Tesla Fleet cuenta como un comando en esa cuenta de desarrollador de Tesla (o suscripción de Teslemetry); leer no cuesta nada extra."
+          "cloud_backends": "Solo se ofrecen los respaldos configurados. Las llamadas a Fleet API cuentan en tu cuenta de desarrollador de Tesla o plan de Teslemetry."
         }
       },
       "login": {
@@ -279,7 +319,8 @@
     "abort": {
       "no_sites": "No se encontró ninguna Powerwall en esta cuenta de Tesla. Inicia sesión con la cuenta de Tesla propietaria de la Powerwall (la que la muestra en la app de Tesla).",
       "wrong_powerwall": "Esa cuenta de Tesla no tiene ningún sitio con esta Powerwall. Inicia sesión con la cuenta de Tesla propietaria.",
-      "new_key_started": "Abre Ajustes → Dispositivos y servicios: esta Powerwall muestra ahora un aviso para volver a autenticar, donde eliges cómo registrar la clave nueva. La clave actual sigue funcionando hasta que se confirme la nueva."
+      "new_key_started": "Abre Ajustes → Dispositivos y servicios: esta Powerwall muestra ahora un aviso para volver a autenticar, donde eliges cómo registrar la clave nueva. La clave actual sigue funcionando hasta que se confirme la nueva.",
+      "fleet_signin_started": "Abre Ajustes → Dispositivos y servicios: esta Powerwall muestra ahora un aviso de reautenticación, donde inicias sesión en Tesla Fleet o Teslemetry."
     }
   },
   "entity": {
@@ -301,6 +342,17 @@
       },
       "grid_services_active": {
         "name": "Servicios de red activos"
+      }
+    },
+    "button": {
+      "stop_dispatch": {
+        "name": "Detener el despacho de la batería"
+      },
+      "cancel_max_backup": {
+        "name": "Cancelar respaldo máximo"
+      },
+      "reconnect_grid": {
+        "name": "Volver a conectar a la red"
       }
     },
     "number": {
@@ -670,9 +722,6 @@
     "tariff_disabled": {
       "message": "Activa primero la opción Tarifa de Tesla (necesita un respaldo en la nube)."
     },
-    "history_no_source": {
-      "message": "No se encontró ningún sensor de Tesla Fleet o Teslemetry para {sensor}; elígelo en los campos de fuente."
-    },
     "history_no_target": {
       "message": "Este Powerwall aún no tiene estadísticas de energía de batería ({sensor}); vuelve a intentarlo en unas horas."
     },
@@ -858,7 +907,7 @@
     },
     "import_battery_history": {
       "name": "Importar historial de la batería",
-      "description": "Una sola vez: copiar el historial de carga y descarga de la batería de Tesla Fleet o Teslemetry a las estadísticas de energía de batería de este Powerwall, para el periodo anterior a su propio historial. Haz antes una copia de seguridad de Home Assistant: la importación es difícil de deshacer.",
+      "description": "Una sola vez: copiar el historial de carga y descarga de la batería de los sensores de energía que elijas (por ejemplo de Tesla Fleet o Teslemetry) a las estadísticas de energía de batería de esta Powerwall, para el periodo anterior a su propio historial. Haz antes una copia de seguridad de Home Assistant: la importación es difícil de deshacer.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -870,11 +919,11 @@
         },
         "source_charged": {
           "name": "Fuente de carga",
-          "description": "Opcional: el sensor en la nube de energía cargada, si no se encuentra automáticamente."
+          "description": "El sensor de energía con la energía cargada de la batería, por ejemplo *Battery charged* de Tesla Fleet o Teslemetry."
         },
         "source_discharged": {
           "name": "Fuente de descarga",
-          "description": "Opcional: el sensor en la nube de energía descargada, si no se encuentra automáticamente."
+          "description": "El sensor de energía con la energía descargada de la batería, por ejemplo *Battery discharged* de Tesla Fleet o Teslemetry."
         }
       }
     }
@@ -920,12 +969,46 @@
       }
     },
     "fleet_backup": {
-      "title": "El respaldo en la nube de Tesla Fleet no funciona",
-      "description": "La integración Tesla Powerwall TEDAPI usa la integración Tesla Fleet (o Teslemetry) como respaldo en la nube para los ajustes, y las últimas comprobaciones fallaron. Las lecturas y el control locales no se ven afectados.\n\nComprueba que la integración Tesla Fleet o Teslemetry está activada, cargada y con la sesión iniciada (vuelve a autenticarla si lo pide), y que esta Powerwall está en su cuenta de Tesla. Este aviso desaparece tras la siguiente comprobación correcta (aproximadamente cada hora). Para dejar de usarla, elige otro respaldo en la nube en las opciones de esta integración."
+      "title": "El respaldo en la nube de Fleet API no funciona",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Volver a iniciar sesión",
+            "description": "El inicio de sesión en Tesla Fleet o Teslemetry usado como respaldo en la nube para los ajustes ha dejado de funcionar. Las lecturas y el control locales no se ven afectados.\n\nVuelve a iniciar sesión con **Enviar** abajo, o con *Iniciar sesión en Tesla Fleet o Teslemetry* en las opciones de esta integración. Este aviso desaparece tras la siguiente comprobación correcta (aproximadamente cada hora)."
+          }
+        },
+        "abort": {
+          "entry_gone": "Se eliminó la entrada de la Powerwall."
+        }
+      }
     },
     "fleet_read_only": {
-      "title": "El respaldo en la nube de Tesla Fleet no puede cambiar ajustes",
-      "description": "El inicio de sesión de Tesla Fleet (o Teslemetry) usado como respaldo en la nube puede leer los ajustes de la Powerwall pero no cambiarlos: le falta el permiso **energy_cmds** (comandos de energía). Los cambios pasan al siguiente respaldo en la nube, si lo hay.\n\nVuelve a iniciar sesión en esa integración (reconfigúrala o vuelve a autenticarla) y permite los comandos de energía. Este aviso desaparece en la siguiente comprobación."
+      "title": "El respaldo en la nube de Fleet API no puede cambiar ajustes",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Volver a iniciar sesión",
+            "description": "El inicio de sesión en Tesla Fleet o Teslemetry usado como respaldo puede leer los ajustes de la Powerwall pero no cambiarlos: le falta el permiso **energy_cmds** (comandos de energía). Los cambios pasan al siguiente respaldo, si lo hay.\n\nVuelve a iniciar sesión y permite los comandos de energía. Este aviso desaparece en la siguiente comprobación."
+          }
+        },
+        "abort": {
+          "entry_gone": "Se eliminó la entrada de la Powerwall."
+        }
+      }
+    },
+    "fleet_signin": {
+      "title": "Iniciar sesión en Tesla Fleet o Teslemetry",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Volver a iniciar sesión",
+            "description": "El respaldo en la nube de esta Powerwall usaba la integración Tesla Fleet o Teslemetry de Home Assistant. Ahora la integración inicia sesión por su cuenta, así que ese respaldo está en pausa hasta que inicies sesión aquí. Las lecturas y el control locales no se ven afectados.\n\nEnvía para iniciar un aviso de reautenticación de esta Powerwall (Ajustes → Dispositivos y servicios), donde inicias sesión en Tesla Fleet o Teslemetry."
+          }
+        },
+        "abort": {
+          "entry_gone": "Se eliminó la entrada de la Powerwall."
+        }
+      }
     },
     "off_grid_reconnect_failed": {
       "title": "La Powerwall no pudo volver a conectarse a la red",
@@ -958,9 +1041,9 @@
       "options": {
         "none": "Ninguno (solo local)",
         "owner_api": "Owner API (cuenta de Tesla vinculada aquí)",
-        "tesla_fleet": "Tesla Fleet (o Teslemetry)",
-        "fleet_then_owner": "Tesla Fleet, luego Owner API",
-        "owner_then_fleet": "Owner API, luego Tesla Fleet"
+        "tesla_fleet": "Fleet API (Tesla Fleet o Teslemetry)",
+        "fleet_then_owner": "Fleet API, luego Owner API",
+        "owner_then_fleet": "Owner API, luego Fleet API"
       }
     },
     "tariff_read_back": {

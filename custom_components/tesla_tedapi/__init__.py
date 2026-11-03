@@ -1,7 +1,9 @@
 """Tesla Powerwall TEDAPI: local monitoring and control of a Tesla Powerwall."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 import logging
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
@@ -29,6 +31,8 @@ from .const import (
     ATTR_SOURCE_DISCHARGED,
     ATTR_TARGET_SOC,
     ATTR_TOU_SETTINGS,
+    CONF_FLEET_SERVER,
+    CONF_OAUTH_TOKEN,
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
     DOMAIN,
@@ -55,7 +59,8 @@ from .texts import async_setup_texts
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.EVENT, Platform.NUMBER, Platform.SELECT, Platform.SENSOR, Platform.SWITCH]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.EVENT, Platform.NUMBER, Platform.SELECT, Platform.SENSOR,
+             Platform.SWITCH]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _SOC = vol.All(vol.Coerce(float), vol.Range(min=0, max=100))
@@ -80,8 +85,8 @@ RESUME_SCHEMA = vol.Schema({vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string})
 IMPORT_HISTORY_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
     vol.Optional(ATTR_DRY_RUN, default=True): cv.boolean,
-    vol.Optional(ATTR_SOURCE_CHARGED): cv.entity_id,
-    vol.Optional(ATTR_SOURCE_DISCHARGED): cv.entity_id,
+    vol.Required(ATTR_SOURCE_CHARGED): cv.entity_id,
+    vol.Required(ATTR_SOURCE_DISCHARGED): cv.entity_id,
 })
 SET_TARIFF_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
@@ -219,8 +224,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
         coordinator = _entry(hass, call).runtime_data.coordinator
         return await async_import(hass, coordinator.din, {
-            "battery_energy_charged": call.data.get(ATTR_SOURCE_CHARGED),
-            "battery_energy_discharged": call.data.get(ATTR_SOURCE_DISCHARGED),
+            "battery_energy_charged": call.data[ATTR_SOURCE_CHARGED],
+            "battery_energy_discharged": call.data[ATTR_SOURCE_DISCHARGED],
         }, call.data[ATTR_DRY_RUN])
 
     async def set_tariff(call: ServiceCall) -> ServiceResponse:
@@ -278,6 +283,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         # a placeholder identity and duplicated later. Retry instead.
         raise ConfigEntryNotReady("Powerwall DIN not available yet")
 
+    coordinator.async_sync_signin_issue()
     entry.runtime_data = TedapiRuntimeData(
         coordinator=coordinator,
         dispatch=DispatchSession(hass, coordinator) if coordinator.dispatch_supported else None,
@@ -296,6 +302,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
     return True
 
 
+# Entry data the Fleet API client updates itself (a refreshed token, the
+# account's region server): saved without a reload.
+SELF_UPDATED = (CONF_OAUTH_TOKEN, CONF_FLEET_SERVER)
+
+
+def _without_token(data: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in data.items() if key not in SELF_UPDATED}
+
+
 async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) -> None:
     """Apply a change of options in place when only LIVE_OPTIONS changed, so a
     running battery dispatch carries on; reload for anything else (connection,
@@ -303,7 +318,9 @@ async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) 
     runtime = entry.runtime_data
     changed = {key for key in runtime.applied_options.keys() | entry.options.keys()
                if runtime.applied_options.get(key) != entry.options.get(key)}
-    if entry.data == runtime.applied_data and changed <= LIVE_OPTIONS:
+    if _without_token(entry.data) == _without_token(runtime.applied_data) and changed <= LIVE_OPTIONS:
+        # A refreshed Tesla Fleet token or region is saved in the data: no reload.
+        runtime.applied_data = dict(entry.data)
         runtime.applied_options = dict(entry.options)
         if changed:
             _LOGGER.debug("Options %s applied without a reload", ", ".join(sorted(changed)))

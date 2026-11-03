@@ -66,7 +66,7 @@ The [blueprints](automations.md#blueprints) can discharge during price spikes. W
 ## Other integrations
 
 **Can I keep Tesla Fleet or Teslemetry?**
-Yes, and it's recommended: it can be the cloud backup and can register the key. See [Migrating](migration.md).
+Yes. This integration signs in to Tesla Fleet or Teslemetry on its own for the cloud backup and key registration, so the two don't affect each other. See [Migrating](migration.md).
 
 **Can I share a Tesla refresh token with another integration?**
 No. Each refresh replaces the token, so whichever refreshes second is signed out. Make a new token for each.

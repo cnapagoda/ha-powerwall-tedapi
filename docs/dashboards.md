@@ -82,7 +82,18 @@ entities:
 
 ## Action buttons
 
-Buttons that call the integration's [actions](actions.md), each with a confirmation. *Go off-grid* is left out on purpose: run it from an automation with a duration and a battery floor (see [Safety](safety.md)).
+With a signed connection the integration has three [buttons](entities.md#buttons): **Stop battery dispatch**, **Cancel max backup** and **Reconnect to the grid**. The simplest card lists them, each with a *Press* button:
+
+```yaml
+type: entities
+title: Powerwall commands
+entities:
+  - button.powerwall_tedapi_stop_battery_dispatch
+  - button.powerwall_tedapi_cancel_max_backup
+  - button.powerwall_tedapi_reconnect_to_the_grid
+```
+
+Or as large buttons, each asking for confirmation first. *Max backup 6 h* calls the [action](actions.md#tesla_tedapistart_max_backup), because starting one needs a duration. *Go off-grid* is left out on purpose: run it from an automation with a duration and a battery floor (see [Safety](safety.md)).
 
 ```yaml
 type: grid
@@ -90,11 +101,13 @@ columns: 3
 square: false
 cards:
   - type: button
+    entity: button.powerwall_tedapi_stop_battery_dispatch
     name: Stop dispatch
-    icon: mdi:battery-sync-outline
     tap_action:
       action: perform-action
-      perform_action: tesla_tedapi.resume_battery_operation
+      perform_action: button.press
+      target:
+        entity_id: button.powerwall_tedapi_stop_battery_dispatch
       confirmation:
         text: Hand the battery back to the Powerwall?
   - type: button
@@ -108,11 +121,13 @@ cards:
       confirmation:
         text: Charge to full and hold it for 6 hours?
   - type: button
+    entity: button.powerwall_tedapi_cancel_max_backup
     name: Cancel max backup
-    icon: mdi:shield-off-outline
     tap_action:
       action: perform-action
-      perform_action: tesla_tedapi.cancel_max_backup
+      perform_action: button.press
+      target:
+        entity_id: button.powerwall_tedapi_cancel_max_backup
       confirmation:
         text: End the max backup?
 ```

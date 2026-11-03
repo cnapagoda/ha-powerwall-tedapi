@@ -71,6 +71,15 @@ def login(host: str, gw_pwd: str) -> str:
         raise GatewayUnreachable("unexpected login answer") from err
 
 
+def answers(host: str) -> bool:
+    """Whether a gateway answers at this address at all (any HTTP status)."""
+    try:
+        _request(host, "/tedapi/din")
+    except GatewayUnreachable:
+        return False
+    return True
+
+
 def din(host: str, gw_pwd: str) -> str | None:
     """Log in and read the gateway DIN (None if this firmware does not say)."""
     token = login(host, gw_pwd)

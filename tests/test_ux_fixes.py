@@ -99,6 +99,26 @@ async def test_no_device_yet_is_fine(hass: HomeAssistant, fake_powerwall) -> Non
     assert _device(hass) is None
 
 
+
+async def test_device_lookup_per_config_entry(hass: HomeAssistant, fake_powerwall, monkeypatch) -> None:
+    """Newer Home Assistant looks the device up per config entry (the
+    identifiers-only lookup is deprecated)."""
+    entry = await _setup(hass, V1R)
+    coordinator = entry.runtime_data.coordinator
+    registry = dr.async_get(hass)
+    device = _device(hass)
+    registry.async_update_device(device.id, sw_version="0.0.1")
+    calls: list[tuple] = []
+
+    def by_identifier(identifier, config_entry_id):
+        calls.append((identifier, config_entry_id))
+        return registry.async_get(device.id)
+
+    monkeypatch.setattr(registry, "async_get_device_by_identifier", by_identifier, raising=False)
+    coordinator._sync_device()
+    assert calls == [((DOMAIN, DIN), entry.entry_id)]
+    assert _device(hass).sw_version != "0.0.1"
+
 # ---- #3 texts in Home Assistant's language ----
 
 def test_every_alert_code_has_texts_in_every_language() -> None:

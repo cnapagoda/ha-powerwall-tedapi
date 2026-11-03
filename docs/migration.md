@@ -14,7 +14,7 @@ Most people arrive here from another way of connecting a Powerwall to Home Assis
 
 | Integration | Keep it? | Why |
 |---|---|---|
-| **Tesla Fleet** / **Teslemetry** | **Yes, keep it.** | It can be this integration's [cloud backup](cloud-backup.md) (no extra Tesla calls), it can [register the key](setup.md#register-through-tesla-fleet-or-teslemetry) for you, and its battery history can be [imported](actions.md#tesla_tedapiimport_battery_history). It also covers your Tesla vehicles. |
+| **Tesla Fleet** / **Teslemetry** | **Yes, keep it.** | Its battery history can be [imported](actions.md#tesla_tedapiimport_battery_history), and it covers your Tesla vehicles. The same developer app or Teslemetry plan can give this integration its own [cloud backup](cloud-backup.md) sign-in. |
 | **Tesla Powerwall** (core, `powerwall`) | Optional. | If it still works for you, it can run alongside. If it stopped working (common on Powerwall 3, which doesn't offer the old local API on the home network), remove it after you've kept its history (below). |
 | **Tesla Custom** (`alandtse/tesla`) | Optional. | It's cloud only. Don't share a refresh token between it and this integration: [each needs its own](setup.md#refresh-token-easiest). |
 | **pypowerwall proxy / Powerwall-Dashboard** | Optional. | See [below](#from-a-pypowerwall-proxy-or-powerwall-dashboard). |
@@ -64,10 +64,9 @@ For **battery** history from Tesla Fleet or Teslemetry there's an alternative: [
 
 You probably want to keep these.
 
-1. Set this integration up with **Register a new key with my Tesla Fleet or Teslemetry integration (no Tesla sign-in)**.
-2. Choose **Configure → Cloud backup → Tesla Fleet (or Teslemetry)**.
-3. Move automations that change Powerwall settings to this integration's entities: they're local, so they're faster and keep working without the internet.
-4. For the Energy dashboard, add this integration's sensors next to theirs, or [import the battery history](actions.md#tesla_tedapiimport_battery_history).
+1. Set this integration up with **Register a new key**, and sign in with **Tesla Fleet** (the same developer app) or **Teslemetry**. That sign-in is also the cloud backup.
+2. Move automations that change Powerwall settings to this integration's entities: they're local, so they're faster and keep working without the internet.
+3. For the Energy dashboard, add this integration's sensors next to theirs, or [import the battery history](actions.md#tesla_tedapiimport_battery_history).
 
 ## From a pypowerwall proxy or Powerwall-Dashboard
 
@@ -83,4 +82,4 @@ This integration runs pypowerwall inside Home Assistant, so you don't need a pro
 - [ ] Automations and dashboards moved to the new entities; signs and percentages checked.
 - [ ] Only one integration changes settings.
 - [ ] Old integration disabled (or removed) once the new one has recorded for a day.
-- [ ] Tesla Fleet / Teslemetry kept as the cloud backup, if you had it.
+- [ ] A Tesla Fleet or Teslemetry sign-in here as the cloud backup, if you want one.

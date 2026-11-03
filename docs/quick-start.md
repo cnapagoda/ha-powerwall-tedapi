@@ -6,7 +6,7 @@ This is the recommended path: a **signed connection** over your home network, wi
 
 You need:
 
-- **Home Assistant 2025.1 or newer**, with [HACS](https://hacs.xyz) installed.
+- **Home Assistant 2025.11 or newer**, with [HACS](https://hacs.xyz) installed.
 - **The gateway password.** It's printed on the QR sticker inside the Powerwall's cover. On a Powerwall 3 it's behind the front glass, lower left. Take a photo of it.
 - **Your Tesla account** (email, password, and MFA if you use it). It's needed once, to register the key.
 - **Physical access to the Powerwall** for a few minutes: you'll switch it off and on once.
@@ -14,12 +14,12 @@ You need:
 
 ## 1. Install
 
-1. In Home Assistant open **HACS → ⋮ → Custom repositories**.
-2. Add `https://github.com/cnapagoda/ha-powerwall-tedapi` with type **Integration**.
-3. Search for **Tesla Powerwall TEDAPI**, open it and select **Download**.
-4. **Restart Home Assistant.**
+1. In Home Assistant open **HACS**, search for **Tesla Powerwall TEDAPI**, open it and select **Download**.
+2. **Restart Home Assistant.**
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cnapagoda&repository=ha-powerwall-tedapi&category=integration)
+
+Not found in the search? Add it as a custom repository first: **HACS → ⋮ → Custom repositories**, add `https://github.com/cnapagoda/ha-powerwall-tedapi` with type **Integration**, then search again.
 
 Without HACS: download the latest release, copy `custom_components/tesla_tedapi` into your `config/custom_components/` folder, and restart.
 
@@ -58,7 +58,7 @@ That's it. You now have a **Powerwall TEDAPI** device with its sensors and contr
 <img src="images/setup-07-done.png" alt="Setup complete" width="560">
 
 > [!TIP]
-> Already use Home Assistant's **Tesla Fleet** or **Teslemetry** integration for this Powerwall? The wizard also offers **Register a new key with my Tesla Fleet or Teslemetry integration (no Tesla sign-in)**.
+> Have a **Teslemetry** plan or your own **Tesla Fleet** developer app? The wizard's sign-in step offers both, next to the Tesla account sign-in.
 
 ## 4. Next steps
 

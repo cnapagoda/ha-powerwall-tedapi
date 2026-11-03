@@ -1,6 +1,7 @@
-"""One-off import of battery history from Tesla Fleet / Teslemetry.
+"""One-off import of battery history from energy sensors the user picks
+(for example Tesla Fleet's or Teslemetry's battery charged/discharged).
 
-Copies the cloud integration's hourly battery charged/discharged statistics
+Copies their hourly statistics
 into this Powerwall's battery energy statistics for the hours before their
 own history starts. The imported hours are anchored to the first recorded
 hour so the series joins without a jump, then everything is shifted so the
@@ -17,14 +18,9 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN
-from .fleet import find_site
 
-SOURCE_PLATFORMS = ("tesla_fleet", "teslemetry")
-# Our key -> the cloud integrations' translation key.
-PAIRS = {
-    "battery_energy_charged": "total_battery_charge",
-    "battery_energy_discharged": "total_battery_discharge",
-}
+# Our battery energy sensors (keys), each filled from a source the user picks.
+KEYS = ("battery_energy_charged", "battery_energy_discharged")
 EPOCH = datetime(2000, 1, 1, tzinfo=UTC)
 UNITS = {"energy": "kWh"}
 
@@ -32,29 +28,6 @@ UNITS = {"energy": "kWh"}
 def _refuse(key: str, **placeholders: str) -> ServiceValidationError:
     return ServiceValidationError(translation_domain=DOMAIN, translation_key=key,
                                   translation_placeholders=placeholders or None)
-
-
-def find_sources(hass: HomeAssistant, din: str | None,
-                 overrides: dict[str, str | None]) -> dict[str, str]:
-    """Our key -> source entity id. Overrides win; otherwise the sensors of
-    the Tesla Fleet / Teslemetry site with this Powerwall, or the only ones."""
-    registry = er.async_get(hass)
-    found = find_site(hass, din)
-    site_id = getattr(found[1], "id", None) if found else None
-    sources: dict[str, str] = {}
-    for ours, theirs in PAIRS.items():
-        if overrides.get(ours):
-            sources[ours] = overrides[ours]
-            continue
-        candidates = [e for e in registry.entities.values()
-                      if e.platform in SOURCE_PLATFORMS and e.domain == "sensor"
-                      and (e.translation_key == theirs or str(e.unique_id).endswith(f"-{theirs}"))]
-        if site_id is not None:
-            candidates = [e for e in candidates if str(e.unique_id).startswith(f"{site_id}-")]
-        if len(candidates) != 1:
-            raise _refuse("history_no_source", sensor=theirs)
-        sources[ours] = candidates[0].entity_id
-    return sources
 
 
 def _ts(value: Any) -> float:
@@ -119,21 +92,20 @@ def plan(hass: HomeAssistant, target: str, source: str) -> dict[str, Any]:
     }
 
 
-async def async_import(hass: HomeAssistant, din: str | None, overrides: dict[str, str | None],
+async def async_import(hass: HomeAssistant, din: str | None, sources: dict[str, str],
                        dry_run: bool) -> dict[str, Any]:
     """Plan (and unless dry_run, run) the import for both battery sensors."""
     from homeassistant.components.recorder import get_instance  # noqa: PLC0415
     from homeassistant.components.recorder.statistics import async_import_statistics  # noqa: PLC0415
 
     registry = er.async_get(hass)
-    targets = {key: registry.async_get_entity_id("sensor", DOMAIN, f"{din}_{key}") for key in PAIRS}
+    targets = {key: registry.async_get_entity_id("sensor", DOMAIN, f"{din}_{key}") for key in KEYS}
     if not all(targets.values()):
         raise _refuse("history_no_target", sensor=", ".join(k for k, v in targets.items() if not v))
-    sources = find_sources(hass, din, overrides)
     instance = get_instance(hass)
     # Plan both first, so nothing is written unless both can be imported.
     plans = {key: await instance.async_add_executor_job(plan, hass, targets[key], sources[key])
-             for key in PAIRS}
+             for key in KEYS}
     result: dict[str, Any] = {"dry_run": dry_run}
     for key, p in plans.items():
         result[key] = {"target": targets[key], **p["summary"]}

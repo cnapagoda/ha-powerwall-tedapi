@@ -4,7 +4,7 @@ In **Time-Based Control** (`autonomous`), the Powerwall decides when to charge, 
 
 ## Turn it on
 
-1. Set up a [cloud backup](cloud-backup.md) (Owner API or Tesla Fleet / Teslemetry). The tariff lives only in Tesla's cloud.
+1. Set up a [cloud backup](cloud-backup.md) (Owner API, or Tesla Fleet or Teslemetry). The tariff lives only in Tesla's cloud.
 2. **Configure → Settings → Tesla tariff (cloud)**.
 
 You then get:
@@ -133,7 +133,7 @@ The response's `status`:
 |---|---|
 | `confirmed` | Tesla shows the new rates. |
 | `pending` | Tesla doesn't show them yet. The Owner API can take up to 30 minutes; it's checked again after 35 minutes, and a repair appears only if it still doesn't show then. |
-| `mismatch` | A full read-back through Tesla Fleet shows other rates. A repair says so. |
+| `mismatch` | A full read-back through the Fleet API shows other rates. A repair says so. |
 | `unchanged` | `only_if_changed` and nothing changed: nothing was sent. |
 
 ## Following dynamic prices

@@ -35,6 +35,17 @@
         "default": "mdi:transmission-tower"
       }
     },
+    "button": {
+      "stop_dispatch": {
+        "default": "mdi:battery-sync-outline"
+      },
+      "cancel_max_backup": {
+        "default": "mdi:shield-off-outline"
+      },
+      "reconnect_grid": {
+        "default": "mdi:transmission-tower-import"
+      }
+    },
     "number": {
       "backup_reserve": {
         "default": "mdi:battery-lock"

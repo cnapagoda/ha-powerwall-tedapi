@@ -125,6 +125,8 @@ async def test_register_new_key(hass: HomeAssistant, tmp_path) -> None:
     ):
         result = await _gateway(hass)
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "register"})
+        assert result["step_id"] == "signin"
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "login"})
         assert result["step_id"] == "login"
         assert "auth.tesla.com" in result["description_placeholders"]["url"]
 
@@ -165,6 +167,8 @@ async def test_register_window_closes(hass: HomeAssistant, tmp_path) -> None:
     ):
         result = await _gateway(hass)
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "register"})
+        assert result["step_id"] == "signin"
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "login"})
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"callback": "C1"})
         await hass.async_block_till_done()
@@ -388,6 +392,8 @@ async def test_register_failure_reasons(hass: HomeAssistant, tmp_path, error, re
     ):
         result = await _gateway(hass)
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "register"})
+        assert result["step_id"] == "signin"
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "login"})
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"callback": "tesla://auth/callback?code=abc&state=state1"})
     assert result["type"] is FlowResultType.ABORT

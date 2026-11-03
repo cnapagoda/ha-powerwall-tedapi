@@ -45,7 +45,7 @@
 | **Solar input** sensors that always read about 0 W | An unused input reported a few watts in standby, so its sensors were created. Disable them on the entity's settings page. |
 | A pack or expansion pack is missing | Packs appear when the gateway first reports them. Check the **Alerts** sensor for *Battery packs missing*. |
 | Energy counters don't move | **Setup health** checks `energy_counters`. Readings that are missing or zero are ignored, and so is a lower reading unless it stays lower for 10 readings in a row (then it's taken as a counter reset, for example after a gateway replacement). |
-| **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. On some gateways this is every day: the counters read higher than the meter. Use your retailer's or Tesla Fleet's grid energy for costs (see [Energy dashboard](energy-dashboard.md#checking-the-numbers)). An occasional day can also come from gaps in readings. |
+| **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. An occasional day can come from gaps in readings. If it lasts, mention it in an issue with diagnostics. |
 | **Inverter heatsink temperature** never changes | Known on some firmware. |
 | Entity IDs start with an area name | Home Assistant 2026.8+ includes the area by default. Replace `powerwall_tedapi_` in the examples with yours, or change the format and use **Recreate entity IDs**. See [conventions](README.md#conventions-in-these-pages). |
 
@@ -69,9 +69,12 @@
 | Symptom | Try |
 |---|---|
 | *Sign in to Tesla again* repair | Select it and sign in again. Tokens stop working when you change your Tesla password, or when another app refreshes the same token. |
-| *Tesla Fleet cloud backup is not working* | Check that the Tesla Fleet or Teslemetry integration is enabled, loaded and signed in (re-authenticate it if it asks), and has this Powerwall on its account. |
-| *Tesla Fleet cloud backup can't change settings* | Sign in to that integration again and allow the energy commands (`energy_cmds`) permission. |
-| Tesla Fleet isn't offered under **Cloud backup** | It's only offered when a loaded Tesla Fleet or Teslemetry entry has this Powerwall's site. Check that integration is loaded and on the right account. |
+| *Fleet API cloud backup is not working* | Select it to sign in to Tesla Fleet or Teslemetry again. |
+| *Fleet API cloud backup can't change settings* | Select it to sign in again, and allow the energy commands (`energy_cmds`) permission. |
+| *Sign in to Tesla Fleet or Teslemetry* repair | Set up before 2.6 through another integration's sign-in. Select it to sign in here. |
+| The Fleet API isn't offered under **Cloud backup** | Sign in first: **Configure → Sign in to Tesla Fleet or Teslemetry**. |
+| Tesla Fleet sign-in: *Tesla refused the developer app (HTTP 412)* | The app's domain isn't registered with Tesla in your account's region. See [Setup](setup.md#registering-with-the-fleet-api-developers). (A wrong region is found by itself.) |
+| Tesla Fleet sign-in: *Tesla Fleet refused the new sign-in* | The app needs the energy scopes and a domain registered with Tesla. See [Setup](setup.md#registering-with-the-fleet-api-developers). |
 | **Setup health** says *Needs attention* about the cloud | No backup can change settings. `cloud_backends` shows which backup fails and why. |
 | *A cloud change did not apply as set* | Tesla accepted it but the Powerwall reports another value after 5 minutes. Check the Tesla app; your retailer or VPP may override it. |
 
@@ -81,11 +84,11 @@
 |---|---|
 | *Powerwall alert: …* | A warning or fault has lasted the Problem delay. It disappears when the alert clears. See [Alerts](alerts.md). |
 | *Sign in to Tesla again* | The Owner API backup failed 3 checks in a row. Fixable: select it to sign in. |
-| *Tesla Fleet cloud backup is not working* / *can't change settings* | See above. |
+| *Fleet API cloud backup is not working* / *can't change settings* | See above. |
 | *Signed local access stopped after a firmware update* | The first reading on new firmware couldn't use the signed connection. Wait for a few polls; if it stays, register the key again (**Configure → Register a new signed key**) and open an issue with the firmware version. |
 | *The Powerwall couldn't reconnect to the grid* | The automatic reconnect failed; it's retried every minute. Check the gateway connection, or reconnect in the Tesla app. |
 | *Tesla's cloud capped the backup reserve* / *A cloud change did not apply as set* | See [Settings and control](#settings-and-control). |
-| *Tesla stored a different tariff* | A tariff write wasn't shown by Tesla after 35 minutes (or a Tesla Fleet read-back showed other rates). See [Tesla tariff](tesla-tariff.md). |
+| *Tesla stored a different tariff* | A tariff write wasn't shown by Tesla after 35 minutes (or a Fleet API read-back showed other rates). See [Tesla tariff](tesla-tariff.md). |
 
 The integration's card can also show **Reauthenticate**: the gateway keeps refusing the password or the key. See [Configuration](configuration.md#when-the-powerwall-stops-accepting-home-assistant).
 

@@ -4,11 +4,15 @@
   "after_dependencies": [
     "recorder"
   ],
+  "categories": [
+    "energy.solar_batteries"
+  ],
   "codeowners": [
     "@cnapagoda"
   ],
   "config_flow": true,
   "dependencies": [
+    "application_credentials",
     "file_upload",
     "repairs"
   ],
@@ -36,5 +40,5 @@
   "requirements": [
     "pypowerwall>=0.23.1,<0.24"
   ],
-  "version": "2.5.1"
+  "version": "2.6.0"
 }

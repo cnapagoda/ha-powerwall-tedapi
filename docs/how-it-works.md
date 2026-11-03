@@ -22,7 +22,8 @@
 ┌──────────────────────────────────┐
 │ Cloud backup                     │
 │  • Owner API (Tesla account)     │
-│  • Tesla Fleet / Teslemetry      │
+│  • Fleet API (Tesla Fleet or     │
+│    Teslemetry)                   │
 └──────────────────────────────────┘
 ```
 
@@ -39,8 +40,8 @@ The integration polls the gateway every 30 seconds by default (**Polling interva
 | What | How often |
 |---|---|
 | Backup events (signed connection) | Every 5 minutes, and straight after a max backup is started or cancelled |
-| Settings from the cloud backup, when the gateway can't give them | Owner API: cached for 5 minutes. Tesla Fleet: from that integration's own data, which it reads every minute |
-| Storm Watch, grid services, off-grid vehicle charging reserve | Tesla Fleet: every minute (its data). Owner API: every 30 minutes |
+| Settings from the cloud backup, when the gateway can't give them | Cached for 5 minutes |
+| Storm Watch, grid services, off-grid vehicle charging reserve | Every 30 minutes |
 | Tesla tariff (option) | Every 6 hours, and after each write |
 | Cloud backup health check | About once an hour, or 10 minutes after a failure |
 | Restoring a dropped setting | At most every 2 minutes per setting |
@@ -63,7 +64,7 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 
 ## Privacy and security
 
-- **No data leaves your network** unless you set up a cloud backup, and then only to Tesla (directly, or through Tesla Fleet / Teslemetry).
+- **No data leaves your network** unless you set up a cloud backup, and then only to Tesla (directly, or through Teslemetry).
 - The key and the Tesla sign-in are secrets: anyone with the key on your network can control the Powerwall. They're included in Home Assistant backups.
 - **Diagnostics downloads** hide the password, email, site ID and serial numbers. The optional gateway configuration in diagnostics also removes location, names and credentials. Check a download before you share it.
 - See [SECURITY.md](../SECURITY.md).
@@ -71,7 +72,7 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 ## Known limitations
 
 - **Undocumented interfaces.** TEDAPI and the signed (v1r) protocol aren't public. A Powerwall firmware update can change or break them without notice.
-- **Registering a key needs the Tesla cloud** once: a Tesla sign-in, Tesla Fleet / Teslemetry, or `pypowerwall register`. The gateway doesn't confirm a key registered only over the local network.
+- **Registering a key needs the Tesla cloud** once: a Tesla account, Tesla Fleet or Teslemetry sign-in, or `pypowerwall register`. The gateway doesn't confirm a key registered only over the local network.
 - **The Wi-Fi password connection can't change settings locally**, and has no battery dispatch or max backup. Settings changes need a cloud backup.
 - **Cloud-only settings:** Storm Watch, grid services and the off-grid vehicle charging reserve need a cloud backup.
 - **Through the cloud, backup reserve stops at 80 %.** Tesla's cloud caps it. Locally any value up to 100 % works, and max backup charges to full; neither is available through the cloud.

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.6.0
+
+- **Tesla Fleet and Teslemetry sign-in here.** The Fleet API cloud backup and key registration now use a sign-in made in this integration: **Tesla Fleet** (your own Tesla developer app, through Home Assistant's application credentials) or **Teslemetry** (an access token). They no longer use the Tesla Fleet or Teslemetry integration's sign-in. ⚠️ If your cloud backup was *Tesla Fleet*, a repair asks you to sign in once; your cloud backup choice is kept, and a linked Owner API account keeps working meanwhile. New: **Configure → Sign in to Tesla Fleet or Teslemetry**, and setup's sign-in step offers all three (Tesla account, Tesla Fleet, Teslemetry).
+- Tesla Fleet: the developer app's credentials are added with Home Assistant's own *Add application credentials* dialog. A developer app whose domain isn't registered with Tesla for the account's region (HTTP 412) gets its own message; an account served from another region (HTTP 421) is found by itself. Teslemetry: the sign-in uses the account's regional server, and the docs say where to get the access token (it isn't refreshed).
+- **`import_battery_history`:** `source_charged` and `source_discharged` are now required (an energy sensor picker); the sources are no longer looked up automatically.
+- Storm Watch and the other cloud-only values come from a Fleet API backup every 30 minutes (as from the Owner API), not every minute.
+- **Buttons** (signed connection): **Stop battery dispatch**, **Cancel max backup** and **Reconnect to the grid**, for dashboards. Each does the same as the matching action (`resume_battery_operation`, `cancel_max_backup`, `reconnect_grid`), and is unavailable while the gateway can't be reached. There's no button to go off-grid or to start a dispatch or max backup: those need a duration and limits, so they stay actions.
+- Device page updates use Home Assistant's per-entry device lookup, which removes the deprecation warning in the log (the old lookup stops working in 2027.8).
+- **Home Assistant 2025.11 or newer is required** (was 2025.1). Only Home Assistant releases from the last 12 months are supported.
+- The manifest lists the integration's category (Energy: solar & batteries), which clears the HACS validation warning.
+- Setup: with the Wi-Fi password only, a refused password now says so (and that the password alone works only over the Powerwall's own Wi-Fi), instead of "Could not reach the Powerwall".
+- Docs: installing starts with searching for the integration in HACS; adding it as a custom repository is the fallback.
+- Docs: the dashboard examples use the new buttons, and the Energy dashboard and Troubleshooting pages no longer make claims about how accurate the gateway's grid counters are.
+
 ## 2.5.1
 
 - **Settings apply without a reload.** Polling interval, restore, alert and dispatch options and the diagnostics option now take effect straight away, so a running battery dispatch carries on. The Tesla tariff option, the cloud backup, a linked account and the connection still reload the integration.

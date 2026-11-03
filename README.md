@@ -14,8 +14,9 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 - **Control from your local network:** operation mode, backup reserve, grid charging and grid export.
 - **Battery dispatch:** charge or discharge at a set power, or to a target level, for price-based automations.
 - **Backup tools:** start a max backup, follow Storm Watch, test your backup by going off-grid with an automatic reconnect.
+- **Dashboard buttons:** stop a battery dispatch, cancel a max backup or reconnect to the grid with one press.
 - **Knows when something is wrong:** Tesla's alert codes in plain language, a **Problem** sensor, repairs, grid outage history and firmware update notices.
-- **Keeps working when it can't reach the gateway:** an optional Tesla cloud backup (your Tesla account, or the Tesla Fleet / Teslemetry integration) keeps the settings usable.
+- **Keeps working when it can't reach the gateway:** an optional Tesla cloud backup (your Tesla account, Tesla Fleet or Teslemetry) keeps the settings usable.
 - **A setup wizard:** it finds the Powerwall on your network and registers the access key for you. No command line.
 - **Ready-made blueprints** for cheap charging, price spikes, negative feed-in, time-of-use and outage alerts.
 
@@ -23,7 +24,7 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 
 ## Quick start
 
-1. **Install** through HACS: add this repository as a custom repository (type **Integration**), download **Tesla Powerwall TEDAPI**, and restart Home Assistant.
+1. **Install** through HACS: search for **Tesla Powerwall TEDAPI**, download it, and restart Home Assistant. If the search doesn't find it, add this repository as a custom repository (type **Integration**) first.
 
    [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cnapagoda&repository=ha-powerwall-tedapi&category=integration)
 
@@ -41,7 +42,7 @@ The full walkthrough, with screenshots and the other ways to connect, is in **[Q
 
 | | |
 |---|---|
-| Home Assistant | 2025.1 or newer (2026.3 or newer shows the integration's icon). |
+| Home Assistant | 2025.11 or newer (2026.3 or newer shows the integration's icon). Only Home Assistant releases from the last 12 months are supported. |
 | Powerwall | Powerwall 3 is tested. Powerwall 2 / Powerwall+ work for signed access if the firmware supports it, and over Wi-Fi with the gateway password. See [Compatibility](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/compatibility.md). |
 | Network | Home Assistant reaches the gateway on your home network (recommended), or on the Powerwall's own Wi-Fi `192.168.91.1`. |
 | Tesla account | Needed once, to register the access key. Optional afterwards, as the cloud backup. |
