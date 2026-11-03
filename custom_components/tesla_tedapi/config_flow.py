@@ -84,6 +84,7 @@ from .const import (
     DEFAULT_HOST_WIFI,
     DEFAULT_PROBLEM_MINUTES,
     DEFAULT_SCAN_INTERVAL,
+    DISPATCH_DEFAULT_WATTS,
     DISPATCH_MAX_WATTS,
     DOMAIN,
     FLEET_DATA_KEYS,
@@ -994,7 +995,7 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                     vol.Required(CONF_DISPATCH_FLOOR_RESERVE, default=opts.get(
                         CONF_DISPATCH_FLOOR_RESERVE, True)): bool,
                     vol.Required(CONF_DISPATCH_MAX_WATTS, default=opts.get(
-                        CONF_DISPATCH_MAX_WATTS, DISPATCH_MAX_WATTS)): vol.All(
+                        CONF_DISPATCH_MAX_WATTS, DISPATCH_DEFAULT_WATTS)): vol.All(
                             box(100, DISPATCH_MAX_WATTS, 100, "W"), vol.Coerce(int)),
                 }), {"collapsed": False}),
                 vol.Required("advanced"): section(vol.Schema(advanced), {"collapsed": True}),

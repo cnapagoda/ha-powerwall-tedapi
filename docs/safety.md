@@ -17,9 +17,17 @@ Applies to `dispatch_battery_power`, `charge_to` and `discharge_to`.
 
 Good practice:
 
-- Set **Largest dispatch power** to what your installation can deliver.
+- Set **Largest dispatch power** to what your installation can safely carry (below).
 - Give every dispatch a time limit and a battery level limit.
 - Consider Tesla's own **Time-Based Control** with the [Tesla tariff](tesla-tariff.md) instead: no dispatch at all.
+
+**Choosing Largest dispatch power.** It goes up to 30,000 W and defaults to 10,000 W, which is what one Powerwall 3 accepts. Only raise it to what your whole installation can safely carry. Check with your installer if you're not sure:
+- **Powerwalls:** how many units you have and what each one can deliver. Expansion packs add energy, not power.
+- **Wiring and protection:** the cables, breakers and the circuits between the Powerwalls and the switchboard.
+- **Gateway and backup switch:** their current ratings.
+- **Grid connection:** your supply rating and any export limit from your network operator (for example 5 kW per phase), including how it splits across phases.
+
+The Powerwall refuses what it can't deliver, but it doesn't know your wiring or your network operator's rules. A dispatch ignores the grid export setting, and it isn't known whether a site export limit set by your installer still applies during one, so watch your grid export the first time.
 
 ## Going off-grid
 

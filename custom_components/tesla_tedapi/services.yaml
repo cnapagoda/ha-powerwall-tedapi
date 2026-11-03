@@ -10,8 +10,8 @@ dispatch_battery_power:
       example: 2000
       selector:
         number:
-          min: -10000
-          max: 10000
+          min: -30000
+          max: 30000
           step: 100
           unit_of_measurement: W
           mode: box
@@ -64,7 +64,7 @@ charge_to:
       selector:
         number:
           min: 100
-          max: 10000
+          max: 30000
           step: 100
           unit_of_measurement: W
           mode: box
@@ -99,7 +99,7 @@ discharge_to:
       selector:
         number:
           min: 100
-          max: 10000
+          max: 30000
           step: 100
           unit_of_measurement: W
           mode: box

@@ -146,7 +146,7 @@ async def test_unknown_level_still_starts(hass: HomeAssistant, fake_powerwall) -
     {"target_soc": 0, "power_watts": 2000, "max_minutes": 30},
     {"target_soc": 101, "power_watts": 2000, "max_minutes": 30},
     {"target_soc": 80, "power_watts": 50, "max_minutes": 30},
-    {"target_soc": 80, "power_watts": 20000, "max_minutes": 30},
+    {"target_soc": 80, "power_watts": 30001, "max_minutes": 30},
     {"target_soc": 80, "power_watts": 2000, "max_minutes": 0},
     {"target_soc": 80, "power_watts": 2000, "max_minutes": 1441},
     {"target_soc": 80, "power_watts": 2000},
@@ -181,3 +181,29 @@ async def test_plain_dispatch_has_no_target(hass: HomeAssistant, fake_powerwall)
     await _refresh(hass, entry)
     await _tick(hass, 61)
     assert ended[-1].data["reason"] == "min_soc"  # unchanged for plain dispatches
+
+
+async def test_power_limits(hass: HomeAssistant, fake_powerwall) -> None:
+    """Up to 30 kW for systems with several Powerwalls. Largest dispatch power
+    defaults to 10 kW (what one Powerwall 3 accepts); within it the gateway
+    decides."""
+    from homeassistant.exceptions import HomeAssistantError  # noqa: PLC0415
+
+    entry = await _setup(hass, V1R)
+    for power in (30001, -30001):
+        with pytest.raises(vol.Invalid):
+            await _call(hass, "dispatch_battery_power", power_watts=power, duration_seconds=60)
+    # The default limit: 10,000 W.
+    with pytest.raises(ServiceValidationError) as err:
+        await _call(hass, "dispatch_battery_power", power_watts=15000, duration_seconds=60)
+    assert err.value.translation_key == "dispatch_power_cap"
+    assert err.value.translation_placeholders["cap"] == "10000"
+    # Raised in the options: 15 kW goes to the gateway, which accepts or refuses it.
+    hass.config_entries.async_update_entry(entry, options={**entry.options, "dispatch_max_watts": 30000})
+    await hass.async_block_till_done()
+    await _call(hass, "dispatch_battery_power", power_watts=15000, duration_seconds=60)
+    assert local(fake_powerwall).dispatches[-1][0] == 15000.0
+    local(fake_powerwall).dispatch_battery_power = lambda power, seconds: None  # refused (status 11)
+    with pytest.raises(HomeAssistantError) as err:
+        await _call(hass, "dispatch_battery_power", power_watts=-20000, duration_seconds=60)
+    assert err.value.translation_key == "dispatch_refused"

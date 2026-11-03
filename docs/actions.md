@@ -14,10 +14,26 @@ The integration adds these actions (formerly called *services*). Try them in **D
 | [`go_off_grid`](#tesla_tedapigo_off_grid) | Signed | Disconnect the house from the grid. |
 | [`reconnect_grid`](#tesla_tedapireconnect_grid) | Signed | Reconnect the house to the grid. |
 | [`get_tariff` / `set_tariff`](#tesla_tedapiget_tariff--tesla_tedapiset_tariff) | Cloud backup + Tesla tariff option | Read or write Tesla's tariff. |
-| [`import_battery_history`](#tesla_tedapiimport_battery_history) | Tesla Fleet or Teslemetry | One-off copy of earlier battery history. |
+| [`import_battery_history`](#tesla_tedapiimport_battery_history) | Two energy sensors with history | One-off copy of earlier battery history. |
 
 > [!WARNING]
 > Battery dispatch and going off-grid change how your house is powered and may affect your warranty. Read [Safety](safety.md) first.
+
+## Battery dispatch: start here
+
+Charging or discharging on command is done with actions, not with a switch or a setting:
+
+```yaml
+action: tesla_tedapi.dispatch_battery_power
+data:
+  power_watts: 5000       # + discharge, - charge, 0 holds idle
+  duration_seconds: 1800  # 30 minutes
+```
+
+- **To a battery level instead of for a time:** `tesla_tedapi.charge_to` / `discharge_to`.
+- **Stop early:** `tesla_tedapi.resume_battery_operation`, or the **Stop battery dispatch** button.
+- **Settings that apply** (**Configure → Settings → Battery dispatch**): whether a discharge stops at the backup reserve, and **Largest dispatch power**.
+- **How much power:** no more than **Largest dispatch power** (default 10,000 W, at most 30,000 W). Within that the Powerwall decides: it refuses what it can't deliver, and the action then fails with the reason in the log. One Powerwall 3 (with or without an expansion pack) refuses more than 10,000 W. With several Powerwalls, raise **Largest dispatch power** only to what your installation can safely carry: wiring, breakers, gateway and backup switch ratings, and your grid connection and export limit ([Safety](safety.md#battery-dispatch)). Try a short dispatch first and watch your grid export.
 
 ---
 
@@ -27,7 +43,7 @@ Hold the battery at a fixed power for a set time.
 
 | Field | Required | |
 |---|---|---|
-| `power_watts` | Yes | **+** discharge, **−** charge, `0` holds the battery idle. Up to ±10,000 W, and no more than **Largest dispatch power** in the options. |
+| `power_watts` | Yes | **+** discharge, **−** charge, `0` holds the battery idle. Up to ±30,000 W, and no more than **Largest dispatch power** in the options. The Powerwall refuses more than it can deliver (one Powerwall 3: 10,000 W). |
 | `duration_seconds` | Yes | 1 s to 24 h. |
 | `min_soc` | No | End a discharge when **Battery level** falls to this. Default: the backup reserve (option **Discharges stop at the backup reserve**). |
 | `max_soc` | No | End a charge when **Battery level** reaches this. |
@@ -63,7 +79,7 @@ Charge or discharge at a set power until **Battery level** reaches `target_soc`,
 | Field | Required | |
 |---|---|---|
 | `target_soc` | Yes | 1–100 %. |
-| `power_watts` | Yes | 100–10,000 W, **without a sign**: the action decides the direction. |
+| `power_watts` | Yes | 100–30,000 W, **without a sign**: the action decides the direction. The same limits apply as for `dispatch_battery_power`. |
 | `max_minutes` | Yes | 1–1440. |
 | `config_entry_id` | No | Only with several Powerwalls. |
 

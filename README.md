@@ -12,7 +12,7 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 
 - **Live readings every 30 seconds, without the cloud:** solar, battery, grid and home power, battery level, lifetime and daily energy for the Energy dashboard, battery health per pack, temperatures, fans, grid voltage and frequency, per-input solar on a Powerwall 3.
 - **Control from your local network:** operation mode, backup reserve, grid charging and grid export.
-- **Battery dispatch:** charge or discharge at a set power, or to a target level, for price-based automations.
+- **Battery dispatch:** charge or discharge at a set power, or to a target level, for price-based automations. Use the actions [`tesla_tedapi.dispatch_battery_power`, `charge_to` and `discharge_to`](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/actions.md#battery-dispatch-start-here).
 - **Backup tools:** start a max backup, follow Storm Watch, test your backup by going off-grid with an automatic reconnect.
 - **Dashboard buttons:** stop a battery dispatch, cancel a max backup or reconnect to the grid with one press.
 - **Knows when something is wrong:** Tesla's alert codes in plain language, a **Problem** sensor, repairs, grid outage history and firmware update notices.
