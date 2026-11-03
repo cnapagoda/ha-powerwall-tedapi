@@ -978,7 +978,8 @@
           }
         },
         "abort": {
-          "entry_gone": "Wpis Powerwall został usunięty."
+          "entry_gone": "Wpis Powerwall został usunięty.",
+          "fleet_signin_started": "Otwórz Ustawienia → Urządzenia i usługi: ten Powerwall pokazuje teraz prośbę o ponowne uwierzytelnienie, w której logujesz się do Tesla Fleet lub Teslemetry."
         }
       }
     },
@@ -992,7 +993,8 @@
           }
         },
         "abort": {
-          "entry_gone": "Wpis Powerwall został usunięty."
+          "entry_gone": "Wpis Powerwall został usunięty.",
+          "fleet_signin_started": "Otwórz Ustawienia → Urządzenia i usługi: ten Powerwall pokazuje teraz prośbę o ponowne uwierzytelnienie, w której logujesz się do Tesla Fleet lub Teslemetry."
         }
       }
     },
@@ -1006,7 +1008,8 @@
           }
         },
         "abort": {
-          "entry_gone": "Wpis Powerwall został usunięty."
+          "entry_gone": "Wpis Powerwall został usunięty.",
+          "fleet_signin_started": "Otwórz Ustawienia → Urządzenia i usługi: ten Powerwall pokazuje teraz prośbę o ponowne uwierzytelnienie, w której logujesz się do Tesla Fleet lub Teslemetry."
         }
       }
     },

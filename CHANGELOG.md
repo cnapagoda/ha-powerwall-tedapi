@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.1
+
+- The **Reauthenticate** card no longer shows a translation error (`MISSING_VALUE` for `{host}`): the sign-in, new key and reconfigure flows now give their title the gateway address.
+- No more log warning *"has an update listener and should use it for scheduling a reload"* (it stops working in Home Assistant 2026.12) after a sign-in, reauthentication or reconfigure: the integration's own update listener now does the reload.
+- The *Sign in to Tesla Fleet or Teslemetry* repair (and the two Fleet API backup repairs) now stays until the sign-in has worked. Before, it disappeared as soon as you opened it, even if you closed the sign-in without finishing.
+
 ## 2.6.0
 
 - **Tesla Fleet and Teslemetry sign-in here.** The Fleet API cloud backup and key registration now use a sign-in made in this integration: **Tesla Fleet** (your own Tesla developer app, through Home Assistant's application credentials) or **Teslemetry** (an access token). They no longer use the Tesla Fleet or Teslemetry integration's sign-in. ⚠️ If your cloud backup was *Tesla Fleet*, a repair asks you to sign in once; your cloud backup choice is kept, and a linked Owner API account keeps working meanwhile. New: **Configure → Sign in to Tesla Fleet or Teslemetry**, and setup's sign-in step offers all three (Tesla account, Tesla Fleet, Teslemetry).

@@ -40,7 +40,8 @@ class CloudLoginRepairFlow(TeslaLoginMixin, RepairsFlow):
 class FleetSigninRepairFlow(RepairsFlow):
     """Sign in to the Fleet API (Tesla Fleet or Teslemetry). The sign-in runs
     as a reauthentication of the entry: Tesla Fleet's OAuth can only finish
-    in a config flow."""
+    in a config flow. Ends with an abort, so the repair stays until the
+    sign-in has worked (the reload after it clears the repair)."""
 
     def __init__(self, entry_id: str) -> None:
         self._entry_id = entry_id
@@ -51,7 +52,7 @@ class FleetSigninRepairFlow(RepairsFlow):
             return self.async_abort(reason="entry_gone")
         if user_input is not None:
             entry.async_start_reauth(self.hass, data={**entry.data, FLEET_SIGNIN: True})
-            return self.async_create_entry(data={})
+            return self.async_abort(reason="fleet_signin_started")
         return self.async_show_form(step_id="init", data_schema=vol.Schema({}))
 
 

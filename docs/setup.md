@@ -112,7 +112,7 @@ The sign-in is kept (a Tesla account in `config/tesla_tedapi/.pypowerwall.auth`,
 
 ### Tesla Fleet: your own developer app
 
-Tesla Fleet signs in with your own Tesla developer app. The app you use for Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration works too; the two sign-ins are separate. If the app isn't added yet, Home Assistant opens its **Add application credentials** dialog for the app's **Client ID** and **Client Secret** (kept under **Settings → Application credentials**). Then Tesla's sign-in page opens: allow the energy permissions.
+Tesla Fleet signs in with your own Tesla developer app. The app you use for Home Assistant's [Tesla Fleet](https://www.home-assistant.io/integrations/tesla_fleet) integration works too; the two sign-ins are separate. If the app isn't added yet, Home Assistant opens its **Add application credentials** dialog for the app's **Client ID** and **Client Secret** (kept under **Settings → Application credentials**). Then Tesla's sign-in page opens: allow the energy permissions. If a blank page is left behind after the sign-in, close it: your original tab shows the result.
 
 The app needs the energy scopes, `https://my.home-assistant.io/redirect/oauth` as a redirect URI, and a registered domain. Making one is described [below](#registering-with-the-fleet-api-developers).
 

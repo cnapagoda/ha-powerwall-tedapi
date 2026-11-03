@@ -978,7 +978,8 @@
           }
         },
         "abort": {
-          "entry_gone": "L'entrée de la Powerwall a été supprimée."
+          "entry_gone": "L'entrée de la Powerwall a été supprimée.",
+          "fleet_signin_started": "Ouvrez Paramètres → Appareils et services : cette Powerwall affiche maintenant une demande de réauthentification, où vous vous connectez à Tesla Fleet ou Teslemetry."
         }
       }
     },
@@ -992,7 +993,8 @@
           }
         },
         "abort": {
-          "entry_gone": "L'entrée de la Powerwall a été supprimée."
+          "entry_gone": "L'entrée de la Powerwall a été supprimée.",
+          "fleet_signin_started": "Ouvrez Paramètres → Appareils et services : cette Powerwall affiche maintenant une demande de réauthentification, où vous vous connectez à Tesla Fleet ou Teslemetry."
         }
       }
     },
@@ -1006,7 +1008,8 @@
           }
         },
         "abort": {
-          "entry_gone": "L'entrée de la Powerwall a été supprimée."
+          "entry_gone": "L'entrée de la Powerwall a été supprimée.",
+          "fleet_signin_started": "Ouvrez Paramètres → Appareils et services : cette Powerwall affiche maintenant une demande de réauthentification, où vous vous connectez à Tesla Fleet ou Teslemetry."
         }
       }
     },

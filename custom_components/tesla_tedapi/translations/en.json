@@ -978,7 +978,8 @@
           }
         },
         "abort": {
-          "entry_gone": "The Powerwall entry was removed."
+          "entry_gone": "The Powerwall entry was removed.",
+          "fleet_signin_started": "Open Settings → Devices & services: this Powerwall now shows a Reauthenticate prompt, where you sign in to Tesla Fleet or Teslemetry."
         }
       }
     },
@@ -992,7 +993,8 @@
           }
         },
         "abort": {
-          "entry_gone": "The Powerwall entry was removed."
+          "entry_gone": "The Powerwall entry was removed.",
+          "fleet_signin_started": "Open Settings → Devices & services: this Powerwall now shows a Reauthenticate prompt, where you sign in to Tesla Fleet or Teslemetry."
         }
       }
     },
@@ -1006,7 +1008,8 @@
           }
         },
         "abort": {
-          "entry_gone": "The Powerwall entry was removed."
+          "entry_gone": "The Powerwall entry was removed.",
+          "fleet_signin_started": "Open Settings → Devices & services: this Powerwall now shows a Reauthenticate prompt, where you sign in to Tesla Fleet or Teslemetry."
         }
       }
     },

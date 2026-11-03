@@ -239,6 +239,8 @@ async def test_reconfigure_to_v1r(hass: HomeAssistant, tmp_path) -> None:
     entry.add_to_hass(hass)
     with patch(SETUP, return_value=True):
         result = await entry.start_reconfigure_flow(hass)
+        flow = hass.config_entries.flow.async_get(result["flow_id"])
+        assert flow["context"]["title_placeholders"]["host"] == "192.168.91.1"
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"host": "192.168.1.50", "rsa_key_path": str(key),
                                 "wifi_host": "192.168.91.1", "gw_pwd": PWD})

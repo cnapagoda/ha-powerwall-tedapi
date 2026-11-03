@@ -978,7 +978,8 @@
           }
         },
         "abort": {
-          "entry_gone": "De Powerwall-vermelding is verwijderd."
+          "entry_gone": "De Powerwall-vermelding is verwijderd.",
+          "fleet_signin_started": "Open Instellingen → Apparaten en diensten: deze Powerwall toont nu een verzoek om opnieuw te verifiëren, waar je je aanmeldt bij Tesla Fleet of Teslemetry."
         }
       }
     },
@@ -992,7 +993,8 @@
           }
         },
         "abort": {
-          "entry_gone": "De Powerwall-vermelding is verwijderd."
+          "entry_gone": "De Powerwall-vermelding is verwijderd.",
+          "fleet_signin_started": "Open Instellingen → Apparaten en diensten: deze Powerwall toont nu een verzoek om opnieuw te verifiëren, waar je je aanmeldt bij Tesla Fleet of Teslemetry."
         }
       }
     },
@@ -1006,7 +1008,8 @@
           }
         },
         "abort": {
-          "entry_gone": "De Powerwall-vermelding is verwijderd."
+          "entry_gone": "De Powerwall-vermelding is verwijderd.",
+          "fleet_signin_started": "Open Instellingen → Apparaten en diensten: deze Powerwall toont nu een verzoek om opnieuw te verifiëren, waar je je aanmeldt bij Tesla Fleet of Teslemetry."
         }
       }
     },
