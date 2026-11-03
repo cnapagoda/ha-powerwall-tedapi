@@ -929,10 +929,17 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 await self.async_set_unique_id(din)
                 self._abort_if_unique_id_mismatch()
                 wifi_host = user_input.get(CONF_WIFI_HOST, "").strip()
+                data = dict(entry.data)
+                if host != entry.data.get(CONF_HOST):
+                    # A new address: forget the MACs learnt so far (a replaced
+                    # gateway, or a device that once held the old address,
+                    # must not be able to pull the entry to itself). The MAC
+                    # is learnt again at the new address.
+                    data.pop(CONF_MACS, None)
                 return self._update_and_reload(
                     entry,
                     data={
-                        **entry.data,
+                        **data,
                         CONF_CONNECTION_MODE: mode,
                         CONF_HOST: host,
                         CONF_GW_PWD: gw_pwd,
