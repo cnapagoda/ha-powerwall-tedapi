@@ -67,6 +67,7 @@ That's it. You now have a **Powerwall TEDAPI** device with its sensors and contr
 - **Check Setup health.** The **Setup health** sensor on the device page should say *OK*. If it says *Needs attention*, its attributes name the problem.
 - **Optional: set up a [cloud backup](cloud-backup.md)**, so you can still change settings if Home Assistant can't reach the gateway. If you signed in to Tesla above, it's already set up.
 - **Coming from another Powerwall integration?** See [Migrating](migration.md) to keep your Energy dashboard history.
+- **Want to charge or discharge on command?** Use the action `tesla_tedapi.dispatch_battery_power` (or `charge_to` / `discharge_to`). See [Battery dispatch: start here](actions.md#battery-dispatch-start-here), and read [Safety](safety.md) first.
 - **Want automations?** Start with the [blueprints](automations.md#blueprints). Read [Safety](safety.md) before anything that dispatches the battery.
 
 ## If something goes wrong

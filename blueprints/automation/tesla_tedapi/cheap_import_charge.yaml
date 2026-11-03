@@ -47,9 +47,10 @@ blueprint:
       selector:
         number:
           min: 100
-          max: 10000
+          max: 30000
           step: 100
           unit_of_measurement: W
+          mode: box
     max_minutes:
       name: For at most
       default: 120

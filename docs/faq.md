@@ -9,7 +9,7 @@ Once, to register the access key with your Powerwall. After that, local control 
 The Powerwall accepts a key sent over its own Wi-Fi, but in testing such a key never verified. Keys only verify when the registration comes through Tesla's cloud.
 
 **Do I need to reserve the gateway's IP address?**
-No. When your router gives the gateway a new address, Home Assistant notices it (DHCP discovery), checks it's the same Powerwall, and updates the address.
+Usually not. When your router gives the gateway a new address, Home Assistant notices it (DHCP discovery) and updates the address if it recognises the gateway by its network (MAC) address. It learns that the first time it sees the gateway at the address you set up. Your gateway password is never sent to a newly discovered device. If the gateway shows up under **Discovered** instead, select **Add** and enter the password once: it's then recognised from then on.
 
 **Does my Home Assistant need a second Wi-Fi adapter?**
 Not with the recommended signed connection, which works over your normal home network. Only the Wi-Fi password connection needs Home Assistant on the Powerwall's own Wi-Fi.

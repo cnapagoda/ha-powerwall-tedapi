@@ -32,6 +32,7 @@ from .const import (
     ATTR_TARGET_SOC,
     ATTR_TOU_SETTINGS,
     CONF_FLEET_SERVER,
+    CONF_MACS,
     CONF_OAUTH_TOKEN,
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
@@ -66,7 +67,8 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 _SOC = vol.All(vol.Coerce(float), vol.Range(min=0, max=100))
 DISPATCH_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
-    # Positive discharges, negative charges. The gateway rejects > 10 kW.
+    # Positive discharges, negative charges. Within the ceiling the gateway
+    # decides (one Powerwall 3 refuses more than 10 kW).
     vol.Required(ATTR_POWER_WATTS): vol.All(
         vol.Coerce(float), vol.Range(min=-DISPATCH_MAX_WATTS, max=DISPATCH_MAX_WATTS)),
     vol.Required(ATTR_DURATION_SECONDS): vol.All(
@@ -302,9 +304,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
     return True
 
 
-# Entry data the Fleet API client updates itself (a refreshed token, the
-# account's region server): saved without a reload.
-SELF_UPDATED = (CONF_OAUTH_TOKEN, CONF_FLEET_SERVER)
+# Entry data updated by the integration itself (a refreshed token, the
+# account's region server, the gateway's MACs): saved without a reload.
+SELF_UPDATED = (CONF_OAUTH_TOKEN, CONF_FLEET_SERVER, CONF_MACS)
 
 
 def _without_token(data: Mapping[str, Any]) -> dict[str, Any]:

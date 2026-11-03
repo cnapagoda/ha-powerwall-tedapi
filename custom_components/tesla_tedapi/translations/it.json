@@ -253,7 +253,7 @@
             },
             "data_description": {
               "dispatch_floor_reserve": "Una scarica avviata senza `min_soc` si ferma quando la batteria raggiunge la riserva di backup.",
-              "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate."
+              "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate (al massimo 30.000 W). Impostala su ciò che il tuo sistema può erogare: una Powerwall 3 rifiuta più di 10.000 W. Aumentarla è una tua responsabilità: imposta solo ciò che consentono il cablaggio, gli interruttori, il gateway e la connessione alla rete."
             }
           },
           "advanced": {
@@ -675,7 +675,7 @@
       "message": "Dispatch non valido: {error}"
     },
     "dispatch_refused": {
-      "message": "La Powerwall non ha accettato il dispatch. Vedi il log per i dettagli."
+      "message": "La Powerwall non ha accettato il comando della batteria, per esempio una potenza superiore a quella che può erogare (una Powerwall 3: 10.000 W). Il codice di stato del gateway è nel log."
     },
     "resume_refused": {
       "message": "La Powerwall non ha accettato la ripresa. Vedi il log per i dettagli."
@@ -743,7 +743,7 @@
         },
         "power_watts": {
           "name": "Potenza",
-          "description": "Potenza della batteria in watt: positiva scarica, negativa carica (fino a 10.000)."
+          "description": "Potenza della batteria in watt: positivo scarica, negativo carica (fino a 30.000). La Powerwall rifiuta più di quanto può erogare (una Powerwall 3: 10.000 W)."
         },
         "duration_seconds": {
           "name": "Durata",
@@ -773,7 +773,7 @@
         },
         "power_watts": {
           "name": "Potenza",
-          "description": "Potenza di carica o scarica in watt (da 100 a 10.000)."
+          "description": "Potenza di carica o scarica in watt (da 100 a 30.000). La Powerwall rifiuta più di quanto può erogare (una Powerwall 3: 10.000 W)."
         },
         "max_minutes": {
           "name": "Tempo limite",
@@ -795,7 +795,7 @@
         },
         "power_watts": {
           "name": "Potenza",
-          "description": "Potenza di carica o scarica in watt (da 100 a 10.000)."
+          "description": "Potenza di carica o scarica in watt (da 100 a 30.000). La Powerwall rifiuta più di quanto può erogare (una Powerwall 3: 10.000 W)."
         },
         "max_minutes": {
           "name": "Tempo limite",

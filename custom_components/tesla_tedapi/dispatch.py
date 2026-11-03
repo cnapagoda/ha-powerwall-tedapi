@@ -24,8 +24,8 @@ from .const import (
     CONF_DISPATCH_FLOOR_RESERVE,
     CONF_DISPATCH_MAX_WATTS,
     DISPATCH_CHUNK_SECONDS,
+    DISPATCH_DEFAULT_WATTS,
     DISPATCH_MAX_FAILURES,
-    DISPATCH_MAX_WATTS,
     DISPATCH_RENEW_SECONDS,
     DOMAIN,
     EVENT_DISPATCH_ENDED,
@@ -148,7 +148,8 @@ class DispatchSession:
                 translation_domain=DOMAIN, translation_key="dispatch_needs_v1r",
             )
         options = self.coordinator.config_entry.options
-        cap = options.get(CONF_DISPATCH_MAX_WATTS, DISPATCH_MAX_WATTS)
+        # The user's own limit (Largest dispatch power); within it the gateway decides.
+        cap = options.get(CONF_DISPATCH_MAX_WATTS, DISPATCH_DEFAULT_WATTS)
         if abs(power_watts) > cap:
             raise ServiceValidationError(
                 f"{power_watts} W is above the {cap} W limit set in the integration options",

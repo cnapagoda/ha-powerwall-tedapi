@@ -42,6 +42,10 @@ BACKEND_OWNER = "owner_api"
 BACKEND_FLEET = "tesla_fleet"
 # The Fleet API sign-in, in the entry data. A Tesla Fleet sign-in also keeps
 # "auth_implementation" and "token" (Home Assistant's OAuth2 keys).
+# The gateway's network MAC addresses (lower case, no separators), learnt
+# from DHCP discovery: only a discovery with one of them is followed to a
+# new address. Saved without a reload.
+CONF_MACS = "macs"
 CONF_FLEET_PROVIDER = "fleet_provider"
 CONF_FLEET_SITE_ID = "fleet_site_id"
 CONF_FLEET_SERVER = "fleet_server"
@@ -163,7 +167,12 @@ PASSWORD_REFUSED_POLLS = 3
 ENERGY_RESET_POLLS = 10
 
 # Battery dispatch
-DISPATCH_MAX_WATTS = 10000
+# Battery dispatch power ceiling (W) for actions and the Largest dispatch power
+# option. Within it the gateway decides: one Powerwall 3 refuses more than
+# 10,000 W (status code 11); systems with several can do more.
+DISPATCH_MAX_WATTS = 30000
+# Largest dispatch power until the user sets it: what one Powerwall 3 accepts.
+DISPATCH_DEFAULT_WATTS = 10000
 DISPATCH_MAX_SECONDS = 86400
 # Each command to the Powerwall covers at most this long and is renewed while a
 # session runs, so the battery returns to normal within this time if Home

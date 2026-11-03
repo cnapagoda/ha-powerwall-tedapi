@@ -253,7 +253,7 @@
             },
             "data_description": {
               "dispatch_floor_reserve": "Een ontlading die zonder `min_soc` is gestart, stopt als de batterij de back-upreserve bereikt.",
-              "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd."
+              "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd (hoogstens 30.000 W). Stel in wat je systeem kan leveren: één Powerwall 3 weigert meer dan 10.000 W. Verhogen is jouw verantwoordelijkheid: stel alleen in wat je bedrading, groepen, gateway en netaansluiting toelaten."
             }
           },
           "advanced": {
@@ -675,7 +675,7 @@
       "message": "Ongeldige batterijsturing: {error}"
     },
     "dispatch_refused": {
-      "message": "De Powerwall heeft de batterijsturing niet geaccepteerd. Zie het logboek voor details."
+      "message": "De Powerwall accepteerde de batterijsturing niet, bijvoorbeeld een vermogen boven wat hij kan leveren (één Powerwall 3: 10.000 W). De statuscode van de gateway staat in het logboek."
     },
     "resume_refused": {
       "message": "De Powerwall heeft het hervatten niet geaccepteerd. Zie het logboek voor details."
@@ -743,7 +743,7 @@
         },
         "power_watts": {
           "name": "Vermogen",
-          "description": "Batterijvermogen in watt: positief ontlaadt, negatief laadt (tot 10.000)."
+          "description": "Batterijvermogen in watt: positief ontlaadt, negatief laadt (tot 30.000). De Powerwall weigert meer dan hij kan leveren (één Powerwall 3: 10.000 W)."
         },
         "duration_seconds": {
           "name": "Duur",
@@ -773,7 +773,7 @@
         },
         "power_watts": {
           "name": "Vermogen",
-          "description": "Laad- of ontlaadvermogen in watt (100 tot 10.000)."
+          "description": "Laad- of ontlaadvermogen in watt (100 tot 30.000). De Powerwall weigert meer dan hij kan leveren (één Powerwall 3: 10.000 W)."
         },
         "max_minutes": {
           "name": "Tijdslimiet",
@@ -795,7 +795,7 @@
         },
         "power_watts": {
           "name": "Vermogen",
-          "description": "Laad- of ontlaadvermogen in watt (100 tot 10.000)."
+          "description": "Laad- of ontlaadvermogen in watt (100 tot 30.000). De Powerwall weigert meer dan hij kan leveren (één Powerwall 3: 10.000 W)."
         },
         "max_minutes": {
           "name": "Tijdslimiet",

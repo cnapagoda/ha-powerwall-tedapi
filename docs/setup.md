@@ -55,7 +55,7 @@ Then enter the **gateway password**. You need it for every way of connecting: it
 
 </details>
 
-**You don't need to reserve the gateway's IP address.** When your router gives it a new address, Home Assistant notices the gateway (DHCP discovery), checks it's the same Powerwall, and updates the address.
+**You don't need to reserve the gateway's IP address.** When your router gives it a new address, Home Assistant notices the gateway (DHCP discovery) and updates the address if it recognises the gateway's network (MAC) address. It learns that address the first time it sees the gateway at its current address, or when you add a discovered gateway with its password. Your password is never sent to a newly discovered device.
 
 ## 2. Choose how to connect
 
