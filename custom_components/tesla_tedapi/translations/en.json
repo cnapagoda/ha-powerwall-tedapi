@@ -253,7 +253,7 @@
             },
             "data_description": {
               "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",
-              "dispatch_max_watts": "Dispatch calls above this power are refused (at most 30,000 W). Set it to what your system can deliver: one Powerwall 3 refuses more than 10,000 W."
+              "dispatch_max_watts": "Dispatch calls above this power are refused (at most 30,000 W). Set it to what your system can deliver: one Powerwall 3 refuses more than 10,000 W. Raising it is your responsibility: only set what your wiring, breakers, gateway and grid connection allow."
             }
           },
           "advanced": {

@@ -253,7 +253,7 @@
             },
             "data_description": {
               "dispatch_floor_reserve": "Uma descarga iniciada sem `min_soc` para quando a bateria chega à reserva de backup.",
-              "dispatch_max_watts": "Chamadas de dispatch acima desta potência são recusadas (no máximo 30.000 W). Ajuste para o que seu sistema pode fornecer: uma Powerwall 3 recusa mais de 10.000 W."
+              "dispatch_max_watts": "Chamadas de dispatch acima desta potência são recusadas (no máximo 30.000 W). Ajuste para o que seu sistema pode fornecer: uma Powerwall 3 recusa mais de 10.000 W. Aumentá-la é sua responsabilidade: defina apenas o que sua fiação, disjuntores, gateway e conexão à rede permitem."
             }
           },
           "advanced": {

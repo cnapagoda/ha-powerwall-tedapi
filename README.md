@@ -22,6 +22,8 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 
 > ⚠️ **Not affiliated with Tesla.** This uses undocumented interfaces that Tesla can change at any time. Battery dispatch overrides your export setting and may affect your warranty; going off-grid disconnects your house from the grid. Read [Safety](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/safety.md) before you use them.
 
+**Disclaimer.** This integration is provided "as is", without warranty of any kind, under the MIT license. It controls electrical equipment through interfaces Tesla doesn't document, and nobody knows every way that could go wrong. You are responsible for how you use it: for staying within what your installation can safely carry, your network operator's rules (including export limits) and your Powerwall warranty. The author is not liable for any damage, loss, cost or penalty that results.
+
 ## Quick start
 
 1. **Install** through HACS: search for **Tesla Powerwall TEDAPI**, download it, and restart Home Assistant. If the search doesn't find it, add this repository as a custom repository (type **Integration**) first.

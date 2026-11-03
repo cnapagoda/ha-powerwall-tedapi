@@ -253,7 +253,7 @@
             },
             "data_description": {
               "dispatch_floor_reserve": "Een ontlading die zonder `min_soc` is gestart, stopt als de batterij de back-upreserve bereikt.",
-              "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd (hoogstens 30.000 W). Stel in wat je systeem kan leveren: één Powerwall 3 weigert meer dan 10.000 W."
+              "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd (hoogstens 30.000 W). Stel in wat je systeem kan leveren: één Powerwall 3 weigert meer dan 10.000 W. Verhogen is jouw verantwoordelijkheid: stel alleen in wat je bedrading, groepen, gateway en netaansluiting toelaten."
             }
           },
           "advanced": {

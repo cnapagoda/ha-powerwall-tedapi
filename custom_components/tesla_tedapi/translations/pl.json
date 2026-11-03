@@ -253,7 +253,7 @@
             },
             "data_description": {
               "dispatch_floor_reserve": "Rozładowanie uruchomione bez `min_soc` zatrzymuje się, gdy bateria osiągnie rezerwę awaryjną.",
-              "dispatch_max_watts": "Wywołania dispatch powyżej tej mocy są odrzucane (najwyżej 30 000 W). Ustaw to, co może dostarczyć Twój system: jeden Powerwall 3 odrzuca więcej niż 10 000 W."
+              "dispatch_max_watts": "Wywołania dispatch powyżej tej mocy są odrzucane (najwyżej 30 000 W). Ustaw to, co może dostarczyć Twój system: jeden Powerwall 3 odrzuca więcej niż 10 000 W. Podniesienie tej wartości to Twoja odpowiedzialność: ustaw tylko tyle, ile pozwalają okablowanie, wyłączniki, bramka i przyłącze sieciowe."
             }
           },
           "advanced": {

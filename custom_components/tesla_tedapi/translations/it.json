@@ -253,7 +253,7 @@
             },
             "data_description": {
               "dispatch_floor_reserve": "Una scarica avviata senza `min_soc` si ferma quando la batteria raggiunge la riserva di backup.",
-              "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate (al massimo 30.000 W). Impostala su ciò che il tuo sistema può erogare: una Powerwall 3 rifiuta più di 10.000 W."
+              "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate (al massimo 30.000 W). Impostala su ciò che il tuo sistema può erogare: una Powerwall 3 rifiuta più di 10.000 W. Aumentarla è una tua responsabilità: imposta solo ciò che consentono il cablaggio, gli interruttori, il gateway e la connessione alla rete."
             }
           },
           "advanced": {

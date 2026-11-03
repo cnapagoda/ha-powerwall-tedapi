@@ -253,7 +253,7 @@
             },
             "data_description": {
               "dispatch_floor_reserve": "Une décharge lancée sans `min_soc` s'arrête quand la batterie atteint la réserve de secours.",
-              "dispatch_max_watts": "Les appels de dispatch au-delà de cette puissance sont refusés (30 000 W au plus). Réglez-la selon ce que votre système peut fournir : une Powerwall 3 refuse plus de 10 000 W."
+              "dispatch_max_watts": "Les appels de dispatch au-delà de cette puissance sont refusés (30 000 W au plus). Réglez-la selon ce que votre système peut fournir : une Powerwall 3 refuse plus de 10 000 W. L'augmenter relève de votre responsabilité : ne réglez que ce que votre câblage, vos disjoncteurs, la passerelle et votre raccordement au réseau permettent."
             }
           },
           "advanced": {

@@ -1,5 +1,7 @@
 # Safety
 
+**Disclaimer.** This integration is provided "as is", without warranty of any kind, under the MIT license. It controls electrical equipment through interfaces Tesla doesn't document, and nobody knows every way that could go wrong. You are responsible for how you use it: for staying within what your installation can safely carry, your network operator's rules (including export limits) and your Powerwall warranty. The author is not liable for any damage, loss, cost or penalty that results.
+
 This integration controls real electrical equipment through interfaces Tesla doesn't document. Monitoring is harmless. Changing settings is what the Tesla app does too. **Battery dispatch and going off-grid go further.** Read this page before you use them.
 
 > [!WARNING]

@@ -3,6 +3,7 @@
 ## 2.6.2
 
 - **Battery dispatch up to 30 kW.** `dispatch_battery_power`, `charge_to`, `discharge_to` and **Largest dispatch power** now go up to 30,000 W (was 10,000 W), for systems with several Powerwalls. **Largest dispatch power** still defaults to 10,000 W (what one Powerwall 3 accepts): raise it to what your system and grid connection allow. Within it the Powerwall decides: it refuses what it can't deliver (one Powerwall 3 refuses more than 10,000 W), and the error now says so. The blueprints' power inputs go up to 30,000 W too.
+- **Disclaimer** in the README and on the Safety page: provided as is, you're responsible for how you use it. The **Largest dispatch power** setting now says that raising it is your responsibility.
 - Docs: a **Battery dispatch: start here** section on the Actions page (with an example), and pointers to it from the README and Quick start.
 
 ## 2.6.1

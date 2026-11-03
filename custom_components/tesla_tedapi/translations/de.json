@@ -253,7 +253,7 @@
             },
             "data_description": {
               "dispatch_floor_reserve": "Eine ohne `min_soc` gestartete Entladung stoppt, wenn die Batterie die Backup-Reserve erreicht.",
-              "dispatch_max_watts": "Dispatch-Aufrufe über dieser Leistung werden abgelehnt (höchstens 30.000 W). Stelle ein, was dein System liefern kann: eine Powerwall 3 lehnt mehr als 10.000 W ab."
+              "dispatch_max_watts": "Dispatch-Aufrufe über dieser Leistung werden abgelehnt (höchstens 30.000 W). Stelle ein, was dein System liefern kann: eine Powerwall 3 lehnt mehr als 10.000 W ab. Eine Erhöhung liegt in deiner Verantwortung: stelle nur ein, was deine Verkabelung, Sicherungen, dein Gateway und dein Netzanschluss zulassen."
             }
           },
           "advanced": {
