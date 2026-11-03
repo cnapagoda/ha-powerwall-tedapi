@@ -53,7 +53,7 @@ The form is in four sections: **General** (polling, restore), **Alerts**, **Batt
 
 | Field | |
 |---|---|
-| **Gateway address** | The gateway's address on your home network. You rarely need this: a new address is picked up by itself through DHCP discovery. |
+| **Gateway address** | The gateway's address on your home network. You rarely need this: a new address is picked up by itself through DHCP discovery once the gateway's MAC address is known. |
 | **Gateway password** | The last 5 characters of the QR-sticker password, or the whole password (upper case). |
 | **RSA private key file** | Full path to the key on the Home Assistant host, for example `/config/tesla_tedapi/tedapi_rsa_private.pem`. Giving a key switches a Wi-Fi password entry to signed. Leave it empty for the Wi-Fi password connection. |
 | **Wi-Fi fallback address (signed only)** | Usually `192.168.91.1`, used when the home-network address stops answering. Leave it empty if Home Assistant can't reach the Powerwall's Wi-Fi. |

@@ -42,6 +42,10 @@ BACKEND_OWNER = "owner_api"
 BACKEND_FLEET = "tesla_fleet"
 # The Fleet API sign-in, in the entry data. A Tesla Fleet sign-in also keeps
 # "auth_implementation" and "token" (Home Assistant's OAuth2 keys).
+# The gateway's network MAC addresses (lower case, no separators), learnt
+# from DHCP discovery: only a discovery with one of them is followed to a
+# new address. Saved without a reload.
+CONF_MACS = "macs"
 CONF_FLEET_PROVIDER = "fleet_provider"
 CONF_FLEET_SITE_ID = "fleet_site_id"
 CONF_FLEET_SERVER = "fleet_server"

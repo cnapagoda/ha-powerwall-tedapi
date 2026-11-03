@@ -316,6 +316,22 @@ async def test_connect_finds_another_powerwall(hass: HomeAssistant, tmp_path) ->
     assert result["reason"] == "wrong_powerwall"
 
 
+async def test_discovered_gateway_keeps_its_mac(hass: HomeAssistant) -> None:
+    """A gateway set up from DHCP discovery: the user types its password, and
+    the new entry records the MAC so a later address change is followed."""
+    with patch.object(config_flow, "_check_gateway", return_value=DIN), patch(SETUP, return_value=True):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_DHCP},
+            data=DhcpServiceInfo(ip="192.168.1.80", hostname="teslapw_new", macaddress="aabbccddee20"))
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "192.168.1.80", "gw_pwd": PWD, "wifi_host": ""})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "wifi"})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "192.168.91.1", "cloud_backup": False})
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"]["macs"] == ["aabbccddee20"]
+
+
 async def test_finish_without_din_checks_the_connection(hass: HomeAssistant) -> None:
     # Older firmware: the gateway step can't read the DIN, the final check does.
     with patch.object(config_flow, "_check_gateway", return_value=None), patch(SETUP, return_value=True):
@@ -346,18 +362,26 @@ async def test_dhcp_known_or_other_gateways(hass: HomeAssistant) -> None:
         "connection_mode": "v1r", "host": "192.168.1.40"}).add_to_hass(hass)
     MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R).add_to_hass(hass)
 
-    # Already at that address.
+    # Already at that address: the entry learns the gateway's MAC (no reload).
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_DHCP},
         data=DhcpServiceInfo(ip="192.168.1.50", hostname="teslapw_x", macaddress="aabbccddee02"))
     assert result["reason"] == "already_configured"
+    entry = hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, DIN)
+    assert entry.data["macs"] == ["aabbccddee02"]
+    # Seen there again: nothing to add.
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_DHCP},
+        data=DhcpServiceInfo(ip="192.168.1.50", hostname="teslapw_x", macaddress="aabbccddee02"))
+    assert result["reason"] == "already_configured" and entry.data["macs"] == ["aabbccddee02"]
 
-    # A gateway the known entries can't log in to: offered as new.
-    with patch.object(config_flow, "_check_gateway", side_effect=gateway.GatewayPasswordRejected):
+    # Another device: offered as new, and no password is tried on it.
+    with patch.object(config_flow, "_check_gateway") as check:
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_DHCP},
             data=DhcpServiceInfo(ip="192.168.1.62", hostname="teslapw_y", macaddress="aabbccddee03"))
     assert result["step_id"] == "gateway"
+    check.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -423,8 +447,10 @@ async def test_scan_error_falls_back_to_manual(hass: HomeAssistant) -> None:
 ])
 async def test_dhcp_knows_a_hotspot_entry(hass: HomeAssistant, data: dict) -> None:
     """A gateway set up over its Wi-Fi hotspot that shows up on the home
-    network is recognised by its DIN, not offered as new. Its stored
-    address (the hotspot) is left alone."""
+    network: its MAC is unknown, so it's offered as new with no password sent.
+    Confirmed by the user with the password, it's recognised by its DIN and
+    the entry learns the MAC; from then on it's known. Its stored address
+    (the hotspot) is left alone."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=data)
     entry.add_to_hass(hass)
 
@@ -435,8 +461,17 @@ async def test_dhcp_knows_a_hotspot_entry(hass: HomeAssistant, data: dict) -> No
 
     with patch.object(config_flow, "_check_gateway", return_value=DIN) as check:
         result = await discover("aabbccddee10")
+        assert result["step_id"] == "gateway"
+        check.assert_not_called()
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "192.168.1.70", "gw_pwd": PWD, "wifi_host": ""})
     assert result["reason"] == "already_configured"
-    check.assert_called_once_with("192.168.1.70", PWD)
+    check.assert_called_once_with("192.168.1.70", PWD)  # typed by the user
+    assert entry.data["macs"] == ["aabbccddee10"]
+    with patch.object(config_flow, "_check_gateway") as check:
+        result = await discover("aabbccddee10")
+    assert result["reason"] == "already_configured"
+    check.assert_not_called()
     assert entry.data["host"] == "192.168.91.1"
 
     # Another gateway (other DIN), or one that can't be checked: offered as new.

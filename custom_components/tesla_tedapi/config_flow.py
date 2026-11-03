@@ -71,6 +71,7 @@ from .const import (
     CONF_FLEET_TOKEN,
     CONF_GW_PWD,
     CONF_HOST,
+    CONF_MACS,
     CONF_OWNERS_AUTHPATH,
     CONF_OWNERS_EMAIL,
     CONF_PROBLEM_MINUTES,
@@ -272,6 +273,18 @@ def _options_with_fleet(entry: ConfigEntry) -> dict[str, Any]:
     return options
 
 
+def _mac(value: str) -> str:
+    return value.replace(":", "").replace("-", "").lower()
+
+
+@callback
+def _remember_mac(hass: HomeAssistant, entry: ConfigEntry, mac: str) -> None:
+    """Add a MAC to the entry's known gateway MACs (no reload)."""
+    macs = list(entry.data.get(CONF_MACS) or [])
+    if mac and mac not in macs:
+        hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_MACS: [*macs, mac]})
+
+
 class TeslaLoginMixin:
     """Tesla sign-in (pasted callback URL) and site choice, shared by the
     config flow, the options flow and the cloud sign-in repair."""
@@ -411,6 +424,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         self._din: str | None = None
         self._found: list[dict[str, str]] = []
         self._data: dict[str, Any] = {}
+        # MAC of a gateway found by DHCP discovery, saved with the entry.
+        self._dhcp_mac: str | None = None
 
     @staticmethod
     @callback
@@ -453,30 +468,34 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
 
     async def async_step_dhcp(self, discovery_info: DhcpServiceInfo) -> ConfigFlowResult:
         """A gateway joined the network: follow a known one to its new address,
-        or offer to set up a new one."""
+        or offer to set up a new one.
+
+        A gateway is recognised by its MAC only: no stored password is ever
+        sent to a discovered address (any device can announce a matching
+        hostname). An entry learns its gateway's MAC from a discovery at the
+        address it already uses, or when the user sets it up or confirms it
+        with the password. An unknown MAC is offered as a new gateway."""
         ip = discovery_info.ip
-        await self.async_set_unique_id(discovery_info.macaddress.replace(":", "").lower())
+        mac = _mac(discovery_info.macaddress)
+        await self.async_set_unique_id(mac)
         self._abort_if_unique_id_configured()
         for entry in self._async_current_entries(include_ignore=False):
             host = entry.data.get(CONF_HOST)
-            if host == ip:
+            if mac in (entry.data.get(CONF_MACS) or []):
+                if host in (ip, DEFAULT_HOST_WIFI) or entry.data.get(CONF_CONNECTION_MODE) != MODE_V1R:
+                    # Same address, or set up over the gateway's Wi-Fi
+                    # hotspot (keep the hotspot address it connects to).
+                    return self.async_abort(reason="already_configured")
+                _LOGGER.info("Powerwall %s moved from %s to %s", entry.unique_id, host, ip)
+                self.hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_HOST: ip})
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
                 return self.async_abort(reason="already_configured")
-            if not entry.data.get(CONF_GW_PWD):
-                continue
-            try:
-                din = await self.hass.async_add_executor_job(_check_gateway, ip, entry.data[CONF_GW_PWD])
-            except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected):
-                continue
-            if not din or din != entry.unique_id:
-                continue
-            if entry.data.get(CONF_CONNECTION_MODE) != MODE_V1R or host == DEFAULT_HOST_WIFI:
-                # Set up over the gateway's Wi-Fi hotspot: already known, but
-                # keep the hotspot address it connects to.
+        for entry in self._async_current_entries(include_ignore=False):
+            if entry.data.get(CONF_HOST) == ip:
+                # The address this entry already talks to: remember its MAC.
+                _remember_mac(self.hass, entry, mac)
                 return self.async_abort(reason="already_configured")
-            _LOGGER.info("Powerwall %s moved from %s to %s", din, host, ip)
-            self.hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_HOST: ip})
-            self.hass.config_entries.async_schedule_reload(entry.entry_id)
-            return self.async_abort(reason="already_configured")
+        self._dhcp_mac = mac
         self._data[CONF_HOST] = ip
         self.context["title_placeholders"] = {"host": ip}
         return await self.async_step_gateway()
@@ -495,7 +514,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             else:
                 if self._din:
                     await self.async_set_unique_id(self._din, raise_on_progress=False)
-                    self._abort_if_unique_id_configured()
+                    self._abort_if_known_gateway()
                 wifi_host = (user_input.get(CONF_WIFI_HOST) or "").strip()
                 self._data.update({
                     CONF_HOST: host,
@@ -765,7 +784,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             self._abort_if_unique_id_mismatch(reason="wrong_powerwall")
         else:
             await self.async_set_unique_id(din, raise_on_progress=False)
-            self._abort_if_unique_id_configured()
+            self._abort_if_known_gateway()
         self._din = din
         if self._token is None and self._fleet is None and self._cloud_wanted:
             return await self.async_step_signin()
@@ -781,6 +800,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             return await self._async_connect()
         data = dict(self._data)
         data[CONF_CONNECTION_MODE] = self._mode
+        if self._dhcp_mac:
+            data[CONF_MACS] = [self._dhcp_mac]
         if self._mode != MODE_V1R:
             data.pop(CONF_WIFI_HOST, None)
             data.pop(CONF_RSA_KEY_PATH, None)
@@ -821,6 +842,15 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         if not listener_reloads:
             self.hass.config_entries.async_schedule_reload(entry.entry_id)
         return result
+
+    def _abort_if_known_gateway(self) -> None:
+        """Abort when this gateway (by its DIN) is already set up. A gateway
+        found by DHCP discovery and confirmed with its password here gives
+        that entry its MAC, so it can be followed to a new address."""
+        entry = self.hass.config_entries.async_entry_for_domain_unique_id(DOMAIN, self.unique_id or "")
+        if entry is not None and self._dhcp_mac:
+            _remember_mac(self.hass, entry, self._dhcp_mac)
+        self._abort_if_unique_id_configured()
 
     def _title_host(self, entry: ConfigEntry) -> None:
         """The card title ("Powerwall ({host})") needs the gateway address;

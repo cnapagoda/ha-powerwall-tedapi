@@ -32,6 +32,7 @@ from .const import (
     ATTR_TARGET_SOC,
     ATTR_TOU_SETTINGS,
     CONF_FLEET_SERVER,
+    CONF_MACS,
     CONF_OAUTH_TOKEN,
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
@@ -303,9 +304,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
     return True
 
 
-# Entry data the Fleet API client updates itself (a refreshed token, the
-# account's region server): saved without a reload.
-SELF_UPDATED = (CONF_OAUTH_TOKEN, CONF_FLEET_SERVER)
+# Entry data updated by the integration itself (a refreshed token, the
+# account's region server, the gateway's MACs): saved without a reload.
+SELF_UPDATED = (CONF_OAUTH_TOKEN, CONF_FLEET_SERVER, CONF_MACS)
 
 
 def _without_token(data: Mapping[str, Any]) -> dict[str, Any]:

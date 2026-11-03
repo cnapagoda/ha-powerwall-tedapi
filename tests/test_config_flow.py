@@ -198,15 +198,38 @@ async def test_scan(hass: HomeAssistant) -> None:
 
 
 async def test_dhcp_follows_new_address(hass: HomeAssistant) -> None:
+    """A known gateway (by its MAC) is followed to its new address, without
+    sending it the password."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={
-        "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/k"})
+        "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/k",
+        "macs": ["aabbccddeeff"]})
     entry.add_to_hass(hass)
-    with patch(SETUP, return_value=True):
+    with patch(SETUP, return_value=True), patch.object(config_flow, "_check_gateway") as check:
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_DHCP},
             data=DhcpServiceInfo(ip="192.168.1.60", hostname="teslapw_abcdef", macaddress="aabbccddeeff"))
     assert result["reason"] == "already_configured"
     assert entry.data["host"] == "192.168.1.60"
+    check.assert_not_called()
+
+
+async def test_dhcp_never_sends_a_stored_password(hass: HomeAssistant) -> None:
+    """Any device can announce a matching hostname: an unknown MAC is offered
+    as a new gateway, and no configured Powerwall's password goes to it."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={
+        "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/k"})
+    entry.add_to_hass(hass)
+    with (patch.object(config_flow, "_check_gateway") as check,
+          patch("custom_components.tesla_tedapi.gateway.login") as login):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_DHCP},
+            data=DhcpServiceInfo(ip="192.168.1.66", hostname="teslapw_evil", macaddress="deadbeef0001"))
+    assert result["step_id"] == "gateway"
+    check.assert_not_called()
+    login.assert_not_called()
+    defaults = {str(key): key.default() for key in result["data_schema"].schema if callable(key.default)}
+    assert defaults["gw_pwd"] == "" and defaults["host"] == "192.168.1.66"
+    assert entry.data["host"] == "192.168.1.50" and "macs" not in entry.data
 
 
 async def test_dhcp_new_gateway(hass: HomeAssistant) -> None:
