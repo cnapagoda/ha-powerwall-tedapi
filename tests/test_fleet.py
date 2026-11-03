@@ -189,10 +189,14 @@ async def test_choice_without_a_sign_in_here_asks_for_one(hass: HomeAssistant, f
     result = await flow.async_step_init()
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "init"
     result = await flow.async_step_init({})
-    assert result["type"] is FlowResultType.CREATE_ENTRY
+    # An abort, not a finished fix: the repair stays until the sign-in works.
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "fleet_signin_started"
     await hass.async_block_till_done()
     flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
     assert [f["step_id"] for f in flows] == ["fleet_signin"]
+    # The card's title has the gateway address ("Powerwall ({host})").
+    assert flows[0]["context"]["title_placeholders"] == {"name": "Powerwall", "host": V1R["host"]}
+    assert _issue(hass, "fleet_signin", entry) is not None
     # Unloading clears it.
     assert await hass.config_entries.async_unload(entry.entry_id)
     assert _issue(hass, "fleet_signin", entry) is None
@@ -515,3 +519,48 @@ async def test_tesla_tariff_through_fleet(hass: HomeAssistant, fake_powerwall, f
     fleet.hang = True
     with patch.object(fleet_mod, "RUN_TIMEOUT", 0.05), pytest.raises(fleet_mod.FleetTimeout):
         await hass.async_add_executor_job(client.get_tariff)
+
+
+async def test_flows_leave_the_reload_to_the_update_listener(hass: HomeAssistant, fake_powerwall, fleet) -> None:
+    """Home Assistant (2026.12+) wants an entry with an update listener to be
+    reloaded by that listener, not by the flow. Each flow still reloads once:
+    through the listener, or scheduled when the listener wouldn't."""
+    from custom_components.tesla_tedapi import config_flow  # noqa: PLC0415
+
+    entry = await _setup(hass, {**V1R, **TESLEMETRY})
+    reload, schedule = hass.config_entries.async_reload, hass.config_entries.async_schedule_reload
+    reloads: list[str] = []
+    scheduled: list[str] = []
+
+    async def counted_reload(entry_id):
+        reloads.append(entry_id)
+        return await reload(entry_id)
+
+    def counted_schedule(entry_id):
+        scheduled.append(entry_id)
+        schedule(entry_id)
+
+    async def reauth(*steps):
+        entry.async_start_reauth(hass, data={**entry.data, **steps[0]})
+        await hass.async_block_till_done()
+        flow_id = hass.config_entries.flow.async_progress_by_handler(DOMAIN)[0]["flow_id"]
+        result = None
+        for step in steps[1:]:
+            result = await hass.config_entries.flow.async_configure(flow_id, step)
+        await hass.async_block_till_done()
+        return result
+
+    with (patch.object(hass.config_entries, "async_reload", counted_reload),
+          patch.object(hass.config_entries, "async_schedule_reload", counted_schedule),
+          patch.object(config_flow, "_check_gateway", return_value=DIN)):
+        # A new gateway password: the listener reloads.
+        result = await reauth({}, {"next_step_id": "reauth_password"}, {"gw_pwd": "NEW12345"})
+        assert result["reason"] == "reauth_successful" and entry.data["gw_pwd"] == "NEW12345"
+        assert (len(reloads), scheduled) == (1, [])
+        # The same Teslemetry sign-in again: nothing changes, so the flow
+        # schedules the reload itself.
+        reloads.clear()
+        result = await reauth({config_flow.FLEET_SIGNIN: True}, {"next_step_id": "teslemetry"},
+                              {"access_token": "tm-token"})
+        assert result["reason"] == "reauth_successful"
+        assert scheduled == [entry.entry_id] and len(reloads) == 1

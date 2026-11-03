@@ -978,7 +978,8 @@
           }
         },
         "abort": {
-          "entry_gone": "Se eliminó la entrada de la Powerwall."
+          "entry_gone": "Se eliminó la entrada de la Powerwall.",
+          "fleet_signin_started": "Abre Ajustes → Dispositivos y servicios: esta Powerwall muestra ahora un aviso de reautenticación, donde inicias sesión en Tesla Fleet o Teslemetry."
         }
       }
     },
@@ -992,7 +993,8 @@
           }
         },
         "abort": {
-          "entry_gone": "Se eliminó la entrada de la Powerwall."
+          "entry_gone": "Se eliminó la entrada de la Powerwall.",
+          "fleet_signin_started": "Abre Ajustes → Dispositivos y servicios: esta Powerwall muestra ahora un aviso de reautenticación, donde inicias sesión en Tesla Fleet o Teslemetry."
         }
       }
     },
@@ -1006,7 +1008,8 @@
           }
         },
         "abort": {
-          "entry_gone": "Se eliminó la entrada de la Powerwall."
+          "entry_gone": "Se eliminó la entrada de la Powerwall.",
+          "fleet_signin_started": "Abre Ajustes → Dispositivos y servicios: esta Powerwall muestra ahora un aviso de reautenticación, donde inicias sesión en Tesla Fleet o Teslemetry."
         }
       }
     },

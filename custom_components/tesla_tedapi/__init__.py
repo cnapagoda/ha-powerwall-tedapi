@@ -311,6 +311,18 @@ def _without_token(data: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in data.items() if key not in SELF_UPDATED}
 
 
+def reloads_on_update(entry: TedapiConfigEntry, data: Mapping[str, Any], options: Mapping[str, Any]) -> bool:
+    """Whether the update listener reloads the entry for this data and these
+    options: anything but a refreshed token or region, or options outside
+    LIVE_OPTIONS. False when the entry isn't loaded (no listener runs)."""
+    runtime = getattr(entry, "runtime_data", None)
+    if runtime is None or not entry.update_listeners:
+        return False
+    changed = {key for key in runtime.applied_options.keys() | options.keys()
+               if runtime.applied_options.get(key) != options.get(key)}
+    return _without_token(data) != _without_token(runtime.applied_data) or not changed <= LIVE_OPTIONS
+
+
 async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) -> None:
     """Apply a change of options in place when only LIVE_OPTIONS changed, so a
     running battery dispatch carries on; reload for anything else (connection,
@@ -318,7 +330,7 @@ async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) 
     runtime = entry.runtime_data
     changed = {key for key in runtime.applied_options.keys() | entry.options.keys()
                if runtime.applied_options.get(key) != entry.options.get(key)}
-    if _without_token(entry.data) == _without_token(runtime.applied_data) and changed <= LIVE_OPTIONS:
+    if not reloads_on_update(entry, entry.data, entry.options):
         # A refreshed Tesla Fleet token or region is saved in the data: no reload.
         runtime.applied_data = dict(entry.data)
         runtime.applied_options = dict(entry.options)

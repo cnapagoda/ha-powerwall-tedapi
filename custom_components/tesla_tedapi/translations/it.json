@@ -978,7 +978,8 @@
           }
         },
         "abort": {
-          "entry_gone": "La voce della Powerwall è stata rimossa."
+          "entry_gone": "La voce della Powerwall è stata rimossa.",
+          "fleet_signin_started": "Apri Impostazioni → Dispositivi e servizi: questa Powerwall ora mostra una richiesta di nuova autenticazione, dove accedi a Tesla Fleet o Teslemetry."
         }
       }
     },
@@ -992,7 +993,8 @@
           }
         },
         "abort": {
-          "entry_gone": "La voce della Powerwall è stata rimossa."
+          "entry_gone": "La voce della Powerwall è stata rimossa.",
+          "fleet_signin_started": "Apri Impostazioni → Dispositivi e servizi: questa Powerwall ora mostra una richiesta di nuova autenticazione, dove accedi a Tesla Fleet o Teslemetry."
         }
       }
     },
@@ -1006,7 +1008,8 @@
           }
         },
         "abort": {
-          "entry_gone": "La voce della Powerwall è stata rimossa."
+          "entry_gone": "La voce della Powerwall è stata rimossa.",
+          "fleet_signin_started": "Apri Impostazioni → Dispositivi e servizi: questa Powerwall ora mostra una richiesta di nuova autenticazione, dove accedi a Tesla Fleet o Teslemetry."
         }
       }
     },

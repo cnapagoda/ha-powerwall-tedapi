@@ -614,8 +614,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         if self._fleet_only:
             entry = self._get_reauth_entry()
             data = {k: v for k, v in entry.data.items() if k not in FLEET_DATA_KEYS}
-            return self.async_update_reload_and_abort(
-                entry, data={**data, **self._fleet}, options=_options_with_fleet(entry))
+            return self._update_and_reload(entry, data={**data, **self._fleet}, options=_options_with_fleet(entry))
         if self._register:
             return await self.async_step_register_key()
         return await self._async_finish()
@@ -791,10 +790,10 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         if self.source == SOURCE_REAUTH:
             entry = self._get_reauth_entry()
             if self._fleet is not None:
-                return self.async_update_reload_and_abort(
+                return self._update_and_reload(
                     entry, data={**{k: v for k, v in entry.data.items() if k not in FLEET_DATA_KEYS}, **data},
                     options=_options_with_fleet(entry))
-            return self.async_update_reload_and_abort(entry, data_updates=data)
+            return self._update_and_reload(entry, data={**entry.data, **data})
         data.setdefault(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         label = "v1r" if self._mode == MODE_V1R else "Wi-Fi"
         # A Fleet API sign-in made in setup is the cloud backup.
@@ -806,8 +805,31 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
     # Reauth: the gateway refuses the password or the key
     # ------------------------------------------------------------------
 
+    def _update_and_reload(self, entry: ConfigEntry, *, data: Mapping[str, Any],
+                           options: Mapping[str, Any] | None = None) -> ConfigFlowResult:
+        """Save the entry and finish, then reload it once. The update listener
+        reloads it for most changes (Home Assistant wants that, not a reload
+        from the flow, for entries with a listener); for the rest (a token
+        only, live options, nothing changed, or not loaded) it's scheduled
+        here."""
+        from . import reloads_on_update  # noqa: PLC0415
+
+        new_options = dict(entry.options if options is None else options)
+        listener_reloads = reloads_on_update(entry, data, new_options)
+        result = self.async_update_and_abort(entry, data=data, options=new_options)
+        if not listener_reloads:
+            self.hass.config_entries.async_schedule_reload(entry.entry_id)
+        return result
+
+    def _title_host(self, entry: ConfigEntry) -> None:
+        """The card title ("Powerwall ({host})") needs the gateway address;
+        Home Assistant only fills in the entry's name for these flows."""
+        self.context["title_placeholders"] = {
+            **(self.context.get("title_placeholders") or {}), "host": entry.data.get(CONF_HOST) or ""}
+
     async def async_step_reauth(self, entry_data: Mapping[str, Any]) -> ConfigFlowResult:
         entry = self._get_reauth_entry()
+        self._title_host(entry)
         self._data = {k: entry.data[k] for k in (CONF_HOST, CONF_GW_PWD, CONF_WIFI_HOST, CONF_RSA_KEY_PATH)
                       if k in entry.data}
         self._din = entry.unique_id
@@ -841,8 +863,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected) as err:
                 errors = _gateway_errors(err)
             else:
-                return self.async_update_reload_and_abort(
-                    self._get_reauth_entry(), data_updates={CONF_GW_PWD: gw_pwd})
+                entry = self._get_reauth_entry()
+                return self._update_and_reload(entry, data={**entry.data, CONF_GW_PWD: gw_pwd})
         return self.async_show_form(
             step_id="reauth_password",
             data_schema=vol.Schema({vol.Required(CONF_GW_PWD): PASSWORD}),
@@ -856,6 +878,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         entry = self._get_reconfigure_entry()
+        self._title_host(entry)
         errors: dict[str, str] = {}
         current = dict(entry.data)
 
@@ -875,9 +898,10 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 await self.async_set_unique_id(din)
                 self._abort_if_unique_id_mismatch()
                 wifi_host = user_input.get(CONF_WIFI_HOST, "").strip()
-                return self.async_update_reload_and_abort(
+                return self._update_and_reload(
                     entry,
-                    data_updates={
+                    data={
+                        **entry.data,
                         CONF_CONNECTION_MODE: mode,
                         CONF_HOST: host,
                         CONF_GW_PWD: gw_pwd,
