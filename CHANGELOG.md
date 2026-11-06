@@ -5,6 +5,7 @@
 Docs only; no change to the integration.
 
 - **Which connection and which sign-in?** A new section at the top of Setup explains the two connections, **signed (v1r)** and **Wi-Fi password** (both use the gateway's local interface, TEDAPI), and the three sign-ins for the signed one: **Tesla account**, **Teslemetry** or **Tesla Fleet**. Pick one; it's needed once to register the key, then only as the optional cloud backup. The Wi-Fi password connection needs no sign-in. The README, Quick start and FAQ now say the same.
+- **Compatibility:** Powerwall 3 firmware 26.34.2 and 26.34.3 added as working.
 - **Entities:** with several Powerwall 3s, the next inverters' fans are *Fan 2A*, *Fan 2B* and so on. **Firmware version**'s `previous_version` and `updated_at` stay empty until a firmware update has been seen.
 
 ## 2.6.3

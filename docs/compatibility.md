@@ -65,6 +65,8 @@ Tesla updates firmware on its own schedule. When the gateway reports a new versi
 
 | Firmware | Model | Status | Reported by |
 |---|---|---|---|
+| 26.34.3 | Powerwall 3 | ✅ Works (signed connection, settings, battery dispatch) | Maintainer |
+| 26.34.2 | Powerwall 3 | ✅ Works (signed connection) | Maintainer |
 | 26.34.1 | Powerwall 3 | ✅ Works (key registration verified through the Tesla cloud) | Maintainer |
 | 26.x | Powerwall 3 | ✅ Works; drops export and grid charging settings about hourly ([restored](dropped-settings.md)) | Maintainer |
 
