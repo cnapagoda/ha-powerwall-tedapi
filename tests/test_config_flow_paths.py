@@ -112,7 +112,7 @@ def _init_with_mode(mode):
 
 
 def test_check_gateway_and_scan() -> None:
-    assert config_flow._check_gateway("h", PWD) == DIN
+    assert config_flow._check_gateway("h", PWD) == (DIN, False)
     with patch("pypowerwall.scan.scan", return_value=[{"ip": "1.2.3.4"}]) as scan:
         assert config_flow._scan() == [{"ip": "1.2.3.4"}]
     scan.assert_called_once_with(json_output=True, timeout=1.0)
@@ -319,7 +319,7 @@ async def test_connect_finds_another_powerwall(hass: HomeAssistant, tmp_path) ->
 async def test_discovered_gateway_keeps_its_mac(hass: HomeAssistant) -> None:
     """A gateway set up from DHCP discovery: the user types its password, and
     the new entry records the MAC so a later address change is followed."""
-    with patch.object(config_flow, "_check_gateway", return_value=DIN), patch(SETUP, return_value=True):
+    with patch.object(config_flow, "_check_gateway", return_value=(DIN, False)), patch(SETUP, return_value=True):
         result = await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_DHCP},
             data=DhcpServiceInfo(ip="192.168.1.80", hostname="teslapw_new", macaddress="aabbccddee20"))
@@ -334,7 +334,7 @@ async def test_discovered_gateway_keeps_its_mac(hass: HomeAssistant) -> None:
 
 async def test_finish_without_din_checks_the_connection(hass: HomeAssistant) -> None:
     # Older firmware: the gateway step can't read the DIN, the final check does.
-    with patch.object(config_flow, "_check_gateway", return_value=None), patch(SETUP, return_value=True):
+    with patch.object(config_flow, "_check_gateway", return_value=(None, False)), patch(SETUP, return_value=True):
         result = await _gateway(hass, host="192.168.91.1")
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "wifi"})
         result = await hass.config_entries.flow.async_configure(
@@ -459,7 +459,7 @@ async def test_dhcp_knows_a_hotspot_entry(hass: HomeAssistant, data: dict) -> No
             DOMAIN, context={"source": config_entries.SOURCE_DHCP},
             data=DhcpServiceInfo(ip="192.168.1.70", hostname="teslapw_z", macaddress=mac))
 
-    with patch.object(config_flow, "_check_gateway", return_value=DIN) as check:
+    with patch.object(config_flow, "_check_gateway", return_value=(DIN, False)) as check:
         result = await discover("aabbccddee10")
         assert result["step_id"] == "gateway"
         check.assert_not_called()
@@ -475,7 +475,7 @@ async def test_dhcp_knows_a_hotspot_entry(hass: HomeAssistant, data: dict) -> No
     assert entry.data["host"] == "192.168.91.1"
 
     # Another gateway (other DIN), or one that can't be checked: offered as new.
-    with patch.object(config_flow, "_check_gateway", return_value="OTHER-DIN"):
+    with patch.object(config_flow, "_check_gateway", return_value=("OTHER-DIN", False)):
         assert (await discover("aabbccddee11"))["step_id"] == "gateway"
     with patch.object(config_flow, "_check_gateway", side_effect=gateway.GatewayUnreachable):
         assert (await discover("aabbccddee12"))["step_id"] == "gateway"

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.6.3
+
+- **Backup Gateway 1** (part number `1118431-…`): setup recognises it and logs in with the full gateway password. Early Gateway 1 units refuse the last-5-characters login that other gateways use, so setup said the password was wrong (or, after several tries, that it couldn't reach the Powerwall).
+- **Gateway login lockouts:** after too many wrong passwords the gateway refuses logins for a few minutes. Setup now says so (*"The gateway is refusing logins after too many attempts"*) instead of *"Could not reach the Powerwall"*.
+- **A refused dispatch shows the gateway's reason**, with its status code, in the error itself. Before, the reason was only in the log.
+- **Solar input sensors with nothing connected** (for example with an external inverter) no longer show as *unavailable*. Sensors that older versions created for such inputs are removed at startup when their recorded power never reached 20 W. A standing reading of 1 W no longer counts as an input in use. Inputs that are in use keep their sensors after a restart at night, showing 0 W instead of *unavailable* until morning.
+- Setup's password help now asks for the **whole** gateway password (most gateways also take its last 5 characters; a Backup Gateway 1 needs the whole one). It used to ask for the last 5 characters first.
+- Docs: brought up to date for 2.6.3 (Backup Gateway 1, lockouts, dispatch errors, solar inputs), wording cleaned up, and the blueprint import links point to this release (the power inputs changed in 2.6.2).
+- **Now in the HACS default store.** Search for **Tesla Powerwall TEDAPI** in HACS; you no longer need to add it as a custom repository. The README badge says *HACS: Default*, and the install steps no longer mention a custom repository.
+
 ## 2.6.2
 
 - **Battery dispatch up to 30 kW.** `dispatch_battery_power`, `charge_to`, `discharge_to` and **Largest dispatch power** now go up to 30,000 W (was 10,000 W), for systems with several Powerwalls. **Largest dispatch power** still defaults to 10,000 W (what one Powerwall 3 accepts): raise it to what your system and grid connection allow. Within it the Powerwall decides: it refuses what it can't deliver (one Powerwall 3 refuses more than 10,000 W), and the error now says so. The blueprints' power inputs go up to 30,000 W too.
@@ -93,7 +103,7 @@
 - **Firmware updates**: a `tesla_tedapi_firmware_updated` event and log line when the gateway reports a new version, and **Firmware version** keeps `previous_version` and `updated_at`. On a signed connection, the first reading on the new firmware checks signed access; if it stopped working, a repair says so (and clears when it works again).
 - **Logbook** entries for firmware updates, grid outages, and the end of dispatch sessions and off-grid runs.
 - **Battery health per pack.** A new per-pack **health** sensor (capacity against the rated 13.5 kWh, like **Battery health**; a new pack reads above 100 %), with the warranty level (70 % of 13.5 kWh) as an attribute. **Battery health** adds `warranty_kwh` and `lifetime_discharged_kwh`. On a Powerwall 3 (pypowerwall 0.23+), per-pack **lifetime discharge** and **cycles** (lifetime discharge ÷ 13.5 kWh, with the battery's own full-cycle and over-discharge counts as attributes).
-- **Experimental: On-grid solar curtailment** switch (signed connection only, disabled by default): reads and writes Tesla's `on_grid_solar_curtailment_enabled` flag in the gateway's config. Undocumented by Tesla and not tested on a real Powerwall. README: negative feed-in prices with built-in solar are handled by setting export to *never*.
+- **Experimental: On-grid solar curtailment** switch (signed connection only, disabled by default): reads and writes Tesla's `on_grid_solar_curtailment_enabled` flag in the gateway's config. Its exact effect isn't known, and it's not tested on a real Powerwall. README: negative feed-in prices with built-in solar are handled by setting export to *never*.
 - **Blueprints** (README → Blueprints, one-click import): stop exporting at negative feed-in prices, charge when import is cheap, export on a price spike, time-of-use charge and discharge, and a grid outage alert. They take any price sensor and change the Powerwall only through this integration.
 - Project: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `SECURITY.md`, a pull request template and a feature request form.
 - **Cloud changes are read back.** A setting changed through a cloud backup is logged as sent, then checked against the readings for up to 5 minutes. If the Powerwall reports something else, a repair says so. When Tesla's cloud caps the backup reserve at 80 %, the repair suggests a max backup or a local write.

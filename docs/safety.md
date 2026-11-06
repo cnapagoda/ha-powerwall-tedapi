@@ -60,4 +60,4 @@ The integration helps:
 
 ## Experimental features
 
-The **On-grid solar curtailment (experimental)** switch writes an undocumented flag to the gateway's configuration. It has not been tested on a real Powerwall. It's disabled by default; enable it only to experiment, and watch your solar output.
+The **On-grid solar curtailment (experimental)** switch writes a flag in the gateway's configuration whose exact effect isn't known. It has not been tested on a real Powerwall. It's disabled by default; enable it only to experiment, and watch your solar output.

@@ -26,7 +26,7 @@
         },
         "data_description": {
           "host": "The gateway's address on your home network, for example `192.168.1.50`. Your router lists it as `teslapw_…`.",
-          "gw_pwd": "The last 5 characters of the password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left), or the whole password. Letters are upper case.",
+          "gw_pwd": "The whole password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Letters are upper case. Most gateways also accept just its last 5 characters; a Backup Gateway 1 needs the whole password.",
           "wifi_host": "The Powerwall's Wi-Fi hotspot, used over the same signed connection when the home-network address stops answering. Leave empty if Home Assistant cannot reach the hotspot."
         }
       },
@@ -109,7 +109,7 @@
           "gw_pwd": "Gateway password"
         },
         "data_description": {
-          "gw_pwd": "The last 5 characters of the password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left), or the whole password. Letters are upper case."
+          "gw_pwd": "The whole password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Letters are upper case. Most gateways also accept just its last 5 characters; a Backup Gateway 1 needs the whole password."
         }
       },
       "reconfigure": {
@@ -123,7 +123,7 @@
         },
         "data_description": {
           "host": "The gateway's address on your home network, for example `192.168.1.50`. Your router lists it as `teslapw_…`.",
-          "gw_pwd": "The last 5 characters of the password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left), or the whole password. Letters are upper case.",
+          "gw_pwd": "The whole password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Letters are upper case. Most gateways also accept just its last 5 characters; a Backup Gateway 1 needs the whole password.",
           "rsa_key_path": "Full path to the private key file on the Home Assistant host, for example `/config/tesla_tedapi/tedapi_rsa_private.pem`. Leave empty to use the Wi-Fi password connection (read only).",
           "wifi_host": "The Powerwall's Wi-Fi hotspot address (usually `192.168.91.1`), used when the home-network address stops answering. Leave empty if Home Assistant can't reach the hotspot."
         }
@@ -179,7 +179,8 @@
       "none_found": "No Powerwall answered on this network. Enter the address instead (your router lists the gateway as `teslapw_…`).",
       "owner_api_refused": "You signed in, but the Tesla Owner API refused the token (HTTP 403). Sign in again; if it keeps happening, Tesla may have changed its sign-in rules again: please open an issue.",
       "invalid_token": "Tesla did not accept that refresh token. It may have expired or been used by another app: get a new one from your token app. The sign-in link has not changed.",
-      "invalid_callback": "That is not a sign-in address from the link above. Paste the full `tesla://auth/callback?code=…` address from this link (an older link no longer works), or a refresh token. The link has not changed."
+      "invalid_callback": "That is not a sign-in address from the link above. Paste the full `tesla://auth/callback?code=…` address from this link (an older link no longer works), or a refresh token. The link has not changed.",
+      "gateway_locked": "The gateway is refusing logins after too many attempts. Wait about 15 minutes, then try again."
     },
     "abort": {
       "already_configured": "This Powerwall is already set up.",
@@ -676,6 +677,9 @@
     },
     "dispatch_refused": {
       "message": "The Powerwall didn't accept the dispatch, for example a power above what it can deliver (one Powerwall 3: 10,000 W). See the log for the gateway's status code."
+    },
+    "dispatch_refused_reason": {
+      "message": "The Powerwall didn't accept the dispatch: {reason}"
     },
     "resume_refused": {
       "message": "The Powerwall didn't accept the resume. See the log for details."

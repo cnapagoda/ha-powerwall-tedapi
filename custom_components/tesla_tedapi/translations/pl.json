@@ -26,7 +26,7 @@
         },
         "data_description": {
           "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
-          "gw_pwd": "Ostatnie 5 znaków hasła z naklejki z kodem QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej) lub całe hasło. Litery są wielkie.",
+          "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
           "wifi_host": "Hotspot Wi-Fi Powerwall, używany przez to samo podpisane połączenie, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu."
         }
       },
@@ -109,7 +109,7 @@
           "gw_pwd": "Hasło bramy"
         },
         "data_description": {
-          "gw_pwd": "Ostatnie 5 znaków hasła z naklejki z kodem QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej) lub całe hasło. Litery są wielkie."
+          "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła."
         }
       },
       "reconfigure": {
@@ -123,7 +123,7 @@
         },
         "data_description": {
           "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
-          "gw_pwd": "Ostatnie 5 znaków hasła z naklejki z kodem QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej) lub całe hasło. Litery są wielkie.",
+          "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
           "rsa_key_path": "Pełna ścieżka do pliku klucza prywatnego na hoście Home Assistant, na przykład `/config/tesla_tedapi/tedapi_rsa_private.pem`. Zostaw puste, aby użyć połączenia hasłem Wi-Fi (tylko odczyt).",
           "wifi_host": "Adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`), używany, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu."
         }
@@ -179,7 +179,8 @@
       "none_found": "Żadna Powerwall nie odpowiedziała w tej sieci. Wpisz zamiast tego adres (router pokazuje bramę jako `teslapw_…`).",
       "owner_api_refused": "Zalogowano, ale Owner API Tesli odrzuciło token (HTTP 403). Zaloguj się ponownie; jeśli to się powtarza, Tesla mogła znowu zmienić zasady logowania: zgłoś problem (issue).",
       "invalid_token": "Tesla nie przyjęła tego tokenu odświeżania. Mógł wygasnąć albo zostać użyty przez inną aplikację: pobierz nowy z aplikacji do tokenów. Link logowania się nie zmienił.",
-      "invalid_callback": "To nie jest adres logowania z linku powyżej. Wklej pełny adres `tesla://auth/callback?code=…` z tego linku (starszy link już nie działa) albo token odświeżania. Link się nie zmienił."
+      "invalid_callback": "To nie jest adres logowania z linku powyżej. Wklej pełny adres `tesla://auth/callback?code=…` z tego linku (starszy link już nie działa) albo token odświeżania. Link się nie zmienił.",
+      "gateway_locked": "Bramka odrzuca logowania po zbyt wielu próbach. Odczekaj około 15 minut i spróbuj ponownie."
     },
     "abort": {
       "already_configured": "Ta Powerwall jest już skonfigurowana.",
@@ -676,6 +677,9 @@
     },
     "dispatch_refused": {
       "message": "Powerwall nie przyjął sterowania baterią, na przykład mocy większej, niż może dostarczyć (jeden Powerwall 3: 10 000 W). Kod stanu bramy jest w dzienniku."
+    },
+    "dispatch_refused_reason": {
+      "message": "Powerwall nie przyjął sterowania baterią: {reason}"
     },
     "resume_refused": {
       "message": "Powerwall nie przyjął powrotu do normalnej pracy. Szczegóły są w dzienniku."

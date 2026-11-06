@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
+import logging
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -25,9 +26,11 @@ from homeassistant.const import (
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .alerts import LEVELS
+from .const import DOMAIN
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .daily import day_start
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
@@ -410,14 +413,53 @@ def _string(d: dict[str, Any], name: str) -> dict[str, Any]:
     return (d.get("strings") or {}).get(name) or {}
 
 
+_LOGGER = logging.getLogger(__name__)
+
 # An unused input reports a small standing voltage (15 V on a Powerwall 3) in
-# Pv_Standby; a connected string reads far more in daylight.
+# Pv_Standby, and now and then 1 W of noise; a connected string reads far more
+# in daylight.
 IN_USE_VOLTS = 60
+IN_USE_WATTS = 20
+STRING_KINDS = ("power", "voltage", "current")
 
 
 def _input_in_use(values: dict[str, Any]) -> bool:
-    return bool((values.get("power") or 0) > 0 or (values.get("voltage") or 0) >= IN_USE_VOLTS
+    return bool((values.get("power") or 0) >= IN_USE_WATTS or (values.get("voltage") or 0) >= IN_USE_VOLTS
                 or values.get("state") not in (None, "Pv_Standby", "PV_Standby"))
+
+
+async def _async_remove_unused_inputs(hass: HomeAssistant, entry: TedapiConfigEntry, din: str) -> None:
+    """Remove the solar input sensors of inputs that never produced: their
+    power never reached IN_USE_WATTS in the recorder's statistics. They were
+    created by older versions (or by noise) for inputs with nothing
+    connected, e.g. with an external inverter, and showed as unavailable.
+    Inputs without statistics are left alone."""
+    registry = er.async_get(hass)
+    prefix = f"{din}_string_"
+    names = {e.unique_id[len(prefix):-len("_power")]: e.entity_id
+             for e in er.async_entries_for_config_entry(registry, entry.entry_id)
+             if e.domain == "sensor" and e.unique_id.startswith(prefix) and e.unique_id.endswith("_power")}
+    if not names:
+        return
+    try:
+        from homeassistant.components.recorder import get_instance  # noqa: PLC0415
+        from homeassistant.components.recorder.statistics import statistics_during_period  # noqa: PLC0415
+
+        stats = await get_instance(hass).async_add_executor_job(
+            statistics_during_period, hass, datetime(2000, 1, 1, tzinfo=UTC), None,
+            set(names.values()), "month", None, {"max"})
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Solar input cleanup skipped: %s", err)
+        return
+    for name, entity_id in names.items():
+        rows = stats.get(entity_id) or []
+        peaks = [row.get("max") for row in rows if isinstance(row.get("max"), (int, float))]
+        if not peaks or max(peaks) >= IN_USE_WATTS:
+            continue
+        _LOGGER.info("Solar input %s never produced (at most %s W): removing its sensors", name, max(peaks))
+        for kind in STRING_KINDS:
+            if eid := registry.async_get_entity_id("sensor", DOMAIN, f"{prefix}{name}_{kind}"):
+                registry.async_remove(eid)
 
 
 def _string_sensors(name: str) -> list[TedapiSensorEntityDescription]:
@@ -569,6 +611,9 @@ async def async_setup_entry(
 ) -> None:
     coordinator = entry.runtime_data.coordinator
     async_add_entities(TedapiSensor(coordinator, d) for d in SENSORS)
+    if coordinator.din:
+        await _async_remove_unused_inputs(hass, entry, coordinator.din)
+    registry = er.async_get(hass)
 
     # Solar inputs, inverter fans and battery packs come from the readings: add
     # them when they first appear (also after a start with the gateway
@@ -582,7 +627,11 @@ async def async_setup_entry(
             return
         new: list[TedapiSensorEntityDescription] = []
         for name, values in (data.get("strings") or {}).items():
-            if f"string_{name}" not in known and _input_in_use(values):
+            # In use now, or set up before (an input in use reads as standby
+            # at night: keep providing its sensors after a restart then).
+            registered = registry.async_get_entity_id(
+                "sensor", DOMAIN, f"{coordinator.din}_string_{name}_power") is not None
+            if f"string_{name}" not in known and (_input_in_use(values) or registered):
                 known.add(f"string_{name}")
                 new += _string_sensors(name)
         for name in data.get("fans") or {}:

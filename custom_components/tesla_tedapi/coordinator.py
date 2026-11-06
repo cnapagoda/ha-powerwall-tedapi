@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 import logging
 import os
+import threading
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -42,6 +43,7 @@ from .const import (
     CONF_CONNECTION_MODE,
     CONF_FLEET_PROVIDER,
     CONF_FLEET_SITE_ID,
+    CONF_FULL_PASSWORD_LOGIN,
     CONF_GW_PWD,
     CONF_HOST,
     CONF_OWNERS_AUTHPATH,
@@ -290,6 +292,27 @@ class TedapiRuntimeData:
 type TedapiConfigEntry = ConfigEntry[TedapiRuntimeData]
 
 
+class _PypowerwallErrors(logging.Handler):
+    """Collects the error messages pypowerwall logs in this thread while the
+    block runs (it logs a gateway's refusal instead of raising it)."""
+
+    def __init__(self) -> None:
+        super().__init__(logging.ERROR)
+        self.messages: list[str] = []
+        self._thread = threading.get_ident()
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if record.thread == self._thread:
+            self.messages.append(record.getMessage())
+
+    def __enter__(self) -> _PypowerwallErrors:
+        logging.getLogger("pypowerwall").addHandler(self)
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        logging.getLogger("pypowerwall").removeHandler(self)
+
+
 class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Polls the gateway; the Tesla cloud backs up settings when local fails."""
 
@@ -299,6 +322,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data = entry.data
         self._conn_mode: str = data.get(CONF_CONNECTION_MODE, "wifi")
         self._gw_pwd: str = data.get(CONF_GW_PWD, "")
+        # Backup Gateway 1: the customer login takes the full password.
+        self._full_login: bool = bool(data.get(CONF_FULL_PASSWORD_LOGIN))
         self._rsa_key_path: str = data.get(CONF_RSA_KEY_PATH, "")
         self._host: str = data.get(CONF_HOST, DEFAULT_HOST_WIFI)
         self._wifi_host: str = data.get(CONF_WIFI_HOST, "") or ""
@@ -453,6 +478,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         }
         if self._conn_mode == MODE_V1R:
             kwargs["rsa_key_path"] = self._rsa_key_path
+            if self._full_login:
+                kwargs["password"] = self._gw_pwd
             if self._gw_pwd:
                 kwargs["gw_pwd"] = self._gw_pwd
             if self._wifi_host and self._wifi_host != self._host:
@@ -1158,12 +1185,18 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """One timed battery setpoint over signed v1r (no cloud equivalent)."""
         if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_needs_v1r")
-        try:
-            result = self._pw.dispatch_battery_power(power_watts, duration_seconds)
-        except ValueError as err:
-            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_invalid",
-                                     translation_placeholders={"error": str(err)}) from err
+        with _PypowerwallErrors() as gateway_errors:
+            try:
+                result = self._pw.dispatch_battery_power(power_watts, duration_seconds)
+            except ValueError as err:
+                raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_invalid",
+                                         translation_placeholders={"error": str(err)}) from err
         if not result:
+            # pypowerwall only logs why: show the gateway's reason too.
+            reasons = [m for m in gateway_errors.messages if m.startswith("Battery dispatch")]
+            if reasons:
+                raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_refused_reason",
+                                         translation_placeholders={"reason": reasons[-1]})
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_refused")
         return result
 
@@ -1439,7 +1472,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self._gw_pwd:
             return "password"
         try:
-            gateway.login(self._host, self._gw_pwd)
+            gateway.login(self._host, self._gw_pwd, self._full_login)
         except gateway.GatewayPasswordRejected:
             return "password"
         except gateway.GatewayUnreachable:

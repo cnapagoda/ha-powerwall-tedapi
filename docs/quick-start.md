@@ -19,7 +19,7 @@ You need:
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cnapagoda&repository=ha-powerwall-tedapi&category=integration)
 
-Not found in the search? Add it as a custom repository first: **HACS → ⋮ → Custom repositories**, add `https://github.com/cnapagoda/ha-powerwall-tedapi` with type **Integration**, then search again.
+It's in the HACS default store, so you don't need to add a custom repository.
 
 Without HACS: download the latest release, copy `custom_components/tesla_tedapi` into your `config/custom_components/` folder, and restart.
 
@@ -74,7 +74,8 @@ That's it. You now have a **Powerwall TEDAPI** device with its sensors and contr
 
 | Message | What to do |
 |---|---|
-| *The gateway refused this password* | Use the password from the QR sticker, in upper case. |
+| *The gateway refused this password* | Use the whole password from the QR sticker, in upper case. |
+| *The gateway is refusing logins after too many attempts* | Wait about 15 minutes, then try again. |
 | *Could not reach the Powerwall* | Check the address; make sure Home Assistant and the Powerwall are on the same network. |
 | The wizard keeps waiting at the switch step | Leave the switch **off for a full 15 seconds**. If the window closes, the wizard registers the key once more by itself; after that it asks you to try again. |
 | *The Tesla Owner API refused the token (HTTP 403)* | Make sure you run 2.3.0 or newer; then sign in again. |

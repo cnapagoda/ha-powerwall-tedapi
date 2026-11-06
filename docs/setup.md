@@ -24,7 +24,7 @@ _Screenshots come from a test Home Assistant with example data (no real Powerwal
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cnapagoda&repository=ha-powerwall-tedapi&category=integration)
 
-Not found in the search? Add it as a custom repository first: **HACS → ⋮ → Custom repositories**, add `https://github.com/cnapagoda/ha-powerwall-tedapi` with type **Integration**, then search again.
+It's in the HACS default store, so you don't need to add a custom repository.
 
 HACS tells you about new versions. Read the [CHANGELOG](../CHANGELOG.md) before you update.
 
@@ -40,7 +40,7 @@ Go to **Settings → Devices & services → Add integration → Tesla Powerwall 
 - **Search my network** scans your network for Tesla gateways (about 20 seconds) and lists what it finds, or
 - **Enter the gateway address** yourself. Your router lists the gateway as `teslapw_…`.
 
-Then enter the **gateway password**. You need it for every way of connecting: it's printed on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Home Assistant logs in to the gateway with its last 5 characters. It is checked straight away, so a wrong password or address is reported here, not after the Tesla sign-in.
+Then enter the **gateway password**. You need it for every way of connecting: it's printed on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Home Assistant logs in to the gateway with its last 5 characters, or with the whole password on a Backup Gateway 1 (part number `1118431-…`), which it recognises by itself. Enter the whole password and it works either way. It is checked straight away, so a wrong password or address is reported here, not after the Tesla sign-in.
 
 **Wi-Fi fallback address** (optional, signed connection only): `192.168.91.1` if Home Assistant can also reach the Powerwall's own Wi-Fi network. Readings then switch to it when the home-network address stops answering. Leave it empty otherwise.
 

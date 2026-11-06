@@ -57,7 +57,7 @@ For **battery** history from Tesla Fleet or Teslemetry there's an alternative: [
 ## From the core Tesla Powerwall integration
 
 - That integration logs in to the gateway's local web API. This one uses TEDAPI with a signed key, which also works on a Powerwall 3 over the home network.
-- Use the same **gateway address**. The **gateway password** is the one on the QR sticker: enter it in full, or its last 5 characters.
+- Use the same **gateway address**. The **gateway password** is the one on the QR sticker: enter it in full (a Backup Gateway 1 needs the full password; other gateways also take just its last 5 characters).
 - Its Energy dashboard sensors can stay on the dashboard for their history ([above](#keep-your-energy-dashboard-history)).
 
 ## From Tesla Fleet or Teslemetry

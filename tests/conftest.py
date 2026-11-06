@@ -348,20 +348,29 @@ def fake_gateway():
 
     FakeGateway.password, FakeGateway.reachable, FakeGateway.din = "ABCDE12345", True, DIN
     FakeGateway.answers = False
+    # A Backup Gateway 1: its customer login takes the full password.
+    FakeGateway.gateway1 = False
+    FakeGateway.locked = False
+    FakeGateway.logins: list[str] = []
 
-    def login(host, gw_pwd):
+    def login(host, gw_pwd, full=False):
         if not FakeGateway.reachable:
             raise gateway.GatewayUnreachable("no route")
-        if gateway.customer_password(gw_pwd) != gateway.customer_password(FakeGateway.password):
+        if FakeGateway.locked:
+            raise gateway.GatewayLocked("too many login attempts")
+        sent = gateway.customer_password(gw_pwd, full)
+        FakeGateway.logins.append(sent)
+        if sent != gateway.customer_password(FakeGateway.password, FakeGateway.gateway1):
             raise gateway.GatewayPasswordRejected
         return "token"
 
-    def din(host, gw_pwd):
-        login(host, gw_pwd)
+    def din(host, gw_pwd, full=False):
+        login(host, gw_pwd, full)
         return FakeGateway.din
 
     with patch.object(gateway, "login", login), patch.object(gateway, "din", din), \
-            patch.object(gateway, "answers", lambda host: FakeGateway.answers):
+            patch.object(gateway, "answers", lambda host: FakeGateway.answers), \
+            patch.object(gateway, "full_password_login", lambda host: FakeGateway.gateway1):
         yield FakeGateway
 
 

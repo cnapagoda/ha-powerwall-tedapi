@@ -552,7 +552,7 @@ async def test_flows_leave_the_reload_to_the_update_listener(hass: HomeAssistant
 
     with (patch.object(hass.config_entries, "async_reload", counted_reload),
           patch.object(hass.config_entries, "async_schedule_reload", counted_schedule),
-          patch.object(config_flow, "_check_gateway", return_value=DIN)):
+          patch.object(config_flow, "_check_gateway", return_value=(DIN, False))):
         # A new gateway password: the listener reloads.
         result = await reauth({}, {"next_step_id": "reauth_password"}, {"gw_pwd": "NEW12345"})
         assert result["reason"] == "reauth_successful" and entry.data["gw_pwd"] == "NEW12345"
