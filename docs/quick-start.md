@@ -1,6 +1,6 @@
 # Quick start
 
-This is the recommended path: a **signed connection** over your home network, with the key registered through your Tesla account. It takes about 15 minutes, most of it waiting for the Powerwall.
+This is the recommended path: a **signed (v1r) connection** over your home network, with the key registered through a Tesla sign-in. For the other options, see [Which connection and which sign-in?](setup.md#which-connection-and-which-sign-in) It takes about 15 minutes, most of it waiting for the Powerwall.
 
 ## Before you start
 
@@ -8,7 +8,7 @@ You need:
 
 - **Home Assistant 2025.11 or newer**, with [HACS](https://hacs.xyz) installed.
 - **The gateway password.** It's printed on the QR sticker inside the Powerwall's cover. On a Powerwall 3 it's behind the front glass, lower left. Take a photo of it.
-- **Your Tesla account** (email, password, and MFA if you use it). It's needed once, to register the key.
+- **One Tesla sign-in**, needed once to register the key: your **Tesla account** (most people), a **Teslemetry** token, or your own **Tesla Fleet** developer app. See [which sign-in](setup.md#which-connection-and-which-sign-in).
 - **Physical access to the Powerwall** for a few minutes: you'll switch it off and on once.
 - **The Powerwall on your home network** (Wi-Fi or Ethernet), so Home Assistant can reach it.
 
@@ -41,7 +41,7 @@ Go to **Settings → Devices & services**. If Home Assistant has already found t
 
    <img src="images/setup-04-access.png" alt="Choose how to connect" width="560">
 
-2. **Sign in to Tesla.** The easiest way is a **refresh token** from a token app such as *Auth app for Tesla* (iOS, macOS, Android) or *Tesla Tokens* (Android): sign in there and paste the refresh token. You can also sign in in a browser; that needs your browser's developer tools ([steps](setup.md#browser-sign-in)).
+2. **Sign in to Tesla.** Choose *Tesla account*, *Teslemetry* or *Tesla Fleet*. For a Tesla account, the easiest way is a **refresh token** from a token app such as *Auth app for Tesla* (iOS, macOS, Android) or *Tesla Tokens* (Android): sign in there and paste the refresh token. You can also sign in in a browser; that needs your browser's developer tools ([steps](setup.md#browser-sign-in)).
 
    <img src="images/setup-05-tesla-sign-in.png" alt="Tesla sign-in" width="560">
 
@@ -56,9 +56,6 @@ Go to **Settings → Devices & services**. If Home Assistant has already found t
 That's it. You now have a **Powerwall TEDAPI** device with its sensors and controls.
 
 <img src="images/setup-07-done.png" alt="Setup complete" width="560">
-
-> [!TIP]
-> Have a **Teslemetry** plan or your own **Tesla Fleet** developer app? The wizard's sign-in step offers both, next to the Tesla account sign-in.
 
 ## 4. Next steps
 
