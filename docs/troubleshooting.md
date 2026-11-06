@@ -14,7 +14,9 @@
 
 | Symptom | Try |
 |---|---|
-| *The gateway refused this password* | Use the password from the QR sticker inside the Powerwall's cover, in upper case. Only the last 5 characters are used, so you can also enter just those. |
+| *The gateway refused this password* | Use the password from the QR sticker inside the Powerwall's cover, in upper case. Usually only the last 5 characters are used, so you can also enter just those. A Backup Gateway 1 (part number `1118431-…`) needs the full password. |
+| *The Powerwall didn't accept the dispatch: …* | The text after the colon is the gateway's own reason, with its status code. One Powerwall 3 refuses more than 10,000 W. Lower the power, or **Largest dispatch power**. |
+| *The gateway is refusing logins after too many attempts* | The gateway locks its login for a few minutes after several wrong passwords. Wait about 15 minutes before you try again. |
 | *Could not reach the Powerwall* | Check the address. `ping` it from the Home Assistant host. Home Assistant and the gateway must be on the same network (or routed). The gateway uses HTTPS on port 443. |
 | **Search my network** finds nothing (*No Powerwall answered on this network*) | Enter the address yourself. Your router lists the gateway as `teslapw_…` (or a Tesla part number such as `1707000-…`). The scan only covers Home Assistant's own network. |
 | The wizard keeps waiting at *Confirm at the Powerwall* | Powerwall 3: leave the **On/Off switch** off for a full **15 seconds** before switching it back on. A quick flick is ignored. If the 10-minute window closes, the wizard registers the key again once; after that it asks you to try again. |
@@ -42,7 +44,7 @@
 | Readings stop now and then | Add the Powerwall's Wi-Fi as **Wi-Fi fallback address** if Home Assistant can reach it, or improve the network path (Ethernet for the gateway, a better access point). Try a longer **Polling interval** if another app also polls the gateway. |
 | **Battery level** differs from the Tesla app by a point | Normal rounding and timing: the app updates less often. **Battery state of energy** is the raw value and reads 2–4 points higher. |
 | No **Solar input** sensors | Normal when your solar has its own inverter: they only appear for the Powerwall 3's built-in inputs in use. Inputs that start producing later appear by themselves. |
-| **Solar input** sensors that always read about 0 W | An unused input reported a few watts in standby, so its sensors were created. Disable them on the entity's settings page. |
+| **Solar input** sensors that always read about 0 W, or are *unavailable* | Inputs with nothing connected (for example with an external inverter) get no sensors. Sensors made for them by older versions are removed at startup when their recorded power never reached 20 W. If one stays, delete it on the entity's settings page. |
 | A pack or expansion pack is missing | Packs appear when the gateway first reports them. Check the **Alerts** sensor for *Battery packs missing*. |
 | Energy counters don't move | **Setup health** checks `energy_counters`. Readings that are missing or zero are ignored, and so is a lower reading unless it stays lower for 10 readings in a row (then it's taken as a counter reset, for example after a gateway replacement). |
 | **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. An occasional day can come from gaps in readings. If it lasts, mention it in an issue with diagnostics. |

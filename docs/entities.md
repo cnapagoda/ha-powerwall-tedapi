@@ -40,7 +40,7 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 | Grid export power | `sensor.powerwall_tedapi_grid_export_power` | W | Never negative: 0 while importing. |
 | Battery discharge power | `sensor.powerwall_tedapi_battery_discharge_power` | W | Never negative: 0 while charging. |
 | Battery charge power | `sensor.powerwall_tedapi_battery_charge_power` | W | Never negative: 0 while discharging. |
-| Solar input *A–F* power 🔍 | `sensor.powerwall_tedapi_solar_input_a_power` … | W | Powerwall 3 built-in inverter, one per input in use. Attribute `state` (the input's state). With solar on its own inverter they usually aren't created, but an input that reports a few watts in standby can still create them; they then read about 0 W, and you can disable them. With several inverters, later ones are numbered (`2A`). |
+| Solar input *A–F* power 🔍 | `sensor.powerwall_tedapi_solar_input_a_power` … | W | Powerwall 3 built-in inverter, one per input in use. Attribute `state` (the input's state). With solar on its own inverter they aren't created: an input counts as in use from 20 W, 60 V or an active state. Sensors that older versions created for unused inputs are removed at startup if their recorded power never reached 20 W. An input in use keeps its sensors after a restart at night (0 W until morning). With several inverters, later ones are numbered (`2A`). |
 | Solar input *A–F* voltage / current 🔍🚫 | `…_solar_input_a_voltage`, `…_solar_input_a_current` | V, A | Same inputs. |
 
 ## Battery
@@ -118,7 +118,7 @@ These need a signed connection or a cloud backup ⚙️. Their `source` attribut
 | **Grid export mode** ⚙️ | `select.powerwall_tedapi_grid_export_mode` | `battery_ok` (*Battery & Solar*), `pv_only` (*Solar only*), `never` (*Disabled*). |
 | **Backup reserve** ⚙️ | `number.powerwall_tedapi_backup_reserve` | 0–100 %, Tesla app scale. Through the cloud, Tesla caps it at 80 %. |
 | **Grid charging** ⚙️ | `switch.powerwall_tedapi_grid_charging` | Allow charging from the grid. |
-| On-grid solar curtailment (experimental) 🔑🚫 | `switch.powerwall_tedapi_on_grid_solar_curtailment_experimental` | Tesla's undocumented `on_grid_solar_curtailment_enabled` flag. Not tested on a real Powerwall: enable it only to experiment, and watch the solar output. |
+| On-grid solar curtailment (experimental) 🔑🚫 | `switch.powerwall_tedapi_on_grid_solar_curtailment_experimental` | Tesla's `on_grid_solar_curtailment_enabled` flag in the gateway's configuration; its exact effect isn't known. Not tested on a real Powerwall: enable it only to experiment, and watch the solar output. |
 | **Storm Watch** ☁️ | `switch.powerwall_tedapi_storm_watch` | Tesla's Storm Watch service. |
 | Off-grid vehicle charging reserve ☁️ | `number.powerwall_tedapi_off_grid_vehicle_charging_reserve` | Battery kept for the house when charging a vehicle during an outage. |
 

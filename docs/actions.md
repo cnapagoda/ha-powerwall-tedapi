@@ -33,7 +33,7 @@ data:
 - **To a battery level instead of for a time:** `tesla_tedapi.charge_to` / `discharge_to`.
 - **Stop early:** `tesla_tedapi.resume_battery_operation`, or the **Stop battery dispatch** button.
 - **Settings that apply** (**Configure → Settings → Battery dispatch**): whether a discharge stops at the backup reserve, and **Largest dispatch power**.
-- **How much power:** no more than **Largest dispatch power** (default 10,000 W, at most 30,000 W). Within that the Powerwall decides: it refuses what it can't deliver, and the action then fails with the reason in the log. One Powerwall 3 (with or without an expansion pack) refuses more than 10,000 W. With several Powerwalls, raise **Largest dispatch power** only to what your installation can safely carry: wiring, breakers, gateway and backup switch ratings, and your grid connection and export limit ([Safety](safety.md#battery-dispatch)). Try a short dispatch first and watch your grid export.
+- **How much power:** no more than **Largest dispatch power** (default 10,000 W, at most 30,000 W). Within that the Powerwall decides: it refuses what it can't deliver, and the action then fails with the gateway's reason and status code in the error. One Powerwall 3 (with or without an expansion pack) refuses more than 10,000 W. With several Powerwalls, raise **Largest dispatch power** only to what your installation can safely carry: wiring, breakers, gateway and backup switch ratings, and your grid connection and export limit ([Safety](safety.md#battery-dispatch)). Try a short dispatch first and watch your grid export.
 
 ---
 

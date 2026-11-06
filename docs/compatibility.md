@@ -9,6 +9,7 @@ This integration uses interfaces Tesla doesn't document, so what works depends o
 | **Powerwall 3** | ✅ Tested by the maintainer | Signed connection over the home network; firmware 26.x. Built-in solar inputs, fans, per-pack wear counters. |
 | **Powerwall 3 with Expansion Packs** | ✅ Tested by the maintainer | Each Expansion Pack gets its own capacity, temperature and health sensors, and **Battery health** and **Battery full capacity** count every pack. Packs added later appear by themselves. |
 | **Powerwall 2 / Powerwall+** | 🟡 Less tested | Signed access works if the firmware supports it. The Wi-Fi password connection gives readings. Some readings differ (see below). |
+| Backup Gateway 1 (part number `1118431-…`) | 🟡 Less tested | Recognised at setup: it logs in with the full gateway password instead of its last 5 characters. Reports welcome. |
 | Several Powerwalls on one gateway | 🟡 Expected to work | One entry per gateway; packs appear by themselves. |
 | Several gateways | 🟡 Expected to work | Add the integration once per gateway. |
 | Powerwall 1 | ❓ Unknown | |

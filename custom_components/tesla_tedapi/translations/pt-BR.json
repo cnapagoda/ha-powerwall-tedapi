@@ -26,7 +26,7 @@
         },
         "data_description": {
           "host": "O endereço do gateway na sua rede doméstica, por exemplo `192.168.1.50`. Seu roteador o mostra como `teslapw_…`.",
-          "gw_pwd": "Os últimos 5 caracteres da senha na etiqueta QR sob a tampa da Powerwall (Powerwall 3: atrás do vidro frontal, embaixo à esquerda), ou a senha inteira. As letras são maiúsculas.",
+          "gw_pwd": "A senha completa da etiqueta QR dentro da tampa da Powerwall (Powerwall 3: atrás do vidro frontal, embaixo à esquerda). As letras são maiúsculas. A maioria dos gateways também aceita só os últimos 5 caracteres; um Backup Gateway 1 precisa da senha completa.",
           "wifi_host": "O ponto de acesso Wi-Fi da Powerwall, usado pela mesma conexão assinada quando o endereço da rede doméstica para de responder. Deixe em branco se o Home Assistant não alcançar o ponto de acesso."
         }
       },
@@ -109,7 +109,7 @@
           "gw_pwd": "Senha do gateway"
         },
         "data_description": {
-          "gw_pwd": "Os últimos 5 caracteres da senha na etiqueta QR sob a tampa da Powerwall (Powerwall 3: atrás do vidro frontal, embaixo à esquerda), ou a senha inteira. As letras são maiúsculas."
+          "gw_pwd": "A senha completa da etiqueta QR dentro da tampa da Powerwall (Powerwall 3: atrás do vidro frontal, embaixo à esquerda). As letras são maiúsculas. A maioria dos gateways também aceita só os últimos 5 caracteres; um Backup Gateway 1 precisa da senha completa."
         }
       },
       "reconfigure": {
@@ -123,7 +123,7 @@
         },
         "data_description": {
           "host": "O endereço do gateway na sua rede doméstica, por exemplo `192.168.1.50`. Seu roteador o mostra como `teslapw_…`.",
-          "gw_pwd": "Os últimos 5 caracteres da senha na etiqueta QR sob a tampa da Powerwall (Powerwall 3: atrás do vidro frontal, embaixo à esquerda), ou a senha inteira. As letras são maiúsculas.",
+          "gw_pwd": "A senha completa da etiqueta QR dentro da tampa da Powerwall (Powerwall 3: atrás do vidro frontal, embaixo à esquerda). As letras são maiúsculas. A maioria dos gateways também aceita só os últimos 5 caracteres; um Backup Gateway 1 precisa da senha completa.",
           "rsa_key_path": "Caminho completo do arquivo da chave privada no host do Home Assistant, por exemplo `/config/tesla_tedapi/tedapi_rsa_private.pem`. Deixe em branco para usar a conexão com senha do Wi-Fi (somente leitura).",
           "wifi_host": "O endereço do ponto de acesso Wi-Fi da Powerwall (normalmente `192.168.91.1`), usado quando o endereço da rede doméstica para de responder. Deixe em branco se o Home Assistant não alcançar o ponto de acesso."
         }
@@ -179,7 +179,8 @@
       "none_found": "Nenhuma Powerwall respondeu nesta rede. Digite o endereço em vez disso (seu roteador mostra o gateway como `teslapw_…`).",
       "owner_api_refused": "Você entrou, mas a Owner API da Tesla recusou o token (HTTP 403). Entre de novo; se continuar acontecendo, a Tesla pode ter mudado as regras de login outra vez: abra um issue.",
       "invalid_token": "A Tesla não aceitou esse refresh token. Ele pode ter expirado ou sido usado por outro app: pegue um novo no seu app de tokens. O link de login não mudou.",
-      "invalid_callback": "Esse não é um endereço de login do link acima. Cole o endereço completo `tesla://auth/callback?code=…` deste link (um link mais antigo não funciona mais), ou um refresh token. O link não mudou."
+      "invalid_callback": "Esse não é um endereço de login do link acima. Cole o endereço completo `tesla://auth/callback?code=…` deste link (um link mais antigo não funciona mais), ou um refresh token. O link não mudou.",
+      "gateway_locked": "O gateway está recusando logins após muitas tentativas. Aguarde cerca de 15 minutos e tente novamente."
     },
     "abort": {
       "already_configured": "Esta Powerwall já está configurada.",
@@ -676,6 +677,9 @@
     },
     "dispatch_refused": {
       "message": "A Powerwall não aceitou o controle da bateria, por exemplo uma potência acima do que ela pode fornecer (uma Powerwall 3: 10.000 W). Veja no log o código de status do gateway."
+    },
+    "dispatch_refused_reason": {
+      "message": "A Powerwall não aceitou o controle da bateria: {reason}"
     },
     "resume_refused": {
       "message": "A Powerwall não aceitou a retomada. Veja o log para detalhes."

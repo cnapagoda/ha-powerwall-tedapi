@@ -147,7 +147,7 @@ async def test_site_chosen_among_several(hass: HomeAssistant, tmp_path, fleet) -
     fleet.sites = [{"energy_site_id": 7, "gateway_id": "OTHER", "site_name": "Cabin"},
                    {"energy_site_id": 42, "gateway_id": DIN, "site_name": "Home"}]
     keys = KeyServer(fleet, [3])
-    with (keys.patch, _key(tmp_path), patch.object(config_flow, "_check_gateway", return_value=None),
+    with (keys.patch, _key(tmp_path), patch.object(config_flow, "_check_gateway", return_value=(None, False)),
           patch.object(config_flow, "VERIFY_POLL_SECONDS", 0), patch(SETUP, return_value=True)):
         result = await _teslemetry(hass, await _to_signin(hass))
         assert result["step_id"] == "site"

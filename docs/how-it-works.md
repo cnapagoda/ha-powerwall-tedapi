@@ -71,7 +71,7 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 
 ## Known limitations
 
-- **Undocumented interfaces.** TEDAPI and the signed (v1r) protocol aren't public. A Powerwall firmware update can change or break them without notice.
+- **Interfaces Tesla can change.** Tesla doesn't publish TEDAPI or the signed (v1r) protocol. A Powerwall firmware update can change or break them without notice.
 - **Registering a key needs the Tesla cloud** once: a Tesla account, Tesla Fleet or Teslemetry sign-in, or `pypowerwall register`. The gateway doesn't confirm a key registered only over the local network.
 - **The Wi-Fi password connection can't change settings locally**, and has no battery dispatch or max backup. Settings changes need a cloud backup.
 - **Cloud-only settings:** Storm Watch, grid services and the off-grid vehicle charging reserve need a cloud backup.

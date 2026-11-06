@@ -26,7 +26,7 @@
         },
         "data_description": {
           "host": "L'adresse de la passerelle sur votre réseau domestique, par exemple `192.168.1.50`. Votre routeur l'affiche comme `teslapw_…`.",
-          "gw_pwd": "Les 5 derniers caractères du mot de passe figurant sur l'autocollant QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche), ou le mot de passe complet. Les lettres sont en majuscules.",
+          "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet.",
           "wifi_host": "Le point d'accès Wi-Fi de la Powerwall, utilisé avec la même connexion signée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès."
         }
       },
@@ -109,7 +109,7 @@
           "gw_pwd": "Mot de passe de la passerelle"
         },
         "data_description": {
-          "gw_pwd": "Les 5 derniers caractères du mot de passe figurant sur l'autocollant QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche), ou le mot de passe complet. Les lettres sont en majuscules."
+          "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet."
         }
       },
       "reconfigure": {
@@ -123,7 +123,7 @@
         },
         "data_description": {
           "host": "L'adresse de la passerelle sur votre réseau domestique, par exemple `192.168.1.50`. Votre routeur l'affiche comme `teslapw_…`.",
-          "gw_pwd": "Les 5 derniers caractères du mot de passe figurant sur l'autocollant QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche), ou le mot de passe complet. Les lettres sont en majuscules.",
+          "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet.",
           "rsa_key_path": "Chemin complet du fichier de clé privée sur l'hôte Home Assistant, par exemple `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laissez vide pour utiliser la connexion par mot de passe Wi-Fi (lecture seule).",
           "wifi_host": "L'adresse du point d'accès Wi-Fi de la Powerwall (généralement `192.168.91.1`), utilisée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès."
         }
@@ -179,7 +179,8 @@
       "none_found": "Aucune Powerwall n'a répondu sur ce réseau. Saisissez plutôt l'adresse (votre routeur affiche la passerelle comme `teslapw_…`).",
       "owner_api_refused": "Vous êtes connecté, mais l'Owner API de Tesla a refusé le jeton (HTTP 403). Reconnectez-vous ; si cela se reproduit, Tesla a peut-être de nouveau changé ses règles de connexion : merci d'ouvrir un ticket (issue).",
       "invalid_token": "Tesla n'a pas accepté ce jeton d'actualisation. Il a peut-être expiré ou été utilisé par une autre application : obtenez-en un nouveau dans votre application de jetons. Le lien de connexion n'a pas changé.",
-      "invalid_callback": "Ce n'est pas une adresse de connexion issue du lien ci-dessus. Collez l'adresse complète `tesla://auth/callback?code=…` de ce lien (un lien plus ancien ne fonctionne plus), ou un jeton d'actualisation. Le lien n'a pas changé."
+      "invalid_callback": "Ce n'est pas une adresse de connexion issue du lien ci-dessus. Collez l'adresse complète `tesla://auth/callback?code=…` de ce lien (un lien plus ancien ne fonctionne plus), ou un jeton d'actualisation. Le lien n'a pas changé.",
+      "gateway_locked": "La passerelle refuse les connexions après trop de tentatives. Attendez environ 15 minutes, puis réessayez."
     },
     "abort": {
       "already_configured": "Cette Powerwall est déjà configurée.",
@@ -676,6 +677,9 @@
     },
     "dispatch_refused": {
       "message": "La Powerwall n'a pas accepté le pilotage, par exemple une puissance supérieure à ce qu'elle peut fournir (une Powerwall 3 : 10 000 W). Voir le journal pour le code d'état de la passerelle."
+    },
+    "dispatch_refused_reason": {
+      "message": "La Powerwall n'a pas accepté le pilotage : {reason}"
     },
     "resume_refused": {
       "message": "La Powerwall n'a pas accepté la reprise. Voir le journal pour les détails."

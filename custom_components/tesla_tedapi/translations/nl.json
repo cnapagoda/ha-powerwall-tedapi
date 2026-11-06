@@ -26,7 +26,7 @@
         },
         "data_description": {
           "host": "Het adres van de gateway op je thuisnetwerk, bijvoorbeeld `192.168.1.50`. Je router toont het als `teslapw_…`.",
-          "gw_pwd": "De laatste 5 tekens van het wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder), of het hele wachtwoord. Letters zijn hoofdletters.",
+          "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig.",
           "wifi_host": "De wifi-hotspot van de Powerwall, gebruikt via dezelfde ondertekende verbinding als het thuisnetwerkadres niet meer antwoordt. Leeg laten als Home Assistant de hotspot niet kan bereiken."
         }
       },
@@ -109,7 +109,7 @@
           "gw_pwd": "Gateway-wachtwoord"
         },
         "data_description": {
-          "gw_pwd": "De laatste 5 tekens van het wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder), of het hele wachtwoord. Letters zijn hoofdletters."
+          "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig."
         }
       },
       "reconfigure": {
@@ -123,7 +123,7 @@
         },
         "data_description": {
           "host": "Het adres van de gateway op je thuisnetwerk, bijvoorbeeld `192.168.1.50`. Je router toont het als `teslapw_…`.",
-          "gw_pwd": "De laatste 5 tekens van het wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder), of het hele wachtwoord. Letters zijn hoofdletters.",
+          "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig.",
           "rsa_key_path": "Volledig pad naar het bestand met de private sleutel op de Home Assistant-host, bijvoorbeeld `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laat leeg om de verbinding met wifi-wachtwoord te gebruiken (alleen lezen).",
           "wifi_host": "Het adres van de wifi-hotspot van de Powerwall (meestal `192.168.91.1`), gebruikt als het thuisnetwerkadres niet meer antwoordt. Laat leeg als Home Assistant de hotspot niet kan bereiken."
         }
@@ -179,7 +179,8 @@
       "none_found": "Geen Powerwall antwoordde op dit netwerk. Voer in plaats daarvan het adres in (je router toont de gateway als `teslapw_…`).",
       "owner_api_refused": "Je bent ingelogd, maar de Tesla Owner API heeft de token geweigerd (HTTP 403). Log opnieuw in; blijft dit gebeuren, dan heeft Tesla misschien zijn aanmeldregels weer veranderd: meld dan een probleem (issue).",
       "invalid_token": "Tesla heeft die refresh-token niet geaccepteerd. Hij is misschien verlopen of door een andere app gebruikt: haal een nieuwe op in je token-app. De aanmeldlink is niet veranderd.",
-      "invalid_callback": "Dat is geen aanmeldadres van de link hierboven. Plak het volledige adres `tesla://auth/callback?code=…` van deze link (een oudere link werkt niet meer), of een refresh-token. De link is niet veranderd."
+      "invalid_callback": "Dat is geen aanmeldadres van de link hierboven. Plak het volledige adres `tesla://auth/callback?code=…` van deze link (een oudere link werkt niet meer), of een refresh-token. De link is niet veranderd.",
+      "gateway_locked": "De gateway weigert aanmeldingen na te veel pogingen. Wacht ongeveer 15 minuten en probeer het dan opnieuw."
     },
     "abort": {
       "already_configured": "Deze Powerwall is al ingesteld.",
@@ -676,6 +677,9 @@
     },
     "dispatch_refused": {
       "message": "De Powerwall accepteerde de batterijsturing niet, bijvoorbeeld een vermogen boven wat hij kan leveren (één Powerwall 3: 10.000 W). De statuscode van de gateway staat in het logboek."
+    },
+    "dispatch_refused_reason": {
+      "message": "De Powerwall accepteerde de batterijsturing niet: {reason}"
     },
     "resume_refused": {
       "message": "De Powerwall heeft het hervatten niet geaccepteerd. Zie het logboek voor details."
