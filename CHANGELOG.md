@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.6.4
+
+Docs only; no change to the integration.
+
+- **Which connection and which sign-in?** A new section at the top of Setup explains the two connections, **signed (v1r)** and **Wi-Fi password** (both use the gateway's local interface, TEDAPI), and the three sign-ins for the signed one: **Tesla account**, **Teslemetry** or **Tesla Fleet**. Pick one; it's needed once to register the key, then only as the optional cloud backup. The Wi-Fi password connection needs no sign-in. The README, Quick start and FAQ now say the same.
+- **Entities:** with several Powerwall 3s, the next inverters' fans are *Fan 2A*, *Fan 2B* and so on. **Firmware version**'s `previous_version` and `updated_at` stay empty until a firmware update has been seen.
+
 ## 2.6.3
 
 - **Backup Gateway 1** (part number `1118431-…`): setup recognises it and logs in with the full gateway password. Early Gateway 1 units refuse the last-5-characters login that other gateways use, so setup said the password was wrong (or, after several tries, that it couldn't reach the Powerwall).
