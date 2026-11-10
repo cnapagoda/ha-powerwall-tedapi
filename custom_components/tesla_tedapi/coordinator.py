@@ -24,9 +24,9 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from . import gateway, tariff as tariff_mod, tesla_cloud
+from . import gateway, phases as phases_mod, tariff as tariff_mod, tesla_cloud
 from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, problem_after, summary
-from .cloud import CloudBackend, OwnerSettings
+from .cloud import CloudBackend, OwnerSettings, live_readings, wall_connectors
 from .const import (
     AUTH_FILE,
     BACKEND_FLEET,
@@ -36,10 +36,13 @@ from .const import (
     CLOUD_CACHE_SECONDS,
     CLOUD_CHECK_SECONDS,
     CLOUD_CHOICES,
+    CLOUD_LIVE_SECONDS_FLEET,
+    CLOUD_LIVE_SECONDS_OWNER,
     CLOUD_RESERVE_CAP,
     CLOUD_RETRY_SECONDS,
     CLOUD_VERIFY_SECONDS,
     CLOUD_VERIFY_TIMEOUT_SECONDS,
+    CONF_CLOUD_READINGS,
     CONF_CONNECTION_MODE,
     CONF_FLEET_PROVIDER,
     CONF_FLEET_SITE_ID,
@@ -48,6 +51,7 @@ from .const import (
     CONF_HOST,
     CONF_OWNERS_AUTHPATH,
     CONF_OWNERS_EMAIL,
+    CONF_POWER_INTERVAL,
     CONF_PROBLEM_MINUTES,
     CONF_RESTORE_EXPORT,
     CONF_RSA_KEY_PATH,
@@ -64,6 +68,7 @@ from .const import (
     EVENT_FIRMWARE_UPDATED,
     EVENT_GRID_OUTAGE,
     KEY_REFUSED_POLLS,
+    MIN_POWER_INTERVAL,
     MODE_V1R,
     OWNER_EXTRAS_SECONDS,
     PASSWORD_REFUSED_POLLS,
@@ -80,8 +85,10 @@ from .const import (
 from .daily import DailyEnergy, GridCheck
 from .firmware import FirmwareTracker, split_version
 from .fleet import FleetBackup, FleetTimeout, entry_api, provider_label
+from .flows import EnergyFlows
 from .outages import OutageTracker
 from .texts import texts as shared_texts
+from .wear import CapacityTrend
 
 if TYPE_CHECKING:
     from .dispatch import DispatchSession
@@ -409,6 +416,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._site_id: int | None = data.get(CONF_SITE_ID)
         options = entry.options
         self.restore_settings: bool = True
+        self.cloud_readings: bool = False
         self.problem_after = timedelta(minutes=DEFAULT_PROBLEM_MINUTES)
         self._apply_live_options(options)
 
@@ -458,6 +466,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.outages = OutageTracker()
         self.daily = DailyEnergy()
         self.grid_check = GridCheck()
+        self.flows = EnergyFlows(self._scan_interval(entry).total_seconds())
+        self.capacity_trend = CapacityTrend()
+        # Fast polling: the last full read (as fetched) and when (monotonic).
+        # Between full reads only power, battery level and grid status are
+        # read and laid over it.
+        self._full: dict[str, Any] | None = None
+        self._full_at: float | None = None
         self.firmware = FirmwareTracker()
         # True while an off-grid run started here is on (set up in __init__).
         self.intentional_off_grid: Callable[[], bool] = lambda: False
@@ -483,11 +498,33 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     @staticmethod
+    def _full_seconds(entry: TedapiConfigEntry) -> float:
+        """The polling interval: how often everything is read."""
+        return float(entry.options.get(CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)))
+
+    @staticmethod
     def _scan_interval(entry: TedapiConfigEntry) -> timedelta:
-        return timedelta(seconds=entry.options.get(
-            CONF_SCAN_INTERVAL, entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)))
+        """How often the gateway is polled: the fast interval for power when
+        one is set and it is shorter than the polling interval, else the
+        polling interval."""
+        full = TedapiCoordinator._full_seconds(entry)
+        fast = entry.options.get(CONF_POWER_INTERVAL) or 0
+        fast = max(MIN_POWER_INTERVAL, float(fast)) if fast and fast > 0 else 0
+        return timedelta(seconds=fast if 0 < fast < full else full)
+
+    async def async_request_refresh(self) -> None:
+        """A refresh asked for after a setting change, dispatch or grid
+        command: a full read, so the new values show straight away (with fast
+        polling the next poll would otherwise only read power)."""
+        self._full_at = None
+        await super().async_request_refresh()
+
+    async def async_refresh(self) -> None:
+        self._full_at = None
+        await super().async_refresh()
 
     def _apply_live_options(self, options: Any) -> None:
+        self.cloud_readings = bool(options.get(CONF_CLOUD_READINGS, False))
         self.restore_settings = options.get(CONF_RESTORE_EXPORT, True)
         self.problem_after = timedelta(minutes=options.get(CONF_PROBLEM_MINUTES, DEFAULT_PROBLEM_MINUTES))
 
@@ -552,7 +589,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "password": "",
             "email": "",
             "timezone": str(self.hass.config.time_zone),
-            "pwcacheexpire": 5,
+            # pypowerwall's own cache: shorter than a fast poll, so each one
+            # reads the gateway.
+            "pwcacheexpire": min(5, max(1, int(self._scan_interval(self.config_entry).total_seconds()) - 1)),
             "auto_select": True,
             "failover": False,
             # pypowerwall's failover switches to cloud mode when it finds a token
@@ -619,6 +658,37 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # ------------------------------------------------------------------
 
     def _fetch_all(self) -> dict[str, Any]:
+        """A full read, or between two of them (fast polling) only the live
+        readings laid over the last full read."""
+        full, read_at = self._full, self._full_at
+        full_seconds = self._full_seconds(self.config_entry)
+        if (full is not None and read_at is not None and self.update_interval is not None
+                and self.update_interval.total_seconds() < full_seconds
+                # A second early: timers drift, and a full read a poll late
+                # would stretch the polling interval.
+                and time.monotonic() - read_at < full_seconds - 1):
+            return {**full, **self._fetch_live(self._pw), "full_read": False}
+        data = self._fetch_full()
+        self._full, self._full_at = dict(data), time.monotonic()
+        return data
+
+    def _fetch_live(self, pw) -> dict[str, Any]:
+        """Power, battery level and grid status only (fast polling)."""
+        pw.power()  # fails when the gateway can't be reached, see _fetch_full
+        aggregates = self._read_aggregates(pw)
+        soe = pw.level()
+        soe_value = round(soe, 1) if isinstance(soe, (int, float)) else None
+        return {
+            "solar_power": _instant_power(aggregates, "solar"),
+            "battery_power": _instant_power(aggregates, "battery"),
+            "grid_power": _instant_power(aggregates, "site"),
+            "home_power": _instant_power(aggregates, "load"),
+            "battery_soe": soe_value,
+            "battery_level": app_soc(soe_value),
+            "grid_status": pw.grid_status(),
+        }
+
+    def _fetch_full(self) -> dict[str, Any]:
         pw = self._pw
         # power() fails when the gateway can't be reached (the local read then
         # fails as before); its values aren't used, see _instant_power.
@@ -669,6 +739,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "firmware_version": version,
             "strings": _extract_strings(vitals, din),
             "fans": _extract_fans(vitals, din),
+            "phases": phases_mod.extract(vitals),
+            "full_read": True,
             "tedapi_mode": getattr(pw, "tedapi_mode", None),
             "backup_event": self._read_backup_event(pw),
             **self._fetch_extras(pw, vitals, aggregates),
@@ -1358,6 +1430,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.firmware.restore(stored.get("firmware") or {})
         self.daily.restore(stored.get("daily") or {})
         self.grid_check.restore(stored.get("grid_check") or {})
+        self.flows.restore(stored.get("flows") or {})
+        self.capacity_trend.restore(stored.get("capacity_trend") or {})
 
     def _state_to_save(self) -> dict[str, Any]:
         return {"export_wanted": self.wanted["grid_export"],
@@ -1366,7 +1440,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "outages": self.outages.as_dict(),
                 "firmware": self.firmware.as_dict(),
                 "daily": self.daily.as_dict(),
-                "grid_check": self.grid_check.as_dict()}
+                "grid_check": self.grid_check.as_dict(),
+                "flows": self.flows.as_dict(),
+                "capacity_trend": self.capacity_trend.as_dict()}
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -1376,6 +1452,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 data = await self.hass.async_add_executor_job(self._fetch_all)
             except Exception as err:
                 self._pw = None
+                self._full_at = None  # a full read first once it answers again
                 await self._async_note_local_failure()
                 if not (self.cloud_enabled and self.din):
                     raise
@@ -1393,6 +1470,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     _LOGGER.info("The Powerwall gateway at %s answers again", self._host)
         except Exception as err:
             self._pw = None
+            self._full_at = None
             self._sync_cloud_issue()
             raise UpdateFailed(f"Powerwall update failed: {err}") from err
 
@@ -1402,13 +1480,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.firmware_version = data["firmware_version"]
         if data.get("local_ok"):
             self.model = detect_model(self.din, data.get("packs"))
-            self._sync_follower_issue(data.get("missing_powerwalls"))
+            if data.get("full_read", True):  # it counts polls: full reads only
+                self._sync_follower_issue(data.get("missing_powerwalls"))
         due = [backend for backend in self.backends if self._cloud_check_due(backend)]
         if due:
             for backend in due:
                 backend.check_at = time.monotonic()
             await self.hass.async_add_executor_job(self._check_cloud, due)
         data["cloud_extras"] = await self.hass.async_add_executor_job(self._cloud_extras) if self.backends else {}
+        await self._async_cloud_live(data)
         now = time.monotonic()
         check_due = self._tariff_check_at is not None and now >= self._tariff_check_at
         if self.tariff_enabled and (check_due or self._tariff_at is None or now - self._tariff_at >= TARIFF_SECONDS):
@@ -1424,6 +1504,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._process_alerts(data)
         self._track_outages(data)
         self._track_daily(data)
+        self._track_flows(data)
+        self._track_wear(data)
         self._track_firmware(data)
         self._check_cloud_writes(data)
         self._sync_cloud_issue()
@@ -1432,8 +1514,70 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             data[f"{key}_last_restored"] = self.last_restored[key]
         data["health"] = await self._async_health(data)
         self._sync_device()
-        self._store.async_delay_save(self._state_to_save, 10)
+        if data.get("full_read", True):
+            # Not on fast polls: each call puts the save off again, so polls
+            # closer together than the delay would never let it happen.
+            self._store.async_delay_save(self._state_to_save, 10)
         return data
+
+    async def _async_cloud_live(self, data: dict[str, Any]) -> None:
+        """The site's live status from the cloud, when something needs it:
+        a Wall Connector (the gateway doesn't report them), or the cloud
+        readings option while the gateway can't be reached."""
+        down = not data.get("local_ok")
+        stand_in = down and self.cloud_readings
+        data["wall_connectors"] = {}
+        if not self.backends or not ((data.get("cloud_extras") or {}).get("wall_connectors") or stand_in):
+            return
+        live = await self.hass.async_add_executor_job(self._cloud_live)
+        data["wall_connectors"] = wall_connectors(live)
+        if stand_in:
+            readings = live_readings(live)
+            if readings:
+                data.update(readings)
+                data["readings_source"] = "cloud"
+
+    def _cloud_live(self) -> dict[str, Any]:
+        """The live status from the first cloud backup (in order) that gives
+        one, read at most every CLOUD_LIVE_SECONDS_*."""
+        for backend in self.backends:
+            if backend.failing:
+                continue
+            now = time.monotonic()
+            seconds = CLOUD_LIVE_SECONDS_OWNER if backend.name == BACKEND_OWNER else CLOUD_LIVE_SECONDS_FLEET
+            if backend.live is not None and now - backend.live[0] < seconds:
+                values = backend.live[1]
+            else:
+                try:
+                    values = backend.get_client().get_live() or {}
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.debug("%s live status read failed: %s", backend.label, err)
+                    values = {}
+                backend.live = (now, values)
+            if values:
+                return values
+        return {}
+
+    def _track_flows(self, data: dict[str, Any]) -> None:
+        """Energy flows from the gateway's power readings (never the cloud's)."""
+        if data.get("local_ok"):
+            self.flows.update(dt_util.utcnow(), data.get("solar_power"), data.get("battery_power"),
+                              data.get("grid_power"), data.get("home_power"))
+        else:
+            self.flows.pause()
+        data["flows"] = self.flows.summary()
+
+    def _track_wear(self, data: dict[str, Any]) -> None:
+        """One capacity sample per full read: the system's full capacity per
+        pack (every pack in the gateway's config, as Battery health counts)."""
+        read = len(data.get("packs") or {})
+        listed = data.get("pack_count")
+        packs = listed if isinstance(listed, int) and not isinstance(listed, bool) and listed > read else read
+        full = data.get("battery_full_kwh")
+        if (data.get("local_ok") and data.get("full_read", True) and packs
+                and isinstance(full, (int, float)) and not isinstance(full, bool)):
+            self.capacity_trend.update(dt_util.now().date(), full / packs, packs)
+        data["capacity_trend"] = self.capacity_trend.summary()
 
     @callback
     def _sync_device(self) -> None:

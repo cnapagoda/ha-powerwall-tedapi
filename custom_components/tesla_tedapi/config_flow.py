@@ -62,6 +62,7 @@ from .const import (
     CLOUD_WITHOUT_FLEET,
     CLOUD_WITHOUT_OWNER,
     CONF_CLOUD_BACKENDS,
+    CONF_CLOUD_READINGS,
     CONF_CONNECTION_MODE,
     CONF_DIAGNOSTICS_GATEWAY,
     CONF_DISPATCH_FLOOR_RESERVE,
@@ -76,6 +77,7 @@ from .const import (
     CONF_MACS,
     CONF_OWNERS_AUTHPATH,
     CONF_OWNERS_EMAIL,
+    CONF_POWER_INTERVAL,
     CONF_PROBLEM_MINUTES,
     CONF_RESTORE_EXPORT,
     CONF_RSA_KEY_PATH,
@@ -91,7 +93,9 @@ from .const import (
     DISPATCH_MAX_WATTS,
     DOMAIN,
     FLEET_DATA_KEYS,
+    MAX_POWER_INTERVAL,
     MAX_SCAN_INTERVAL,
+    MIN_POWER_INTERVAL,
     MIN_SCAN_INTERVAL,
     MODE_V1R,
     MODE_WIFI,
@@ -1024,9 +1028,15 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             return NumberSelector(NumberSelectorConfig(
                 min=lo, max=hi, step=step, unit_of_measurement=unit, mode=NumberSelectorMode.BOX))
 
+        def power_interval(value: int) -> int:
+            """0 is off; anything shorter than the minimum is the minimum."""
+            return 0 if value <= 0 else max(MIN_POWER_INTERVAL, value)
+
         advanced: dict[Any, Any] = {
-            # Tesla tariff (cloud only): offered once a cloud backup is set up.
-            **({vol.Required(CONF_TESLA_TARIFF, default=opts.get(CONF_TESLA_TARIFF, False)): bool}
+            # Tesla tariff and cloud readings (cloud only): offered once a
+            # cloud backup is set up.
+            **({vol.Required(CONF_TESLA_TARIFF, default=opts.get(CONF_TESLA_TARIFF, False)): bool,
+                vol.Required(CONF_CLOUD_READINGS, default=opts.get(CONF_CLOUD_READINGS, False)): bool}
                if cloud_choice(self.config_entry.data, opts) != CLOUD_NONE else {}),
             vol.Required(CONF_DIAGNOSTICS_GATEWAY, default=opts.get(CONF_DIAGNOSTICS_GATEWAY, False)): bool,
         }
@@ -1036,6 +1046,8 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                 vol.Required("general"): section(vol.Schema({
                     vol.Required(CONF_SCAN_INTERVAL, default=scan): vol.All(
                         box(MIN_SCAN_INTERVAL, MAX_SCAN_INTERVAL, 1, "s"), vol.Coerce(int)),
+                    vol.Required(CONF_POWER_INTERVAL, default=opts.get(CONF_POWER_INTERVAL, 0)): vol.All(
+                        box(0, MAX_POWER_INTERVAL, 1, "s"), vol.Coerce(int), power_interval),
                     vol.Required(CONF_RESTORE_EXPORT, default=opts.get(CONF_RESTORE_EXPORT, True)): bool,
                 }), {"collapsed": False}),
                 vol.Required("alerts"): section(vol.Schema({

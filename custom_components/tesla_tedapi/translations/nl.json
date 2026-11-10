@@ -229,9 +229,11 @@
             "name": "Algemeen",
             "data": {
               "scan_interval": "Pollinginterval",
+              "power_interval": "Snel pollinginterval voor vermogen",
               "restore_export": "Instellingen herstellen als de Powerwall ze kwijtraakt"
             },
             "data_description": {
+              "power_interval": "Hoe vaak vermogen, batterijniveau en netstatus worden gelezen. `0` = uit: ze worden met al het andere gelezen, op het pollinginterval. 5 tot 60 s, en alleen gebruikt als het korter is dan het pollinginterval. Korter geeft vloeiendere grafieken en snellere dispatchgrenzen, maar meer belasting van de gateway en een grotere database. Wijzigen herlaadt de integratie.",
               "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding)."
             }
           },
@@ -261,10 +263,12 @@
             "name": "Geavanceerd",
             "data": {
               "tesla_tariff": "Tesla-tarief (cloud)",
+              "cloud_readings": "Cloudmetingen zolang de gateway onbereikbaar is",
               "diagnostics_gateway_config": "Gatewayconfiguratie in diagnostiek"
             },
             "data_description": {
               "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensor en acties om te lezen/instellen). Alleen cloud.",
+              "cloud_readings": "Zolang de gateway onbereikbaar is, vermogen en batterijniveau uit de cloudback-up tonen (ze dragen het attribuut `source: cloud` en kunnen enkele minuten oud zijn). Energietellers en al het andere blijven niet beschikbaar. Uit: alle metingen zijn niet beschikbaar tot de gateway antwoordt.",
               "diagnostics_gateway_config": "De configuratie van de gateway toevoegen aan diagnostiekdownloads, zonder serienummers, locatie, namen en inloggegevens. Handig voor bugmeldingen."
             },
             "description": "De optie **Tesla-tarief** verschijnt hier zodra een cloudback-up is ingesteld: kies in het menu eerst **Een Tesla-account koppelen** of **Aanmelden bij Tesla Fleet of Teslemetry**."
@@ -612,6 +616,66 @@
           "mismatch": "Meters wijken af",
           "unknown": "Nog te weinig gegevens"
         }
+      },
+      "flow_solar_to_home": {
+        "name": "Zonne-energie naar huis"
+      },
+      "flow_solar_to_battery": {
+        "name": "Zonne-energie naar batterij"
+      },
+      "flow_solar_to_grid": {
+        "name": "Zonne-energie naar het net"
+      },
+      "flow_battery_to_home": {
+        "name": "Batterij-energie naar huis"
+      },
+      "flow_battery_to_grid": {
+        "name": "Batterij-energie naar het net"
+      },
+      "flow_grid_to_home": {
+        "name": "Netenergie naar huis"
+      },
+      "flow_grid_to_battery": {
+        "name": "Netenergie naar batterij"
+      },
+      "battery_round_trip_efficiency": {
+        "name": "Batterijrendement (laden en ontladen)"
+      },
+      "battery_capacity_fade": {
+        "name": "Trend batterijcapaciteit"
+      },
+      "battery_warranty_date": {
+        "name": "Batterij bereikt garantiegrens (schatting)"
+      },
+      "phase_grid_voltage": {
+        "name": "Netspanning L{phase}"
+      },
+      "phase_home_voltage": {
+        "name": "Huisspanning L{phase}"
+      },
+      "meter_ct_power": {
+        "name": "Meter {meter} stroomtrafo {ct} vermogen"
+      },
+      "meter_ct_current": {
+        "name": "Meter {meter} stroomtrafo {ct} stroom"
+      },
+      "meter_ct_reactive_power": {
+        "name": "Meter {meter} stroomtrafo {ct} blindvermogen"
+      },
+      "wall_connector_power": {
+        "name": "Wall Connector {connector} vermogen"
+      },
+      "wall_connector_state": {
+        "name": "Wall Connector {connector} status"
+      },
+      "wall_connector_fault_state": {
+        "name": "Wall Connector {connector} storingsstatus"
+      },
+      "tariff_buy_price": {
+        "name": "Tarief afnameprijs"
+      },
+      "tariff_sell_price": {
+        "name": "Tarief terugleverprijs"
       }
     },
     "switch": {
@@ -636,6 +700,14 @@
             }
           }
         }
+      }
+    },
+    "calendar": {
+      "buy_tariff": {
+        "name": "Afnametarief"
+      },
+      "sell_tariff": {
+        "name": "Teruglevertarief"
       }
     }
   },

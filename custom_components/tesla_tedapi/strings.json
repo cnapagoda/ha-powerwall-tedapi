@@ -229,9 +229,11 @@
             "name": "General",
             "data": {
               "scan_interval": "Polling interval",
+              "power_interval": "Fast polling interval for power",
               "restore_export": "Restore settings when the Powerwall drops them"
             },
             "data_description": {
+              "power_interval": "How often power, battery level and grid status are read. `0` = off: they are read with everything else, at the polling interval. 5 to 60 s, and only used when shorter than the polling interval. Shorter gives smoother graphs and quicker dispatch limits, but more load on the gateway and a bigger database. Changing it reloads the integration.",
               "restore_export": "The Powerwall sometimes loses its grid export rule and its grid charging setting from its own settings (seen hourly on a Powerwall 3); grid charging then turns on. When on, the setting you chose is written back within a minute or two (signed connection only)."
             }
           },
@@ -261,10 +263,12 @@
             "name": "Advanced",
             "data": {
               "tesla_tariff": "Tesla tariff (cloud)",
+              "cloud_readings": "Cloud readings while the gateway is unreachable",
               "diagnostics_gateway_config": "Gateway configuration in diagnostics"
             },
             "data_description": {
               "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensor and get/set tariff actions). Cloud only.",
+              "cloud_readings": "While the gateway can't be reached, show power and battery level from the cloud backup instead (they carry the attribute `source: cloud` and can be a few minutes old). Energy counters and everything else stay unavailable. Off: all readings are unavailable until the gateway answers.",
               "diagnostics_gateway_config": "Add the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports."
             },
             "description": "The **Tesla tariff** option appears here once a cloud backup is set up: in the menu, choose **Link a Tesla account** or **Sign in to Tesla Fleet or Teslemetry** first."
@@ -612,6 +616,66 @@
           "mismatch": "Counters differ",
           "unknown": "Not enough data yet"
         }
+      },
+      "flow_solar_to_home": {
+        "name": "Solar to home energy"
+      },
+      "flow_solar_to_battery": {
+        "name": "Solar to battery energy"
+      },
+      "flow_solar_to_grid": {
+        "name": "Solar to grid energy"
+      },
+      "flow_battery_to_home": {
+        "name": "Battery to home energy"
+      },
+      "flow_battery_to_grid": {
+        "name": "Battery to grid energy"
+      },
+      "flow_grid_to_home": {
+        "name": "Grid to home energy"
+      },
+      "flow_grid_to_battery": {
+        "name": "Grid to battery energy"
+      },
+      "battery_round_trip_efficiency": {
+        "name": "Battery round-trip efficiency"
+      },
+      "battery_capacity_fade": {
+        "name": "Battery capacity trend"
+      },
+      "battery_warranty_date": {
+        "name": "Battery warranty level date (estimate)"
+      },
+      "phase_grid_voltage": {
+        "name": "Grid voltage L{phase}"
+      },
+      "phase_home_voltage": {
+        "name": "Home voltage L{phase}"
+      },
+      "meter_ct_power": {
+        "name": "Meter {meter} CT {ct} power"
+      },
+      "meter_ct_current": {
+        "name": "Meter {meter} CT {ct} current"
+      },
+      "meter_ct_reactive_power": {
+        "name": "Meter {meter} CT {ct} reactive power"
+      },
+      "wall_connector_power": {
+        "name": "Wall Connector {connector} power"
+      },
+      "wall_connector_state": {
+        "name": "Wall Connector {connector} state"
+      },
+      "wall_connector_fault_state": {
+        "name": "Wall Connector {connector} fault state"
+      },
+      "tariff_buy_price": {
+        "name": "Tariff buy price"
+      },
+      "tariff_sell_price": {
+        "name": "Tariff sell price"
       }
     },
     "switch": {
@@ -636,6 +700,14 @@
             }
           }
         }
+      }
+    },
+    "calendar": {
+      "buy_tariff": {
+        "name": "Buy tariff"
+      },
+      "sell_tariff": {
+        "name": "Sell tariff"
       }
     }
   },

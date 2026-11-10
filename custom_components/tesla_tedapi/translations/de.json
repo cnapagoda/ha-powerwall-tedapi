@@ -229,9 +229,11 @@
             "name": "Allgemein",
             "data": {
               "scan_interval": "Abfrageintervall",
+              "power_interval": "Schnelles Abfrageintervall für Leistung",
               "restore_export": "Einstellungen wiederherstellen, wenn die Powerwall sie verliert"
             },
             "data_description": {
+              "power_interval": "Wie oft Leistung, Batteriestand und Netzstatus gelesen werden. `0` = aus: sie werden mit allem anderen im Abfrageintervall gelesen. 5 bis 60 s, und nur wirksam, wenn kürzer als das Abfrageintervall. Kürzer ergibt glattere Diagramme und schnellere Dispatch-Grenzen, aber mehr Last auf dem Gateway und eine größere Datenbank. Eine Änderung lädt die Integration neu.",
               "restore_export": "Die Powerwall verliert manchmal ihre Netzeinspeiseregel und ihre Einstellung zum Laden aus dem Netz (stündlich bei einer Powerwall 3 beobachtet); das Laden aus dem Netz schaltet sich dann ein. Wenn aktiv, wird die gewählte Einstellung innerhalb von ein bis zwei Minuten zurückgeschrieben (nur signierte Verbindung)."
             }
           },
@@ -261,10 +263,12 @@
             "name": "Erweitert",
             "data": {
               "tesla_tariff": "Tesla-Tarif (Cloud)",
+              "cloud_readings": "Cloud-Messwerte, solange das Gateway nicht erreichbar ist",
               "diagnostics_gateway_config": "Gateway-Konfiguration in der Diagnose"
             },
             "data_description": {
               "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensor und Aktionen zum Lesen/Setzen). Nur Cloud.",
+              "cloud_readings": "Solange das Gateway nicht erreichbar ist, Leistung und Batteriestand stattdessen aus dem Cloud-Backup anzeigen (sie tragen das Attribut `source: cloud` und können einige Minuten alt sein). Energiezähler und alles andere bleiben nicht verfügbar. Aus: alle Messwerte sind nicht verfügbar, bis das Gateway antwortet.",
               "diagnostics_gateway_config": "Die Konfiguration des Gateways zu Diagnose-Downloads hinzufügen, ohne Seriennummern, Standort, Namen und Zugangsdaten. Hilfreich für Fehlerberichte."
             },
             "description": "Die Option **Tesla-Tarif** erscheint hier, sobald ein Cloud-Backup eingerichtet ist: Wähle im Menü zuerst **Tesla-Konto verknüpfen** oder **Bei Tesla Fleet oder Teslemetry anmelden**."
@@ -612,6 +616,66 @@
           "mismatch": "Zähler weichen ab",
           "unknown": "Noch zu wenig Daten"
         }
+      },
+      "flow_solar_to_home": {
+        "name": "PV-Energie ins Haus"
+      },
+      "flow_solar_to_battery": {
+        "name": "PV-Energie in die Batterie"
+      },
+      "flow_solar_to_grid": {
+        "name": "PV-Energie ins Netz"
+      },
+      "flow_battery_to_home": {
+        "name": "Batterie-Energie ins Haus"
+      },
+      "flow_battery_to_grid": {
+        "name": "Batterie-Energie ins Netz"
+      },
+      "flow_grid_to_home": {
+        "name": "Netz-Energie ins Haus"
+      },
+      "flow_grid_to_battery": {
+        "name": "Netz-Energie in die Batterie"
+      },
+      "battery_round_trip_efficiency": {
+        "name": "Batterie-Wirkungsgrad (Laden und Entladen)"
+      },
+      "battery_capacity_fade": {
+        "name": "Trend der Batteriekapazität"
+      },
+      "battery_warranty_date": {
+        "name": "Batterie erreicht Garantiegrenze (Schätzung)"
+      },
+      "phase_grid_voltage": {
+        "name": "Netzspannung L{phase}"
+      },
+      "phase_home_voltage": {
+        "name": "Hausspannung L{phase}"
+      },
+      "meter_ct_power": {
+        "name": "Zähler {meter} Stromwandler {ct} Leistung"
+      },
+      "meter_ct_current": {
+        "name": "Zähler {meter} Stromwandler {ct} Strom"
+      },
+      "meter_ct_reactive_power": {
+        "name": "Zähler {meter} Stromwandler {ct} Blindleistung"
+      },
+      "wall_connector_power": {
+        "name": "Wall Connector {connector} Leistung"
+      },
+      "wall_connector_state": {
+        "name": "Wall Connector {connector} Status"
+      },
+      "wall_connector_fault_state": {
+        "name": "Wall Connector {connector} Fehlerstatus"
+      },
+      "tariff_buy_price": {
+        "name": "Tarif Bezugspreis"
+      },
+      "tariff_sell_price": {
+        "name": "Tarif Einspeisepreis"
       }
     },
     "switch": {
@@ -636,6 +700,14 @@
             }
           }
         }
+      }
+    },
+    "calendar": {
+      "buy_tariff": {
+        "name": "Bezugstarif"
+      },
+      "sell_tariff": {
+        "name": "Einspeisetarif"
       }
     }
   },

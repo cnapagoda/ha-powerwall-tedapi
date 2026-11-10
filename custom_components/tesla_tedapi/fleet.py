@@ -377,6 +377,10 @@ class FleetBackup:
         live = self._run(lambda api: api.live_status(self._site_id))
         return site_extras(info, info.get("user_settings") or {}, info.get("components") or {}, live)
 
+    def get_live(self) -> dict[str, Any]:
+        """The site's live status (power, battery level, Wall Connectors)."""
+        return self._run(lambda api: api.live_status(self._site_id))
+
     def get_tariff(self) -> dict[str, Any] | None:
         """The site's tariff (tariff_content, else tariff_content_v2), read fresh."""
         info = self._site_info(fresh=True)

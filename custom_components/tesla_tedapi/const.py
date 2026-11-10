@@ -24,6 +24,14 @@ CONF_PROBLEM_MINUTES = "problem_minutes"
 CONF_TESLA_TARIFF = "tesla_tariff"
 # Diagnostics include the gateway's own configuration (redacted). Off by default.
 CONF_DIAGNOSTICS_GATEWAY = "diagnostics_gateway_config"
+# Fast polling for power, battery level and grid status (seconds; 0 = off:
+# everything is read at the polling interval). Changing it reloads the entry.
+CONF_POWER_INTERVAL = "power_interval"
+MIN_POWER_INTERVAL = 5
+MAX_POWER_INTERVAL = 60
+# Power and battery level from the cloud backup while the gateway can't be
+# reached (off by default: readings then come from Tesla, not the gateway).
+CONF_CLOUD_READINGS = "cloud_readings"
 CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
 CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
 # Which cloud backup to use and in what order (one of CLOUD_CHOICES).
@@ -32,7 +40,7 @@ CONF_CLOUD_BACKENDS = "cloud_backends"
 # end a running battery dispatch). Any other change reloads it.
 LIVE_OPTIONS = frozenset({
     CONF_SCAN_INTERVAL, CONF_RESTORE_EXPORT, CONF_STATUS_EVENTS, CONF_PROBLEM_MINUTES,
-    CONF_DISPATCH_FLOOR_RESERVE, CONF_DISPATCH_MAX_WATTS, CONF_DIAGNOSTICS_GATEWAY,
+    CONF_DISPATCH_FLOOR_RESERVE, CONF_DISPATCH_MAX_WATTS, CONF_DIAGNOSTICS_GATEWAY, CONF_CLOUD_READINGS,
 })
 
 # Cloud backups: a Tesla account signed in here (Owner API), or a Fleet API
@@ -143,6 +151,11 @@ OWNER_RENEW_RETRY_SECONDS = 300
 # Storm Watch and other cloud-only values from the Owner API are read this
 # often (two Tesla calls); Tesla Fleet's are read from its data every poll.
 OWNER_EXTRAS_SECONDS = 1800
+# The site's live status from the cloud (Wall Connectors; power and battery
+# level while the gateway can't be reached) is read at most this often. Only
+# read when one of the two needs it. The Owner API is rate limited.
+CLOUD_LIVE_SECONDS_FLEET = 60
+CLOUD_LIVE_SECONDS_OWNER = 300
 # Tesla tariff (cloud, optional): read every 6 hours.
 TARIFF_SECONDS = 6 * 3600
 # After a write, the tariff is read back after these waits (at 0, 1, 3, 7, 15

@@ -1,6 +1,16 @@
 # Changelog
 
-## 2.6.5
+## 2.7.0
+
+- **Energy flows:** seven new energy sensors (solar to home, battery and grid; battery to home and grid; grid to home and battery), in kWh, attributed from the gateway's power readings. Local, no cloud. They count from this version on.
+- **Battery economics:** **Battery round-trip efficiency**, **Battery capacity trend** (% of rated capacity per year, from one sample a day; shown after 30 samples over 90 days) and **Battery warranty level date (estimate)**.
+- **Per-phase and meter sensors**, where the gateway reports them: **Grid voltage L1–L3**, **Home voltage L1–L3** (disabled by default), and for each current transformer of the gateway's meters power, current and reactive power (the last two disabled by default). Only phases and current transformers in use get sensors.
+- **Fast polling for power** (new option, off by default): reads power, battery level and grid status every 5–60 s, between the full reads at the polling interval. Dispatch limits and `charge_to` / `discharge_to` targets react at that pace too. Changing it reloads the integration.
+- **Wall Connector sensors** (power, state, fault state) from the cloud backup, for sites that have one.
+- **Tesla tariff entities** (with the Tesla tariff option): **Tariff buy price** and **Tariff sell price** sensors, and **Buy tariff** / **Sell tariff** calendars.
+- **Cloud readings while the gateway is unreachable** (new option, off by default): power and battery level then come from the cloud backup, marked `source: cloud`, instead of going *unavailable*.
+
+Fixes and changes (2.6.5 was not released on its own):
 
 - **Power sensors no longer show a false 0 W.** When the gateway's meters can't be read, pypowerwall reports 0 W for solar, battery, grid and home. Those readings were recorded as real. They now show as *unknown* until the meters answer again; a reading the meters did give is kept.
 - **Battery dispatch: stopping or restarting Home Assistant hands the battery back at once** and fires `tesla_tedapi_dispatch_ended` (reason `unloaded`). Before, the Powerwall kept charging or discharging until the last command expired (up to 5 minutes) and no event was fired.

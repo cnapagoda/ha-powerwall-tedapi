@@ -13,16 +13,20 @@ All entities belong to one device per gateway, **Powerwall TEDAPI**. Entity IDs 
 | 🚫 | Disabled by default: enable it on the entity's settings page. |
 | 🩺 | Diagnostic: shown in the device page's *Diagnostic* section. |
 
-**When the gateway can't be reached,** readings show *unavailable* (never stale values). Settings stay usable through the cloud backup if you have one. Outage history and **Setup health** stay available.
+**When the gateway can't be reached,** readings show *unavailable* (never stale values); with the **Cloud readings while the gateway is unreachable** option, power and battery level come from the cloud backup instead (attribute `source: cloud`). Settings stay usable through the cloud backup if you have one. Outage history and **Setup health** stay available.
 
 - [Power](#power)
 - [Battery](#battery)
 - [Energy](#energy)
+- [Energy flows](#energy-flows)
 - [Grid](#grid)
+- [Phases and meters](#phases-and-meters)
 - [Settings](#settings)
 - [Backup, dispatch and cloud states](#backup-dispatch-and-cloud-states)
 - [Buttons](#buttons)
 - [Alerts](#alerts)
+- [Wall Connector](#wall-connector)
+- [Tesla tariff](#tesla-tariff)
 - [Hardware](#hardware)
 - [Setup and connection](#setup-and-connection)
 
@@ -52,6 +56,9 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 | Battery energy remaining | `sensor.powerwall_tedapi_battery_energy_remaining` | kWh | |
 | Battery full capacity | `sensor.powerwall_tedapi_battery_full_capacity` | kWh | Attributes: each pack's `serial` and `full_kwh`. |
 | Backup time remaining | `sensor.powerwall_tedapi_backup_time_remaining` | h | The gateway's estimate at the current load. |
+| Battery round-trip efficiency 🩺 | `sensor.powerwall_tedapi_battery_round_trip_efficiency` | % | Lifetime energy out of the battery ÷ lifetime energy in (the gateway's counters). Unknown below 50 kWh charged. |
+| Battery capacity trend 🩺 | `sensor.powerwall_tedapi_battery_capacity_trend` | %/y | How fast the full capacity changes, in % of the rated 13.5 kWh per year (negative while it falls): a straight line through one sample a day of the full capacity per pack. *Unknown* until there are 30 samples over 90 days. Starts over when a pack is added or removed (a new pack count that lasts into the next day). The gateway's capacity estimate moves with the seasons, so read it over a year or more. Attributes: `kwh_per_year`, `fit_kwh`, `samples`, `days`. |
+| Battery warranty level date (estimate) 🩺 | `sensor.powerwall_tedapi_battery_warranty_level_date_estimate` | | When that line reaches the warranty level (70 % of 13.5 kWh). *Unknown* while the trend is flat or rising. An extrapolation, not a prediction. |
 | Battery health 🩺 | `sensor.powerwall_tedapi_battery_health` | % | The packs' full capacity ÷ (13.5 kWh × packs). While a follower Powerwall 3 is missing from the readings: the system's full capacity ÷ (13.5 kWh × every pack in the gateway's configuration), so it still covers the whole system. A new battery reads above 100 %. Attributes: `nominal_kwh_per_pack`, `packs` (in the system), `packs_read` (in the readings), `warranty_kwh` (70 % of 13.5 kWh per pack), `lifetime_discharged_kwh` (of the packs read). |
 
 ### Per battery pack 🔍
@@ -93,6 +100,22 @@ They're meant for cards and automations. For the Energy dashboard, use the lifet
 |---|---|---|
 | Grid counter check 🩺 | `sensor.powerwall_tedapi_grid_counter_check` | Whether today's grid import and export counters agree with the grid power readings: *OK*, *Counters differ* (more than 10 % and 0.5 kWh apart) or *Not enough data yet* (needs an hour of readings and 0.5 kWh). Attributes: `counter_import_kwh`, `counter_export_kwh`, `power_import_kwh`, `power_export_kwh`, `import_difference_pct`, `export_difference_pct`, `covered_minutes`, `gaps`. |
 
+### Energy flows
+
+Where the energy went, in kWh (`total_increasing`). The gateway meters four things (solar, battery, grid, home), not the flows between them, so these are **attributed** from the power readings: solar feeds the home first, then the battery, then the grid; the battery feeds what the home still needs, then the grid; the grid feeds the rest. They count from when you install this version, need no cloud, and miss the time the gateway couldn't be read (a gap of more than 5 minutes isn't counted, or of more than 2½ polls with a longer polling interval).
+
+| Entity | Entity ID |
+|---|---|
+| Solar to home energy | `sensor.powerwall_tedapi_solar_to_home_energy` |
+| Solar to battery energy | `sensor.powerwall_tedapi_solar_to_battery_energy` |
+| Solar to grid energy | `sensor.powerwall_tedapi_solar_to_grid_energy` |
+| Battery to home energy | `sensor.powerwall_tedapi_battery_to_home_energy` |
+| Battery to grid energy | `sensor.powerwall_tedapi_battery_to_grid_energy` |
+| Grid to home energy | `sensor.powerwall_tedapi_grid_to_home_energy` |
+| Grid to battery energy | `sensor.powerwall_tedapi_grid_to_battery_energy` |
+
+With **Fast polling interval for power** set they follow quick changes more closely.
+
 ## Grid
 
 | Entity | Entity ID | Notes |
@@ -107,6 +130,18 @@ They're meant for cards and automations. For the Energy dashboard, use the lifet
 | Grid outage time this month | `sensor.powerwall_tedapi_grid_outage_time_this_month` | Minutes, including an outage in progress. |
 
 **Outages** count only what the gateway reports. An off-grid run started here and an unreachable gateway don't count. An outage across a month end counts in both months, each with its own share of the time. Outages are only seen while Home Assistant and your network have power (a UPS helps).
+
+## Phases and meters
+
+Created only for what the gateway reports **and** is in use (🔍): a phase with voltage on it, a current transformer with current through it. Which signals there are depends on the hardware: a Backup Gateway's own meters report them; a Powerwall 3 on its own may report none, and then there are no sensors here. Reports welcome ([hardware report](https://github.com/cnapagoda/ha-powerwall-tedapi/issues/new?template=hardware_report.yml)).
+
+| Entity | Example entity ID | Unit | Notes |
+|---|---|---|---|
+| Grid voltage L*1–3* 🔍 | `sensor.powerwall_tedapi_grid_voltage_l1` | V | Each phase on the grid side of the gateway. |
+| Home voltage L*1–3* 🔍🚫 | `sensor.powerwall_tedapi_home_voltage_l1` | V | Each phase on the home side: the same as the grid side except during an outage. |
+| Meter *X/Y/Z* CT *A/B/C* power 🔍 | `sensor.powerwall_tedapi_meter_x_ct_a_power` | W | Real power at one current transformer of one of the gateway's meters. The letters are Tesla's: which circuit a meter measures (grid, solar, …) was set at installation. |
+| Meter *X/Y/Z* CT *A/B/C* current 🔍🚫 | `…_meter_x_ct_a_current` | A | |
+| Meter *X/Y/Z* CT *A/B/C* reactive power 🔍🚫 | `…_meter_x_ct_a_reactive_power` | var | |
 
 ## Settings
 
@@ -169,6 +204,27 @@ See [Alerts](alerts.md) for what they mean.
 | Active alerts 🩺 | `sensor.powerwall_tedapi_active_alerts` | Short readable list, most serious first. Attribute `details`. |
 | Alerts 🩺 | `sensor.powerwall_tedapi_alerts` | Number of alerts. Attributes: `alerts` (raw codes), `pack_alerts`, `details` (each with `alert`, `severity`, `description`, `since`, `sources`). |
 | Alert | `event.powerwall_tedapi_alert` | Event types `raised` and `cleared`, with `alert`, `severity`, `description`, `sources`. |
+
+## Wall Connector
+
+☁️ From the cloud backup's live status (the gateway doesn't report Wall Connectors), read every minute through Tesla Fleet or Teslemetry and every 5 minutes through the Owner API. One set per Wall Connector, named after the last four characters of its serial number.
+
+| Entity | Example entity ID | Notes |
+|---|---|---|
+| Wall Connector *1234* power | `sensor.powerwall_tedapi_wall_connector_1234_power` | W. |
+| Wall Connector *1234* state 🩺 | `…_wall_connector_1234_state` | Tesla's own state number, as the cloud reports it (not translated into a name). |
+| Wall Connector *1234* fault state 🩺🚫 | `…_wall_connector_1234_fault_state` | Tesla's fault state number. |
+
+## Tesla tariff
+
+Only with the **Tesla tariff (cloud)** option. See [Tesla tariff](tesla-tariff.md).
+
+| Entity | Entity ID | Notes |
+|---|---|---|
+| Tariff buy price | `sensor.powerwall_tedapi_tariff_buy_price` | The tariff's price now, per kWh in Home Assistant's currency. Attributes: `season`, `period`. Usable as the price entity in the Energy dashboard. |
+| Tariff sell price | `sensor.powerwall_tedapi_tariff_sell_price` | The feed-in price now. *Unavailable* without a feed-in tariff. |
+| Buy tariff | `calendar.powerwall_tedapi_buy_tariff` | The tariff as calendar events: one per stretch with the same period and price (*ON_PEAK: 0.583 EUR/kWh*). |
+| Sell tariff | `calendar.powerwall_tedapi_sell_tariff` | The same for feed-in. |
 
 ## Hardware
 

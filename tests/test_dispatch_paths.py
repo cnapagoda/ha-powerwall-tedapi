@@ -254,7 +254,7 @@ async def test_one_warning_per_session(hass: HomeAssistant, fake_powerwall, capl
         pp_logger.warning("Battery dispatch accepted: %s %g W for %d s. use at your own risk.", "discharge", 1000, 300)
         pp_logger.warning("Something else from pypowerwall")
     texts = [r.getMessage() for r in caplog.records]
-    assert sum("warranty" in t for t in texts) == 1
+    assert sum("may affect the Powerwall warranty" in t for t in texts) == 1
     assert not any(t.startswith("Battery dispatch accepted") for t in texts)
     assert "Something else from pypowerwall" in texts
 

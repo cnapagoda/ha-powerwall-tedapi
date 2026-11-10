@@ -36,12 +36,14 @@ The form is in four sections: **General** (polling, restore), **Alerts**, **Batt
 | Option | Default | Range | What it does |
 |---|---|---|---|
 | **Polling interval** | 30 s | 10–300 s | How often the gateway is read. See [How it works](how-it-works.md#data-updates). |
+| **Fast polling interval for power** | Off (0) | 0, or 5–60 s | Reads power, battery level and grid status this often, between the full reads at the polling interval. Only used when shorter than the polling interval. Smoother power graphs and quicker dispatch limits, at the cost of more load on the gateway and a bigger database. *Reloads the integration.* See [How it works](how-it-works.md#data-updates). |
 | **Restore settings when the Powerwall drops them** | On | | Writes back your grid export rule and grid charging setting when the Powerwall loses them. Signed connection only. See [Dropped settings](dropped-settings.md). Turn it off if another app is meant to manage these settings. |
 | **Alert events for status alerts too** | Off | | By default only notices, warnings and faults create **Alert** events. Status alerts such as *Export limited* come and go every few minutes. See [Alerts](alerts.md). |
 | **Problem delay** | 10 min | 1–240 min | How long a warning or fault must last before **Problem** turns on and a repair is raised. *Backup check failed* always waits at least 30 minutes. |
 | **Discharges stop at the backup reserve** | On | | A discharge dispatch started without `min_soc` stops at the backup reserve. See [Safety](safety.md). |
 | **Largest dispatch power** | 10,000 W | 100–30,000 W | Dispatch calls above this power are refused. Raise it only to what your installation can safely carry: number of Powerwalls, wiring and breakers, gateway and backup switch ratings, and your grid connection and export limit. See [Safety](safety.md#battery-dispatch). Within it the Powerwall decides: one Powerwall 3 refuses more than 10,000 W. |
 | **Tesla tariff (cloud)** | Off | | Adds the **Tesla tariff** sensor and the `get_tariff` / `set_tariff` actions. In the **Advanced** section (collapsed), and only there once a cloud backup is set up: first **Link a Tesla account** or **Sign in to Tesla Fleet or Teslemetry** from the **Configure** menu. See [Tesla tariff](tesla-tariff.md). |
+| **Cloud readings while the gateway is unreachable** | Off | | While the gateway can't be reached, power and battery level come from the cloud backup instead (attribute `source: cloud`, up to 1–5 minutes old). Energy counters and everything else stay *unavailable*. In the **Advanced** section, once a cloud backup is set up. |
 | **Gateway configuration in diagnostics** | Off | | Adds the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports. |
 
 > [!NOTE]

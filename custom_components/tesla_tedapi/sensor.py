@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 import logging
 from typing import Any
 
@@ -22,6 +22,7 @@ from homeassistant.const import (
     UnitOfEnergy,
     UnitOfFrequency,
     UnitOfPower,
+    UnitOfReactivePower,
     UnitOfTemperature,
     UnitOfTime,
 )
@@ -29,14 +30,18 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
+from . import phases
 from .alerts import LEVELS
+from .cloud import LIVE_READINGS
 from .const import DOMAIN
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .daily import day_start
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
 from .firmware import split_version
+from .flows import FLOWS
 from .outages import month_start
 from .tariff import current as tariff_now, normalize as tariff_normalize
+from .wear import round_trip_efficiency
 
 # Coordinator-based: no limit on parallel updates.
 PARALLEL_UPDATES = 0
@@ -188,6 +193,36 @@ def _energy_today(key: str) -> TedapiSensorEntityDescription:
     )
 
 
+def _flow(name: str) -> TedapiSensorEntityDescription:
+    """Lifetime energy of one flow (solar to home, grid to battery, ...),
+    attributed from the power readings (see flows.py)."""
+    return TedapiSensorEntityDescription(
+        key=f"flow_{name}",
+        translation_key=f"flow_{name}",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=2,
+        value_fn=lambda d, n=name: (d.get("flows") or {}).get(n),
+    )
+
+
+def _trend(d: dict[str, Any]) -> dict[str, Any]:
+    return d.get("capacity_trend") or {}
+
+
+def _efficiency(d: dict[str, Any]) -> float | None:
+    energy = d.get("energy") or {}
+    return round_trip_efficiency(energy.get("battery_energy_charged"), energy.get("battery_energy_discharged"))
+
+
+# Sensors the cloud backup's live status can stand in for while the gateway
+# can't be reached (the cloud readings option): the readings themselves and
+# the ones split from them.
+CLOUD_READING_SENSORS = frozenset({
+    *LIVE_READINGS, "grid_import_power", "grid_export_power", "battery_discharge_power", "battery_charge_power"})
+
+
 SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
     # Power: battery + = discharging; grid + = importing
     _power("solar_power"),
@@ -265,6 +300,8 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
     _energy_today("battery_energy_discharged"),
     _energy_today("solar_energy_produced"),
     _energy_today("home_energy_consumed"),
+    # Energy flows (attributed from the power readings)
+    *(_flow(name) for name in FLOWS),
     # Capacity
     TedapiSensorEntityDescription(
         key="battery_full_capacity",
@@ -297,6 +334,37 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=_health,
         attrs_fn=_health_attrs,
+    ),
+    # Battery economics
+    TedapiSensorEntityDescription(
+        key="battery_round_trip_efficiency",
+        translation_key="battery_round_trip_efficiency",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        # Lifetime energy out of the battery over lifetime energy in.
+        value_fn=_efficiency,
+    ),
+    TedapiSensorEntityDescription(
+        key="battery_capacity_fade",
+        translation_key="battery_capacity_fade",
+        native_unit_of_measurement=f"{PERCENTAGE}/y",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=2,
+        # Of the rated capacity, per year: negative while the capacity falls.
+        # Unknown until there are enough daily samples (see wear.py).
+        value_fn=lambda d: _trend(d).get("pct_per_year"),
+        attrs_fn=lambda d: {key: _trend(d).get(key) for key in ("kwh_per_year", "fit_kwh", "samples", "days")},
+    ),
+    TedapiSensorEntityDescription(
+        key="battery_warranty_date",
+        translation_key="battery_warranty_date",
+        device_class=SensorDeviceClass.DATE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        # When the capacity trend reaches the warranty level; unknown while
+        # the trend is flat or rising, or there isn't enough history.
+        value_fn=lambda d: _trend(d).get("warranty_date") if isinstance(_trend(d).get("warranty_date"), date) else None,
     ),
     TedapiSensorEntityDescription(
         key="backup_time_remaining",
@@ -522,6 +590,72 @@ def _string_sensors(name: str) -> list[TedapiSensorEntityDescription]:
     ]
 
 
+def _phases(d: dict[str, Any]) -> dict[str, Any]:
+    return d.get("phases") or {}
+
+
+def _phase_voltage_sensor(side: str, phase: str) -> TedapiSensorEntityDescription:
+    """The voltage of one phase on the grid side ("grid") or the home side
+    ("home") of the gateway. The home side is disabled by default: it reads
+    the same as the grid side except during an outage."""
+    return TedapiSensorEntityDescription(
+        key=f"{side}_voltage_l{phase}",
+        translation_key=f"phase_{side}_voltage",
+        translation_placeholders={"phase": phase},
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=side == "grid",
+        value_fn=lambda d, s=side, p=phase: (_phases(d).get(f"{s}_voltage") or {}).get(p),
+    )
+
+
+def _ct(d: dict[str, Any], meter: str, ct: str) -> dict[str, Any]:
+    return ((_phases(d).get("meters") or {}).get(meter) or {}).get(ct) or {}
+
+
+def _ct_key(meter: str, ct: str, kind: str) -> str:
+    return f"meter_{meter.lower()}_ct_{ct.lower()}_{kind}"
+
+
+def _ct_sensors(meter: str, ct: str) -> list[TedapiSensorEntityDescription]:
+    """One current transformer of one of the gateway's meters: real power,
+    and (disabled by default) current and reactive power."""
+    placeholders = {"meter": meter, "ct": ct}
+    return [
+        TedapiSensorEntityDescription(
+            key=_ct_key(meter, ct, "power"),
+            translation_key="meter_ct_power",
+            translation_placeholders=placeholders,
+            native_unit_of_measurement=UnitOfPower.WATT,
+            device_class=SensorDeviceClass.POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            value_fn=lambda d, m=meter, c=ct: _ct(d, m, c).get("power"),
+        ),
+        TedapiSensorEntityDescription(
+            key=_ct_key(meter, ct, "current"),
+            translation_key="meter_ct_current",
+            translation_placeholders=placeholders,
+            native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+            device_class=SensorDeviceClass.CURRENT,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_registry_enabled_default=False,
+            value_fn=lambda d, m=meter, c=ct: _ct(d, m, c).get("current"),
+        ),
+        TedapiSensorEntityDescription(
+            key=_ct_key(meter, ct, "reactive_power"),
+            translation_key="meter_ct_reactive_power",
+            translation_placeholders=placeholders,
+            native_unit_of_measurement=UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
+            device_class=SensorDeviceClass.REACTIVE_POWER,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_registry_enabled_default=False,
+            value_fn=lambda d, m=meter, c=ct: _ct(d, m, c).get("reactive_power"),
+        ),
+    ]
+
+
 def _fan(d: dict[str, Any], name: str) -> dict[str, Any]:
     return (d.get("fans") or {}).get(name) or {}
 
@@ -643,6 +777,9 @@ async def async_setup_entry(
     # unreachable, or when an expansion pack is installed later).
     known: set[str] = set()
 
+    def _registered(key: str) -> bool:
+        return registry.async_get_entity_id("sensor", DOMAIN, f"{coordinator.din}_{key}") is not None
+
     @callback
     def add_new() -> None:
         data = coordinator.data or {}
@@ -657,6 +794,20 @@ async def async_setup_entry(
             if f"string_{name}" not in known and (_input_in_use(values) or registered):
                 known.add(f"string_{name}")
                 new += _string_sensors(name)
+        # Phases and current transformers in use now, or set up before (like
+        # the solar inputs: a circuit that is idle now keeps its sensors).
+        for side in ("grid", "home"):
+            for phase, volts in (_phases(data).get(f"{side}_voltage") or {}).items():
+                key = f"{side}_voltage_l{phase}"
+                if key not in known and (phases.voltage_in_use(volts) or _registered(key)):
+                    known.add(key)
+                    new.append(_phase_voltage_sensor(side, phase))
+        for meter, cts in (_phases(data).get("meters") or {}).items():
+            for ct, values in cts.items():
+                key = _ct_key(meter, ct, "power")
+                if key not in known and (phases.ct_in_use(values) or _registered(key)):
+                    known.add(key)
+                    new += _ct_sensors(meter, ct)
         for name in data.get("fans") or {}:
             if f"fan_{name}" not in known:
                 known.add(f"fan_{name}")
@@ -675,7 +826,24 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(add_new))
 
     if coordinator.tariff_enabled:
-        async_add_entities([TeslaTariffSensor(coordinator)])
+        async_add_entities([TeslaTariffSensor(coordinator), TariffPriceSensor(coordinator, "buy"),
+                            TariffPriceSensor(coordinator, "sell")])
+
+    if coordinator.cloud_enabled:
+        # Wall Connectors come from the cloud backup's live status: added when
+        # one first shows up, also while the gateway can't be reached.
+        connectors: set[str] = set()
+
+        @callback
+        def add_wall_connectors() -> None:
+            found = [din for din in (coordinator.data or {}).get("wall_connectors") or {} if din not in connectors]
+            connectors.update(found)
+            if found:
+                async_add_entities(WallConnectorSensor(coordinator, din, description)
+                                   for din in found for description in WALL_CONNECTOR_SENSORS)
+
+        add_wall_connectors()
+        entry.async_on_unload(coordinator.async_add_listener(add_wall_connectors))
 
 
 class TedapiSensor(TedapiEntity, SensorEntity):
@@ -708,7 +876,15 @@ class TedapiSensor(TedapiEntity, SensorEntity):
         coordinator keeps running on cloud data for the settings."""
         if self.entity_description.always_available:
             return super().available
-        return super().available and bool(self.data.get("local_ok", False))
+        return super().available and (bool(self.data.get("local_ok", False)) or self._from_cloud)
+
+    @property
+    def _from_cloud(self) -> bool:
+        """The gateway can't be reached and this reading comes from the cloud
+        backup's live status instead (the cloud readings option)."""
+        return (self.data.get("readings_source") == "cloud"
+                and self.entity_description.key in CLOUD_READING_SENSORS
+                and self.entity_description.value_fn(self.data) is not None)
 
     @property
     def native_value(self) -> Any:
@@ -724,7 +900,99 @@ class TedapiSensor(TedapiEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any] | None:
         if self.entity_description.attrs_fn and self.data:
             return self.entity_description.attrs_fn(self.data)
+        if self._from_cloud:
+            # Says so while the reading isn't the gateway's own.
+            return {"source": "cloud"}
         return None
+
+
+@dataclass(frozen=True, kw_only=True)
+class WallConnectorSensorEntityDescription(SensorEntityDescription):
+    value_key: str
+
+
+WALL_CONNECTOR_SENSORS = (
+    WallConnectorSensorEntityDescription(
+        key="power",
+        translation_key="wall_connector_power",
+        value_key="power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    # Tesla's own state numbers, as the cloud reports them.
+    WallConnectorSensorEntityDescription(
+        key="state",
+        translation_key="wall_connector_state",
+        value_key="state",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    WallConnectorSensorEntityDescription(
+        key="fault_state",
+        translation_key="wall_connector_fault_state",
+        value_key="fault_state",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
+)
+
+
+class WallConnectorSensor(TedapiEntity, SensorEntity):
+    """A Wall Connector reading from the cloud backup's live status (the
+    gateway doesn't report Wall Connectors). Named after the last characters
+    of the Wall Connector's serial number."""
+
+    entity_description: WallConnectorSensorEntityDescription
+
+    def __init__(self, coordinator: TedapiCoordinator, din: str,
+                 description: WallConnectorSensorEntityDescription) -> None:
+        super().__init__(coordinator, f"wall_connector_{din}_{description.key}")
+        self.entity_description = description
+        self._din = din
+        self._attr_translation_placeholders = {"connector": din[-4:]}
+
+    @property
+    def _reading(self) -> dict[str, Any]:
+        return (self.data.get("wall_connectors") or {}).get(self._din) or {}
+
+    @property
+    def available(self) -> bool:
+        return super().available and self._reading.get(self.entity_description.value_key) is not None
+
+    @property
+    def native_value(self) -> Any:
+        return self._reading.get(self.entity_description.value_key)
+
+
+class TariffPriceSensor(TedapiEntity, SensorEntity):
+    """The Tesla tariff's price now, to buy ("buy") or for feed-in ("sell"),
+    per kWh in Home Assistant's currency. Follows the tariff's periods."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 3
+
+    def __init__(self, coordinator: TedapiCoordinator, side: str) -> None:
+        super().__init__(coordinator, f"tariff_{side}_price")
+        self._side = side
+        self._attr_translation_key = f"tariff_{side}_price"
+        self._attr_native_unit_of_measurement = f"{coordinator.hass.config.currency}/{UnitOfEnergy.KILO_WATT_HOUR}"
+
+    @property
+    def _now(self) -> dict[str, Any]:
+        return tariff_now(tariff_normalize(self.coordinator.tariff), dt_util.now())
+
+    @property
+    def available(self) -> bool:
+        return self.coordinator.tariff is not None and self._now[f"{self._side}_rate"] is not None
+
+    @property
+    def native_value(self) -> float | None:
+        return self._now[f"{self._side}_rate"]
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        now = self._now
+        return {"season": now["season"], "period": now["period"]}
 
 
 class TeslaTariffSensor(TedapiEntity, SensorEntity):

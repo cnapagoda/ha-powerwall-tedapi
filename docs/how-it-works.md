@@ -42,6 +42,8 @@ The integration polls the gateway every 30 seconds by default (**Polling interva
 | Backup events (signed connection) | Every 5 minutes, and straight after a max backup is started or cancelled |
 | Settings from the cloud backup, when the gateway can't give them | Cached for 5 minutes |
 | Storm Watch, grid services, off-grid vehicle charging reserve | Every 30 minutes |
+| Power, battery level and grid status, with **Fast polling interval for power** set | Every 5–60 s (your setting); everything else stays at the polling interval |
+| Wall Connectors, and cloud readings while the gateway is unreachable (both from the cloud backup, only when needed) | Every minute through Tesla Fleet or Teslemetry, every 5 minutes through the Owner API |
 | Tesla tariff (option) | Every 6 hours, and after each write |
 | Cloud backup health check | About once an hour, or 10 minutes after a failure |
 | Restoring a dropped setting | At most every 2 minutes per setting |

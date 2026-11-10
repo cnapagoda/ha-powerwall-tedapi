@@ -229,9 +229,11 @@
             "name": "General",
             "data": {
               "scan_interval": "Intervalo de sondeo",
+              "power_interval": "Intervalo de sondeo rápido para la potencia",
               "restore_export": "Restaurar los ajustes cuando la Powerwall los pierda"
             },
             "data_description": {
+              "power_interval": "Con qué frecuencia se leen la potencia, el nivel de la batería y el estado de la red. `0` = desactivado: se leen con todo lo demás, en el intervalo de sondeo. De 5 a 60 s, y solo se usa si es más corto que el intervalo de sondeo. Más corto da gráficas más suaves y límites de despacho más rápidos, pero más carga en el gateway y una base de datos más grande. Cambiarlo recarga la integración.",
               "restore_export": "La Powerwall a veces pierde su regla de exportación a la red y su ajuste de carga desde la red (visto cada hora en una Powerwall 3); entonces se activa la carga desde la red. Si está activado, el ajuste elegido se vuelve a escribir en uno o dos minutos (solo conexión firmada)."
             }
           },
@@ -261,10 +263,12 @@
             "name": "Avanzado",
             "data": {
               "tesla_tariff": "Tarifa de Tesla (nube)",
+              "cloud_readings": "Lecturas de la nube mientras el gateway no responde",
               "diagnostics_gateway_config": "Configuración de la pasarela en los diagnósticos"
             },
             "data_description": {
               "tesla_tariff": "Leer desde el respaldo en la nube la tarifa que Tesla usa para el control por horario (sensor y acciones de leer/establecer). Solo nube.",
+              "cloud_readings": "Mientras el gateway no responde, mostrar la potencia y el nivel de la batería desde el respaldo en la nube (llevan el atributo `source: cloud` y pueden tener unos minutos). Los contadores de energía y todo lo demás siguen no disponibles. Desactivado: todas las lecturas están no disponibles hasta que el gateway responda.",
               "diagnostics_gateway_config": "Añadir la configuración de la pasarela a las descargas de diagnóstico, sin números de serie, ubicación, nombres ni credenciales. Útil para informar de errores."
             },
             "description": "La opción **Tarifa de Tesla** aparece aquí cuando hay un respaldo en la nube: en el menú, elige primero **Vincular una cuenta de Tesla** o **Iniciar sesión en Tesla Fleet o Teslemetry**."
@@ -612,6 +616,66 @@
           "mismatch": "Los contadores difieren",
           "unknown": "Aún no hay datos suficientes"
         }
+      },
+      "flow_solar_to_home": {
+        "name": "Energía solar a la casa"
+      },
+      "flow_solar_to_battery": {
+        "name": "Energía solar a la batería"
+      },
+      "flow_solar_to_grid": {
+        "name": "Energía solar a la red"
+      },
+      "flow_battery_to_home": {
+        "name": "Energía de la batería a la casa"
+      },
+      "flow_battery_to_grid": {
+        "name": "Energía de la batería a la red"
+      },
+      "flow_grid_to_home": {
+        "name": "Energía de la red a la casa"
+      },
+      "flow_grid_to_battery": {
+        "name": "Energía de la red a la batería"
+      },
+      "battery_round_trip_efficiency": {
+        "name": "Eficiencia de ida y vuelta de la batería"
+      },
+      "battery_capacity_fade": {
+        "name": "Tendencia de la capacidad de la batería"
+      },
+      "battery_warranty_date": {
+        "name": "Fecha del nivel de garantía de la batería (estimación)"
+      },
+      "phase_grid_voltage": {
+        "name": "Tensión de la red L{phase}"
+      },
+      "phase_home_voltage": {
+        "name": "Tensión de la casa L{phase}"
+      },
+      "meter_ct_power": {
+        "name": "Potencia del medidor {meter} TC {ct}"
+      },
+      "meter_ct_current": {
+        "name": "Corriente del medidor {meter} TC {ct}"
+      },
+      "meter_ct_reactive_power": {
+        "name": "Potencia reactiva del medidor {meter} TC {ct}"
+      },
+      "wall_connector_power": {
+        "name": "Potencia del Wall Connector {connector}"
+      },
+      "wall_connector_state": {
+        "name": "Estado del Wall Connector {connector}"
+      },
+      "wall_connector_fault_state": {
+        "name": "Estado de fallo del Wall Connector {connector}"
+      },
+      "tariff_buy_price": {
+        "name": "Precio de compra de la tarifa"
+      },
+      "tariff_sell_price": {
+        "name": "Precio de venta de la tarifa"
       }
     },
     "switch": {
@@ -636,6 +700,14 @@
             }
           }
         }
+      }
+    },
+    "calendar": {
+      "buy_tariff": {
+        "name": "Tarifa de compra"
+      },
+      "sell_tariff": {
+        "name": "Tarifa de venta"
       }
     }
   },
