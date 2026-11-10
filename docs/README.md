@@ -5,7 +5,7 @@ Tesla Powerwall TEDAPI for Home Assistant: local monitoring and control of a Tes
 ## Getting started
 
 - **[Quick start](quick-start.md)**: from nothing to a working Powerwall in Home Assistant, the recommended way.
-- **[Setup in detail](setup.md)**: every way to connect, the Tesla sign-in, registering through the Fleet API, and Wi-Fi-only setups.
+- **[Setup in detail](setup.md)**: every way to connect, the Tesla sign-in, registering through the Fleet API, and the Wi-Fi password connection.
 - **[Configuration](configuration.md)**: options, reconfiguring, re-registering the key, and removing the integration.
 - **[Migrating from another integration](migration.md)**: coming from the core Tesla Powerwall, Tesla Fleet, Teslemetry or a pypowerwall proxy.
 

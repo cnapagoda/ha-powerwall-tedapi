@@ -27,7 +27,7 @@
         "data_description": {
           "host": "Die Adresse des Gateways in deinem Heimnetz, zum Beispiel `192.168.1.50`. Dein Router zeigt es als `teslapw_…` an.",
           "gw_pwd": "Das ganze Passwort vom QR-Aufkleber in der Abdeckung der Powerwall (Powerwall 3: hinter dem Frontglas, unten links). Buchstaben sind Großbuchstaben. Die meisten Gateways nehmen auch nur die letzten 5 Zeichen; ein Backup Gateway 1 braucht das ganze Passwort.",
-          "wifi_host": "Der WLAN-Hotspot der Powerwall, über dieselbe signierte Verbindung genutzt, wenn die Heimnetz-Adresse nicht mehr antwortet. Leer lassen, wenn Home Assistant den Hotspot nicht erreicht."
+          "wifi_host": "Der WLAN-Hotspot der Powerwall, über dieselbe signierte Verbindung genutzt, wenn die Heimnetz-Adresse nicht mehr antwortet. Leer lassen, wenn Home Assistant den Hotspot nicht erreicht. Wird auch genutzt, um Folge-Powerwall-3 zu lesen, die die signierte Verbindung im Heimnetz nicht erreicht."
         }
       },
       "access": {
@@ -125,7 +125,7 @@
           "host": "Die Adresse des Gateways in deinem Heimnetz, zum Beispiel `192.168.1.50`. Dein Router zeigt es als `teslapw_…` an.",
           "gw_pwd": "Das ganze Passwort vom QR-Aufkleber in der Abdeckung der Powerwall (Powerwall 3: hinter dem Frontglas, unten links). Buchstaben sind Großbuchstaben. Die meisten Gateways nehmen auch nur die letzten 5 Zeichen; ein Backup Gateway 1 braucht das ganze Passwort.",
           "rsa_key_path": "Vollständiger Pfad zur Datei mit dem privaten Schlüssel auf dem Home-Assistant-Host, zum Beispiel `/config/tesla_tedapi/tedapi_rsa_private.pem`. Leer lassen für die Verbindung mit WLAN-Passwort (nur lesen).",
-          "wifi_host": "Die Adresse des WLAN-Hotspots der Powerwall (meist `192.168.91.1`), genutzt, wenn die Heimnetz-Adresse nicht mehr antwortet. Leer lassen, wenn Home Assistant den Hotspot nicht erreicht."
+          "wifi_host": "Die Adresse des WLAN-Hotspots der Powerwall (meist `192.168.91.1`), genutzt, wenn die Heimnetz-Adresse nicht mehr antwortet. Leer lassen, wenn Home Assistant den Hotspot nicht erreicht. Wird auch genutzt, um Folge-Powerwall-3 zu lesen, die die signierte Verbindung im Heimnetz nicht erreicht."
         }
       },
       "new_key": {
@@ -266,7 +266,8 @@
             "data_description": {
               "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensor und Aktionen zum Lesen/Setzen). Nur Cloud.",
               "diagnostics_gateway_config": "Die Konfiguration des Gateways zu Diagnose-Downloads hinzufügen, ohne Seriennummern, Standort, Namen und Zugangsdaten. Hilfreich für Fehlerberichte."
-            }
+            },
+            "description": "Die Option **Tesla-Tarif** erscheint hier, sobald ein Cloud-Backup eingerichtet ist: Wähle im Menü zuerst **Tesla-Konto verknüpfen** oder **Bei Tesla Fleet oder Teslemetry anmelden**."
           }
         }
       },
@@ -1036,6 +1037,18 @@
     "tariff_write_mismatch": {
       "title": "Tesla hat einen anderen Tarif gespeichert",
       "description": "Der Tarif wurde über {backend} gesendet, aber die von Tesla zurückgegebenen Preise weichen ab. Prüfe den Tarif in der Tesla-App; dieser Hinweis verschwindet, sobald Tesla die gesendeten Preise zeigt."
+    },
+    "powerwall_follower_hidden": {
+      "title": "Eine Powerwall 3 fehlt in den Messwerten",
+      "description": "{count} Powerwall 3 an diesem Gateway erscheinen nicht in den Messwerten. Über die signierte Verbindung sind Folge-Powerwalls im Heimnetz nicht erreichbar: Sie werden nur über das eigene WLAN der Powerwall gelesen.\n\nWenn Home Assistant dieses WLAN erreicht, setze **WLAN-Ausweichadresse** auf `192.168.91.1` (Integrationsmenü → **Neu konfigurieren**). Summen für Leistung, Energie und Kapazität enthalten bereits jede Powerwall; nur Akkupacks, Temperaturen und Lüfter der fehlenden Geräte fehlen. Die Meldung verschwindet von selbst, sobald sie erscheinen."
+    },
+    "powerwall_follower_wifi": {
+      "title": "Eine Powerwall 3 fehlt in den Messwerten",
+      "description": "{count} Powerwall 3 an diesem Gateway erscheinen nicht in den Messwerten, obwohl die WLAN-Ausweichadresse (`{wifi_host}`) gesetzt ist. Über die signierte Verbindung werden Folge-Powerwalls nur über dieses WLAN gelesen: Prüfe, ob Home Assistant es noch erreicht.\n\nSummen für Leistung, Energie und Kapazität enthalten bereits jede Powerwall; nur Akkupacks, Temperaturen und Lüfter der fehlenden Geräte fehlen. Die Meldung verschwindet von selbst, sobald sie erscheinen."
+    },
+    "powerwall_follower_missing": {
+      "title": "Eine Powerwall 3 fehlt in den Messwerten",
+      "description": "{count} Powerwall 3 aus der Gateway-Konfiguration erscheinen nicht in den Messwerten. Summen für Leistung, Energie und Kapazität enthalten bereits jede Powerwall; nur Akkupacks, Temperaturen und Lüfter der fehlenden Geräte fehlen.\n\nDie Meldung verschwindet von selbst, sobald sie erscheinen. Wenn sie bleibt, lade die Diagnosedaten herunter und eröffne ein Issue."
     }
   },
   "selector": {

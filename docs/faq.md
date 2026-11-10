@@ -3,7 +3,7 @@
 ## Getting started
 
 **Do I need a Tesla account?**
-Once, to register the access key with your Powerwall. After that, local control never uses it. Keeping it linked gives you a [cloud backup](cloud-backup.md) for when Home Assistant can't reach the gateway, and access to Storm Watch and the tariff.
+For the signed connection, you need **one** Tesla sign-in, once, to register the access key with your Powerwall: your Tesla account, a Teslemetry token or your own Tesla Fleet developer app ([which one](setup.md#which-connection-and-which-sign-in)). The Wi-Fi password connection needs none. After the key is registered, local control never uses the sign-in. Keeping it linked gives you a [cloud backup](cloud-backup.md) for when Home Assistant can't reach the gateway, and access to Storm Watch and the tariff.
 
 **Why can't the key be registered locally, with just the gateway password?**
 The Powerwall accepts a key sent over its own Wi-Fi, but in testing such a key never verified. Keys only verify when the registration comes through Tesla's cloud.

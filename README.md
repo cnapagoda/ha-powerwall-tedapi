@@ -46,8 +46,8 @@ The full walkthrough, with screenshots and the other ways to connect, is in **[Q
 |---|---|
 | Home Assistant | 2025.11 or newer (2026.3 or newer shows the integration's icon). Only Home Assistant releases from the last 12 months are supported. |
 | Powerwall | Powerwall 3 is tested. Powerwall 2 / Powerwall+ work for signed access if the firmware supports it, and over Wi-Fi with the gateway password. See [Compatibility](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/compatibility.md). |
-| Network | Home Assistant reaches the gateway on your home network (recommended), or on the Powerwall's own Wi-Fi `192.168.91.1`. |
-| Tesla account | Needed once, to register the access key. Optional afterwards, as the cloud backup. |
+| Network | Signed connection (recommended): the gateway on your home network. Wi-Fi password connection: Home Assistant joined to the Powerwall's own Wi-Fi `192.168.91.1`. See [Which connection?](#which-connection) |
+| Tesla sign-in | Signed connection: one sign-in, needed once to register the key: your **Tesla account**, **Teslemetry** or **Tesla Fleet**. Optional afterwards, as the cloud backup. Wi-Fi password connection: none. |
 | Languages | English, German, French, Dutch, Spanish, Italian, Polish, Brazilian Portuguese. |
 
 ## Documentation
@@ -62,13 +62,17 @@ The full walkthrough, with screenshots and the other ways to connect, is in **[Q
 
 ## Which connection?
 
-| | Signed (recommended) | Wi-Fi password |
+Both use the gateway's local interface (TEDAPI). The signed one (*v1r*) adds a key that your Powerwall trusts, which unlocks local control.
+
+| | Signed (v1r), recommended | Wi-Fi password |
 |---|---|---|
 | Readings | ✅ local | ✅ local |
 | Change mode, reserve, grid charging, export | ✅ local (cloud backup if set up) | ☁️ only through a cloud backup |
 | Battery dispatch, max backup, go off-grid | ✅ | ❌ |
 | Reaches the Powerwall at | Its home-network address, or its Wi-Fi | Its Wi-Fi only (Home Assistant must join `TeslaPW_…`) |
-| Needs | The gateway password and a key registered once (the wizard does it) | The gateway password |
+| Needs | The gateway password, and a key the wizard registers once with **one** Tesla sign-in: your Tesla account, Teslemetry or Tesla Fleet | The gateway password. No Tesla sign-in |
+
+Which sign-in to use: see [Setup](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md#which-connection-and-which-sign-in).
 
 ## Getting help
 

@@ -4,6 +4,7 @@ The [Quick start](quick-start.md) covers the recommended path. This page covers 
 
 _Screenshots come from a test Home Assistant with example data (no real Powerwall or account)._
 
+- [Which connection and which sign-in?](#which-connection-and-which-sign-in)
 - [Installation](#installation)
 - [1. Find the gateway](#1-find-the-gateway)
 - [2. Choose how to connect](#2-choose-how-to-connect)
@@ -14,6 +15,27 @@ _Screenshots come from a test Home Assistant with example data (no real Powerwal
 - [Signing in to Tesla](#signing-in-to-tesla)
 - [Registering with the Fleet API (developers)](#registering-with-the-fleet-api-developers)
 - [Several Powerwalls](#several-powerwalls)
+
+## Which connection and which sign-in?
+
+Both connections use the gateway's local interface (TEDAPI). The **signed** one (also called *v1r*) adds a key that your Powerwall trusts, which unlocks local control.
+
+| Connection | You get | You need |
+|---|---|---|
+| **Signed (v1r)**, recommended | Local readings, settings, battery dispatch, max backup, going off-grid | The gateway password, a Tesla sign-in **once** to register the key, and a few minutes at the Powerwall |
+| **Wi-Fi password** | Local readings. Settings only through a cloud backup | The gateway password, and Home Assistant joined to the Powerwall's own Wi-Fi. No Tesla sign-in |
+
+For the signed connection, pick **one** of these sign-ins. They all do the same job:
+
+| Sign-in | Best for | You need |
+|---|---|---|
+| **Tesla account** (Owner API) | Most people | Your Tesla account: a refresh token from a token app, or a browser sign-in. Free. |
+| **Teslemetry** | Teslemetry subscribers | An access token from your Teslemetry plan |
+| **Tesla Fleet** | People who already have a Tesla developer app | The app's Client ID and Client Secret |
+
+The sign-in is needed **once**, to register the key. After that, local control never uses it. It stays as the optional [cloud backup](cloud-backup.md), which changes settings when the gateway can't be reached. *Fleet API* in these pages means Tesla Fleet or Teslemetry: both use Tesla's official Fleet API.
+
+The signed connection can also have a **Wi-Fi fallback address**: the Powerwall's own Wi-Fi, used only when its home-network address stops answering. That's still the signed connection, not the Wi-Fi password one.
 
 ## Installation
 
@@ -76,13 +98,7 @@ A new key is registered by one command sent through Tesla's cloud; the Powerwall
 
 After the key is verified, **local control never uses the Tesla account**. Nothing is exposed to the internet. The account is then only used as the optional [cloud backup](cloud-backup.md).
 
-Either Tesla API can send the registration:
-
-| | Owner API | Fleet API |
-|---|---|---|
-| Who it's for | Everyone | People with a Teslemetry plan or their own Tesla developer app |
-| You need | A Tesla sign-in: a refresh token from a token app, or a browser sign-in | A Teslemetry access token, **or** a Tesla developer app |
-| Where | Path **A** in this wizard | Path **A** in this wizard (choose Tesla Fleet or Teslemetry), or `python -m pypowerwall register` on a computer followed by path **B** |
+Any of the [three sign-ins](#which-connection-and-which-sign-in) can send the registration, in path **A**. If you registered a key yourself with `python -m pypowerwall register`, upload it with path **B**.
 
 ### A. Register a new key (recommended)
 
@@ -136,7 +152,7 @@ Home Assistant must be connected to the Powerwall's `TeslaPW_…` Wi-Fi network 
 You can switch to signed later: **⋮ → Reconfigure** and give a key file.
 
 <details>
-<summary>Screenshot: Wi-Fi only</summary>
+<summary>Screenshot: Wi-Fi password only</summary>
 
 <img src="images/setup-09-wifi-only.png" alt="Wi-Fi password only" width="640">
 
@@ -212,6 +228,8 @@ You only need this for your **own** Tesla developer app: for the [Tesla Fleet si
 ## Several Powerwalls
 
 Add the integration once per **gateway**. Expansion packs and the batteries behind one gateway belong to that gateway's entry and show up by themselves.
+
+**Several Powerwall 3s on one gateway, signed connection:** the follower Powerwalls have no address of their own; they're reached through the leader. Over the home network the signed connection reaches the leader only, so the followers' battery packs, temperatures and fans are read over the **Wi-Fi fallback address** (`192.168.91.1`, **⋮ → Reconfigure**). That needs Home Assistant to reach the Powerwall's own Wi-Fi, for example with a USB Wi-Fi adapter. Without it, totals such as power, energy and **Battery full capacity** still count every Powerwall, but the followers' packs are missing and a repair says so. The Wi-Fi password connection reads every Powerwall.
 
 - The second entry's entity IDs end in `_2` (both devices are called *Powerwall TEDAPI*). Rename the device to tell them apart.
 - Actions need `config_entry_id` when more than one Powerwall is set up. In the action editor, pick the Powerwall from the list.

@@ -91,6 +91,7 @@
 | *The Powerwall couldn't reconnect to the grid* | The automatic reconnect failed; it's retried every minute. Check the gateway connection, or reconnect in the Tesla app. |
 | *Tesla's cloud capped the backup reserve* / *A cloud change did not apply as set* | See [Settings and control](#settings-and-control). |
 | *Tesla stored a different tariff* | A tariff write wasn't shown by Tesla after 35 minutes (or a Fleet API read-back showed other rates). See [Tesla tariff](tesla-tariff.md). |
+| *A Powerwall 3 is missing from the readings* | With several Powerwall 3s, one stayed out of the readings for 10 polls. On the signed connection the followers are read over the **Wi-Fi fallback address** only: set it to `192.168.91.1` if Home Assistant can reach the Powerwall's Wi-Fi. Totals still count every Powerwall. See [Several Powerwalls](setup.md#several-powerwalls). |
 
 The integration's card can also show **Reauthenticate**: the gateway keeps refusing the password or the key. See [Configuration](configuration.md#when-the-powerwall-stops-accepting-home-assistant).
 

@@ -27,7 +27,7 @@
         "data_description": {
           "host": "O endereço do gateway na sua rede doméstica, por exemplo `192.168.1.50`. Seu roteador o mostra como `teslapw_…`.",
           "gw_pwd": "A senha completa da etiqueta QR dentro da tampa da Powerwall (Powerwall 3: atrás do vidro frontal, embaixo à esquerda). As letras são maiúsculas. A maioria dos gateways também aceita só os últimos 5 caracteres; um Backup Gateway 1 precisa da senha completa.",
-          "wifi_host": "O ponto de acesso Wi-Fi da Powerwall, usado pela mesma conexão assinada quando o endereço da rede doméstica para de responder. Deixe em branco se o Home Assistant não alcançar o ponto de acesso."
+          "wifi_host": "O ponto de acesso Wi-Fi da Powerwall, usado pela mesma conexão assinada quando o endereço da rede doméstica para de responder. Deixe em branco se o Home Assistant não alcançar o ponto de acesso. Também usado para ler Powerwall 3 seguidores, que a conexão assinada não alcança pela rede da casa."
         }
       },
       "access": {
@@ -125,7 +125,7 @@
           "host": "O endereço do gateway na sua rede doméstica, por exemplo `192.168.1.50`. Seu roteador o mostra como `teslapw_…`.",
           "gw_pwd": "A senha completa da etiqueta QR dentro da tampa da Powerwall (Powerwall 3: atrás do vidro frontal, embaixo à esquerda). As letras são maiúsculas. A maioria dos gateways também aceita só os últimos 5 caracteres; um Backup Gateway 1 precisa da senha completa.",
           "rsa_key_path": "Caminho completo do arquivo da chave privada no host do Home Assistant, por exemplo `/config/tesla_tedapi/tedapi_rsa_private.pem`. Deixe em branco para usar a conexão com senha do Wi-Fi (somente leitura).",
-          "wifi_host": "O endereço do ponto de acesso Wi-Fi da Powerwall (normalmente `192.168.91.1`), usado quando o endereço da rede doméstica para de responder. Deixe em branco se o Home Assistant não alcançar o ponto de acesso."
+          "wifi_host": "O endereço do ponto de acesso Wi-Fi da Powerwall (normalmente `192.168.91.1`), usado quando o endereço da rede doméstica para de responder. Deixe em branco se o Home Assistant não alcançar o ponto de acesso. Também usado para ler Powerwall 3 seguidores, que a conexão assinada não alcança pela rede da casa."
         }
       },
       "new_key": {
@@ -266,7 +266,8 @@
             "data_description": {
               "tesla_tariff": "Ler da reserva na nuvem a tarifa que a Tesla usa no controle por horário (sensor e ações de ler/definir). Somente nuvem.",
               "diagnostics_gateway_config": "Adicionar a configuração do gateway aos downloads de diagnóstico, sem números de série, localização, nomes e credenciais. Útil para relatar erros."
-            }
+            },
+            "description": "A opção **Tarifa da Tesla** aparece aqui depois que um backup na nuvem é configurado: no menu, escolha primeiro **Vincular uma conta Tesla** ou **Entrar no Tesla Fleet ou Teslemetry**."
           }
         }
       },
@@ -1036,6 +1037,18 @@
     "tariff_write_mismatch": {
       "title": "A Tesla salvou outra tarifa",
       "description": "A tarifa foi enviada por {backend}, mas os preços que a Tesla retorna são diferentes. Confira a tarifa no app da Tesla; este aviso some quando a Tesla mostrar os preços enviados."
+    },
+    "powerwall_follower_hidden": {
+      "title": "Um Powerwall 3 está faltando nas leituras",
+      "description": "{count} Powerwall 3 deste gateway não aparecem nas leituras. Na conexão assinada, os Powerwall seguidores não são alcançáveis pela rede da casa: eles são lidos apenas pelo Wi-Fi do próprio Powerwall.\n\nSe o Home Assistant alcança esse Wi-Fi, defina **Endereço Wi-Fi alternativo** como `192.168.91.1` (menu da integração → **Reconfigurar**). Os totais de potência, energia e capacidade já incluem todos os Powerwall; faltam apenas as baterias, temperaturas e ventiladores das unidades ausentes. Isso some sozinho quando elas aparecerem."
+    },
+    "powerwall_follower_wifi": {
+      "title": "Um Powerwall 3 está faltando nas leituras",
+      "description": "{count} Powerwall 3 deste gateway não aparecem nas leituras, embora o Wi-Fi alternativo (`{wifi_host}`) esteja configurado. Na conexão assinada, os Powerwall seguidores são lidos apenas por esse Wi-Fi: verifique se o Home Assistant ainda o alcança.\n\nOs totais de potência, energia e capacidade já incluem todos os Powerwall; faltam apenas as baterias, temperaturas e ventiladores das unidades ausentes. Isso some sozinho quando elas aparecerem."
+    },
+    "powerwall_follower_missing": {
+      "title": "Um Powerwall 3 está faltando nas leituras",
+      "description": "{count} Powerwall 3 da configuração do gateway não aparecem nas leituras. Os totais de potência, energia e capacidade já incluem todos os Powerwall; faltam apenas as baterias, temperaturas e ventiladores das unidades ausentes.\n\nIsso some sozinho quando elas aparecerem. Se continuar, baixe o diagnóstico e abra uma issue."
     }
   },
   "selector": {

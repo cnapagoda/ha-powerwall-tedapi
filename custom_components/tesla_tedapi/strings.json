@@ -27,7 +27,7 @@
         "data_description": {
           "host": "The gateway's address on your home network, for example `192.168.1.50`. Your router lists it as `teslapw_…`.",
           "gw_pwd": "The whole password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Letters are upper case. Most gateways also accept just its last 5 characters; a Backup Gateway 1 needs the whole password.",
-          "wifi_host": "The Powerwall's Wi-Fi hotspot, used over the same signed connection when the home-network address stops answering. Leave empty if Home Assistant cannot reach the hotspot."
+          "wifi_host": "The Powerwall's Wi-Fi hotspot, used over the same signed connection when the home-network address stops answering. Leave empty if Home Assistant cannot reach the hotspot. Also used to read follower Powerwall 3s, which the signed connection can't reach over the home network."
         }
       },
       "access": {
@@ -125,7 +125,7 @@
           "host": "The gateway's address on your home network, for example `192.168.1.50`. Your router lists it as `teslapw_…`.",
           "gw_pwd": "The whole password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Letters are upper case. Most gateways also accept just its last 5 characters; a Backup Gateway 1 needs the whole password.",
           "rsa_key_path": "Full path to the private key file on the Home Assistant host, for example `/config/tesla_tedapi/tedapi_rsa_private.pem`. Leave empty to use the Wi-Fi password connection (read only).",
-          "wifi_host": "The Powerwall's Wi-Fi hotspot address (usually `192.168.91.1`), used when the home-network address stops answering. Leave empty if Home Assistant can't reach the hotspot."
+          "wifi_host": "The Powerwall's Wi-Fi hotspot address (usually `192.168.91.1`), used when the home-network address stops answering. Leave empty if Home Assistant can't reach the hotspot. Also used to read follower Powerwall 3s, which the signed connection can't reach over the home network."
         }
       },
       "new_key": {
@@ -266,7 +266,8 @@
             "data_description": {
               "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensor and get/set tariff actions). Cloud only.",
               "diagnostics_gateway_config": "Add the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports."
-            }
+            },
+            "description": "The **Tesla tariff** option appears here once a cloud backup is set up: in the menu, choose **Link a Tesla account** or **Sign in to Tesla Fleet or Teslemetry** first."
           }
         }
       },
@@ -1036,6 +1037,18 @@
     "tariff_write_mismatch": {
       "title": "Tesla stored a different tariff",
       "description": "The tariff was sent through {backend}, but the rates Tesla returns differ from the ones sent. Check the tariff in the Tesla app; this notice clears once Tesla shows the rates sent."
+    },
+    "powerwall_follower_hidden": {
+      "title": "A Powerwall 3 is missing from the readings",
+      "description": "{count} Powerwall 3 unit(s) on this gateway don't appear in the readings. On the signed connection, follower Powerwalls can't be reached over the home network: they are read over the Powerwall's own Wi-Fi only.\n\nIf Home Assistant can reach that Wi-Fi, set **Wi-Fi fallback address** to `192.168.91.1` (integration menu → **Reconfigure**). Power, energy and capacity totals already include every Powerwall; only the missing units' battery packs, temperatures and fans are absent. This clears by itself once they appear."
+    },
+    "powerwall_follower_wifi": {
+      "title": "A Powerwall 3 is missing from the readings",
+      "description": "{count} Powerwall 3 unit(s) on this gateway don't appear in the readings, although the Wi-Fi fallback (`{wifi_host}`) is set. On the signed connection follower Powerwalls are read over that Wi-Fi only: check that Home Assistant can still reach it.\n\nPower, energy and capacity totals already include every Powerwall; only the missing units' battery packs, temperatures and fans are absent. This clears by itself once they appear."
+    },
+    "powerwall_follower_missing": {
+      "title": "A Powerwall 3 is missing from the readings",
+      "description": "{count} Powerwall 3 unit(s) in the gateway's configuration don't appear in the readings. Power, energy and capacity totals already include every Powerwall; only the missing units' battery packs, temperatures and fans are absent.\n\nThis clears by itself once they appear. If it lasts, download the diagnostics and open an issue."
     }
   },
   "selector": {
