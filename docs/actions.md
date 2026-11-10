@@ -51,7 +51,7 @@ Hold the battery at a fixed power for a set time.
 
 How a dispatch runs:
 
-- The command is sent in steps of at most **5 minutes** and renewed every minute. If Home Assistant stops, the Powerwall goes back to normal within 5 minutes.
+- The command is sent in steps of at most **5 minutes** and renewed every minute. When Home Assistant stops or restarts, the dispatch ends straight away (reason `unloaded`). If it crashes or loses power, the Powerwall goes back to normal within 5 minutes.
 - When the time is up or a limit is reached, the battery is handed back. Limits are checked on every reading.
 - A new call replaces a running dispatch.
 - The call is refused if the battery is already past the limit.

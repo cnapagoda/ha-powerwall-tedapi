@@ -14,7 +14,7 @@ Applies to `dispatch_battery_power`, `charge_to` and `discharge_to`.
 - **A dispatch ignores your grid export setting, and the Powerwall ignores the backup reserve during one.** On a Powerwall 3, a discharge exported to the grid with export set to *never*. The integration stops a discharge at the backup reserve unless you pass `min_soc` (option **Discharges stop at the backup reserve**), and refuses calls above **Largest dispatch power**.
 - **Dispatching may affect your warranty.** Tesla's warranty may cover unlimited cycles only for self-consumption, time-based control and backup, and limit other use to a total energy throughput (37.8 MWh is quoted for some units). Dispatching may count as other use. Check your own warranty.
 - **A charge uses the grid only while Grid charging is on.** Turn it on before a dispatch that should charge from the grid; it may cost money on your tariff.
-- **If Home Assistant stops, the dispatch stops.** Commands are sent in steps of at most 5 minutes, so the Powerwall returns to normal within 5 minutes.
+- **If Home Assistant stops, the dispatch stops.** When it stops or restarts normally, the battery is handed back straight away. If it crashes or loses power, the Powerwall returns to normal within 5 minutes: commands are sent in steps of at most 5 minutes.
 - **Your retailer or VPP may also control the Powerwall.** They can change modes or grid charging from the cloud, and their changes can fight yours.
 - **Limits use the Tesla app scale** (**Battery level**).
 

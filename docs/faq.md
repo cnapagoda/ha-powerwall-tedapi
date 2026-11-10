@@ -55,7 +55,7 @@ When the change goes through Tesla's cloud, Tesla caps it at 80 %. Over the sign
 Changing the mode or reserve is what the Tesla app does: the Powerwall still decides how to run. A dispatch tells it exactly what power to charge or discharge at, overriding the export setting. Dispatching may affect your warranty; see [Safety](safety.md).
 
 **What happens to a dispatch if Home Assistant restarts or crashes?**
-Commands are sent in steps of at most 5 minutes, so the Powerwall returns to normal within 5 minutes. A dispatch isn't resumed after a restart.
+A normal stop or restart ends the dispatch straight away and hands the battery back. After a crash or power loss, the Powerwall returns to normal within 5 minutes, because commands are sent in steps of at most 5 minutes. A dispatch isn't resumed after a restart.
 
 **What happens to an off-grid run if Home Assistant restarts?**
 The run is saved and picked up again, so it still reconnects on time. If Home Assistant stays down, nothing reconnects: reconnect in the Tesla app.

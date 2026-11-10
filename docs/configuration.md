@@ -56,7 +56,7 @@ The form is in four sections: **General** (polling, restore), **Alerts**, **Batt
 | **Gateway address** | The gateway's address on your home network. You rarely need this: a new address is picked up by itself through DHCP discovery once the gateway's MAC address is known. |
 | **Gateway password** | The whole QR-sticker password (upper case). Most gateways only use its last 5 characters, so those alone work too; a Backup Gateway 1 (part number `1118431-…`) needs the whole password. |
 | **RSA private key file** | Full path to the key on the Home Assistant host, for example `/config/tesla_tedapi/tedapi_rsa_private.pem`. Giving a key switches a Wi-Fi password entry to signed. Leave it empty for the Wi-Fi password connection. |
-| **Wi-Fi fallback address (signed only)** | Usually `192.168.91.1`, used when the home-network address stops answering, and to read follower Powerwall 3s (see [Several Powerwalls](setup.md#several-powerwalls)). Leave it empty if Home Assistant can't reach the Powerwall's Wi-Fi. |
+| **Wi-Fi fallback address (signed only)** | Usually `192.168.91.1`, used when the home-network address stops answering, and to read follower Powerwall 3s (see [Several Powerwalls](setup.md#several-powerwalls)). Leave it empty if Home Assistant can't reach the Powerwall's Wi-Fi, or if the signed connection already uses `192.168.91.1` (followers are then read over it). |
 
 The gateway must still be the same Powerwall (same DIN); to add a different one, add the integration again.
 

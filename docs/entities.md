@@ -28,7 +28,7 @@ All entities belong to one device per gateway, **Powerwall TEDAPI**. Entity IDs 
 
 ## Power
 
-Signs follow Home Assistant's convention: **battery + discharging / − charging; grid + importing / − exporting.**
+Signs follow Home Assistant's convention: **battery + discharging / − charging; grid + importing / − exporting.** A reading the gateway's meters didn't give shows *unknown* rather than 0 W.
 
 | Entity | Entity ID | Unit | Notes |
 |---|---|---|---|
