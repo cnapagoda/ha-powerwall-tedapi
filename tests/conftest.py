@@ -467,3 +467,12 @@ def fleet():
 
     with patch("custom_components.tesla_tedapi.fleet.FleetApi.request", request):
         yield server
+
+
+@pytest.fixture
+def entity_registry_enabled_by_default():
+    """Create every entity enabled, also those disabled by default."""
+    from homeassistant.helpers.entity import Entity
+
+    with patch.object(Entity, "entity_registry_enabled_default", True):
+        yield

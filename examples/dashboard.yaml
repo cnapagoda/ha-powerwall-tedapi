@@ -8,6 +8,8 @@
 # with an area (for example sensor.garage_powerwall_tedapi_...) or end in _2,
 # use the editor's search and replace. Per-pack sensors are named after the
 # pack ("powerwall_3", "expansion_pack", ...): check the device page.
+# The "Today" card needs the *_today sensors, which are disabled by default:
+# enable them on the device page first.
 #
 # Only core cards are used. For a live power flow animation, see
 # docs/dashboards.md (Power Flow Card Plus, from HACS).

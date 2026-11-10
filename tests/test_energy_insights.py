@@ -210,12 +210,33 @@ async def test_phase_sensors_only_for_what_is_in_use(hass: HomeAssistant, fake_p
     registry = er.async_get(hass)
     assert hass.states.get(_eid(hass, "sensor", "grid_voltage_l1")).state == "241.2"
     assert _eid(hass, "sensor", "grid_voltage_l2") is None  # 0 V: not wired
-    # The home side and the current are there, disabled until wanted.
-    assert registry.async_get(_eid(hass, "sensor", "home_voltage_l1")).disabled_by is not None
-    assert registry.async_get(_eid(hass, "sensor", "meter_x_ct_a_current")).disabled_by is not None
+    # The home side and the meter detail are there, disabled until wanted.
+    for key in ("home_voltage_l1", "meter_x_ct_a_current", "meter_x_ct_a_power"):
+        assert registry.async_get(_eid(hass, "sensor", key)).disabled_by is not None
+    assert _eid(hass, "sensor", "meter_y_ct_b_power") is None  # nothing on it
+    # All of it is diagnostic.
+    for key in ("grid_voltage_l1", "home_voltage_l1", "meter_x_ct_a_power", "meter_x_ct_a_current"):
+        assert registry.async_get(_eid(hass, "sensor", key)).entity_category == "diagnostic"
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_meter_sensors_once_enabled(hass: HomeAssistant, fake_powerwall) -> None:
+    FakePowerwall.extra_packs = SYNC
+    await _setup(hass, V1R)
     power = hass.states.get(_eid(hass, "sensor", "meter_x_ct_a_power"))
     assert power.state == "850.46" and power.attributes["unit_of_measurement"] == "W"
-    assert _eid(hass, "sensor", "meter_y_ct_b_power") is None  # nothing on it
+
+
+async def test_main_and_diagnostic_entities(hass: HomeAssistant, fake_powerwall) -> None:
+    """Everyday readings stay main; detail is diagnostic."""
+    await _setup(hass, V1R)
+    registry = er.async_get(hass)
+    for key in ("solar_power", "battery_level", "battery_energy_remaining", "grid_energy_imported",
+                "flow_solar_to_home", "grid_status", "backup_time_remaining"):
+        assert registry.async_get(_eid(hass, "sensor", key)).entity_category is None, key
+    for key in ("grid_voltage", "grid_frequency", "battery_soe", "battery_full_capacity"):
+        assert registry.async_get(_eid(hass, "sensor", key)).entity_category == "diagnostic", key
+    assert registry.async_get(_eid(hass, "sensor", "grid_energy_imported_today")).disabled_by is not None
 
 
 async def test_no_phase_sensors_without_the_signals(hass: HomeAssistant, fake_powerwall) -> None:

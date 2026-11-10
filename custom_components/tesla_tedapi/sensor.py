@@ -188,6 +188,8 @@ def _energy_today(key: str) -> TedapiSensorEntityDescription:
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL,
         suggested_display_precision=2,
+        # The Energy dashboard gives the same daily totals.
+        entity_registry_enabled_default=False,
         value_fn=lambda d, k=key: (d.get("energy_today") or {}).get(k),
         last_reset_fn=_today_start,
     )
@@ -249,6 +251,7 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         native_unit_of_measurement=PERCENTAGE,
         device_class=SensorDeviceClass.BATTERY,
         state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda d: d.get("battery_soe"),
     ),
     # Grid
@@ -266,6 +269,7 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfFrequency.HERTZ,
         device_class=SensorDeviceClass.FREQUENCY,
         state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda d: d.get("grid_frequency"),
     ),
     TedapiSensorEntityDescription(
@@ -274,6 +278,7 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda d: d.get("grid_voltage"),
     ),
     # Lifetime energy (gateway meters)
@@ -309,6 +314,7 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY_STORAGE,
         state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda d: d.get("battery_full_kwh"),
         # Each pack's capacity. Not its remaining energy, which changes on
         # every reading: that is on each pack's capacity sensor and in
@@ -606,6 +612,7 @@ def _phase_voltage_sensor(side: str, phase: str) -> TedapiSensorEntityDescriptio
         device_class=SensorDeviceClass.VOLTAGE,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
+        entity_category=EntityCategory.DIAGNOSTIC,
         entity_registry_enabled_default=side == "grid",
         value_fn=lambda d, s=side, p=phase: (_phases(d).get(f"{s}_voltage") or {}).get(p),
     )
@@ -621,7 +628,7 @@ def _ct_key(meter: str, ct: str, kind: str) -> str:
 
 def _ct_sensors(meter: str, ct: str) -> list[TedapiSensorEntityDescription]:
     """One current transformer of one of the gateway's meters: real power,
-    and (disabled by default) current and reactive power."""
+    current and reactive power (diagnostic, disabled by default)."""
     placeholders = {"meter": meter, "ct": ct}
     return [
         TedapiSensorEntityDescription(
@@ -631,6 +638,8 @@ def _ct_sensors(meter: str, ct: str) -> list[TedapiSensorEntityDescription]:
             native_unit_of_measurement=UnitOfPower.WATT,
             device_class=SensorDeviceClass.POWER,
             state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            entity_registry_enabled_default=False,
             value_fn=lambda d, m=meter, c=ct: _ct(d, m, c).get("power"),
         ),
         TedapiSensorEntityDescription(
@@ -640,6 +649,7 @@ def _ct_sensors(meter: str, ct: str) -> list[TedapiSensorEntityDescription]:
             native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
             device_class=SensorDeviceClass.CURRENT,
             state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
             entity_registry_enabled_default=False,
             value_fn=lambda d, m=meter, c=ct: _ct(d, m, c).get("current"),
         ),
@@ -650,6 +660,7 @@ def _ct_sensors(meter: str, ct: str) -> list[TedapiSensorEntityDescription]:
             native_unit_of_measurement=UnitOfReactivePower.VOLT_AMPERE_REACTIVE,
             device_class=SensorDeviceClass.REACTIVE_POWER,
             state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
             entity_registry_enabled_default=False,
             value_fn=lambda d, m=meter, c=ct: _ct(d, m, c).get("reactive_power"),
         ),
@@ -736,6 +747,7 @@ def _pack_sensors(serial: str, name: str) -> list[TedapiSensorEntityDescription]
             native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
             device_class=SensorDeviceClass.ENERGY_STORAGE,
             state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
             value_fn=lambda d, sn=serial: _pack(d, sn).get("full_kwh"),
             attrs_fn=lambda d, sn=serial: {
                 "remaining_kwh": _pack(d, sn).get("remaining_kwh"),
@@ -750,6 +762,7 @@ def _pack_sensors(serial: str, name: str) -> list[TedapiSensorEntityDescription]
             native_unit_of_measurement=UnitOfTemperature.CELSIUS,
             device_class=SensorDeviceClass.TEMPERATURE,
             state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
             # Hottest cell reading; min and shunt in the attributes.
             value_fn=lambda d, sn=serial: _pack(d, sn).get("temp_max"),
             attrs_fn=lambda d, sn=serial: {
@@ -1003,6 +1016,7 @@ class TeslaTariffSensor(TedapiEntity, SensorEntity):
     recorder."""
 
     _attr_translation_key = "tesla_tariff"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_icon = "mdi:cash-clock"
     _unrecorded_attributes = frozenset({"tariff"})
 

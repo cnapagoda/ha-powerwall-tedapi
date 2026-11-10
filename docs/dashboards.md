@@ -184,6 +184,8 @@ The combined sensors use Home Assistant's convention (battery + discharging, gri
 
 ## Today's energy
 
+The *today* sensors are disabled by default: enable them on the device page first (they're listed under *entities not shown*).
+
 ```yaml
 type: entities
 title: Today

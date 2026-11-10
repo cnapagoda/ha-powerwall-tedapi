@@ -52,9 +52,9 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 | Entity | Entity ID | Unit | Notes |
 |---|---|---|---|
 | **Battery level** | `sensor.powerwall_tedapi_battery_level` | % | **Same scale as the Tesla app.** Use this one in automations; dispatch limits use it too. |
-| Battery state of energy | `sensor.powerwall_tedapi_battery_state_of_energy` | % | The gateway's raw value, about 2–4 points higher than the app (the app hides the bottom 5 %: app = (raw − 5) ÷ 0.95). |
+| Battery state of energy 🩺 | `sensor.powerwall_tedapi_battery_state_of_energy` | % | The gateway's raw value, about 2–4 points higher than the app (the app hides the bottom 5 %: app = (raw − 5) ÷ 0.95). |
 | Battery energy remaining | `sensor.powerwall_tedapi_battery_energy_remaining` | kWh | |
-| Battery full capacity | `sensor.powerwall_tedapi_battery_full_capacity` | kWh | Attributes: each pack's `serial` and `full_kwh`. |
+| Battery full capacity 🩺 | `sensor.powerwall_tedapi_battery_full_capacity` | kWh | Attributes: each pack's `serial` and `full_kwh`. |
 | Backup time remaining | `sensor.powerwall_tedapi_backup_time_remaining` | h | The gateway's estimate at the current load. |
 | Battery round-trip efficiency 🩺 | `sensor.powerwall_tedapi_battery_round_trip_efficiency` | % | Lifetime energy out of the battery ÷ lifetime energy in (the gateway's counters). Unknown below 50 kWh charged, and above 100 % (the counters then don't cover the same energy). |
 | Battery capacity trend 🩺 | `sensor.powerwall_tedapi_battery_capacity_trend` | %/y | How fast the full capacity changes, in % of the rated 13.5 kWh per year (negative while it falls): a straight line through one sample a day of the full capacity per pack. *Unknown* until there are 30 samples over 90 days. Starts over when a pack is added or removed (a new pack count that lasts into the next day). The gateway's capacity estimate moves with the seasons, so read it over a year or more. Attributes: `kwh_per_year`, `fit_kwh`, `samples`, `days`. |
@@ -67,8 +67,8 @@ One set per Powerwall and expansion pack, named after the pack (*Powerwall 3*, *
 
 | Entity | Example entity ID | Unit | Notes |
 |---|---|---|---|
-| *Pack* capacity | `sensor.powerwall_tedapi_powerwall_3_capacity` | kWh | Attributes: `remaining_kwh`, `part_number`, `serial`. |
-| *Pack* temperature | `sensor.powerwall_tedapi_powerwall_3_temperature` | °C | The hottest cell reading. Attributes: `temp_min`, `shunt_temp`, `serial`. |
+| *Pack* capacity 🩺 | `sensor.powerwall_tedapi_powerwall_3_capacity` | kWh | Attributes: `remaining_kwh`, `part_number`, `serial`. |
+| *Pack* temperature 🩺 | `sensor.powerwall_tedapi_powerwall_3_temperature` | °C | The hottest cell reading. Attributes: `temp_min`, `shunt_temp`, `serial`. |
 | *Pack* health 🩺 | `sensor.powerwall_tedapi_powerwall_3_health` | % | Capacity ÷ 13.5 kWh. Attributes: `nominal_kwh`, `warranty_kwh`. |
 | *Pack* lifetime discharge 🩺 | `sensor.powerwall_tedapi_powerwall_3_lifetime_discharge` | kWh | Powerwall 3. |
 | *Pack* cycles 🩺 | `sensor.powerwall_tedapi_powerwall_3_cycles` | | Powerwall 3. Equivalent full cycles: lifetime discharge ÷ 13.5 kWh. Attributes: `bms_full_cycles` and `over_discharges` (the battery's own counters). |
@@ -92,7 +92,7 @@ A reading that is missing or zero is ignored, and so is a reading lower than the
 
 ### Today
 
-The same six values for **today**, resetting at local midnight (like Tesla Fleet's daily sensors): `sensor.powerwall_tedapi_grid_energy_imported_today`, `…_grid_energy_exported_today`, `…_battery_energy_charged_today`, `…_battery_energy_discharged_today`, `…_solar_energy_produced_today`, `…_home_energy_consumed_today`.
+The same six values for **today**, resetting at local midnight (like Tesla Fleet's daily sensors). Disabled by default (🚫), as the Energy dashboard gives the same daily totals: `sensor.powerwall_tedapi_grid_energy_imported_today`, `…_grid_energy_exported_today`, `…_battery_energy_charged_today`, `…_battery_energy_discharged_today`, `…_solar_energy_produced_today`, `…_home_energy_consumed_today`.
 
 They're meant for cards and automations. For the Energy dashboard, use the lifetime sensors.
 
@@ -122,8 +122,8 @@ With **Fast polling interval for power** set they follow quick changes more clos
 |---|---|---|
 | **Grid connected** | `binary_sensor.powerwall_tedapi_grid_connected` | On while the Powerwall is on the grid. Off during an outage, *Go off-grid*, and while it syncs to reconnect. Attribute `grid_status`: `UP`, `DOWN` or `SYNCING`. With a signed connection it also shows an [off-grid run](actions.md#tesla_tedapigo_off_grid) started here: `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below`, `last_end_reason`. |
 | Grid status | `sensor.powerwall_tedapi_grid_status` | `up`, `down` or `syncing` (shown as *Up*, *Down*, *Syncing* in your language). Before 2.5.1 the states were upper case. |
-| Grid frequency | `sensor.powerwall_tedapi_grid_frequency` | Hz. |
-| Grid voltage | `sensor.powerwall_tedapi_grid_voltage` | V. |
+| Grid frequency 🩺 | `sensor.powerwall_tedapi_grid_frequency` | Hz. |
+| Grid voltage 🩺 | `sensor.powerwall_tedapi_grid_voltage` | V. |
 | Last grid outage | `sensor.powerwall_tedapi_last_grid_outage` | When the last (or current) outage started. Attributes: `ended`, `ongoing`. |
 | Last grid outage duration | `sensor.powerwall_tedapi_last_grid_outage_duration` | Minutes. |
 | Grid outages this month | `sensor.powerwall_tedapi_grid_outages_this_month` | Resets at the start of each month. |
@@ -137,11 +137,11 @@ Created only for what the gateway reports **and** is in use (🔍): a phase with
 
 | Entity | Example entity ID | Unit | Notes |
 |---|---|---|---|
-| Grid voltage L*1–3* 🔍 | `sensor.powerwall_tedapi_grid_voltage_l1` | V | Each phase on the grid side of the gateway. |
-| Home voltage L*1–3* 🔍🚫 | `sensor.powerwall_tedapi_home_voltage_l1` | V | Each phase on the home side: the same as the grid side except during an outage. |
-| Meter *X/Y/Z* CT *A/B/C* power 🔍 | `sensor.powerwall_tedapi_meter_x_ct_a_power` | W | Real power at one current transformer of one of the gateway's meters. The letters are Tesla's: which circuit a meter measures (grid, solar, …) was set at installation. |
-| Meter *X/Y/Z* CT *A/B/C* current 🔍🚫 | `…_meter_x_ct_a_current` | A | |
-| Meter *X/Y/Z* CT *A/B/C* reactive power 🔍🚫 | `…_meter_x_ct_a_reactive_power` | var | |
+| Grid voltage L*1–3* 🔍🩺 | `sensor.powerwall_tedapi_grid_voltage_l1` | V | Each phase on the grid side of the gateway. |
+| Home voltage L*1–3* 🔍🚫🩺 | `sensor.powerwall_tedapi_home_voltage_l1` | V | Each phase on the home side: the same as the grid side except during an outage. |
+| Meter *X/Y/Z* CT *A/B/C* power 🔍🚫🩺 | `sensor.powerwall_tedapi_meter_x_ct_a_power` | W | Real power at one current transformer of one of the gateway's meters. The letters are Tesla's: which circuit a meter measures (grid, solar, …) was set at installation. |
+| Meter *X/Y/Z* CT *A/B/C* current 🔍🚫🩺 | `…_meter_x_ct_a_current` | A | |
+| Meter *X/Y/Z* CT *A/B/C* reactive power 🔍🚫🩺 | `…_meter_x_ct_a_reactive_power` | var | |
 
 ## Settings
 
@@ -177,7 +177,7 @@ data:
 | **Backup event** 🔑 | `binary_sensor.powerwall_tedapi_backup_event` | On while a backup event runs: a [max backup](actions.md#tesla_tedapistart_max_backup) started here or in the Tesla app, or one Storm Watch scheduled. The Powerwall then charges to full and holds it. Attributes: `kind` (`manual` or the event's name), `start`, `end`; when none is running, the next scheduled one. Read every 5 minutes. |
 | Storm Watch active ☁️ | `binary_sensor.powerwall_tedapi_storm_watch_active` | Tesla's Storm Watch is preparing for severe weather. |
 | Grid services active ☁️ | `binary_sensor.powerwall_tedapi_grid_services_active` | Tesla reports grid services (for example a virtual power plant) as active on the site. Only on sites enrolled in grid services. |
-| Tesla tariff | `sensor.powerwall_tedapi_tesla_tariff` | Only with the **Tesla tariff (cloud)** option. See [Tesla tariff](tesla-tariff.md). |
+| Tesla tariff 🩺 | `sensor.powerwall_tedapi_tesla_tariff` | Only with the **Tesla tariff (cloud)** option. See [Tesla tariff](tesla-tariff.md). |
 
 Cloud states come from the cloud backup every 30 minutes. Their `cloud_backend` attribute says which.
 
