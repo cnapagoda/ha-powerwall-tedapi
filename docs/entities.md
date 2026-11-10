@@ -13,7 +13,7 @@ All entities belong to one device per gateway, **Powerwall TEDAPI**. Entity IDs 
 | 🚫 | Disabled by default: enable it on the entity's settings page. |
 | 🩺 | Diagnostic: shown in the device page's *Diagnostic* section. |
 
-**When the gateway can't be reached,** readings show *unavailable* (never stale values); with the **Cloud readings while the gateway is unreachable** option, power and battery level come from the cloud backup instead (attribute `source: cloud`). Settings stay usable through the cloud backup if you have one. Outage history and **Setup health** stay available.
+**When the gateway can't be reached,** readings show *unavailable* (never stale values); with the **Cloud readings while the gateway is unreachable** option, power and battery level come from the cloud backup instead (attribute `source: cloud`, and `last_updated` for when the cloud took the reading). Settings stay usable through the cloud backup if you have one. Outage history and **Setup health** stay available.
 
 - [Power](#power)
 - [Battery](#battery)
@@ -56,7 +56,7 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 | Battery energy remaining | `sensor.powerwall_tedapi_battery_energy_remaining` | kWh | |
 | Battery full capacity | `sensor.powerwall_tedapi_battery_full_capacity` | kWh | Attributes: each pack's `serial` and `full_kwh`. |
 | Backup time remaining | `sensor.powerwall_tedapi_backup_time_remaining` | h | The gateway's estimate at the current load. |
-| Battery round-trip efficiency 🩺 | `sensor.powerwall_tedapi_battery_round_trip_efficiency` | % | Lifetime energy out of the battery ÷ lifetime energy in (the gateway's counters). Unknown below 50 kWh charged. |
+| Battery round-trip efficiency 🩺 | `sensor.powerwall_tedapi_battery_round_trip_efficiency` | % | Lifetime energy out of the battery ÷ lifetime energy in (the gateway's counters). Unknown below 50 kWh charged, and above 100 % (the counters then don't cover the same energy). |
 | Battery capacity trend 🩺 | `sensor.powerwall_tedapi_battery_capacity_trend` | %/y | How fast the full capacity changes, in % of the rated 13.5 kWh per year (negative while it falls): a straight line through one sample a day of the full capacity per pack. *Unknown* until there are 30 samples over 90 days. Starts over when a pack is added or removed (a new pack count that lasts into the next day). The gateway's capacity estimate moves with the seasons, so read it over a year or more. Attributes: `kwh_per_year`, `fit_kwh`, `samples`, `days`. |
 | Battery warranty level date (estimate) 🩺 | `sensor.powerwall_tedapi_battery_warranty_level_date_estimate` | | When that line reaches the warranty level (70 % of 13.5 kWh). *Unknown* while the trend is flat or rising. An extrapolation, not a prediction. |
 | Battery health 🩺 | `sensor.powerwall_tedapi_battery_health` | % | The packs' full capacity ÷ (13.5 kWh × packs). While a follower Powerwall 3 is missing from the readings: the system's full capacity ÷ (13.5 kWh × every pack in the gateway's configuration), so it still covers the whole system. A new battery reads above 100 %. Attributes: `nominal_kwh_per_pack`, `packs` (in the system), `packs_read` (in the readings), `warranty_kwh` (70 % of 13.5 kWh per pack), `lifetime_discharged_kwh` (of the packs read). |

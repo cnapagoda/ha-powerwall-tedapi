@@ -864,6 +864,8 @@ class TedapiSensor(TedapiEntity, SensorEntity):
         "duty", "target_rpm",
         # alert details (the alert codes themselves stay recorded)
         "details", "pack_alerts",
+        # cloud readings: when the cloud's reading was taken
+        "last_updated",
     })
 
     def __init__(self, coordinator: TedapiCoordinator, description: TedapiSensorEntityDescription) -> None:
@@ -902,7 +904,7 @@ class TedapiSensor(TedapiEntity, SensorEntity):
             return self.entity_description.attrs_fn(self.data)
         if self._from_cloud:
             # Says so while the reading isn't the gateway's own.
-            return {"source": "cloud"}
+            return {"source": "cloud", "last_updated": self.data.get("readings_updated")}
         return None
 
 

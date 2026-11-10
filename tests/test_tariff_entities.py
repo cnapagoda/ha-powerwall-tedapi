@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import copy
 from datetime import datetime, timedelta
+from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.tesla_tedapi import tariff
+from custom_components.tesla_tedapi import calendar as tariff_calendar, tariff
 
 from .conftest import TARIFF
-from .test_storm import ACCOUNT, V1R, _eid, _setup
+from .test_storm import ACCOUNT, V1R, _eid, _refresh, _setup
 
 ADELAIDE = ZoneInfo("Australia/Adelaide")
 
@@ -136,3 +137,39 @@ async def test_calendar_event_runs_on_over_a_change_of_season(hass: HomeAssistan
     events = response[calendar]["events"]
     assert [event["summary"].split(":")[0] for event in events] == ["OFF_PEAK", "ON_PEAK", "OFF_PEAK"]
     assert events[2]["start"].startswith("2026-03-31T21:00:00") and events[2]["end"].startswith("2026-04-02T00:00:00")
+
+
+async def test_calendar_schedule_built_once_per_tariff_and_day(hass: HomeAssistant, fake_powerwall, freezer) -> None:
+    """Polls don't rebuild the schedule; a new tariff or a new day does."""
+    await hass.config.async_set_time_zone("Australia/Adelaide")
+    freezer.move_to("2026-11-02T06:30:00+00:00")
+    fake_powerwall.tariff = copy.deepcopy(TARIFF)
+    entry = await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    coordinator = entry.runtime_data.coordinator
+    calendar = _eid(hass, "calendar", "buy_tariff")
+    built = []
+
+    def counting(*args):
+        built.append(1)
+        return tariff.schedule(*args)
+
+    with patch.object(tariff_calendar, "schedule", counting):
+        for _ in range(3):
+            await _refresh(hass, entry)
+        assert not built
+        # A tariff read gives the same tariff as a new object: still no rebuild.
+        coordinator.tariff = copy.deepcopy(coordinator.tariff)
+        await _refresh(hass, entry)
+        assert not built
+        # A changed tariff: rebuilt, and the state follows it.
+        changed = copy.deepcopy(coordinator.tariff)
+        changed["energy_charges"]["Year"]["ON_PEAK"] = 0.7
+        coordinator.tariff = changed
+        await _refresh(hass, entry)
+        assert len(built) == 2  # buy and sell
+        assert hass.states.get(calendar).attributes["message"].startswith("ON_PEAK: 0.7 ")
+        # The next day (the tariff is read again too, unchanged): rebuilt once more.
+        fake_powerwall.tariff = copy.deepcopy(changed)
+        freezer.move_to("2026-11-03T06:30:00+00:00")
+        await _refresh(hass, entry)
+        assert len(built) == 4

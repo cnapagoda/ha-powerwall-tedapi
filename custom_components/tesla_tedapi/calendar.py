@@ -40,6 +40,10 @@ class TariffCalendar(TedapiEntity, CalendarEntity):
         super().__init__(coordinator, f"{side}_tariff")
         self._side = side
         self._attr_translation_key = f"{side}_tariff"
+        # The events around today, kept until the tariff, the day or the
+        # currency changes: the state is written on every poll.
+        self._cache_key: tuple[Any, ...] | None = None
+        self._cache: list[CalendarEvent] = []
 
     @property
     def available(self) -> bool:
@@ -70,7 +74,15 @@ class TariffCalendar(TedapiEntity, CalendarEntity):
     def event(self) -> CalendarEvent | None:
         """The event now, else the next one."""
         now = dt_util.now()
-        events = self._events(now - LOOK_BACK, now + LOOK_AHEAD)
+        tariff = self.coordinator.tariff
+        # The tariff itself in the key, not its id: a read gives a new dict,
+        # and one with the same contents compares equal (no rebuild).
+        key = (tariff, now.date(), self.coordinator.hass.config.currency)
+        if key != self._cache_key:
+            midnight = dt_util.start_of_local_day(now)
+            self._cache = self._events(midnight - LOOK_BACK, midnight + timedelta(days=1) + LOOK_AHEAD)
+            self._cache_key = key
+        events = self._cache
         current = next((e for e in events if e.start <= now < e.end), None)
         return current or next((e for e in events if e.start > now), None)
 

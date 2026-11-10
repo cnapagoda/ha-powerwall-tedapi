@@ -26,7 +26,7 @@ from homeassistant.util import dt as dt_util
 
 from . import gateway, phases as phases_mod, tariff as tariff_mod, tesla_cloud
 from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, problem_after, summary
-from .cloud import CloudBackend, OwnerSettings, live_readings, wall_connectors
+from .cloud import CloudBackend, OwnerSettings, live_readings, live_time, wall_connectors
 from .const import (
     AUTH_FILE,
     BACKEND_FLEET,
@@ -1529,17 +1529,19 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         data["wall_connectors"] = {}
         if not self.backends or not ((data.get("cloud_extras") or {}).get("wall_connectors") or stand_in):
             return
-        live = await self.hass.async_add_executor_job(self._cloud_live)
+        live, read_at = await self.hass.async_add_executor_job(self._cloud_live)
         data["wall_connectors"] = wall_connectors(live)
         if stand_in:
             readings = live_readings(live)
             if readings:
                 data.update(readings)
                 data["readings_source"] = "cloud"
+                # The Owner API's is read only every few minutes: say how old.
+                data["readings_updated"] = live_time(live, read_at or dt_util.utcnow()).isoformat()
 
-    def _cloud_live(self) -> dict[str, Any]:
+    def _cloud_live(self) -> tuple[dict[str, Any], datetime | None]:
         """The live status from the first cloud backup (in order) that gives
-        one, read at most every CLOUD_LIVE_SECONDS_*."""
+        one, read at most every CLOUD_LIVE_SECONDS_*, and when it was read."""
         for backend in self.backends:
             if backend.failing:
                 continue
@@ -1553,10 +1555,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 except Exception as err:  # noqa: BLE001
                     _LOGGER.debug("%s live status read failed: %s", backend.label, err)
                     values = {}
-                backend.live = (now, values)
+                backend.live, backend.live_at = (now, values), dt_util.utcnow()
             if values:
-                return values
-        return {}
+                return values, backend.live_at
+        return {}, None
 
     def _track_flows(self, data: dict[str, Any]) -> None:
         """Energy flows from the gateway's power readings (never the cloud's)."""

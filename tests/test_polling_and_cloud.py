@@ -2,7 +2,7 @@
 Connectors, and readings while the gateway can't be reached."""
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -11,7 +11,7 @@ from homeassistant.helpers import entity_registry as er, issue_registry as ir
 import homeassistant.helpers.config_validation as cv
 import voluptuous_serialize
 
-from custom_components.tesla_tedapi.cloud import live_readings, wall_connectors
+from custom_components.tesla_tedapi.cloud import live_readings, live_time, wall_connectors
 from custom_components.tesla_tedapi.const import DOMAIN
 from custom_components.tesla_tedapi.coordinator import FOLLOWER_MISSING_POLLS
 from custom_components.tesla_tedapi.diagnostics import async_get_config_entry_diagnostics
@@ -127,6 +127,16 @@ def _live(self, force=False):
     return LIVE
 
 
+def test_live_time() -> None:
+    read = datetime(2026, 11, 11, 1, 0, tzinfo=UTC)
+    assert live_time({"timestamp": "2026-11-11T11:25:00+10:30"}, read) == datetime(2026, 11, 11, 0, 55, tzinfo=UTC)
+    assert live_time({"timestamp": "2026-11-11T00:58:00Z"}, read) == datetime(2026, 11, 11, 0, 58, tzinfo=UTC)
+    # Never later than the read; no time zone, junk or none: the read.
+    assert live_time({"timestamp": "2026-11-11T02:00:00Z"}, read) == read
+    for live in ({"timestamp": "2026-11-11T00:58:00"}, {"timestamp": "soon"}, {"timestamp": 5}, {}, None):
+        assert live_time(live, read) == read
+
+
 def test_live_status_helpers() -> None:
     live = LIVE["response"]
     assert wall_connectors(live) == {WALL_CONNECTOR: {"power": 7200.4, "state": 2, "fault_state": 2}}
@@ -206,6 +216,8 @@ async def test_cloud_readings_while_the_gateway_is_down(hass: HomeAssistant, fak
         assert coordinator.data["readings_source"] == "cloud"
         solar = hass.states.get(_eid(hass, "sensor", "solar_power"))
         assert solar.state == "1234.4" and solar.attributes["source"] == "cloud"
+        # How old the cloud's reading is: when it was read (no timestamp in it).
+        assert solar.attributes["last_updated"] == coordinator.backends[0].live_at.isoformat()
         assert hass.states.get(_eid(hass, "sensor", "battery_level")).state == "61.2"
         assert hass.states.get(_eid(hass, "sensor", "battery_charge_power")).state == "500.0"
         assert hass.states.get(_eid(hass, "sensor", "home_power")).state == "754.4"

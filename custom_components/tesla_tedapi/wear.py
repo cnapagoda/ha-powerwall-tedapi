@@ -42,7 +42,10 @@ def round_trip_efficiency(charged_kwh: Any, discharged_kwh: Any) -> float | None
     cycles it is a rounding error."""
     if not _number(charged_kwh) or not _number(discharged_kwh) or charged_kwh < MIN_EFFICIENCY_KWH:
         return None
-    return round(discharged_kwh / charged_kwh * 100, 1)
+    efficiency = discharged_kwh / charged_kwh * 100
+    # Over 100 % the counters don't cover the same energy (solar charging the
+    # battery on the DC side without counting as charge, say): unknown.
+    return round(efficiency, 1) if efficiency <= 100 else None
 
 
 class CapacityTrend:

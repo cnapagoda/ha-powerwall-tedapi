@@ -3,12 +3,12 @@
 ## 2.7.0
 
 - **Energy flows:** seven new energy sensors (solar to home, battery and grid; battery to home and grid; grid to home and battery), in kWh, attributed from the gateway's power readings. Local, no cloud. They count from this version on.
-- **Battery economics:** **Battery round-trip efficiency**, **Battery capacity trend** (% of rated capacity per year, from one sample a day; shown after 30 samples over 90 days) and **Battery warranty level date (estimate)**.
+- **Battery economics:** **Battery round-trip efficiency** (*unknown* above 100 %, where the counters don't cover the same energy), **Battery capacity trend** (% of rated capacity per year, from one sample a day; shown after 30 samples over 90 days) and **Battery warranty level date (estimate)**.
 - **Per-phase and meter sensors**, where the gateway reports them: **Grid voltage L1–L3**, **Home voltage L1–L3** (disabled by default), and for each current transformer of the gateway's meters power, current and reactive power (the last two disabled by default). Only phases and current transformers in use get sensors.
 - **Fast polling for power** (new option, off by default): reads power, battery level and grid status every 5–60 s, between the full reads at the polling interval. Dispatch limits and `charge_to` / `discharge_to` targets react at that pace too. Changing it reloads the integration.
 - **Wall Connector sensors** (power, state, fault state) from the cloud backup, for sites that have one.
 - **Tesla tariff entities** (with the Tesla tariff option): **Tariff buy price** and **Tariff sell price** sensors, and **Buy tariff** / **Sell tariff** calendars.
-- **Cloud readings while the gateway is unreachable** (new option, off by default): power and battery level then come from the cloud backup, marked `source: cloud`, instead of going *unavailable*.
+- **Cloud readings while the gateway is unreachable** (new option, off by default): power and battery level then come from the cloud backup, marked `source: cloud` with a `last_updated` time, instead of going *unavailable*.
 - Docs: the new features in the README, Energy dashboard (tariff price sensors as price entities), Tesla tariff (price sensors and calendars), Cloud backup (live status), How it works, Compatibility, FAQ, Troubleshooting and Migration pages, and an **Energy flows** card in Dashboards and the example dashboard.
 
 Fixes and changes (2.6.5 was not released on its own):

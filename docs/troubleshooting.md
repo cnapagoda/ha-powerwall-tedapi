@@ -51,7 +51,7 @@
 | **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. An occasional day can come from gaps in readings. If it lasts, mention it in an issue with diagnostics. |
 | No **Grid voltage L1–L3** or **Meter** sensors | They're created for the phases and current transformers the gateway reports and that are in use. Ones that start carrying current later appear by themselves. |
 | **Battery capacity trend** and **Battery warranty level date** show *unknown* | They build up from one sample a day and show once there are 30 samples over 90 days. |
-| **Battery round-trip efficiency** shows *unknown* | It shows once 50 kWh has been charged into the battery. |
+| **Battery round-trip efficiency** shows *unknown* | It shows once 50 kWh has been charged into the battery. It also stays *unknown* if the counters give more energy out than in, which can happen when solar charges the battery without being counted as charge. |
 | No **Wall Connector** sensors | They come from the cloud backup and appear once the site's Wall Connector shows up there. |
 | **Tariff buy price** / **Tariff sell price** missing | Turn on the **Tesla tariff (cloud)** option. The sell price shows for tariffs with feed-in rates. |
 | **Inverter heatsink temperature** never changes | Known on some firmware. |

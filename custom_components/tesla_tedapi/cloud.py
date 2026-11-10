@@ -49,6 +49,8 @@ class CloudBackend:
     # needed (Wall Connectors, cloud readings) and at most every
     # CLOUD_LIVE_SECONDS_*.
     live: tuple[float, dict[str, Any]] | None = None
+    # When that live status was read (UTC).
+    live_at: datetime | None = None
     # The name shown for it, when it isn't the backend's own (Teslemetry).
     display: str | None = None
 
@@ -140,6 +142,20 @@ LIVE_READINGS = {
     "home_power": "load_power",
     "battery_level": "percentage_charged",
 }
+
+
+def live_time(live: dict[str, Any], read_at: datetime) -> datetime:
+    """The time the live status is for: its own "timestamp" when it has a
+    valid one, else when it was read."""
+    stamp = (live or {}).get("timestamp")
+    if isinstance(stamp, str):
+        try:
+            parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        except ValueError:
+            parsed = None
+        if parsed is not None and parsed.tzinfo is not None:
+            return min(parsed, read_at)
+    return read_at
 
 
 def live_readings(live: dict[str, Any]) -> dict[str, float]:

@@ -112,6 +112,9 @@ def test_round_trip_efficiency() -> None:
     assert wear.round_trip_efficiency(10, 9) is None  # too little through the battery yet
     assert wear.round_trip_efficiency(None, 5) is None
     assert wear.round_trip_efficiency(500, True) is None
+    # More out than in: the counters don't cover the same energy (DC solar).
+    assert wear.round_trip_efficiency(1000, 1000) == 100.0
+    assert wear.round_trip_efficiency(1000, 1050) is None
 
 
 def _trend(days: int, start_kwh: float, per_day: float, packs: int = 1) -> wear.CapacityTrend:
