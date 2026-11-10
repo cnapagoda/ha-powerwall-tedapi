@@ -1046,6 +1046,10 @@
       "title": "Un Powerwall 3 manque dans les mesures",
       "description": "{count} Powerwall 3 de cette passerelle n'apparaissent pas dans les mesures, bien que le Wi-Fi de secours (`{wifi_host}`) soit configuré. Avec la connexion signée, les Powerwall suiveurs ne sont lus que par ce Wi-Fi : vérifiez que Home Assistant peut encore le joindre.\n\nLes totaux de puissance, d'énergie et de capacité incluent déjà tous les Powerwall ; seuls les packs de batterie, températures et ventilateurs des unités manquantes sont absents. Ce message disparaît de lui-même dès qu'elles apparaissent."
     },
+    "powerwall_follower_hotspot": {
+      "title": "Un Powerwall 3 manque dans les mesures",
+      "description": "{count} Powerwall 3 de cette passerelle n'apparaissent pas dans les mesures. La connexion signée utilise le Wi-Fi du Powerwall (`{wifi_host}`), et les Powerwall suiveurs sont lus par ce Wi-Fi : vérifiez que Home Assistant le joint de façon fiable.\n\nLes totaux de puissance, d'énergie et de capacité incluent déjà tous les Powerwall ; seuls les packs de batterie, températures et ventilateurs des unités manquantes sont absents. Ce message disparaît de lui-même dès qu'elles apparaissent."
+    },
     "powerwall_follower_missing": {
       "title": "Un Powerwall 3 manque dans les mesures",
       "description": "{count} Powerwall 3 de la configuration de la passerelle n'apparaissent pas dans les mesures. Les totaux de puissance, d'énergie et de capacité incluent déjà tous les Powerwall ; seuls les packs de batterie, températures et ventilateurs des unités manquantes sont absents.\n\nCe message disparaît de lui-même dès qu'elles apparaissent. S'il persiste, téléchargez les diagnostics et ouvrez un ticket."

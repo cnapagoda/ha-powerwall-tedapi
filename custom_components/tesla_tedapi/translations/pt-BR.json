@@ -1046,6 +1046,10 @@
       "title": "Um Powerwall 3 está faltando nas leituras",
       "description": "{count} Powerwall 3 deste gateway não aparecem nas leituras, embora o Wi-Fi alternativo (`{wifi_host}`) esteja configurado. Na conexão assinada, os Powerwall seguidores são lidos apenas por esse Wi-Fi: verifique se o Home Assistant ainda o alcança.\n\nOs totais de potência, energia e capacidade já incluem todos os Powerwall; faltam apenas as baterias, temperaturas e ventiladores das unidades ausentes. Isso some sozinho quando elas aparecerem."
     },
+    "powerwall_follower_hotspot": {
+      "title": "Um Powerwall 3 está faltando nas leituras",
+      "description": "{count} Powerwall 3 deste gateway não aparecem nas leituras. A conexão assinada usa o Wi-Fi do próprio Powerwall (`{wifi_host}`), e os Powerwall seguidores são lidos por esse Wi-Fi: verifique se o Home Assistant o alcança de forma confiável.\n\nOs totais de potência, energia e capacidade já incluem todos os Powerwall; faltam apenas as baterias, temperaturas e ventiladores das unidades ausentes. Isso some sozinho quando elas aparecerem."
+    },
     "powerwall_follower_missing": {
       "title": "Um Powerwall 3 está faltando nas leituras",
       "description": "{count} Powerwall 3 da configuração do gateway não aparecem nas leituras. Os totais de potência, energia e capacidade já incluem todos os Powerwall; faltam apenas as baterias, temperaturas e ventiladores das unidades ausentes.\n\nIsso some sozinho quando elas aparecerem. Se continuar, baixe o diagnóstico e abra uma issue."

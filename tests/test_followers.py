@@ -135,7 +135,7 @@ async def test_signed_on_the_hotspot_reads_followers_over_it(hass: HomeAssistant
     assert kwargs["failover"] is False and "wifi_v1r_fallback" not in kwargs
     await _poll(hass, entry, FOLLOWER_MISSING_POLLS)
     issue = _issue(hass, entry)
-    assert issue.translation_key == "powerwall_follower_wifi"
+    assert issue.translation_key == "powerwall_follower_hotspot"
     assert issue.translation_placeholders["wifi_host"] == "192.168.91.1"
 
 

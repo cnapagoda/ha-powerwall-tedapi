@@ -1535,7 +1535,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.hass, DOMAIN, issue_id,
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
-            translation_key="powerwall_follower_wifi" if signed and self.follower_host
+            translation_key="powerwall_follower_wifi" if signed and self._wifi_host
+            else "powerwall_follower_hotspot" if signed and self.follower_host
             else "powerwall_follower_hidden" if signed else "powerwall_follower_missing",
             translation_placeholders={"count": str(len(missing)), "wifi_host": self.follower_host},
         )

@@ -1046,6 +1046,10 @@
       "title": "Brak jednego Powerwall 3 w odczytach",
       "description": "{count} Powerwall 3 tej bramy nie pojawia się w odczytach, choć zapasowy adres Wi-Fi (`{wifi_host}`) jest ustawiony. Przy połączeniu podpisanym Powerwalle podrzędne odczytuje się tylko przez to Wi-Fi: sprawdź, czy Home Assistant nadal ma do niego dostęp.\n\nSumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek. Zgłoszenie zniknie samo, gdy się pojawią."
     },
+    "powerwall_follower_hotspot": {
+      "title": "Brak jednego Powerwall 3 w odczytach",
+      "description": "{count} Powerwall 3 tej bramy nie pojawia się w odczytach. Połączenie podpisane korzysta z Wi-Fi Powerwalla (`{wifi_host}`), a Powerwalle podrzędne odczytuje się przez to Wi-Fi: sprawdź, czy Home Assistant ma do niego niezawodny dostęp.\n\nSumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek. Zgłoszenie zniknie samo, gdy się pojawią."
+    },
     "powerwall_follower_missing": {
       "title": "Brak jednego Powerwall 3 w odczytach",
       "description": "{count} Powerwall 3 z konfiguracji bramy nie pojawia się w odczytach. Sumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek.\n\nZgłoszenie zniknie samo, gdy się pojawią. Jeśli nie zniknie, pobierz diagnostykę i zgłoś problem."
