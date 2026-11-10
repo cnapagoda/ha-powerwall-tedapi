@@ -52,7 +52,7 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 | Battery energy remaining | `sensor.powerwall_tedapi_battery_energy_remaining` | kWh | |
 | Battery full capacity | `sensor.powerwall_tedapi_battery_full_capacity` | kWh | Attributes: each pack's `serial` and `full_kwh`. |
 | Backup time remaining | `sensor.powerwall_tedapi_backup_time_remaining` | h | The gateway's estimate at the current load. |
-| Battery health 🩺 | `sensor.powerwall_tedapi_battery_health` | % | The packs' full capacity ÷ (13.5 kWh × packs), over the packs the integration reads. A new battery reads above 100 %. Attributes: `nominal_kwh_per_pack`, `packs`, `warranty_kwh` (70 % of 13.5 kWh per pack), `lifetime_discharged_kwh`. |
+| Battery health 🩺 | `sensor.powerwall_tedapi_battery_health` | % | The packs' full capacity ÷ (13.5 kWh × packs). While a follower Powerwall 3 is missing from the readings: the system's full capacity ÷ (13.5 kWh × every pack in the gateway's configuration), so it still covers the whole system. A new battery reads above 100 %. Attributes: `nominal_kwh_per_pack`, `packs` (in the system), `packs_read` (in the readings), `warranty_kwh` (70 % of 13.5 kWh per pack), `lifetime_discharged_kwh` (of the packs read). |
 
 ### Per battery pack 🔍
 
@@ -178,7 +178,7 @@ All diagnostic 🩺.
 |---|---|---|
 | Inverter ambient temperature | `sensor.powerwall_tedapi_inverter_ambient_temperature` | °C. |
 | Inverter heatsink temperature | `sensor.powerwall_tedapi_inverter_heatsink_temperature` | °C. Doesn't change on some firmware. |
-| Fan *A*/*B* speed 🔍 | `sensor.powerwall_tedapi_fan_a_speed` | rpm. Powerwall 3: the inverter's two fans, with the drive `duty` (%) as an attribute. With more than one Powerwall 3, the next inverters' fans are *Fan 2A*, *Fan 2B* and so on. Powerwall 2: one fan per Powerwall (*Fan 1*, *Fan 2*, …), with `target_rpm`. |
+| Fan *A*/*B* speed 🔍 | `sensor.powerwall_tedapi_fan_a_speed` | rpm. Powerwall 3: the inverter's two fans, with the drive `duty` (%) as an attribute. With more than one Powerwall 3, *Fan A* and *B* are the leader's, and the next inverters' fans are *Fan 2A*, *Fan 2B* and so on. Powerwall 2: one fan per Powerwall (*Fan 1*, *Fan 2*, …), with `target_rpm`. |
 | Firmware version | `sensor.powerwall_tedapi_firmware_version` | For example `26.34.1`. Attributes: `build`, `previous_version`, `updated_at`. The last two stay empty until the integration has seen a firmware update. |
 | Gateway last started | `sensor.powerwall_tedapi_gateway_last_started` | When the gateway last restarted. |
 

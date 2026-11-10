@@ -150,14 +150,30 @@ def model_id(din: str | None) -> str | None:
     return part if part and part != din else None
 
 
-def _extract_pinv_value(vitals: dict, *keys: str) -> float | None:
-    """First matching key from the PINV/TEPINV inverter blocks in vitals."""
-    for device_key, device_data in (vitals or {}).items():
-        if ("PINV" in device_key or "TEPINV" in device_key) and isinstance(device_data, dict):
-            for k in keys:
-                val = device_data.get(k)
-                if val is not None:
-                    return round(float(val), 2)
+def _leader_first(names: list[str], din: str | None) -> list[str]:
+    """Vitals block names with the leader's first (the Powerwall whose serial
+    is in the gateway's DIN), the others in the order given.
+
+    A follower Powerwall 3 comes and goes from the readings (it is read over
+    the Powerwall's Wi-Fi, which pypowerwall backs off from after a failure).
+    With the leader first, the unnumbered entities (Fan A, solar input A, grid
+    voltage) always belong to the same Powerwall."""
+    serial = str(din or "").split("--")[-1]
+    if not serial:
+        return names
+    return sorted(names, key=lambda name: name.split("--")[-1] != serial)  # stable
+
+
+def _extract_pinv_value(vitals: dict, *keys: str, din: str | None = None) -> float | None:
+    """First matching key from the PINV/TEPINV inverter blocks in vitals,
+    the leader's block first."""
+    names = [name for name, block in (vitals or {}).items()
+             if ("PINV" in name or "TEPINV" in name) and isinstance(block, dict)]
+    for name in _leader_first(names, din):
+        for k in keys:
+            val = vitals[name].get(k)
+            if val is not None:
+                return round(float(val), 2)
     return None
 
 
@@ -182,16 +198,17 @@ def _instant_power(aggregates: dict, section: str) -> float | None:
 STRING_LETTERS = "ABCDEF"
 
 
-def _extract_strings(vitals: dict) -> dict[str, dict[str, Any]]:
+def _extract_strings(vitals: dict, din: str | None = None) -> dict[str, dict[str, Any]]:
     """Per-MPPT solar input (Powerwall 3 built-in inverter) from the PVAC vitals
     blocks: {"A": {"voltage", "current", "power", "state"}, ...}. With several
-    inverters the later ones are numbered ("2A")."""
+    inverters the leader's come first and the later ones are numbered ("2A")."""
 
     def num(v, digits):
         return round(float(v), digits) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
     strings: dict[str, dict[str, Any]] = {}
-    blocks = sorted(k for k, v in (vitals or {}).items() if k.split("--")[0] == "PVAC" and isinstance(v, dict))
+    blocks = _leader_first(
+        sorted(k for k, v in (vitals or {}).items() if k.split("--")[0] == "PVAC" and isinstance(v, dict)), din)
     for index, device_key in enumerate(blocks, start=1):
         d = vitals[device_key]
         for letter in STRING_LETTERS:
@@ -206,17 +223,19 @@ def _extract_strings(vitals: dict) -> dict[str, dict[str, Any]]:
     return strings
 
 
-def _extract_fans(vitals: dict) -> dict[str, dict[str, Any]]:
+def _extract_fans(vitals: dict, din: str | None = None) -> dict[str, dict[str, Any]]:
     """Inverter fan speeds (RPM): fans A and B of each Powerwall 3 inverter
     (TEPINV blocks, with the drive duty in %), or one fan per Powerwall 2
-    inverter (PVAC blocks, with the target speed). Fans of later inverters
-    are numbered like the solar inputs ("2A", "2")."""
+    inverter (PVAC blocks, with the target speed). The leader's fans come
+    first; fans of later inverters are numbered like the solar inputs ("2A",
+    "2")."""
 
     def num(v):
         return round(float(v), 1) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
     def blocks(prefix: str) -> list[dict]:
-        return [vitals[k] for k in sorted(vitals or {}) if k.split("--")[0] == prefix and isinstance(vitals[k], dict)]
+        names = [k for k in sorted(vitals or {}) if k.split("--")[0] == prefix and isinstance(vitals[k], dict)]
+        return [vitals[k] for k in _leader_first(names, din)]
 
     fans: dict[str, dict[str, Any]] = {}
     for index, d in enumerate(blocks("TEPINV"), start=1):
@@ -273,7 +292,9 @@ def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
 def _missing_powerwalls(config: dict | None, vitals: dict) -> list[str] | None:
     """Serial numbers of the Powerwall 3s in the gateway's config whose
     readings are missing from vitals. None with fewer than two Powerwall 3s
-    (nothing to miss) or when the config can't be read.
+    (nothing to miss), when the config can't be read, or when vitals has no
+    Powerwall 3 at all (the vitals read failed: that says nothing about the
+    followers).
 
     On the signed (v1r) connection pypowerwall can't reach follower Powerwall
     3s through the leader; it reads them over the Wi-Fi fallback only."""
@@ -284,8 +305,26 @@ def _missing_powerwalls(config: dict | None, vitals: dict) -> list[str] | None:
     if len(blocks) < 2:
         return None
     seen = {key.split("--")[-1] for key in (vitals or {}) if key.startswith("TEPINV--")}
+    if not seen:
+        return None
     return [serial for b in blocks if (serial := str(b.get("vin") or "").split("--")[-1])
             and serial not in seen]
+
+
+def _pack_count(config: dict | None) -> int | None:
+    """Battery packs in the gateway's config: every Powerwall and each of its
+    expansion packs, also those missing from the readings (a follower
+    Powerwall 3 on the signed connection). None when the config can't be read
+    or lists none."""
+    if not isinstance(config, dict):
+        return None
+    count = 0
+    for block in config.get("battery_blocks") or []:
+        if not isinstance(block, dict):
+            continue
+        expansions = block.get("battery_expansions")
+        count += 1 + (sum(isinstance(e, dict) for e in expansions) if isinstance(expansions, list) else 0)
+    return count or None
 
 
 def _current_backup_event(events: dict[str, Any], now: float) -> dict[str, Any]:
@@ -491,6 +530,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return self._conn_mode
 
     @property
+    def follower_host(self) -> str:
+        """The address follower Powerwall 3s are read over on the signed
+        connection: the Wi-Fi fallback, or the gateway's own address when that
+        is the Powerwall's Wi-Fi. Empty when there is none."""
+        return self._wifi_host or (self._host if self._host == DEFAULT_HOST_WIFI else "")
+
+    @property
     def dispatch_supported(self) -> bool:
         return self._conn_mode == MODE_V1R
 
@@ -527,6 +573,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 kwargs["wifi_host"] = self._wifi_host
                 kwargs["failover"] = True
                 kwargs["wifi_v1r_fallback"] = True
+            elif self._host == DEFAULT_HOST_WIFI and self._gw_pwd:
+                # The signed connection already uses the Powerwall's own Wi-Fi.
+                # pypowerwall reads follower Powerwall 3s through wifi_host
+                # only, and that may be the same address: there is nothing to
+                # fail over to (its failover needs a different address).
+                kwargs["wifi_host"] = self._host
         else:
             kwargs["gw_pwd"] = self._gw_pwd
 
@@ -611,12 +663,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "battery_soe": soe_value,
             "battery_level": app_soc(soe_value),
             "grid_status": grid_status,
-            "grid_frequency": _extract_pinv_value(vitals, "PINV_Fout", "PINV_Fnet"),
-            "grid_voltage": _extract_pinv_value(vitals, "PINV_Vout", "PINV_VSplit1"),
+            "grid_frequency": _extract_pinv_value(vitals, "PINV_Fout", "PINV_Fnet", din=din),
+            "grid_voltage": _extract_pinv_value(vitals, "PINV_Vout", "PINV_VSplit1", din=din),
             "din": din,
             "firmware_version": version,
-            "strings": _extract_strings(vitals),
-            "fans": _extract_fans(vitals),
+            "strings": _extract_strings(vitals, din),
+            "fans": _extract_fans(vitals, din),
             "tedapi_mode": getattr(pw, "tedapi_mode", None),
             "backup_event": self._read_backup_event(pw),
             **self._fetch_extras(pw, vitals, aggregates),
@@ -887,11 +939,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return {
             "energy": energy,
             "missing_powerwalls": _missing_powerwalls(config, vitals),
+            "pack_count": _pack_count(config),
             "battery_full_kwh": round(full_wh / 1000, 2) if num(full_wh) and full_wh > 0 else None,
             "battery_remaining_kwh": round(remaining_wh / 1000, 2) if num(remaining_wh) else None,
             "packs": _extract_packs(vitals),
-            "inverter_ambient_temp": _extract_pinv_value(vitals, "PCH_AmbientTemp"),
-            "inverter_heatsink_temp": _extract_pinv_value(vitals, "PCH_heatsinkTemp"),
+            "inverter_ambient_temp": _extract_pinv_value(vitals, "PCH_AmbientTemp", din=self.din),
+            "inverter_heatsink_temp": _extract_pinv_value(vitals, "PCH_heatsinkTemp", din=self.din),
             "alerts": alerts,
             "backup_hours": round(backup_hours, 2) if num(backup_hours) else None,
             "gateway_started": gateway_started,
@@ -1482,9 +1535,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.hass, DOMAIN, issue_id,
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
-            translation_key="powerwall_follower_wifi" if signed and self._wifi_host
+            translation_key="powerwall_follower_wifi" if signed and self.follower_host
             else "powerwall_follower_hidden" if signed else "powerwall_follower_missing",
-            translation_placeholders={"count": str(len(missing)), "wifi_host": self._wifi_host or ""},
+            translation_placeholders={"count": str(len(missing)), "wifi_host": self.follower_host},
         )
 
     def _sync_firmware_issue(self, works: bool) -> None:

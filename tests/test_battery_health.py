@@ -95,7 +95,18 @@ def test_health_helpers() -> None:
     # Packs without their own capacity: the system total, as before.
     assert _health({"battery_full_kwh": 27.0, "packs": {"a": {}, "b": {"full_kwh": None}}}) == 100.0
     attrs = _health_attrs(data)
-    assert attrs["warranty_kwh"] == 18.9 and attrs["packs"] == 2
+    assert attrs["warranty_kwh"] == 18.9 and attrs["packs"] == 2 and attrs["packs_read"] == 2
+    # The gateway's config lists a third pack (a follower Powerwall 3) that
+    # isn't in the readings: the system total over all three packs.
+    hidden = {**data, "battery_full_kwh": 43.2, "pack_count": 3}
+    assert _health(hidden) == 106.7  # 43.2 of 3 × 13.5 kWh
+    attrs = _health_attrs(hidden)
+    assert attrs["packs"] == 3 and attrs["packs_read"] == 2 and attrs["warranty_kwh"] == 28.35
+    assert _health({**hidden, "battery_full_kwh": None}) == 105.2  # no total: the packs read
+    # The config lists no more packs than are read (or can't be read): as before.
+    for listed in (2, 1, None, True):
+        assert _health({**data, "battery_full_kwh": 43.2, "pack_count": listed}) == 105.2
+    attrs = _health_attrs(data)
     assert attrs["lifetime_discharged_kwh"] == 100.0
     assert _health_attrs({})["lifetime_discharged_kwh"] is None
     assert _pct(None, 10) is None and _pct(5, 0) is None
