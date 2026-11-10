@@ -88,7 +88,12 @@ def test_health_helpers() -> None:
     data = {"battery_full_kwh": 28.4, "packs": {
         "a": {"full_kwh": 14.0, "discharged_kwh": 100.0},
         "b": {"full_kwh": 14.4}}}
-    assert _health(data) == 105.2  # 28.4 of 2 × 13.5 kWh
+    assert _health(data) == 105.2  # 28.4 of 2 × 13.5 kWh, from the packs
+    # The system total also counts a follower Powerwall 3 the integration
+    # can't see: health still comes from the visible packs (was ~160 %).
+    assert _health({**data, "battery_full_kwh": 43.2}) == 105.2
+    # Packs without their own capacity: the system total, as before.
+    assert _health({"battery_full_kwh": 27.0, "packs": {"a": {}, "b": {"full_kwh": None}}}) == 100.0
     attrs = _health_attrs(data)
     assert attrs["warranty_kwh"] == 18.9 and attrs["packs"] == 2
     assert attrs["lifetime_discharged_kwh"] == 100.0

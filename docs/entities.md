@@ -52,7 +52,7 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 | Battery energy remaining | `sensor.powerwall_tedapi_battery_energy_remaining` | kWh | |
 | Battery full capacity | `sensor.powerwall_tedapi_battery_full_capacity` | kWh | Attributes: each pack's `serial` and `full_kwh`. |
 | Backup time remaining | `sensor.powerwall_tedapi_backup_time_remaining` | h | The gateway's estimate at the current load. |
-| Battery health 🩺 | `sensor.powerwall_tedapi_battery_health` | % | Full capacity ÷ (13.5 kWh × packs). A new battery reads above 100 %. Attributes: `nominal_kwh_per_pack`, `packs`, `warranty_kwh` (70 % of 13.5 kWh per pack), `lifetime_discharged_kwh`. |
+| Battery health 🩺 | `sensor.powerwall_tedapi_battery_health` | % | The packs' full capacity ÷ (13.5 kWh × packs), over the packs the integration reads. A new battery reads above 100 %. Attributes: `nominal_kwh_per_pack`, `packs`, `warranty_kwh` (70 % of 13.5 kWh per pack), `lifetime_discharged_kwh`. |
 
 ### Per battery pack 🔍
 

@@ -27,7 +27,7 @@
         "data_description": {
           "host": "Het adres van de gateway op je thuisnetwerk, bijvoorbeeld `192.168.1.50`. Je router toont het als `teslapw_…`.",
           "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig.",
-          "wifi_host": "De wifi-hotspot van de Powerwall, gebruikt via dezelfde ondertekende verbinding als het thuisnetwerkadres niet meer antwoordt. Leeg laten als Home Assistant de hotspot niet kan bereiken."
+          "wifi_host": "De wifi-hotspot van de Powerwall, gebruikt via dezelfde ondertekende verbinding als het thuisnetwerkadres niet meer antwoordt. Leeg laten als Home Assistant de hotspot niet kan bereiken. Ook gebruikt om volg-Powerwall 3's te lezen, die de ondertekende verbinding niet via het thuisnetwerk bereikt."
         }
       },
       "access": {
@@ -125,7 +125,7 @@
           "host": "Het adres van de gateway op je thuisnetwerk, bijvoorbeeld `192.168.1.50`. Je router toont het als `teslapw_…`.",
           "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig.",
           "rsa_key_path": "Volledig pad naar het bestand met de private sleutel op de Home Assistant-host, bijvoorbeeld `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laat leeg om de verbinding met wifi-wachtwoord te gebruiken (alleen lezen).",
-          "wifi_host": "Het adres van de wifi-hotspot van de Powerwall (meestal `192.168.91.1`), gebruikt als het thuisnetwerkadres niet meer antwoordt. Laat leeg als Home Assistant de hotspot niet kan bereiken."
+          "wifi_host": "Het adres van de wifi-hotspot van de Powerwall (meestal `192.168.91.1`), gebruikt als het thuisnetwerkadres niet meer antwoordt. Laat leeg als Home Assistant de hotspot niet kan bereiken. Ook gebruikt om volg-Powerwall 3's te lezen, die de ondertekende verbinding niet via het thuisnetwerk bereikt."
         }
       },
       "new_key": {
@@ -266,7 +266,8 @@
             "data_description": {
               "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensor en acties om te lezen/instellen). Alleen cloud.",
               "diagnostics_gateway_config": "De configuratie van de gateway toevoegen aan diagnostiekdownloads, zonder serienummers, locatie, namen en inloggegevens. Handig voor bugmeldingen."
-            }
+            },
+            "description": "De optie **Tesla-tarief** verschijnt hier zodra een cloudback-up is ingesteld: kies in het menu eerst **Een Tesla-account koppelen** of **Aanmelden bij Tesla Fleet of Teslemetry**."
           }
         }
       },
@@ -1036,6 +1037,18 @@
     "tariff_write_mismatch": {
       "title": "Tesla heeft een ander tarief opgeslagen",
       "description": "Het tarief is via {backend} verzonden, maar de prijzen die Tesla teruggeeft wijken af. Controleer het tarief in de Tesla-app; deze melding verdwijnt zodra Tesla de verzonden prijzen toont."
+    },
+    "powerwall_follower_hidden": {
+      "title": "Er ontbreekt een Powerwall 3 in de metingen",
+      "description": "{count} Powerwall 3 van deze gateway staan niet in de metingen. Via de ondertekende verbinding zijn volg-Powerwalls niet bereikbaar over het thuisnetwerk: ze worden alleen via de eigen wifi van de Powerwall gelezen.\n\nAls Home Assistant die wifi bereikt, stel **Wifi-terugvaladres** in op `192.168.91.1` (integratiemenu → **Opnieuw configureren**). Totalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken. Dit verdwijnt vanzelf zodra ze verschijnen."
+    },
+    "powerwall_follower_wifi": {
+      "title": "Er ontbreekt een Powerwall 3 in de metingen",
+      "description": "{count} Powerwall 3 van deze gateway staan niet in de metingen, hoewel het wifi-terugvaladres (`{wifi_host}`) is ingesteld. Via de ondertekende verbinding worden volg-Powerwalls alleen via die wifi gelezen: controleer of Home Assistant die nog bereikt.\n\nTotalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken. Dit verdwijnt vanzelf zodra ze verschijnen."
+    },
+    "powerwall_follower_missing": {
+      "title": "Er ontbreekt een Powerwall 3 in de metingen",
+      "description": "{count} Powerwall 3 uit de gatewayconfiguratie staan niet in de metingen. Totalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken.\n\nDit verdwijnt vanzelf zodra ze verschijnen. Blijft het, download dan de diagnostiek en open een issue."
     }
   },
   "selector": {

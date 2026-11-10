@@ -229,6 +229,8 @@ You only need this for your **own** Tesla developer app: for the [Tesla Fleet si
 
 Add the integration once per **gateway**. Expansion packs and the batteries behind one gateway belong to that gateway's entry and show up by themselves.
 
+**Several Powerwall 3s on one gateway, signed connection:** the follower Powerwalls have no address of their own; they're reached through the leader. Over the home network the signed connection reaches the leader only, so the followers' battery packs, temperatures and fans are read over the **Wi-Fi fallback address** (`192.168.91.1`, **⋮ → Reconfigure**). That needs Home Assistant to reach the Powerwall's own Wi-Fi, for example with a USB Wi-Fi adapter. Without it, totals such as power, energy and **Battery full capacity** still count every Powerwall, but the followers' packs are missing and a repair says so. The Wi-Fi password connection reads every Powerwall.
+
 - The second entry's entity IDs end in `_2` (both devices are called *Powerwall TEDAPI*). Rename the device to tell them apart.
 - Actions need `config_entry_id` when more than one Powerwall is set up. In the action editor, pick the Powerwall from the list.
 - Each entry keeps its own energy site for the cloud backup, so several Powerwalls on one Tesla account work.

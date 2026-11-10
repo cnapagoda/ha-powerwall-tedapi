@@ -123,6 +123,8 @@ ENERGY_COUNTERS: dict[str, tuple[str, str]] = {
 }
 
 # Battery pack part numbers -> friendly names (TEPOD vitals blocks).
+# Polls a follower Powerwall 3 may be missing before the repair is raised.
+FOLLOWER_MISSING_POLLS = 10
 PACK_NAMES = {"1707000": "Powerwall 3", "1807000": "Expansion Pack"}
 # Part numbers that name the system's model, from the gateway's DIN or a
 # battery pack (a Powerwall 3 is its own gateway). Anything else is shown as
@@ -248,6 +250,24 @@ def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
             "alerts": list(d.get("alerts") or []),
         }
     return packs
+
+
+def _missing_powerwalls(config: dict | None, vitals: dict) -> list[str] | None:
+    """Serial numbers of the Powerwall 3s in the gateway's config whose
+    readings are missing from vitals. None with fewer than two Powerwall 3s
+    (nothing to miss) or when the config can't be read.
+
+    On the signed (v1r) connection pypowerwall can't reach follower Powerwall
+    3s through the leader; it reads them over the Wi-Fi fallback only."""
+    if not isinstance(config, dict):
+        return None
+    blocks = [b for b in config.get("battery_blocks") or []
+              if isinstance(b, dict) and "Powerwall3" in str(b.get("type") or "")]
+    if len(blocks) < 2:
+        return None
+    seen = {key.split("--")[-1] for key in (vitals or {}) if key.startswith("TEPINV--")}
+    return [serial for b in blocks if (serial := str(b.get("vin") or "").split("--")[-1])
+            and serial not in seen]
 
 
 def _current_backup_event(events: dict[str, Any], now: float) -> dict[str, Any]:
@@ -385,6 +405,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # True while an off-grid run started here is on (set up in __init__).
         self.intentional_off_grid: Callable[[], bool] = lambda: False
         self._write_issues: set[str] = set()
+        self._follower_missing = 0
         # Consecutive polls where the gateway refused the password or the key.
         self._password_refused = 0
         self._key_refused = 0
@@ -830,8 +851,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         def num(v, minimum=0):
             return isinstance(v, (int, float)) and not isinstance(v, bool) and v >= minimum
 
+        config = None
+        try:
+            config = pw.client.tedapi.get_config()
+        except Exception:  # noqa: BLE001
+            pass
+
         return {
             "energy": energy,
+            "missing_powerwalls": _missing_powerwalls(config, vitals),
             "battery_full_kwh": round(full_wh / 1000, 2) if num(full_wh) and full_wh > 0 else None,
             "battery_remaining_kwh": round(remaining_wh / 1000, 2) if num(remaining_wh) else None,
             "packs": _extract_packs(vitals),
@@ -1288,6 +1316,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.firmware_version = data["firmware_version"]
         if data.get("local_ok"):
             self.model = detect_model(self.din, data.get("packs"))
+            self._sync_follower_issue(data.get("missing_powerwalls"))
         due = [backend for backend in self.backends if self._cloud_check_due(backend)]
         if due:
             for backend in due:
@@ -1395,6 +1424,35 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if self.firmware.note_signed(works):
                     self._sync_firmware_issue(works)
         data["firmware"] = self.firmware.attributes()
+
+    def _sync_follower_issue(self, missing: list[str] | None) -> None:
+        """A repair while a follower Powerwall 3 stays out of the readings for
+        FOLLOWER_MISSING_POLLS polls (a Wi-Fi hiccup skips it once or twice)."""
+        issue_id = f"powerwall_follower_hidden_{self.config_entry.entry_id}"
+        if not missing:
+            self._follower_missing = 0
+            if issue_id in self._write_issues:
+                _LOGGER.info("All Powerwall 3s are in the readings again")
+                self._write_issues.discard(issue_id)
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        self._follower_missing += 1
+        if self._follower_missing < FOLLOWER_MISSING_POLLS or issue_id in self._write_issues:
+            return
+        signed = self._conn_mode == MODE_V1R
+        _LOGGER.warning("%d Powerwall 3(s) missing from the readings (%s)%s", len(missing),
+                        ", ".join(missing),
+                        "; on the signed connection followers are read over the Wi-Fi fallback only"
+                        if signed else "")
+        self._write_issues.add(issue_id)
+        ir.async_create_issue(
+            self.hass, DOMAIN, issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="powerwall_follower_wifi" if signed and self._wifi_host
+            else "powerwall_follower_hidden" if signed else "powerwall_follower_missing",
+            translation_placeholders={"count": str(len(missing)), "wifi_host": self._wifi_host or ""},
+        )
 
     def _sync_firmware_issue(self, works: bool) -> None:
         issue_id = f"firmware_signed_access_{self.config_entry.entry_id}"

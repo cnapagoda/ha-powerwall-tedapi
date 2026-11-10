@@ -27,7 +27,7 @@
         "data_description": {
           "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
           "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
-          "wifi_host": "Hotspot Wi-Fi Powerwall, używany przez to samo podpisane połączenie, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu."
+          "wifi_host": "Hotspot Wi-Fi Powerwall, używany przez to samo podpisane połączenie, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu. Służy też do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową."
         }
       },
       "access": {
@@ -125,7 +125,7 @@
           "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
           "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
           "rsa_key_path": "Pełna ścieżka do pliku klucza prywatnego na hoście Home Assistant, na przykład `/config/tesla_tedapi/tedapi_rsa_private.pem`. Zostaw puste, aby użyć połączenia hasłem Wi-Fi (tylko odczyt).",
-          "wifi_host": "Adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`), używany, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu."
+          "wifi_host": "Adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`), używany, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu. Służy też do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową."
         }
       },
       "new_key": {
@@ -266,7 +266,8 @@
             "data_description": {
               "tesla_tariff": "Odczytuj z kopii w chmurze taryfę, której Tesla używa do sterowania czasowego (czujnik i akcje odczytu/ustawienia). Tylko chmura.",
               "diagnostics_gateway_config": "Dodaj konfigurację bramy do pobieranej diagnostyki, bez numerów seryjnych, lokalizacji, nazw i danych logowania. Przydatne przy zgłaszaniu błędów."
-            }
+            },
+            "description": "Opcja **Taryfa Tesla** pojawia się tutaj po skonfigurowaniu kopii w chmurze: najpierw wybierz w menu **Połącz konto Tesla** lub **Zaloguj się do Tesla Fleet lub Teslemetry**."
           }
         }
       },
@@ -1036,6 +1037,18 @@
     "tariff_write_mismatch": {
       "title": "Tesla zapisała inną taryfę",
       "description": "Taryfę wysłano przez {backend}, ale ceny zwracane przez Teslę są inne. Sprawdź taryfę w aplikacji Tesla; to powiadomienie zniknie, gdy Tesla pokaże wysłane ceny."
+    },
+    "powerwall_follower_hidden": {
+      "title": "Brak jednego Powerwall 3 w odczytach",
+      "description": "{count} Powerwall 3 tej bramy nie pojawia się w odczytach. Przy połączeniu podpisanym Powerwalle podrzędne są nieosiągalne przez sieć domową: odczytuje się je tylko przez własne Wi-Fi Powerwalla.\n\nJeśli Home Assistant ma dostęp do tego Wi-Fi, ustaw **Zapasowy adres Wi-Fi** na `192.168.91.1` (menu integracji → **Skonfiguruj ponownie**). Sumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek. Zgłoszenie zniknie samo, gdy się pojawią."
+    },
+    "powerwall_follower_wifi": {
+      "title": "Brak jednego Powerwall 3 w odczytach",
+      "description": "{count} Powerwall 3 tej bramy nie pojawia się w odczytach, choć zapasowy adres Wi-Fi (`{wifi_host}`) jest ustawiony. Przy połączeniu podpisanym Powerwalle podrzędne odczytuje się tylko przez to Wi-Fi: sprawdź, czy Home Assistant nadal ma do niego dostęp.\n\nSumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek. Zgłoszenie zniknie samo, gdy się pojawią."
+    },
+    "powerwall_follower_missing": {
+      "title": "Brak jednego Powerwall 3 w odczytach",
+      "description": "{count} Powerwall 3 z konfiguracji bramy nie pojawia się w odczytach. Sumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek.\n\nZgłoszenie zniknie samo, gdy się pojawią. Jeśli nie zniknie, pobierz diagnostykę i zgłoś problem."
     }
   },
   "selector": {

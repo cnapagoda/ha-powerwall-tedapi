@@ -80,10 +80,17 @@ def _pct(part: float | None, whole: float | None) -> float | None:
 
 def _health(d: dict[str, Any]) -> float | None:
     """Full energy against the rated 13.5 kWh per pack. A new pack reads
-    above 100 %: Tesla builds in more capacity than it rates."""
-    packs = d.get("packs") or {}
+    above 100 %: Tesla builds in more capacity than it rates.
+
+    Uses the packs' own full energy where they report it: the system total
+    also counts packs the integration can't see (a follower Powerwall 3 on
+    the signed connection), which made health read about 160 %."""
+    packs = list((d.get("packs") or {}).values())
     if not packs:
         return None
+    full = [p["full_kwh"] for p in packs if isinstance(p.get("full_kwh"), (int, float))]
+    if full:
+        return _pct(sum(full), NOMINAL_PACK_KWH * len(full))
     return _pct(d.get("battery_full_kwh"), NOMINAL_PACK_KWH * len(packs))
 
 

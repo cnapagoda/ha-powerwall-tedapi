@@ -2,9 +2,11 @@
 
 ## 2.6.4
 
-Docs only; no change to the integration.
+- **Battery health with several Powerwall 3s** no longer reads about 160 %. It divided the whole system's capacity by only the packs the integration could read; on the signed connection that leaves out follower Powerwall 3s. It now uses the capacity of the packs it reads.
+- **New repair: *A Powerwall 3 is missing from the readings*.** With several Powerwall 3s on the signed connection, the followers are reached through the leader and read over the Powerwall's own Wi-Fi only. When one stays missing (10 polls in a row), the repair says how to add the **Wi-Fi fallback address**. It clears by itself once the followers appear. Diagnostics show how many are missing.
+- **Tesla tariff is easier to find:** the **Advanced** section of **Settings** says the option appears once a cloud backup is set up, and the Tesla tariff page gives the steps. The **Wi-Fi fallback address** help now says it's also used for follower Powerwall 3s.
 
-- **Which connection and which sign-in?** A new section at the top of Setup explains the two connections, **signed (v1r)** and **Wi-Fi password** (both use the gateway's local interface, TEDAPI), and the three sign-ins for the signed one: **Tesla account**, **Teslemetry** or **Tesla Fleet**. Pick one; it's needed once to register the key, then only as the optional cloud backup. The Wi-Fi password connection needs no sign-in. The README, Quick start and FAQ now say the same.
+- Docs: **Which connection and which sign-in?** A new section at the top of Setup explains the two connections, **signed (v1r)** and **Wi-Fi password** (both use the gateway's local interface, TEDAPI), and the three sign-ins for the signed one: **Tesla account**, **Teslemetry** or **Tesla Fleet**. Pick one; it's needed once to register the key, then only as the optional cloud backup. The Wi-Fi password connection needs no sign-in. The README, Quick start and FAQ now say the same.
 - **Compatibility:** Powerwall 3 firmware 26.34.2 and 26.34.3 added as working.
 - **Entities:** with several Powerwall 3s, the next inverters' fans are *Fan 2A*, *Fan 2B* and so on. **Firmware version**'s `previous_version` and `updated_at` stay empty until a firmware update has been seen.
 

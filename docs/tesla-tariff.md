@@ -4,8 +4,8 @@ In **Time-Based Control** (`autonomous`), the Powerwall decides when to charge, 
 
 ## Turn it on
 
-1. Set up a [cloud backup](cloud-backup.md) (Owner API, or Tesla Fleet or Teslemetry). The tariff lives only in Tesla's cloud.
-2. **Configure → Settings → Tesla tariff (cloud)**.
+1. Set up a [cloud backup](cloud-backup.md): **Configure → Link a Tesla account** (Owner API) or **Configure → Sign in to Tesla Fleet or Teslemetry**. The tariff lives only in Tesla's cloud, so the option isn't shown before this.
+2. **Configure → Settings**, open the **Advanced** section (collapsed) and turn on **Tesla tariff (cloud)**.
 
 You then get:
 

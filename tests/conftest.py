@@ -57,6 +57,8 @@ class FakePowerwall:
     storm_capable = True
     backup_events: dict | None = None
     extra_packs: dict[str, dict] = {}
+    # The gateway config's battery_blocks (several Powerwall 3s).
+    battery_blocks: list[dict] = []
     # on_grid_solar_curtailment_enabled: kept in site_info only while on.
     curtailment = False
     config_writes_ok = True
@@ -111,7 +113,8 @@ class FakePowerwall:
             site_info["disallow_charge_from_grid_with_solar_installed"] = FakePowerwall.grid_charging_disallow
         if FakePowerwall.curtailment:
             site_info["on_grid_solar_curtailment_enabled"] = True
-        return {"site_info": site_info, "default_real_mode": "self_consumption"}
+        return {"site_info": site_info, "default_real_mode": "self_consumption",
+                "battery_blocks": FakePowerwall.battery_blocks}
 
     def _write_config(self, updates):
         """pypowerwall's signed read-modify-write of config.json."""
@@ -319,6 +322,7 @@ def fake_powerwall():
     FakePowerwall.storm_capable = True
     FakePowerwall.backup_events = {"manual_backup": None, "backup_events": []}
     FakePowerwall.extra_packs = {}
+    FakePowerwall.battery_blocks = []
     FakePowerwall.curtailment = False
     FakePowerwall.config_writes_ok = True
     FakePowerwall.grid = "UP"

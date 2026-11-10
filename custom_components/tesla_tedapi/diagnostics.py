@@ -58,6 +58,9 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: TedapiC
     data = dict(coordinator.data or {})
     # Pack serials are dictionary keys; replace them with an index.
     data["packs"] = list((data.get("packs") or {}).values())
+    # Serials of Powerwall 3s missing from the readings: only how many.
+    if isinstance(data.get("missing_powerwalls"), list):
+        data["missing_powerwalls"] = len(data["missing_powerwalls"])
     authpath = entry.data.get(CONF_OWNERS_AUTHPATH) or ""
     token = (await hass.async_add_executor_job(
         tesla_cloud.redact_token_file, os.path.join(authpath, AUTH_FILE))) if authpath else None
