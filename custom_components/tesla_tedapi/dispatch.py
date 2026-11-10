@@ -195,6 +195,10 @@ class DispatchSession:
         _LOGGER.warning("Battery dispatch started: %s W until %s. A dispatch overrides the backup "
                         "reserve and export setting and may affect the Powerwall warranty; use at "
                         "your own risk", power_watts, state.ends)
+        if power_watts < 0 and (self.coordinator.data or {}).get("grid_charging") is False:
+            _LOGGER.warning("Battery dispatch is charging with Grid charging off: the Powerwall "
+                            "charges from solar only, not from the grid. Turn on Grid charging "
+                            "to charge from the grid")
         self._notify()
         self.hass.async_create_task(self.coordinator.async_request_refresh())
         return {**self.as_dict(), "response": result}

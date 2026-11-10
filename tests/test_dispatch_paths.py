@@ -221,3 +221,24 @@ async def test_one_warning_per_session(hass: HomeAssistant, fake_powerwall, capl
     assert sum("warranty" in t for t in texts) == 1
     assert not any(t.startswith("Battery dispatch accepted") for t in texts)
     assert "Something else from pypowerwall" in texts
+
+
+async def test_charge_with_grid_charging_off_warns(hass: HomeAssistant, fake_powerwall, caplog) -> None:
+    """A charge draws from the grid only while Grid charging is on: starting
+    one with it off logs a warning; with it on, or for a discharge, it doesn't."""
+    import logging  # noqa: PLC0415
+
+    entry = await _setup(hass, V1R)
+    coordinator = entry.runtime_data.coordinator
+    warning = "charging with Grid charging off"
+    assert coordinator.data["grid_charging"] is False
+    with caplog.at_level(logging.WARNING):
+        await _dispatch(hass, watts=-1000)
+    assert sum(warning in r.getMessage() for r in caplog.records) == 1
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        await _dispatch(hass, watts=1000)
+        coordinator.data["grid_charging"] = True
+        await _dispatch(hass, watts=-1000)
+    assert not any(warning in r.getMessage() for r in caplog.records)
