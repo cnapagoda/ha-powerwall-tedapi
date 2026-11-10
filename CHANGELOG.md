@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.5
+
+- **Power sensors no longer show a false 0 W.** When the gateway's meters can't be read, pypowerwall reports 0 W for solar, battery, grid and home. Those readings were recorded as real. They now show as *unknown* until the meters answer again; a reading the meters did give is kept.
+- **Battery dispatch: stopping or restarting Home Assistant hands the battery back at once** and fires `tesla_tedapi_dispatch_ended` (reason `unloaded`). Before, the Powerwall kept charging or discharging until the last command expired (up to 5 minutes) and no event was fired.
+- A setting change, dispatch or grid command that runs while a poll fails no longer loses the gateway connection half-way (and falls back to the cloud, or fails, for no reason).
+
 ## 2.6.4
 
 - **Battery health with several Powerwall 3s** no longer reads about 160 %. It divided the whole system's capacity by only the packs the integration could read; on the signed connection that leaves out follower Powerwall 3s. It now uses the capacity of the packs it reads.

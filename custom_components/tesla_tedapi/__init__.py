@@ -6,8 +6,8 @@ import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
+from homeassistant.core import Event, HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
@@ -298,6 +298,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         coordinator.intentional_off_grid = lambda: off_grid.intentional
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+
+    async def _async_stop(_event: Event) -> None:
+        # Home Assistant doesn't unload entries when it stops or restarts:
+        # end a running dispatch here, so the battery is handed back now (not
+        # when the last command expires) and the ended event still fires.
+        if (dispatch := entry.runtime_data.dispatch) is not None:
+            await dispatch.async_shutdown()
+
+    # async_listen, not async_listen_once: removing a once-listener that has
+    # already fired (unload after the stop) logs an error.
+    entry.async_on_unload(hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, _async_stop))
     _LOGGER.debug("Powerwall %s loaded (firmware %s, %s, settings %s)",
                   coordinator.din, coordinator.firmware_version, coordinator.connection_mode,
                   "enabled" if coordinator.control_enabled else "read-only")

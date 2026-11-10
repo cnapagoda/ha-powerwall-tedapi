@@ -6,6 +6,7 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from homeassistant.config_entries import ConfigEntryState
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import device_registry as dr
@@ -92,6 +93,41 @@ async def test_failed_resume_while_unloading(hass: HomeAssistant, fake_powerwall
     with patch.object(local(fake_powerwall), "resume_battery_operation", return_value=None):
         assert await hass.config_entries.async_unload(entry.entry_id)
     assert ended[-1].data["reason"] == "unloaded"
+
+
+async def test_home_assistant_stopping_hands_the_battery_back(hass: HomeAssistant, fake_powerwall) -> None:
+    """Entries aren't unloaded when Home Assistant stops: the dispatch is
+    ended there, with a resume and the ended event."""
+    entry = await _setup(hass, V1R)
+    ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)
+    await _dispatch(hass)
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
+    await hass.async_block_till_done()
+    assert ended[-1].data["reason"] == "unloaded"
+    assert local(fake_powerwall).resumes == 1
+    assert entry.runtime_data.dispatch.state is None
+
+
+async def test_home_assistant_stopping_without_a_dispatch(hass: HomeAssistant, fake_powerwall) -> None:
+    await _setup(hass, V1R)
+    ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
+    await hass.async_block_till_done()
+    assert not ended
+    assert local(fake_powerwall).resumes == 0
+
+
+async def test_unload_after_home_assistant_stopped(hass: HomeAssistant, fake_powerwall, caplog) -> None:
+    """The stop listener is removed on unload even after it has run: no
+    'Unable to remove unknown job listener' error."""
+    entry = await _setup(hass, V1R)
+    await _dispatch(hass)
+    hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert "Unable to remove unknown job listener" not in caplog.text
+    assert local(fake_powerwall).resumes == 1
 
 
 async def test_resume_without_session(hass: HomeAssistant, fake_powerwall) -> None:
@@ -239,6 +275,9 @@ async def test_charge_with_grid_charging_off_warns(hass: HomeAssistant, fake_pow
     caplog.clear()
     with caplog.at_level(logging.WARNING):
         await _dispatch(hass, watts=1000)
-        coordinator.data["grid_charging"] = True
+        FakePowerwall.grid_charging_disallow = False
+        await _refresh(hass, entry)
+        await hass.async_block_till_done(wait_background_tasks=True)
+        assert coordinator.data["grid_charging"] is True
         await _dispatch(hass, watts=-1000)
     assert not any(warning in r.getMessage() for r in caplog.records)

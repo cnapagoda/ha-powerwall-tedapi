@@ -196,9 +196,10 @@ class FakePowerwall:
         return DIN
 
     def poll(self, path):
-        return {"site": {"energy_imported": 1_000_000, "energy_exported": 2_000_000},
-                "battery": {"energy_imported": 500_000, "energy_exported": 450_000},
-                "solar": {"energy_exported": 3_000_000}, "load": {"energy_imported": 1_500_000}}
+        return {"site": {"instant_power": 100.0, "energy_imported": 1_000_000, "energy_exported": 2_000_000},
+                "battery": {"instant_power": -500.0, "energy_imported": 500_000, "energy_exported": 450_000},
+                "solar": {"instant_power": 3000.0, "energy_exported": 3_000_000},
+                "load": {"instant_power": 2600.0, "energy_imported": 1_500_000}}
 
     def system_status(self):
         return {"nominal_full_pack_energy": 13900, "nominal_energy_remaining": 7000}

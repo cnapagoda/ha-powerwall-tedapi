@@ -161,6 +161,24 @@ def _extract_pinv_value(vitals: dict, *keys: str) -> float | None:
     return None
 
 
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _instant_power(aggregates: dict, section: str) -> float | None:
+    """One power reading (W) from the gateway's meters, or None when they
+    didn't report it.
+
+    pypowerwall's power() starts every reading at 0.0 and keeps that when the
+    meters payload is missing or incomplete, so a failed read looks like a
+    real 0 W. Reading the one meters payload directly also means the power
+    and the energy counters always come from the same read."""
+    measured = aggregates.get(section)
+    if not isinstance(measured, dict) or not _is_number(measured.get("instant_power")):
+        return None
+    return round(float(measured["instant_power"]), 1)
+
+
 STRING_LETTERS = "ABCDEF"
 
 
@@ -550,7 +568,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _fetch_all(self) -> dict[str, Any]:
         pw = self._pw
-        power = pw.power() or {}
+        # power() fails when the gateway can't be reached (the local read then
+        # fails as before); its values aren't used, see _instant_power.
+        pw.power()
+        aggregates = self._read_aggregates(pw)
         soe = pw.level()
         grid_status = pw.grid_status()
 
@@ -583,10 +604,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         soe_value = round(soe, 1) if isinstance(soe, (int, float)) else None
 
         return {
-            "solar_power": round(power.get("solar", 0.0), 1),
-            "battery_power": round(power.get("battery", 0.0), 1),
-            "grid_power": round(power.get("site", 0.0), 1),
-            "home_power": round(power.get("load", 0.0), 1),
+            "solar_power": _instant_power(aggregates, "solar"),
+            "battery_power": _instant_power(aggregates, "battery"),
+            "grid_power": _instant_power(aggregates, "site"),
+            "home_power": _instant_power(aggregates, "load"),
             "battery_soe": soe_value,
             "battery_level": app_soc(soe_value),
             "grid_status": grid_status,
@@ -598,7 +619,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "fans": _extract_fans(vitals),
             "tedapi_mode": getattr(pw, "tedapi_mode", None),
             "backup_event": self._read_backup_event(pw),
-            **self._fetch_extras(pw, vitals),
+            **self._fetch_extras(pw, vitals, aggregates),
             "local_ok": True,
             **{key: control.get(key) for key in CONTROL_KEYS},
             "control_source": control.get("source"),
@@ -693,9 +714,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def read_gateway_config(self) -> dict[str, Any]:
         """The gateway's whole configuration, for diagnostics (blocking)."""
-        if self._pw is None:
+        pw = self._pw
+        if pw is None:
             raise HomeAssistantError("not connected to the gateway")
-        return self._pw.client.tedapi.get_config() or {}
+        return pw.client.tedapi.get_config() or {}
 
     @staticmethod
     def _read_site_info(pw) -> dict[str, Any] | None:
@@ -806,14 +828,19 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "control_backend": control.get("backend"),
         }
 
-    def _fetch_extras(self, pw, vitals: dict) -> dict[str, Any]:
+    @staticmethod
+    def _read_aggregates(pw) -> dict[str, Any]:
+        """The gateway's meters (power and lifetime energy per section), or
+        {} when they can't be read."""
+        try:
+            aggregates = pw.poll("/api/meters/aggregates")
+        except Exception:  # noqa: BLE001
+            return {}
+        return aggregates if isinstance(aggregates, dict) else {}
+
+    def _fetch_extras(self, pw, vitals: dict, aggregates: dict[str, Any]) -> dict[str, Any]:
         """Lifetime energy, capacity, temperatures, alerts and backup time.
         Each read is independent so one failing never blocks the rest."""
-        aggregates: dict = {}
-        try:
-            aggregates = pw.poll("/api/meters/aggregates") or {}
-        except Exception:  # noqa: BLE001
-            pass
         energy: dict[str, float | None] = {}
         for key, (section, fld) in ENERGY_COUNTERS.items():
             value = (aggregates.get(section) or {}).get(fld)
@@ -891,9 +918,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # The Wi-Fi password session cannot change settings; the gateway accepts
         # the call and ignores it, so it is not tried.
         if local and self._conn_mode == MODE_V1R:
-            if self._pw is not None:
+            # One reference for the whole call: a poll that fails meanwhile
+            # clears self._pw on the event loop.
+            pw = self._pw
+            if pw is not None:
                 try:
-                    if self._write_ok(write(self._pw)):
+                    if self._write_ok(write(pw)):
                         _LOGGER.info("%s (local)", what)
                         return None
                     _LOGGER.warning("%s: local write failed", what)
@@ -958,10 +988,11 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Experimental: Tesla's on-grid solar curtailment flag in the gateway's
         config, over the signed connection only (no cloud equivalent). What the
         Powerwall does with it is not documented."""
-        if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
+        pw = self._pw
+        if pw is None or getattr(pw, "tedapi_mode", None) != "v1r":
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="curtailment_needs_v1r")
         try:
-            ok = bool(self._pw.client.tedapi._write_config({f"site_info.{SOLAR_CURTAILMENT_KEY}": bool(enabled)}))  # noqa: SLF001
+            ok = bool(pw.client.tedapi._write_config({f"site_info.{SOLAR_CURTAILMENT_KEY}": bool(enabled)}))  # noqa: SLF001
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning("Solar curtailment write error: %s", err)
             ok = False
@@ -1158,12 +1189,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _max_backup(self, minutes: int | None) -> None:
         """Start (minutes) or cancel (None) a manual backup event over signed
         v1r: the Powerwall charges to full and holds it, as in Storm Watch."""
-        if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
+        pw = self._pw
+        if pw is None or getattr(pw, "tedapi_mode", None) != "v1r":
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="max_backup_needs_v1r")
-        if minutes is None:
-            ok = self._pw.cancel_max_backup()
-        else:
-            ok = self._pw.schedule_max_backup(duration_seconds=int(minutes) * 60)
+        ok = pw.cancel_max_backup() if minutes is None else pw.schedule_max_backup(duration_seconds=int(minutes) * 60)
         if not ok:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="backup_event_refused")
         _LOGGER.info("Max backup %s", f"started for {minutes} min" if minutes else "cancelled")
@@ -1172,9 +1201,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _send_island(self, off_grid: bool) -> dict:
         """Open (off_grid) or close the grid contactor over signed v1r, with
         Tesla's setIslandMode command. There is no cloud equivalent."""
-        if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
+        pw = self._pw
+        if pw is None or getattr(pw, "tedapi_mode", None) != "v1r":
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="off_grid_needs_v1r")
-        result = self._pw.go_off_grid(confirm=True) if off_grid else self._pw.reconnect_grid()
+        result = pw.go_off_grid(confirm=True) if off_grid else pw.reconnect_grid()
         if not result:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="contactor_refused")
         _LOGGER.warning("%s requested (gateway result %s)",
@@ -1183,9 +1213,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _read_grid_status(self) -> str | None:
         """UP, DOWN or SYNCING, read straight from the gateway."""
-        if self._pw is None:
+        pw = self._pw
+        if pw is None:
             return None
-        return self._pw.grid_status()
+        return pw.grid_status()
 
     async def async_send_island(self, off_grid: bool) -> dict:
         return await self.hass.async_add_executor_job(self._send_island, off_grid)
@@ -1211,11 +1242,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _send_dispatch(self, power_watts: float, duration_seconds: int) -> dict:
         """One timed battery setpoint over signed v1r (no cloud equivalent)."""
-        if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
+        pw = self._pw
+        if pw is None or getattr(pw, "tedapi_mode", None) != "v1r":
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_needs_v1r")
         with _PypowerwallErrors() as gateway_errors:
             try:
-                result = self._pw.dispatch_battery_power(power_watts, duration_seconds)
+                result = pw.dispatch_battery_power(power_watts, duration_seconds)
             except ValueError as err:
                 raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_invalid",
                                          translation_placeholders={"error": str(err)}) from err
@@ -1229,9 +1261,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return result
 
     def _send_resume(self) -> dict:
-        if self._pw is None or getattr(self._pw, "tedapi_mode", None) != "v1r":
+        pw = self._pw
+        if pw is None or getattr(pw, "tedapi_mode", None) != "v1r":
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_needs_v1r")
-        result = self._pw.resume_battery_operation()
+        result = pw.resume_battery_operation()
         if not result:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="resume_refused")
         return result
