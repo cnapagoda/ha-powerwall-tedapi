@@ -7,8 +7,10 @@ from unittest.mock import patch
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import homeassistant.helpers.config_validation as cv
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+import voluptuous_serialize
 
 from custom_components.tesla_tedapi import config_flow, tesla_cloud
 from custom_components.tesla_tedapi.const import DOMAIN
@@ -300,6 +302,7 @@ async def test_options_settings_and_unlink(hass: HomeAssistant) -> None:
         result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})
         # The form is in sections; the options are saved flat.
         assert list(result["data_schema"].schema) == ["general", "alerts", "dispatch", "advanced"]
+        voluptuous_serialize.convert(result["data_schema"], custom_serializer=cv.custom_serializer)
         result = await hass.config_entries.options.async_configure(result["flow_id"], {
             "general": {"scan_interval": 45, "restore_export": False},
             "alerts": {"status_alert_events": True, "problem_minutes": 20},

@@ -1020,6 +1020,12 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         if user_input is not None:
             flat = {key: value for name in SETTINGS_SECTIONS
                     for key, value in (user_input.get(name) or {}).items()}
+            if CONF_POWER_INTERVAL in flat:
+                # 0 is off; anything shorter than the minimum is the minimum.
+                # Done here, not in the schema: the frontend can't show a
+                # schema with a plain function in it.
+                value = int(flat[CONF_POWER_INTERVAL] or 0)
+                flat[CONF_POWER_INTERVAL] = 0 if value <= 0 else max(MIN_POWER_INTERVAL, value)
             return self.async_create_entry(data={**self.config_entry.options, **flat})
         opts = self.config_entry.options
         scan = opts.get(CONF_SCAN_INTERVAL, self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
@@ -1027,10 +1033,6 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         def box(lo: int, hi: int, step: int, unit: str) -> NumberSelector:
             return NumberSelector(NumberSelectorConfig(
                 min=lo, max=hi, step=step, unit_of_measurement=unit, mode=NumberSelectorMode.BOX))
-
-        def power_interval(value: int) -> int:
-            """0 is off; anything shorter than the minimum is the minimum."""
-            return 0 if value <= 0 else max(MIN_POWER_INTERVAL, value)
 
         advanced: dict[Any, Any] = {
             # Tesla tariff and cloud readings (cloud only): offered once a
@@ -1047,7 +1049,7 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                     vol.Required(CONF_SCAN_INTERVAL, default=scan): vol.All(
                         box(MIN_SCAN_INTERVAL, MAX_SCAN_INTERVAL, 1, "s"), vol.Coerce(int)),
                     vol.Required(CONF_POWER_INTERVAL, default=opts.get(CONF_POWER_INTERVAL, 0)): vol.All(
-                        box(0, MAX_POWER_INTERVAL, 1, "s"), vol.Coerce(int), power_interval),
+                        box(0, MAX_POWER_INTERVAL, 1, "s"), vol.Coerce(int)),
                     vol.Required(CONF_RESTORE_EXPORT, default=opts.get(CONF_RESTORE_EXPORT, True)): bool,
                 }), {"collapsed": False}),
                 vol.Required("alerts"): section(vol.Schema({

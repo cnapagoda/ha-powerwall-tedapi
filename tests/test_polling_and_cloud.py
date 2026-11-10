@@ -8,6 +8,8 @@ from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er, issue_registry as ir
+import homeassistant.helpers.config_validation as cv
+import voluptuous_serialize
 
 from custom_components.tesla_tedapi.cloud import live_readings, wall_connectors
 from custom_components.tesla_tedapi.const import DOMAIN
@@ -89,6 +91,8 @@ async def test_power_interval_option(hass: HomeAssistant, fake_powerwall) -> Non
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})
     assert "power_interval" in result["data_schema"].schema["general"].schema.schema
     assert "cloud_readings" in result["data_schema"].schema["advanced"].schema.schema
+    # The frontend must be able to show the form: no plain functions in it.
+    voluptuous_serialize.convert(result["data_schema"], custom_serializer=cv.custom_serializer)
     result = await hass.config_entries.options.async_configure(result["flow_id"], {
         "general": {"scan_interval": 30, "power_interval": 2, "restore_export": True},
         "alerts": {"status_alert_events": False, "problem_minutes": 10},
