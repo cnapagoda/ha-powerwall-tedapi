@@ -223,7 +223,7 @@ Only with the **Tesla tariff (cloud)** option. See [Tesla tariff](tesla-tariff.m
 |---|---|---|
 | Tariff buy price | `sensor.powerwall_tedapi_tariff_buy_price` | The tariff's price now, per kWh in Home Assistant's currency. Attributes: `season`, `period`. Usable as the price entity in the Energy dashboard. |
 | Tariff sell price | `sensor.powerwall_tedapi_tariff_sell_price` | The feed-in price now. *Unavailable* without a feed-in tariff. |
-| Buy tariff | `calendar.powerwall_tedapi_buy_tariff` | The tariff as calendar events: one per stretch with the same period and price (*ON_PEAK: 0.583 EUR/kWh*). |
+| Buy tariff | `calendar.powerwall_tedapi_buy_tariff` | The tariff as calendar events: one per stretch with the same period and price (*ON_PEAK: 0.583 EUR/kWh*). Attribute `backend`. |
 | Sell tariff | `calendar.powerwall_tedapi_sell_tariff` | The same for feed-in. |
 
 ## Hardware

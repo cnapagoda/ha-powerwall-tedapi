@@ -267,7 +267,7 @@
               "diagnostics_gateway_config": "Configurazione del gateway nella diagnostica"
             },
             "data_description": {
-              "tesla_tariff": "Leggere dal backup cloud la tariffa che Tesla usa per il controllo a fasce orarie (sensore e azioni di lettura/impostazione). Solo cloud.",
+              "tesla_tariff": "Leggere dal backup cloud la tariffa che Tesla usa per il controllo a fasce orarie (sensori, calendari e azioni di lettura/impostazione). Solo cloud.",
               "cloud_readings": "Mentre il gateway non è raggiungibile, mostrare potenza e livello della batteria dal backup cloud (hanno l'attributo `source: cloud` e possono essere vecchi di qualche minuto). I contatori di energia e tutto il resto restano non disponibili. Disattivato: tutte le letture sono non disponibili finché il gateway non risponde.",
               "diagnostics_gateway_config": "Aggiungere la configurazione del gateway ai download di diagnostica, senza numeri di serie, posizione, nomi e credenziali. Utile per le segnalazioni di bug."
             },

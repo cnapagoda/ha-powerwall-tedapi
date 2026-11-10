@@ -267,7 +267,7 @@
               "diagnostics_gateway_config": "Konfiguracja bramy w diagnostyce"
             },
             "data_description": {
-              "tesla_tariff": "Odczytuj z kopii w chmurze taryfę, której Tesla używa do sterowania czasowego (czujnik i akcje odczytu/ustawienia). Tylko chmura.",
+              "tesla_tariff": "Odczytuj z kopii w chmurze taryfę, której Tesla używa do sterowania czasowego (czujniki, kalendarze i akcje odczytu/ustawienia). Tylko chmura.",
               "cloud_readings": "Gdy brama jest nieosiągalna, pokazuj moc i poziom baterii z kopii w chmurze (mają atrybut `source: cloud` i mogą mieć kilka minut). Liczniki energii i cała reszta pozostają niedostępne. Wyłączone: wszystkie odczyty są niedostępne, dopóki brama nie odpowie.",
               "diagnostics_gateway_config": "Dodaj konfigurację bramy do pobieranej diagnostyki, bez numerów seryjnych, lokalizacji, nazw i danych logowania. Przydatne przy zgłaszaniu błędów."
             },

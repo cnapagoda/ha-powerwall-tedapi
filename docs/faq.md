@@ -32,7 +32,10 @@ It compares the measured capacity with Tesla's rated 13.5 kWh per pack. New batt
 Yes: the lifetime energy sensors are made for it. See [Energy dashboard](energy-dashboard.md).
 
 **How often does it update?**
-Every 30 seconds by default (10–300 s in the options). See [Data updates](how-it-works.md#data-updates).
+Every 30 seconds by default (10–300 s in the options). Power, battery level and grid status can be read as often as every 5 seconds with **Fast polling interval for power**. See [Data updates](how-it-works.md#data-updates).
+
+**Can I see where my energy goes?**
+Yes: the [energy flow](entities.md#energy-flows) sensors split solar, battery and grid energy into seven flows (solar to home, battery to grid, and so on), in kWh.
 
 **What happens during a power cut?**
 **Grid connected** turns off within one poll, the outage is counted, and `tesla_tedapi_grid_outage` fires, as long as Home Assistant and your network have power (a UPS helps).

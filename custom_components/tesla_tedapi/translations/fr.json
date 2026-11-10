@@ -267,7 +267,7 @@
               "diagnostics_gateway_config": "Configuration de la passerelle dans les diagnostics"
             },
             "data_description": {
-              "tesla_tariff": "Lire le tarif utilisé par Tesla pour le contrôle selon l'heure via la sauvegarde cloud (capteur et actions de lecture/écriture). Cloud uniquement.",
+              "tesla_tariff": "Lire le tarif utilisé par Tesla pour le contrôle selon l'heure via la sauvegarde cloud (capteurs, calendriers et actions de lecture/écriture). Cloud uniquement.",
               "cloud_readings": "Tant que la passerelle est injoignable, afficher la puissance et le niveau de batterie depuis la sauvegarde cloud (ils portent l'attribut `source: cloud` et peuvent dater de quelques minutes). Les compteurs d'énergie et tout le reste restent indisponibles. Désactivé : toutes les mesures sont indisponibles jusqu'à ce que la passerelle réponde.",
               "diagnostics_gateway_config": "Ajouter la configuration de la passerelle aux téléchargements de diagnostic, sans numéros de série, emplacement, noms ni identifiants. Utile pour signaler un bug."
             },

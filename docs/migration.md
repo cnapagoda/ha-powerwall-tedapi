@@ -67,6 +67,7 @@ You probably want to keep these.
 1. Set this integration up with **Register a new key**, and sign in with **Tesla Fleet** (the same developer app) or **Teslemetry**. That sign-in is also the cloud backup.
 2. Move automations that change Powerwall settings to this integration's entities: they're local, so they're faster and keep working without the internet.
 3. For the Energy dashboard, add this integration's sensors next to theirs, or [import the battery history](actions.md#tesla_tedapiimport_battery_history).
+4. Energy split by source (solar to home, grid to battery, …) is available locally as the [energy flow](entities.md#energy-flows) sensors, counting from when you install them. Wall Connector readings come through this integration's cloud backup too.
 
 ## From a pypowerwall proxy or Powerwall-Dashboard
 

@@ -29,6 +29,9 @@ This integration uses interfaces Tesla doesn't document, so what works depends o
 | Fan speeds | ✅ inverter fans A/B, with duty | 🟡 one fan per Powerwall, with target speed |
 | Per-pack lifetime discharge and cycles | ✅ | ❓ only if the gateway reports the counters |
 | Inverter temperatures | ✅ (heatsink doesn't change on some firmware) | 🟡 |
+| Energy flows, round-trip efficiency, capacity trend | ✅ | ✅ |
+| Per-phase voltage and meter sensors | ✅ where the gateway reports them | ✅ where the gateway reports them |
+| Wall Connector and tariff sensors (cloud backup) | ✅ | ✅ |
 | Dropped-settings restore | ✅ seen and restored on firmware 26.x | ❓ |
 | On-grid solar curtailment (experimental) | ❓ not tested on a real Powerwall | ❓ |
 

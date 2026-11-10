@@ -267,7 +267,7 @@
               "diagnostics_gateway_config": "Gateway configuration in diagnostics"
             },
             "data_description": {
-              "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensor and get/set tariff actions). Cloud only.",
+              "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensors, calendars and get/set tariff actions). Cloud only.",
               "cloud_readings": "While the gateway can't be reached, show power and battery level from the cloud backup instead (they carry the attribute `source: cloud` and can be a few minutes old). Energy counters and everything else stay unavailable. Off: all readings are unavailable until the gateway answers.",
               "diagnostics_gateway_config": "Add the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports."
             },

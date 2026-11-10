@@ -267,7 +267,7 @@
               "diagnostics_gateway_config": "Configuración de la pasarela en los diagnósticos"
             },
             "data_description": {
-              "tesla_tariff": "Leer desde el respaldo en la nube la tarifa que Tesla usa para el control por horario (sensor y acciones de leer/establecer). Solo nube.",
+              "tesla_tariff": "Leer desde el respaldo en la nube la tarifa que Tesla usa para el control por horario (sensores, calendarios y acciones de leer/establecer). Solo nube.",
               "cloud_readings": "Mientras el gateway no responde, mostrar la potencia y el nivel de la batería desde el respaldo en la nube (llevan el atributo `source: cloud` y pueden tener unos minutos). Los contadores de energía y todo lo demás siguen no disponibles. Desactivado: todas las lecturas están no disponibles hasta que el gateway responda.",
               "diagnostics_gateway_config": "Añadir la configuración de la pasarela a las descargas de diagnóstico, sin números de serie, ubicación, nombres ni credenciales. Útil para informar de errores."
             },

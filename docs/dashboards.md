@@ -12,6 +12,7 @@ A complete dashboard with all of these is in [`examples/dashboard.yaml`](../exam
 - [Alerts](#alerts)
 - [Grid outages](#grid-outages)
 - [Battery health](#battery-health)
+- [Energy flows](#energy-flows)
 
 ## Battery at a glance
 
@@ -261,9 +262,33 @@ title: Battery health
 entities:
   - sensor.powerwall_tedapi_battery_health
   - sensor.powerwall_tedapi_battery_full_capacity
+  - sensor.powerwall_tedapi_battery_round_trip_efficiency
+  - sensor.powerwall_tedapi_battery_capacity_trend
   - sensor.powerwall_tedapi_powerwall_3_cycles
   - sensor.powerwall_tedapi_powerwall_3_temperature
   - sensor.powerwall_tedapi_setup_health
 ```
 
 Per-pack entity IDs follow the pack's name (*Powerwall 3*, *Expansion Pack*, …); check yours on the device page.
+
+## Energy flows
+
+Where the energy went, as a bar per flow. Change `period` to `week` or `month` for longer views.
+
+```yaml
+type: statistics-graph
+title: Energy flows today
+chart_type: bar
+period: hour
+days_to_show: 1
+stat_types:
+  - change
+entities:
+  - sensor.powerwall_tedapi_solar_to_home_energy
+  - sensor.powerwall_tedapi_solar_to_battery_energy
+  - sensor.powerwall_tedapi_solar_to_grid_energy
+  - sensor.powerwall_tedapi_battery_to_home_energy
+  - sensor.powerwall_tedapi_battery_to_grid_energy
+  - sensor.powerwall_tedapi_grid_to_home_energy
+  - sensor.powerwall_tedapi_grid_to_battery_energy
+```

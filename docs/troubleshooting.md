@@ -49,6 +49,11 @@
 | A pack or expansion pack is missing | Packs appear when the gateway first reports them. Check the **Alerts** sensor for *Battery packs missing*. |
 | Energy counters don't move | **Setup health** checks `energy_counters`. Readings that are missing or zero are ignored, and so is a lower reading unless it stays lower for 10 readings in a row (then it's taken as a counter reset, for example after a gateway replacement). |
 | **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. An occasional day can come from gaps in readings. If it lasts, mention it in an issue with diagnostics. |
+| No **Grid voltage L1–L3** or **Meter** sensors | They're created for the phases and current transformers the gateway reports and that are in use. Ones that start carrying current later appear by themselves. |
+| **Battery capacity trend** and **Battery warranty level date** show *unknown* | They build up from one sample a day and show once there are 30 samples over 90 days. |
+| **Battery round-trip efficiency** shows *unknown* | It shows once 50 kWh has been charged into the battery. |
+| No **Wall Connector** sensors | They come from the cloud backup and appear once the site's Wall Connector shows up there. |
+| **Tariff buy price** / **Tariff sell price** missing | Turn on the **Tesla tariff (cloud)** option. The sell price shows for tariffs with feed-in rates. |
 | **Inverter heatsink temperature** never changes | Known on some firmware. |
 | Entity IDs start with an area name | Home Assistant 2026.8+ includes the area by default. Replace `powerwall_tedapi_` in the examples with yours, or change the format and use **Recreate entity IDs**. See [conventions](README.md#conventions-in-these-pages). |
 
