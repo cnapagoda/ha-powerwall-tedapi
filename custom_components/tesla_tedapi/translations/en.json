@@ -340,6 +340,9 @@
       "alert_problem": {
         "name": "Problem"
       },
+      "battery_calibrating": {
+        "name": "Battery calibrating"
+      },
       "backup_event": {
         "name": "Backup event"
       },
@@ -1176,7 +1179,10 @@
         "pws_a009_rsd": "Rapid shutdown is active (On/Off switch or rapid-shutdown button)",
         "pws_a014_hvpfault": "Battery high-voltage controller fault",
         "pws_a044_hvprsdfault": "Battery rapid-shutdown fault",
-        "pws_a045_battvrationality": "Battery voltage reading is implausible"
+        "pws_a045_battvrationality": "Battery voltage reading is implausible",
+        "batterycalibration": "Battery is calibrating its charge level",
+        "realpowerconfiglimited": "Power is held below a configured limit",
+        "batterycomms": "The gateway can't communicate with a battery"
       }
     },
     "alert_short": {
@@ -1203,7 +1209,10 @@
         "pws_a014_hvpfault": "Battery controller fault",
         "pws_a044_hvprsdfault": "Rapid-shutdown fault",
         "pws_a045_battvrationality": "Battery voltage implausible",
-        "no_alerts": "None"
+        "no_alerts": "None",
+        "batterycalibration": "Battery calibrating",
+        "realpowerconfiglimited": "Power limited by settings",
+        "batterycomms": "Battery comms lost"
       }
     },
     "logbook": {

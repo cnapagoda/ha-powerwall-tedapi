@@ -340,6 +340,9 @@
       "alert_problem": {
         "name": "Problema"
       },
+      "battery_calibrating": {
+        "name": "Batería calibrando"
+      },
       "backup_event": {
         "name": "Evento de respaldo"
       },
@@ -1176,7 +1179,10 @@
         "pws_a009_rsd": "El apagado rápido está activo (interruptor de encendido o botón de apagado rápido)",
         "pws_a014_hvpfault": "Fallo del controlador de alta tensión de la batería",
         "pws_a044_hvprsdfault": "Fallo del apagado rápido de la batería",
-        "pws_a045_battvrationality": "La lectura de tensión de la batería es inverosímil"
+        "pws_a045_battvrationality": "La lectura de tensión de la batería es inverosímil",
+        "batterycalibration": "La batería está calibrando su nivel de carga",
+        "realpowerconfiglimited": "La potencia se mantiene por debajo de un límite configurado",
+        "batterycomms": "La pasarela no puede comunicarse con una batería"
       }
     },
     "alert_short": {
@@ -1203,7 +1209,10 @@
         "pws_a014_hvpfault": "Fallo del controlador de batería",
         "pws_a044_hvprsdfault": "Fallo de apagado rápido",
         "pws_a045_battvrationality": "Tensión de batería inverosímil",
-        "no_alerts": "Ninguna"
+        "no_alerts": "Ninguna",
+        "batterycalibration": "Batería calibrando",
+        "realpowerconfiglimited": "Potencia limitada por ajustes",
+        "batterycomms": "Sin comunicación con la batería"
       }
     },
     "logbook": {

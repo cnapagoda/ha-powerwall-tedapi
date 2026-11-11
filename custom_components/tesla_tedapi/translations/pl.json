@@ -340,6 +340,9 @@
       "alert_problem": {
         "name": "Problem"
       },
+      "battery_calibrating": {
+        "name": "Kalibracja baterii"
+      },
       "backup_event": {
         "name": "Zdarzenie awaryjne"
       },
@@ -1176,7 +1179,10 @@
         "pws_a009_rsd": "Szybkie wyłączenie jest aktywne (włącznik lub przycisk szybkiego wyłączenia)",
         "pws_a014_hvpfault": "Usterka sterownika wysokiego napięcia baterii",
         "pws_a044_hvprsdfault": "Usterka szybkiego wyłączenia baterii",
-        "pws_a045_battvrationality": "Odczyt napięcia baterii jest nieprawdopodobny"
+        "pws_a045_battvrationality": "Odczyt napięcia baterii jest nieprawdopodobny",
+        "batterycalibration": "Bateria kalibruje poziom naładowania",
+        "realpowerconfiglimited": "Moc jest utrzymywana poniżej skonfigurowanego limitu",
+        "batterycomms": "Bramka nie może komunikować się z baterią"
       }
     },
     "alert_short": {
@@ -1203,7 +1209,10 @@
         "pws_a014_hvpfault": "Usterka sterownika baterii",
         "pws_a044_hvprsdfault": "Usterka szybkiego wyłączenia",
         "pws_a045_battvrationality": "Napięcie baterii nieprawdopodobne",
-        "no_alerts": "Brak"
+        "no_alerts": "Brak",
+        "batterycalibration": "Kalibracja baterii",
+        "realpowerconfiglimited": "Moc ograniczona ustawieniem",
+        "batterycomms": "Brak łączności z baterią"
       }
     },
     "logbook": {

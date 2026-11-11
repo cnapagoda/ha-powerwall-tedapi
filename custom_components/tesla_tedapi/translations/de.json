@@ -340,6 +340,9 @@
       "alert_problem": {
         "name": "Problem"
       },
+      "battery_calibrating": {
+        "name": "Batterie kalibriert"
+      },
       "backup_event": {
         "name": "Backup-Ereignis"
       },
@@ -1176,7 +1179,10 @@
         "pws_a009_rsd": "Schnellabschaltung ist aktiv (Ein/Aus-Schalter oder Not-Aus-Taster)",
         "pws_a014_hvpfault": "Störung der Hochvolt-Steuerung der Batterie",
         "pws_a044_hvprsdfault": "Störung der Schnellabschaltung der Batterie",
-        "pws_a045_battvrationality": "Batteriespannung ist unplausibel"
+        "pws_a045_battvrationality": "Batteriespannung ist unplausibel",
+        "batterycalibration": "Die Batterie kalibriert ihren Ladestand",
+        "realpowerconfiglimited": "Die Leistung wird unter einer eingestellten Grenze gehalten",
+        "batterycomms": "Das Gateway kann nicht mit einer Batterie kommunizieren"
       }
     },
     "alert_short": {
@@ -1203,7 +1209,10 @@
         "pws_a014_hvpfault": "Störung Batteriesteuerung",
         "pws_a044_hvprsdfault": "Störung Schnellabschaltung",
         "pws_a045_battvrationality": "Batteriespannung unplausibel",
-        "no_alerts": "Keine"
+        "no_alerts": "Keine",
+        "batterycalibration": "Batterie kalibriert",
+        "realpowerconfiglimited": "Leistung durch Einstellung begrenzt",
+        "batterycomms": "Batterie nicht erreichbar"
       }
     },
     "logbook": {

@@ -340,6 +340,9 @@
       "alert_problem": {
         "name": "Problema"
       },
+      "battery_calibrating": {
+        "name": "Bateria calibrando"
+      },
       "backup_event": {
         "name": "Evento de backup"
       },
@@ -1176,7 +1179,10 @@
         "pws_a009_rsd": "O desligamento rápido está ativo (chave liga/desliga ou botão de desligamento rápido)",
         "pws_a014_hvpfault": "Falha do controlador de alta tensão da bateria",
         "pws_a044_hvprsdfault": "Falha do desligamento rápido da bateria",
-        "pws_a045_battvrationality": "A leitura de tensão da bateria é implausível"
+        "pws_a045_battvrationality": "A leitura de tensão da bateria é implausível",
+        "batterycalibration": "A bateria está calibrando o nível de carga",
+        "realpowerconfiglimited": "A potência é mantida abaixo de um limite configurado",
+        "batterycomms": "O gateway não consegue se comunicar com uma bateria"
       }
     },
     "alert_short": {
@@ -1203,7 +1209,10 @@
         "pws_a014_hvpfault": "Falha do controlador da bateria",
         "pws_a044_hvprsdfault": "Falha do desligamento rápido",
         "pws_a045_battvrationality": "Tensão da bateria implausível",
-        "no_alerts": "Nenhum"
+        "no_alerts": "Nenhum",
+        "batterycalibration": "Bateria calibrando",
+        "realpowerconfiglimited": "Potência limitada por configuração",
+        "batterycomms": "Sem comunicação com a bateria"
       }
     },
     "logbook": {

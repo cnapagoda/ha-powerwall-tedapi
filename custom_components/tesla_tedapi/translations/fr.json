@@ -340,6 +340,9 @@
       "alert_problem": {
         "name": "Problème"
       },
+      "battery_calibrating": {
+        "name": "Batterie en calibrage"
+      },
       "backup_event": {
         "name": "Événement de secours"
       },
@@ -1176,7 +1179,10 @@
         "pws_a009_rsd": "L'arrêt rapide est actif (interrupteur marche/arrêt ou bouton d'arrêt rapide)",
         "pws_a014_hvpfault": "Défaut du contrôleur haute tension de la batterie",
         "pws_a044_hvprsdfault": "Défaut d'arrêt rapide de la batterie",
-        "pws_a045_battvrationality": "La mesure de tension de la batterie est improbable"
+        "pws_a045_battvrationality": "La mesure de tension de la batterie est improbable",
+        "batterycalibration": "La batterie calibre son niveau de charge",
+        "realpowerconfiglimited": "La puissance est maintenue sous une limite configurée",
+        "batterycomms": "La passerelle ne peut pas communiquer avec une batterie"
       }
     },
     "alert_short": {
@@ -1203,7 +1209,10 @@
         "pws_a014_hvpfault": "Défaut contrôleur batterie",
         "pws_a044_hvprsdfault": "Défaut d'arrêt rapide",
         "pws_a045_battvrationality": "Tension batterie improbable",
-        "no_alerts": "Aucune"
+        "no_alerts": "Aucune",
+        "batterycalibration": "Batterie en calibrage",
+        "realpowerconfiglimited": "Puissance limitée par réglage",
+        "batterycomms": "Batterie injoignable"
       }
     },
     "logbook": {

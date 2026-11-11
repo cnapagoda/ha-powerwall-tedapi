@@ -340,6 +340,9 @@
       "alert_problem": {
         "name": "Probleem"
       },
+      "battery_calibrating": {
+        "name": "Batterij kalibreert"
+      },
       "backup_event": {
         "name": "Back-upgebeurtenis"
       },
@@ -1176,7 +1179,10 @@
         "pws_a009_rsd": "Snelle uitschakeling is actief (aan/uit-schakelaar of noodstopknop)",
         "pws_a014_hvpfault": "Storing in de hoogspanningsregelaar van de batterij",
         "pws_a044_hvprsdfault": "Storing in de snelle uitschakeling van de batterij",
-        "pws_a045_battvrationality": "Batterijspanning is onwaarschijnlijk"
+        "pws_a045_battvrationality": "Batterijspanning is onwaarschijnlijk",
+        "batterycalibration": "De batterij kalibreert haar laadniveau",
+        "realpowerconfiglimited": "Het vermogen blijft onder een ingestelde limiet",
+        "batterycomms": "De gateway kan niet communiceren met een batterij"
       }
     },
     "alert_short": {
@@ -1203,7 +1209,10 @@
         "pws_a014_hvpfault": "Storing batterijregelaar",
         "pws_a044_hvprsdfault": "Storing snelle uitschakeling",
         "pws_a045_battvrationality": "Batterijspanning onwaarschijnlijk",
-        "no_alerts": "Geen"
+        "no_alerts": "Geen",
+        "batterycalibration": "Batterij kalibreert",
+        "realpowerconfiglimited": "Vermogen begrensd door instelling",
+        "batterycomms": "Batterij onbereikbaar"
       }
     },
     "logbook": {

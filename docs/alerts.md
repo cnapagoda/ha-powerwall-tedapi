@@ -68,9 +68,12 @@ More cards in [Dashboards](dashboards.md).
 | `SelfConsumptionReservedLimit` | status | At backup reserve | Battery is at the backup reserve |
 | `PCH_a054_pwsDisabledMpptEnableLine` | status | Built-in solar inputs off | The Powerwall's built-in solar inputs (MPPT) are off, normal when solar uses a separate inverter |
 | `BMS_a045_SW_SOC_Change` | status | Charge level recalibrated | Battery recalibrated its state of charge |
+| `BatteryCalibration` | status | Battery calibrating | Battery is calibrating its charge level (also **Battery calibrating**) |
+| `RealPowerConfigLimited` | status | Power limited by settings | Power is held below a configured limit |
 | `BMS_a089_LifeModel_StoDcrGrowth_Change` | status | Ageing estimate updated | Battery updated its ageing estimate |
 | `EnergyAccumulatorIrrational` | notice | Energy counter jump | An energy counter jumped implausibly |
 | `IslandChecksFailed` | warning | Backup check failed | Backup readiness check failed (normal for a few minutes when the battery fills or after a restart) |
+| `BatteryComms` | warning | Battery comms lost | The gateway can't communicate with a battery |
 | `PVInverterComms` | warning | Solar inverter comms lost | Lost communication with the solar inverter |
 | `IEEE1547Trip` | warning | Grid protection trip | Grid-connection protection tripped (grid voltage or frequency out of range) |
 | `DisallowService` | warning | Gateway not ready | Gateway is not ready for service |

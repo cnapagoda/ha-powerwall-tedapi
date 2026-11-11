@@ -23,7 +23,7 @@ async def async_setup_entry(
 ) -> None:
     coordinator = entry.runtime_data.coordinator
     entities: list[BinarySensorEntity] = [GridConnectedSensor(coordinator, entry.runtime_data.off_grid),
-                                          AlertProblemSensor(coordinator)]
+                                          AlertProblemSensor(coordinator), BatteryCalibratingSensor(coordinator)]
     dispatch = entry.runtime_data.dispatch
     if dispatch is not None:
         entities.append(DispatchActiveSensor(coordinator, dispatch))
@@ -90,6 +90,25 @@ class AlertProblemSensor(TedapiEntity, BinarySensorEntity):
             ],
             "minutes_before_problem": int(self.coordinator.problem_after.total_seconds() // 60),
         }
+
+
+class BatteryCalibratingSensor(TedapiEntity, BinarySensorEntity):
+    """On while the gateway reports the BatteryCalibration alert: the
+    Powerwall is calibrating its charge level."""
+
+    _attr_translation_key = "battery_calibrating"
+    _attr_device_class = BinarySensorDeviceClass.RUNNING
+
+    def __init__(self, coordinator: TedapiCoordinator) -> None:
+        super().__init__(coordinator, "battery_calibrating")
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.data.get("local_ok"))
+
+    @property
+    def is_on(self) -> bool:
+        return "BatteryCalibration" in (self.data.get("alerts") or [])
 
 
 class DispatchActiveSensor(TedapiEntity, BinarySensorEntity):

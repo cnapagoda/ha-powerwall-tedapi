@@ -340,6 +340,9 @@
       "alert_problem": {
         "name": "Problema"
       },
+      "battery_calibrating": {
+        "name": "Batteria in calibrazione"
+      },
       "backup_event": {
         "name": "Evento di backup"
       },
@@ -1176,7 +1179,10 @@
         "pws_a009_rsd": "Lo spegnimento rapido è attivo (interruttore On/Off o pulsante di spegnimento rapido)",
         "pws_a014_hvpfault": "Guasto del controller ad alta tensione della batteria",
         "pws_a044_hvprsdfault": "Guasto dello spegnimento rapido della batteria",
-        "pws_a045_battvrationality": "La tensione della batteria letta è anomala"
+        "pws_a045_battvrationality": "La tensione della batteria letta è anomala",
+        "batterycalibration": "La batteria sta calibrando il livello di carica",
+        "realpowerconfiglimited": "La potenza è mantenuta sotto un limite configurato",
+        "batterycomms": "Il gateway non riesce a comunicare con una batteria"
       }
     },
     "alert_short": {
@@ -1203,7 +1209,10 @@
         "pws_a014_hvpfault": "Guasto controller batteria",
         "pws_a044_hvprsdfault": "Guasto spegnimento rapido",
         "pws_a045_battvrationality": "Tensione batteria anomala",
-        "no_alerts": "Nessuno"
+        "no_alerts": "Nessuno",
+        "batterycalibration": "Batteria in calibrazione",
+        "realpowerconfiglimited": "Potenza limitata da impostazione",
+        "batterycomms": "Batteria non raggiungibile"
       }
     },
     "logbook": {
