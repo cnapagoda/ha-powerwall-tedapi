@@ -10,7 +10,7 @@
 - **Tesla tariff entities** (with the Tesla tariff option): **Tariff buy price** and **Tariff sell price** sensors, and **Buy tariff** / **Sell tariff** calendars.
 - **Cloud readings while the gateway is unreachable** (new option, off by default): power and battery level then come from the cloud backup, marked `source: cloud` with a `last_updated` time, instead of going *unavailable*.
 - **Fewer entities up front:** detail readings move to the device page's *Diagnostic* section: **Grid voltage**, **Grid frequency**, the per-phase voltages, the meter sensors, **Battery state of energy**, **Battery full capacity**, each pack's capacity and temperature, and **Tesla tariff**. Entity IDs don't change, and dashboards and automations keep working. On new installs the meter power sensors and the six *today* energy sensors are disabled by default (the Energy dashboard gives the same daily totals); existing installs keep theirs.
-- Docs: the new features in the README, Energy dashboard (tariff price sensors as price entities), Tesla tariff (price sensors and calendars), Cloud backup (live status), How it works, Compatibility, FAQ, Troubleshooting and Migration pages, and an **Energy flows** card in Dashboards and the example dashboard.
+- Docs: the new features in the README, Energy dashboard (tariff price sensors as price entities), Tesla tariff (price sensors and calendars), Cloud backup (live status), How it works, Compatibility, FAQ, Troubleshooting and Migration pages, and an **Energy flows** card in Dashboards and the example dashboard. Entities and FAQ explain why the flows don't add up to **Home energy consumed** and what **Battery round-trip efficiency** measures.
 
 Fixes and changes (2.6.5 was not released on its own):
 
