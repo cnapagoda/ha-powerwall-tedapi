@@ -381,25 +381,6 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         suggested_display_precision=1,
         value_fn=lambda d: d.get("backup_hours"),
     ),
-    # Temperatures
-    TedapiSensorEntityDescription(
-        key="inverter_ambient_temperature",
-        translation_key="inverter_ambient_temperature",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda d: d.get("inverter_ambient_temp"),
-    ),
-    TedapiSensorEntityDescription(
-        key="inverter_heatsink_temperature",
-        translation_key="inverter_heatsink_temperature",
-        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
-        device_class=SensorDeviceClass.TEMPERATURE,
-        state_class=SensorStateClass.MEASUREMENT,
-        entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda d: d.get("inverter_heatsink_temp"),
-    ),
     # Diagnostics
     TedapiSensorEntityDescription(
         key="alerts",
@@ -594,6 +575,30 @@ def _string_sensors(name: str) -> list[TedapiSensorEntityDescription]:
             value_fn=lambda d, n=name: _string(d, n).get("current"),
         ),
     ]
+
+
+# Inverter temperatures: Powerwall 3 only. Added once the gateway reports
+# them, so a Powerwall 2 doesn't get two sensors that stay unknown.
+INVERTER_TEMPERATURES: tuple[TedapiSensorEntityDescription, ...] = (
+    TedapiSensorEntityDescription(
+        key="inverter_ambient_temperature",
+        translation_key="inverter_ambient_temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: d.get("inverter_ambient_temp"),
+    ),
+    TedapiSensorEntityDescription(
+        key="inverter_heatsink_temperature",
+        translation_key="inverter_heatsink_temperature",
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: d.get("inverter_heatsink_temp"),
+    ),
+)
 
 
 def _phases(d: dict[str, Any]) -> dict[str, Any]:
@@ -821,6 +826,10 @@ async def async_setup_entry(
                 if key not in known and (phases.ct_in_use(values) or _registered(key)):
                     known.add(key)
                     new += _ct_sensors(meter, ct)
+        for description in INVERTER_TEMPERATURES:
+            if description.key not in known and description.value_fn(data) is not None:
+                known.add(description.key)
+                new.append(description)
         for name in data.get("fans") or {}:
             if f"fan_{name}" not in known:
                 known.add(f"fan_{name}")

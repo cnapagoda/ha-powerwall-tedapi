@@ -57,6 +57,8 @@ class FakePowerwall:
     storm_capable = True
     backup_events: dict | None = None
     extra_packs: dict[str, dict] = {}
+    # pypowerwall's signed (v1r) client flags, when set: key_unknown, pending_verification.
+    v1r_flags: dict[str, bool] | None = None
     # The gateway config's battery_blocks (several Powerwall 3s).
     battery_blocks: list[dict] = []
     # on_grid_solar_curtailment_enabled: kept in site_info only while on.
@@ -84,6 +86,8 @@ class FakePowerwall:
                                       get_site_power=self._site_power,
                                       site=SimpleNamespace(api=self._site_api),
                                       pwcachetime={})
+        if FakePowerwall.v1r_flags is not None:
+            self.client.tedapi.v1r_transport = SimpleNamespace(**FakePowerwall.v1r_flags)
         self.tedapi_mode = None if cloudmode else (
             "v1r" if kwargs.get("rsa_key_path") else "wifi")
         if not cloudmode and FakePowerwall.fail_local:
@@ -323,6 +327,7 @@ def fake_powerwall():
     FakePowerwall.storm_capable = True
     FakePowerwall.backup_events = {"manual_backup": None, "backup_events": []}
     FakePowerwall.extra_packs = {}
+    FakePowerwall.v1r_flags = None
     FakePowerwall.battery_blocks = []
     FakePowerwall.curtailment = False
     FakePowerwall.config_writes_ok = True

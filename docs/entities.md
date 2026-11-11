@@ -68,7 +68,7 @@ One set per Powerwall and expansion pack, named after the pack (*Powerwall 3*, *
 | Entity | Example entity ID | Unit | Notes |
 |---|---|---|---|
 | *Pack* capacity 🩺 | `sensor.powerwall_tedapi_powerwall_3_capacity` | kWh | Attributes: `remaining_kwh`, `part_number`, `serial`. |
-| *Pack* temperature 🩺 | `sensor.powerwall_tedapi_powerwall_3_temperature` | °C | The hottest cell reading. Attributes: `temp_min`, `shunt_temp`, `serial`. |
+| *Pack* temperature 🩺 | `sensor.powerwall_tedapi_powerwall_3_temperature` | °C | Powerwall 3: the hottest cell reading. Powerwall 2: its thermal controller's reading. Attributes: `temp_min`, `shunt_temp`, `serial`. |
 | *Pack* health 🩺 | `sensor.powerwall_tedapi_powerwall_3_health` | % | Capacity ÷ 13.5 kWh. Attributes: `nominal_kwh`, `warranty_kwh`. |
 | *Pack* lifetime discharge 🩺 | `sensor.powerwall_tedapi_powerwall_3_lifetime_discharge` | kWh | Powerwall 3. |
 | *Pack* cycles 🩺 | `sensor.powerwall_tedapi_powerwall_3_cycles` | | Powerwall 3. Equivalent full cycles: lifetime discharge ÷ 13.5 kWh. Attributes: `bms_full_cycles` and `over_discharges` (the battery's own counters). |
@@ -234,8 +234,8 @@ All diagnostic 🩺.
 
 | Entity | Entity ID | Notes |
 |---|---|---|
-| Inverter ambient temperature | `sensor.powerwall_tedapi_inverter_ambient_temperature` | °C. |
-| Inverter heatsink temperature | `sensor.powerwall_tedapi_inverter_heatsink_temperature` | °C. Doesn't change on some firmware. |
+| Inverter ambient temperature | `sensor.powerwall_tedapi_inverter_ambient_temperature` | °C. Powerwall 3 only: created once the gateway reports it. |
+| Inverter heatsink temperature | `sensor.powerwall_tedapi_inverter_heatsink_temperature` | °C. Powerwall 3 only. Doesn't change on some firmware. |
 | Fan *A*/*B* speed 🔍 | `sensor.powerwall_tedapi_fan_a_speed` | rpm. Powerwall 3: the inverter's two fans, with the drive `duty` (%) as an attribute. With more than one Powerwall 3, *Fan A* and *B* are the leader's, and the next inverters' fans are *Fan 2A*, *Fan 2B* and so on. Powerwall 2: one fan per Powerwall (*Fan 1*, *Fan 2*, …), with `target_rpm`. |
 | Firmware version | `sensor.powerwall_tedapi_firmware_version` | For example `26.34.1`. Attributes: `build`, `previous_version`, `updated_at`. The last two stay empty until the integration has seen a firmware update. |
 | Gateway last started | `sensor.powerwall_tedapi_gateway_last_started` | When the gateway last restarted. |

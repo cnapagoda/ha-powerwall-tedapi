@@ -543,8 +543,10 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         schema = vol.Schema({
             vol.Required(CONF_HOST, default=host): str,
             vol.Required(CONF_GW_PWD, default=self._data.get(CONF_GW_PWD, "")): PASSWORD,
-            vol.Optional(CONF_WIFI_HOST, default=self._data.get(
-                CONF_WIFI_HOST, "" if host == DEFAULT_HOST_WIFI else DEFAULT_HOST_WIFI)): str,
+            # Suggested, not a default: a default would come back when the
+            # field is cleared (the frontend leaves an empty field out).
+            vol.Optional(CONF_WIFI_HOST, description={"suggested_value": self._data.get(
+                CONF_WIFI_HOST, "" if host == DEFAULT_HOST_WIFI else DEFAULT_HOST_WIFI)}): str,
         })
         return self.async_show_form(step_id="gateway", data_schema=schema, errors=errors)
 
@@ -972,8 +974,11 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         schema = vol.Schema({
             vol.Required(CONF_HOST, default=current.get(CONF_HOST, DEFAULT_HOST_WIFI)): str,
             vol.Required(CONF_GW_PWD, default=current.get(CONF_GW_PWD, "") or ""): PASSWORD,
-            vol.Optional(CONF_RSA_KEY_PATH, default=current.get(CONF_RSA_KEY_PATH, "") or ""): str,
-            vol.Optional(CONF_WIFI_HOST, default=current.get(CONF_WIFI_HOST, "") or ""): str,
+            # Suggested, not defaults: clearing either field must stick.
+            vol.Optional(CONF_RSA_KEY_PATH,
+                         description={"suggested_value": current.get(CONF_RSA_KEY_PATH, "") or ""}): str,
+            vol.Optional(CONF_WIFI_HOST,
+                         description={"suggested_value": current.get(CONF_WIFI_HOST, "") or ""}): str,
         })
         return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)
 

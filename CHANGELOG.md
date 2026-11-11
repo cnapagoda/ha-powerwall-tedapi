@@ -12,7 +12,13 @@
 - **Fewer entities up front:** detail readings move to the device page's *Diagnostic* section: **Grid voltage**, **Grid frequency**, the per-phase voltages, the meter sensors, **Battery state of energy**, **Battery full capacity**, each pack's capacity and temperature, and **Tesla tariff**. Entity IDs don't change, and dashboards and automations keep working. On new installs the meter power sensors and the six *today* energy sensors are disabled by default (the Energy dashboard gives the same daily totals); existing installs keep theirs.
 - Docs: the new features in the README, Energy dashboard (tariff price sensors as price entities), Tesla tariff (price sensors and calendars), Cloud backup (live status), How it works, Compatibility, FAQ, Troubleshooting and Migration pages, and an **Energy flows** card in Dashboards and the example dashboard. Entities and FAQ explain why the flows don't add up to **Home energy consumed** and what **Battery round-trip efficiency** measures.
 
-Fixes and changes (2.6.5 was not released on its own):
+Fixes and changes:
+
+- **pypowerwall 0.25.0** (was 0.23.1): **Gateway last started** now works on Powerwall 2 gateways that left it empty, and battery energy counters no longer dip to 0 after a failed read. A gateway that stalls now shows as a gap after about a minute instead of frozen readings; a stall no longer counts as a refused key (no *set up access again* prompt), and an unreadable gateway config is no longer taken as dropped settings (nothing is written back).
+- **Powerwall 2:** each battery's temperature sensor now shows the Powerwall's thermal controller reading. The inverter temperature sensors (Powerwall 3 only) are no longer created on a Powerwall 2 ([#19](https://github.com/cnapagoda/ha-powerwall-tedapi/issues/19)).
+- **A cleared Wi-Fi fallback address stays cleared** at setup and in **Reconfigure** (it came back as `192.168.91.1`), and a cleared key path in **Reconfigure** now switches to the Wi-Fi password connection as intended ([#19](https://github.com/cnapagoda/ha-powerwall-tedapi/issues/19)).
+
+Fixes and changes from 2.6.5 (not released on its own):
 
 - **Power sensors no longer show a false 0 W.** When the gateway's meters can't be read, pypowerwall reports 0 W for solar, battery, grid and home. Those readings were recorded as real. They now show as *unknown* until the meters answer again; a reading the meters did give is kept.
 - **Battery dispatch: stopping or restarting Home Assistant hands the battery back at once** and fires `tesla_tedapi_dispatch_ended` (reason `unloaded`). Before, the Powerwall kept charging or discharging until the last command expired (up to 5 minutes) and no event was fired.

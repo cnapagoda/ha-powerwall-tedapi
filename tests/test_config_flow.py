@@ -10,6 +10,7 @@ from homeassistant.data_entry_flow import FlowResultType
 import homeassistant.helpers.config_validation as cv
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+import voluptuous as vol
 import voluptuous_serialize
 
 from custom_components.tesla_tedapi import config_flow, tesla_cloud
@@ -38,6 +39,21 @@ async def test_gateway_password_checked_first(hass: HomeAssistant, fake_gateway)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"host": "192.168.1.50", "gw_pwd": PWD, "wifi_host": ""})
     assert result["errors"] == {"base": "cannot_connect"}
+
+
+async def test_cleared_wifi_fallback_stays_cleared(hass: HomeAssistant) -> None:
+    """The fallback address is suggested, not a default: the frontend leaves a
+    cleared field out, and it must not come back as 192.168.91.1."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "gateway"})
+    field = next(k for k in result["data_schema"].schema if k == "wifi_host")
+    assert field.description == {"suggested_value": "192.168.91.1"}
+    assert field.default is vol.UNDEFINED
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.168.1.50", "gw_pwd": PWD})
+    assert result["type"] is FlowResultType.MENU
+    flow = hass.config_entries.flow._progress[result["flow_id"]]
+    assert flow._data["wifi_host"] == ""
 
 
 async def test_already_configured_at_gateway_step(hass: HomeAssistant) -> None:
@@ -272,6 +288,26 @@ async def test_reconfigure_to_v1r(hass: HomeAssistant, tmp_path) -> None:
     assert result["reason"] == "reconfigure_successful"
     assert entry.data["connection_mode"] == "v1r"
     assert entry.data["host"] == "192.168.1.50"
+
+
+async def test_reconfigure_clears_the_wifi_fallback(hass: HomeAssistant, tmp_path) -> None:
+    """A cleared field is left out by the frontend: the saved value is only
+    suggested, so it doesn't come back."""
+    key = tmp_path / "key.pem"
+    key.write_text("x")
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={
+        "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD,
+        "rsa_key_path": str(key), "wifi_host": "192.168.91.1"})
+    entry.add_to_hass(hass)
+    with patch(SETUP, return_value=True):
+        result = await entry.start_reconfigure_flow(hass)
+        fields = {str(k): k for k in result["data_schema"].schema}
+        assert fields["wifi_host"].description == {"suggested_value": "192.168.91.1"}
+        assert fields["rsa_key_path"].description == {"suggested_value": str(key)}
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "192.168.1.50", "rsa_key_path": str(key), "gw_pwd": PWD})
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.data["wifi_host"] == "" and entry.data["connection_mode"] == "v1r"
 
 
 async def test_reconfigure_to_a_new_address_forgets_the_macs(hass: HomeAssistant) -> None:

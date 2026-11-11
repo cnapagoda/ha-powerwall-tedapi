@@ -275,3 +275,29 @@ def test_capacity_trend_keeps_its_history_through_an_odd_read() -> None:
     trend.update(first + timedelta(days=122), 13.0, 5)
     stored.restore(trend.as_dict())
     assert stored.pending == (5, (first + timedelta(days=122)).toordinal())
+
+
+# Shape of pypowerwall's TEDAPI vitals for a Powerwall 2 (as in issue #19).
+PW2_VITALS = {
+    "TETHC--1092170-03-G--TG1234506TN": {"THC_AmbientTemp": 23.4, "THC_State": "THC_STATE_AUTONOMOUSCONTROL"},
+    "TEPINV--1092170-03-G--TG1234506TN": {"PINV_Fout": 50.0, "PINV_VSplit1": 120.1},
+    "TEPOD--1092170-03-G--TG1234506TN": {"POD_nom_full_pack_energy": 12980, "POD_nom_energy_remaining": 6230},
+}
+
+
+async def test_powerwall_2_temperature_and_no_inverter_sensors(hass: HomeAssistant, fake_powerwall) -> None:
+    """A Powerwall 2 has no pack temperature: its thermal controller's is
+    used. It has no inverter temperatures: those sensors aren't created."""
+    with patch.object(FakePowerwall, "vitals", lambda self: PW2_VITALS):
+        await _setup(hass, V1R)
+    serial = "TG1234506TN"
+    temperature = hass.states.get(_eid(hass, "sensor", f"pack_{serial}_temperature"))
+    assert temperature.state == "23.4"
+    assert _eid(hass, "sensor", "inverter_ambient_temperature") is None
+    assert _eid(hass, "sensor", "inverter_heatsink_temperature") is None
+
+
+async def test_powerwall_3_keeps_inverter_temperatures(hass: HomeAssistant, fake_powerwall) -> None:
+    await _setup(hass, V1R)
+    assert hass.states.get(_eid(hass, "sensor", "inverter_ambient_temperature")).state == "25.0"
+    assert hass.states.get(_eid(hass, "sensor", "inverter_heatsink_temperature")).state == "30.0"

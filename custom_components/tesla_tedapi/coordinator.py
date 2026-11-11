@@ -260,6 +260,17 @@ def _extract_fans(vitals: dict, din: str | None = None) -> dict[str, dict[str, A
     return fans
 
 
+def _key_refused(pw: Any) -> bool | None:
+    """Whether pypowerwall's signed (v1r) client saw the gateway refuse its
+    key: unknown, or registered but not yet confirmed. None without a client.
+    A stalled gateway (pypowerwall 0.24+ returns None after about a minute)
+    isn't a refused key and mustn't ask for new access."""
+    transport = getattr(getattr(getattr(pw, "client", None), "tedapi", None), "v1r_transport", None)
+    if transport is None:
+        return None
+    return bool(getattr(transport, "key_unknown", False) or getattr(transport, "pending_verification", False))
+
+
 def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
     """Per-pack capacity, charge and temperatures from TEPOD vitals blocks."""
 
@@ -283,7 +294,11 @@ def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
             "part_number": part,
             "full_kwh": kwh(d.get("POD_nom_full_pack_energy")),
             "remaining_kwh": kwh(d.get("POD_nom_energy_remaining")),
-            "temp_max": temp(d.get("HVP_PackTempMax")),
+            # Powerwall 3: the hottest cell. Powerwall 2 has no pack reading;
+            # its thermal controller (same part and serial) reports one.
+            "temp_max": temp(d.get("HVP_PackTempMax"))
+            if d.get("HVP_PackTempMax") is not None
+            else temp((vitals.get(f"TETHC--{part}--{serial}") or {}).get("THC_AmbientTemp")),
             "temp_min": temp(d.get("HVP_PackTempMin")),
             "shunt_temp": temp(d.get("HVP_ShuntTemperature")),
             # Wear (Powerwall 3, pypowerwall 0.23+): already in kWh.
@@ -845,11 +860,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @staticmethod
     def _read_site_info(pw) -> dict[str, Any] | None:
-        """The gateway's own config ("site_info"), or None if it can't be read."""
+        """The gateway's own config ("site_info"), or None if it can't be read.
+        No config at all (pypowerwall 0.24+ returns None while the gateway is
+        stalled) is "can't be read", not "every setting dropped"."""
         try:
-            return (pw.client.tedapi.get_config() or {}).get("site_info") or {}
+            config = pw.client.tedapi.get_config()
         except Exception:  # noqa: BLE001
             return None
+        site_info = config.get("site_info") if isinstance(config, dict) else None
+        return site_info if isinstance(site_info, dict) else None
 
     def _check_dropped(self, pw, control: dict[str, Any], site_info: dict[str, Any]) -> dict[str, bool]:
         """Which settings in DROPPABLE_SETTINGS are missing from the gateway's
@@ -1451,9 +1470,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._pw = await self.hass.async_add_executor_job(self._init_powerwall)
                 data = await self.hass.async_add_executor_job(self._fetch_all)
             except Exception as err:
+                key_refused = _key_refused(self._pw)
                 self._pw = None
                 self._full_at = None  # a full read first once it answers again
-                await self._async_note_local_failure()
+                await self._async_note_local_failure(key_refused)
                 if not (self.cloud_enabled and self.din):
                     raise
                 data = await self.hass.async_add_executor_job(self._fetch_cloud_only)
@@ -1758,8 +1778,11 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # Password / key problems -> reauth; cloud sign-in -> repair
     # ------------------------------------------------------------------
 
-    def _classify_failure(self) -> str:
-        """Why the signed connection failed: password, key or network."""
+    def _classify_failure(self, key_refused: bool | None = None) -> str:
+        """Why the signed connection failed: password, key, network, or a
+        gateway that answers the login but not the reads (stalled, busy).
+        key_refused: whether pypowerwall saw the gateway refuse the key; None
+        when there was no client to ask (it couldn't connect at all)."""
         if not self._gw_pwd:
             return "password"
         try:
@@ -1768,12 +1791,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return "password"
         except gateway.GatewayUnreachable:
             return "network"
-        return "key"
+        return "stalled" if key_refused is False else "key"
 
-    async def _async_note_local_failure(self) -> None:
+    async def _async_note_local_failure(self, key_refused: bool | None = None) -> None:
         if self._conn_mode != MODE_V1R or self._reauth_started:
             return
-        reason = await self.hass.async_add_executor_job(self._classify_failure)
+        reason = await self.hass.async_add_executor_job(self._classify_failure, key_refused)
         if reason == "password":
             self._password_refused += 1
         elif reason == "key":
