@@ -412,9 +412,103 @@ async def test_credentials_description(hass: HomeAssistant) -> None:
     assert placeholders["redirect_url"] == "https://my.home-assistant.io/redirect/oauth"
 
 
+async def _start_new_key(hass: HomeAssistant, entry: MockConfigEntry) -> tuple[str, dict]:
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+    await hass.async_block_till_done()
+    flow_id = hass.config_entries.flow.async_progress_by_handler(DOMAIN)[0]["flow_id"]
+    result = await hass.config_entries.flow.async_configure(flow_id, {"next_step_id": "register"})
+    return flow_id, await _teslemetry(hass, result)
+
+
+def _key_folder(tmp_path):
+    """An integration folder with the key an entry uses, and what a new key's
+    files are called (the key server knows PUB)."""
+    folder = tmp_path / "tesla_tedapi"
+    folder.mkdir()
+    old = folder / "tedapi_rsa_private.pem"
+    old.write_bytes(b"the key in use")
+    name = tesla_cloud.fingerprint(PUB)[:12]
+    return folder, old, folder / f"tedapi_rsa_private_{name}.pem", folder / f"tedapi_rsa_public_{name}.der"
+
+
+async def test_a_new_key_is_a_new_key_in_its_own_file(hass: HomeAssistant, tmp_path, fleet) -> None:
+    """Register a new signed key makes another key (it used to register the
+    same one again). The key in use isn't touched until the Powerwall has
+    confirmed the new one; then the entry switches and the old file goes."""
+    folder, old, new, new_public = _key_folder(tmp_path)
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={**V1R, "rsa_key_path": str(old)})
+    entry.add_to_hass(hass)
+    keys = KeyServer(fleet, [1, 3])
+    with (keys.patch, patch.object(config_flow.TeslaLoginMixin, "_folder", str(folder)),
+          patch(f"{CLOUD}.public_der_of", return_value=PUB),
+          patch.object(config_flow, "VERIFY_POLL_SECONDS", 0), patch(SETUP, return_value=True)):
+        flow_id, result = await _start_new_key(hass, entry)
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+        assert new.is_file() and new_public.read_bytes() == PUB
+        assert new.read_bytes().startswith(b"-----BEGIN RSA PRIVATE KEY-----")
+        assert old.read_bytes() == b"the key in use" and entry.data["rsa_key_path"] == str(old)
+        await hass.async_block_till_done(wait_background_tasks=True)
+        result = await hass.config_entries.flow.async_configure(flow_id)
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "reauth_successful"
+    assert entry.data["rsa_key_path"] == str(new)
+    assert len(keys.added) == 1  # one key, registered once
+    assert sorted(p.name for p in folder.iterdir()) == sorted([new.name, new_public.name])
+
+
+async def test_a_new_key_that_is_not_confirmed_is_removed(hass: HomeAssistant, tmp_path, fleet) -> None:
+    """The flow ends before the Powerwall confirms the new key: its files go,
+    the entry and the key in use stay. Another entry's key is never removed."""
+    folder, old, new, new_public = _key_folder(tmp_path)
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={**V1R, "rsa_key_path": str(old)})
+    entry.add_to_hass(hass)
+    # The other entry names the same file another way.
+    same_file = str(folder / ".." / folder.name / old.name)
+    MockConfigEntry(domain=DOMAIN, unique_id="OTHER-DIN", data={**V1R, "rsa_key_path": same_file}).add_to_hass(hass)
+    keys = KeyServer(fleet, [1, 1])
+    with (keys.patch, patch.object(config_flow.TeslaLoginMixin, "_folder", str(folder)),
+          patch(f"{CLOUD}.public_der_of", return_value=PUB),
+          patch.object(config_flow, "VERIFY_POLL_SECONDS", 3600), patch(SETUP, return_value=True)):
+        flow_id, result = await _start_new_key(hass, entry)
+        assert result["type"] is FlowResultType.SHOW_PROGRESS and new.is_file()
+        hass.config_entries.flow.async_abort(flow_id)
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert [p.name for p in folder.iterdir()] == [old.name]
+    assert old.read_bytes() == b"the key in use" and entry.data["rsa_key_path"] == str(old)
+
+    # Confirmed this time, but the other entry still uses the old key file.
+    keys = KeyServer(fleet, [1, 3])
+    with (keys.patch, patch.object(config_flow.TeslaLoginMixin, "_folder", str(folder)),
+          patch(f"{CLOUD}.public_der_of", return_value=PUB),
+          patch.object(config_flow, "VERIFY_POLL_SECONDS", 0), patch(SETUP, return_value=True)):
+        flow_id, result = await _start_new_key(hass, entry)
+        await hass.async_block_till_done(wait_background_tasks=True)
+        result = await hass.config_entries.flow.async_configure(flow_id)
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert result["reason"] == "reauth_successful" and entry.data["rsa_key_path"] == str(new)
+    assert old.read_bytes() == b"the key in use"
+
+
 async def test_new_key_not_offered_on_wifi_entries(hass: HomeAssistant) -> None:
     entry = MockConfigEntry(domain=DOMAIN, unique_id="x", data={"connection_mode": "wifi", "host": "192.168.91.1"})
     entry.add_to_hass(hass)
     with patch(SETUP, return_value=True):
         result = await hass.config_entries.options.async_init(entry.entry_id)
     assert "new_key" not in result["menu_options"]
+
+
+async def test_reauth_with_the_same_key_removes_nothing(hass: HomeAssistant, tmp_path) -> None:
+    """An ordinary reauth keeps the entry's key: its file stays."""
+    folder, old, _, _ = _key_folder(tmp_path)
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={**V1R, "rsa_key_path": str(old)})
+    entry.add_to_hass(hass)
+    flow = config_flow.TedapiConfigFlow()
+    flow.hass = hass
+    with patch.object(config_flow.TeslaLoginMixin, "_folder", str(folder)), \
+            patch(f"{CLOUD}.remove_key_files") as remove:
+        flow._retire_key(entry, str(folder / ".." / folder.name / old.name))
+        flow._retire_key(entry, None)
+        await hass.async_block_till_done(wait_background_tasks=True)
+    remove.assert_not_called()
+    assert old.read_bytes() == b"the key in use"

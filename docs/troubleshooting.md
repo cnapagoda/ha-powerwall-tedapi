@@ -94,7 +94,7 @@
 | *Powerwall alert: …* | A warning or fault has lasted the Problem delay. It disappears when the alert clears. See [Alerts](alerts.md). |
 | *Sign in to Tesla again* | The Owner API backup failed 3 checks in a row. Fixable: select it to sign in. |
 | *Fleet API cloud backup is not working* / *can't change settings* | See above. |
-| *Signed local access stopped after a firmware update* | The first reading on new firmware couldn't use the signed connection. Wait for a few polls; if it stays, register the key again (**Configure → Register a new signed key**) and open an issue with the firmware version. |
+| *Signed local access stopped after a firmware update* | The first reading on new firmware couldn't use the signed connection. Wait for a few polls; if it stays, register a new key (**Configure → Register a new signed key**) and open an issue with the firmware version. |
 | *The Powerwall couldn't reconnect to the grid* | The automatic reconnect failed; it's retried every minute. Check the gateway connection, or reconnect in the Tesla app. |
 | *Tesla's cloud capped the backup reserve* / *A cloud change did not apply as set* | See [Settings and control](#settings-and-control). |
 | *Tesla stored a different tariff* | A tariff write wasn't shown by Tesla after 35 minutes (or a Fleet API read-back showed other rates). See [Tesla tariff](tesla-tariff.md). |

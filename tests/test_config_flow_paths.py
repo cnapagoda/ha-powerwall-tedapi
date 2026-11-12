@@ -4,6 +4,8 @@ reconfigure errors and the cloud backup choice."""
 from __future__ import annotations
 
 import asyncio
+import os
+from pathlib import Path
 from unittest.mock import patch
 
 from homeassistant import config_entries
@@ -118,11 +120,15 @@ def test_check_gateway_and_scan() -> None:
     scan.assert_called_once_with(json_output=True, timeout=1.0)
 
 
-def test_store_key_rejects_non_pem_and_keeps_a_backup(hass: HomeAssistant, tmp_path) -> None:
+def test_store_key_rejects_non_pem_and_never_writes_over_a_key(hass: HomeAssistant, tmp_path) -> None:
     from contextlib import contextmanager
 
     from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric import rsa
+
+    def pem() -> bytes:
+        return rsa.generate_private_key(public_exponent=65537, key_size=2048).private_bytes(
+            serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
 
     upload = tmp_path / "upload.pem"
 
@@ -131,15 +137,30 @@ def test_store_key_rejects_non_pem_and_keeps_a_backup(hass: HomeAssistant, tmp_p
         yield upload
 
     store = tmp_path / "store"
+    first, second = pem(), pem()
     with patch("homeassistant.components.file_upload.process_uploaded_file", uploaded):
         upload.write_bytes(b"not a key")
         with pytest.raises(config_flow.InvalidRsaKey):
             config_flow._store_key(hass, "id", str(store))
-        upload.write_bytes(rsa.generate_private_key(public_exponent=65537, key_size=2048).private_bytes(
-            serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
-        config_flow._store_key(hass, "id", str(store))
-        config_flow._store_key(hass, "id", str(store))
-    assert (store / f"{config_flow.RSA_KEY_FILE}.bak").is_file()
+        upload.write_bytes(first)
+        default = config_flow._store_key(hass, "id", str(store))
+        assert default == str(store / "tedapi_rsa_private.pem")
+        # The same key again: the same file.
+        assert config_flow._store_key(hass, "id", str(store)) == default
+        # Another key: a file of its own. The first (an entry may be using it,
+        # and the new one isn't checked against the Powerwall yet) stays as it is.
+        upload.write_bytes(second)
+        other = config_flow._store_key(hass, "id", str(store))
+        assert other != default and os.path.dirname(other) == str(store)
+        assert os.path.basename(other).startswith("tedapi_rsa_private_") and other.endswith(".pem")
+        assert os.stat(other).st_mode & 0o777 == 0o600
+        assert config_flow._store_key(hass, "id", str(store)) == other
+        # An unreadable file under the first name is left alone too.
+        (store / "tedapi_rsa_private.pem").write_bytes(b"damaged")
+        assert config_flow._store_key(hass, "id", str(store)) == other
+    assert (store / "tedapi_rsa_private.pem").read_bytes() == b"damaged"
+    assert Path(other).read_bytes() == second
+    assert sorted(os.listdir(store)) == sorted(["tedapi_rsa_private.pem", os.path.basename(other)])
 
 
 @pytest.mark.parametrize(("err", "errors"), [

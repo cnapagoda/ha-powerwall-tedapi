@@ -142,6 +142,17 @@ async def test_the_flow_stops_on_an_older_pypowerwall(hass: HomeAssistant, fake_
     assert result["type"] is FlowResultType.MENU
 
 
+async def test_reconfigure_stops_on_an_older_pypowerwall(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, V1R)
+    result = await entry.start_reconfigure_flow(hass)
+    assert result["step_id"] == "reconfigure"
+    with patch("pypowerwall.version", "0.21.0"):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {
+            "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/tmp/key.pem"})
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "pypowerwall_too_old"
+    assert result["description_placeholders"] == {"found": "0.21.0", "required": client.required()}
+
+
 async def test_a_client_mismatch_is_not_a_refused_key(hass: HomeAssistant, fake_powerwall, caplog) -> None:
     """The client refusing its own arguments says nothing about the key:
     logged once, and no request to set up access again."""

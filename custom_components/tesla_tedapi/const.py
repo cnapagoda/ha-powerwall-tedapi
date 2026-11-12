@@ -112,6 +112,12 @@ MAX_SCAN_INTERVAL = 300
 STORAGE_FOLDER = "tesla_tedapi"
 RSA_KEY_FILE = "tedapi_rsa_private.pem"
 RSA_PUBLIC_KEY_FILE = "tedapi_rsa_public.der"
+# Another key in the same folder (a new key registered later, or an uploaded
+# key that differs from the one already there): named after the start of its
+# fingerprint, so no key file is ever written over.
+RSA_KEY_FILE_FORMAT = "tedapi_rsa_private_{}.pem"
+RSA_PUBLIC_KEY_FILE_FORMAT = "tedapi_rsa_public_{}.der"
+KEY_NAME_LENGTH = 12
 AUTH_FILE = ".pypowerwall.auth"
 
 # Operation modes: API value -> option key (translated in strings.json)

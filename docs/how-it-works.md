@@ -60,7 +60,7 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 | Where | What |
 |---|---|
 | Config entry | Gateway address and password, key path, connection type, Tesla account email and site (if linked), options. |
-| `config/tesla_tedapi/` | `tedapi_rsa_private.pem` (the key), `tedapi_rsa_public.der`, `.pypowerwall.auth` (Owner API tokens). Owner-only permissions. |
+| `config/tesla_tedapi/` | `tedapi_rsa_private.pem` (the key), `tedapi_rsa_public.der`, `.pypowerwall.auth` (Owner API tokens). Owner-only permissions. A key registered or uploaded later is kept beside it as `tedapi_rsa_private_<start of its fingerprint>.pem`: a key file is never written over. The entry's **RSA private key file** (under **Reconfigure**) says which one is in use. |
 | `.storage/tesla_tedapi.<entry>` | Alert start times, the settings to restore, outage history, firmware history, today's energy baselines, grid counter check, energy flow totals, battery capacity samples. Removed when you delete the entry. |
 | `.storage/tesla_tedapi.<entry>.off_grid` | A running off-grid run, so the reconnect survives a restart. |
 | Recorder | States, and the attributes that matter in history. Attributes that change on nearly every reading or are only detail (pack temperatures and remaining energy, the grid counter check figures, Setup health checks, fan duty, alert details) are shown live but not recorded. |

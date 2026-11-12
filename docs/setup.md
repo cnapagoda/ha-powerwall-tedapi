@@ -136,7 +136,7 @@ On an existing setup, use **Configure → Register a new signed key**, or **Conf
 
 ### B. Upload a key that is already registered
 
-If you registered a key with `python -m pypowerwall register`, upload its `tedapi_rsa_private.pem`. It is checked (it must be an RSA private key) and copied into `config/tesla_tedapi/` with owner-only permissions. You can also link a Tesla account here for the cloud backup.
+If you registered a key with `python -m pypowerwall register`, upload its `tedapi_rsa_private.pem`. It is checked (it must be an RSA private key) and copied into `config/tesla_tedapi/` with owner-only permissions. A different key already there is kept: the upload gets a file of its own. You can also link a Tesla account here for the cloud backup.
 
 <details>
 <summary>Screenshot: key upload</summary>
