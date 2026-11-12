@@ -169,6 +169,27 @@ async def test_failed_reconnect_raises_repair_and_retries(hass: HomeAssistant, f
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
 
 
+async def test_reconnect_error_inside_the_connection_raises_the_repair(hass: HomeAssistant, fake_powerwall) -> None:
+    """The automatic reconnect failing with an error from pypowerwall (not a
+    refusal) used to raise no repair."""
+    entry = await _setup(hass, V1R)
+    await _go(hass, duration_minutes=30)
+    session = entry.runtime_data.off_grid
+    session.state.ends = dt_util.utcnow() - timedelta(seconds=1)
+    with patch.object(local(fake_powerwall), "reconnect_grid", side_effect=ConnectionError("no answer")):
+        await _refresh(hass, entry)
+        assert ir.async_get(hass).async_get_issue(
+            DOMAIN, f"off_grid_reconnect_failed_{entry.entry_id}") is not None
+        assert session.state is not None and session._retry_at is not None
+        with pytest.raises(HomeAssistantError) as err:
+            await hass.services.async_call(DOMAIN, "reconnect_grid", {}, blocking=True)
+        assert err.value.translation_key == "contactor_refused"
+    with patch.object(local(fake_powerwall), "schedule_max_backup", side_effect=TimeoutError("slow")), \
+            pytest.raises(HomeAssistantError) as err:
+        await hass.services.async_call(DOMAIN, "start_max_backup", {"duration_minutes": 60}, blocking=True)
+    assert err.value.translation_key == "backup_event_refused"
+
+
 async def test_run_survives_a_reload(hass: HomeAssistant, fake_powerwall) -> None:
     entry = await _setup(hass, V1R)
     await _go(hass, duration_minutes=30, min_soc=10)

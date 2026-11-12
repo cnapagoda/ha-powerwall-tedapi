@@ -63,7 +63,7 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 
 ### Per battery pack 🔍
 
-One set per Powerwall and expansion pack, named after the pack (*Powerwall 3*, *Expansion Pack*, or *Battery 1234*).
+One set per Powerwall and expansion pack, named after the pack (*Powerwall 3*, *Expansion Pack*, or *Battery 1234*). With more than one of a model, the further ones are numbered (*Powerwall 3 (2)*, *Expansion Pack (2)*): the leader's first, and a pack keeps its name.
 
 | Entity | Example entity ID | Unit | Notes |
 |---|---|---|---|

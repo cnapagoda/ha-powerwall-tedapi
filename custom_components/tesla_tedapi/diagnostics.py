@@ -119,7 +119,7 @@ def number_packs(data: dict[str, Any]) -> tuple[dict[str, Any], tuple[str, ...]]
     names: dict[str, str] = {}
     for index, (serial, pack) in enumerate(packs.items(), start=1):
         name = pack.get("name") if isinstance(pack, dict) else None
-        if isinstance(name, str) and isinstance(serial, str) and serial and name.endswith(serial[-4:]):
+        if isinstance(name, str) and isinstance(serial, str) and serial and serial[-4:] in name:
             names[name] = f"Battery {index}"
     serials = tuple(s for s in packs if isinstance(s, str))
     data = {**data, "packs": list(packs.values())}

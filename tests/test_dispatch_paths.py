@@ -63,6 +63,38 @@ async def test_renewal_failures_end_the_session(hass: HomeAssistant, fake_powerw
     assert ended[-1].data["reason"] == "connection_lost"
 
 
+async def test_an_error_inside_the_connection_is_a_refusal(hass: HomeAssistant, fake_powerwall, caplog) -> None:
+    """pypowerwall raising (no answer, a dropped connection) is reported like
+    a refusal: renewals count it, and the session ends with connection_lost
+    (it used to show as running until its end time)."""
+    entry = await _setup(hass, V1R)
+    pw = local(fake_powerwall)
+    with patch.object(pw, "dispatch_battery_power", side_effect=ConnectionError("no answer")), \
+            pytest.raises(HomeAssistantError) as err:
+        await _dispatch(hass)
+    assert err.value.translation_key == "dispatch_refused_reason"
+    assert err.value.translation_placeholders == {"reason": "ConnectionError: no answer"}
+    assert "Battery dispatch: the command failed before the Powerwall answered" in caplog.text
+
+    ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)
+    await _dispatch(hass)
+    with patch.object(pw, "dispatch_battery_power", side_effect=ConnectionError("no answer")):
+        for n in (1, 2, 3):
+            await _tick(hass, 61 * n)
+    assert ended[-1].data["reason"] == "connection_lost"
+
+    # A resume that fails the same way: an error callers expect, and the
+    # entry still unloads.
+    await _dispatch(hass)
+    with patch.object(pw, "resume_battery_operation", side_effect=OSError("gone")):
+        with pytest.raises(HomeAssistantError) as err:
+            await hass.services.async_call(DOMAIN, "resume_battery_operation", {}, blocking=True)
+        assert err.value.translation_key == "resume_refused"
+        await _dispatch(hass)
+        assert await hass.config_entries.async_unload(entry.entry_id)
+    assert entry.state is ConfigEntryState.NOT_LOADED
+
+
 async def test_one_failed_renewal_is_forgiven(hass: HomeAssistant, fake_powerwall) -> None:
     await _setup(hass, V1R)
     ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)

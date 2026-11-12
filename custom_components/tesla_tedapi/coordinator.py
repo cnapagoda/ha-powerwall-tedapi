@@ -130,9 +130,10 @@ ENERGY_COUNTERS: dict[str, tuple[str, str]] = {
     "home_energy_consumed": ("load", "energy_imported"),
 }
 
-# Battery pack part numbers -> friendly names (TEPOD vitals blocks).
 # Polls a follower Powerwall 3 may be missing before the repair is raised.
 FOLLOWER_MISSING_POLLS = 10
+# Battery pack part numbers -> friendly names (TEPOD vitals blocks). Packs of
+# the same model are told apart by name_packs.
 PACK_NAMES = {"1707000": "Powerwall 3", "1807000": "Expansion Pack"}
 # Part numbers that name the system's model, from the gateway's DIN or a
 # battery pack (a Powerwall 3 is its own gateway). Anything else is shown as
@@ -319,6 +320,44 @@ def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
     return packs
 
 
+def name_packs(packs: dict[str, dict[str, Any]], names: dict[str, str], din: str | None,
+               count: int | None = None) -> dict[str, dict[str, Any]]:
+    """Give every pack a name of its own, and keep it.
+
+    Packs are named after their model, so two Powerwall 3s (or two Expansion
+    Packs) had the same name: their sensors couldn't be told apart, and
+    anything keyed by the name (alert sources, the packs in the attributes)
+    kept only one of them. The second of a model is "Powerwall 3 (2)", and
+    so on.
+
+    `names` (serial -> name) is remembered, and saved: a pack keeps its name
+    while another one is missing from the readings (a follower Powerwall 3
+    comes and goes) and across restarts. Among packs seen for the first time
+    together, the leader's (the serial in the gateway's DIN) is named first,
+    then by serial. Changes `packs` and `names` in place.
+
+    `count` is the number of packs in the gateway's config. When the packs
+    known here outnumber it, a pack was replaced or removed: the names of
+    packs missing from this reading are given up, so a replacement takes
+    the name back instead of becoming "(2)". A pack only missing from the
+    readings is still counted in the config, so it keeps its name."""
+    if count and len(set(names) | set(packs)) > count:
+        for serial in [sn for sn in names if sn not in packs]:
+            del names[serial]
+    leader = str(din or "").split("--")[-1]
+    for serial in sorted(packs, key=lambda sn: (sn != leader, sn)):
+        if serial not in names:
+            base = str(packs[serial].get("name") or DEFAULT_MODEL)
+            taken = set(names.values())
+            name, number = base, 1
+            while name in taken:
+                number += 1
+                name = f"{base} ({number})"
+            names[serial] = name
+        packs[serial]["name"] = names[serial]
+    return packs
+
+
 def _missing_powerwalls(config: dict | None, vitals: dict) -> list[str] | None:
     """Serial numbers of the Powerwall 3s in the gateway's config whose
     readings are missing from vitals. None with fewer than two Powerwall 3s
@@ -501,6 +540,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.intentional_off_grid: Callable[[], bool] = lambda: False
         self._write_issues: set[str] = set()
         self._follower_missing = 0
+        # Battery packs' names by serial (see name_packs); saved.
+        self._pack_names: dict[str, str] = {}
         # Consecutive polls where the gateway refused the password or the key.
         self._password_refused = 0
         self._key_refused = 0
@@ -1011,7 +1052,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "pack_count": _pack_count(config),
             "battery_full_kwh": round(full_wh / 1000, 2) if num(full_wh) and full_wh > 0 else None,
             "battery_remaining_kwh": round(remaining_wh / 1000, 2) if num(remaining_wh) else None,
-            "packs": _extract_packs(vitals),
+            "packs": name_packs(_extract_packs(vitals), self._pack_names, self.din, _pack_count(config)),
             "inverter_ambient_temp": _extract_pinv_value(vitals, "PCH_AmbientTemp", din=self.din),
             "inverter_heatsink_temp": _extract_pinv_value(vitals, "PCH_heatsinkTemp", din=self.din),
             "alerts": alerts,
@@ -1308,13 +1349,26 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 return {**values, "backend": backend.name}
         return {}
 
+    @staticmethod
+    def _command_error(what: str, err: Exception) -> None:
+        """A local command failed inside pypowerwall (no answer, a dropped
+        connection, a client that doesn't know the command). Logged here; the
+        caller reports it like a refusal (None), so everything that sends
+        commands sees a HomeAssistantError and nothing else."""
+        _LOGGER.warning("%s: the command failed before the Powerwall answered (%s: %s)",
+                        what, type(err).__name__, err)
+
     def _max_backup(self, minutes: int | None) -> None:
         """Start (minutes) or cancel (None) a manual backup event over signed
         v1r: the Powerwall charges to full and holds it, as in Storm Watch."""
         pw = self._pw
         if pw is None or getattr(pw, "tedapi_mode", None) != "v1r":
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="max_backup_needs_v1r")
-        ok = pw.cancel_max_backup() if minutes is None else pw.schedule_max_backup(duration_seconds=int(minutes) * 60)
+        try:
+            ok = (pw.cancel_max_backup() if minutes is None
+                  else pw.schedule_max_backup(duration_seconds=int(minutes) * 60))
+        except Exception as err:  # noqa: BLE001
+            ok = self._command_error("Max backup", err)
         if not ok:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="backup_event_refused")
         _LOGGER.info("Max backup %s", f"started for {minutes} min" if minutes else "cancelled")
@@ -1326,7 +1380,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         pw = self._pw
         if pw is None or getattr(pw, "tedapi_mode", None) != "v1r":
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="off_grid_needs_v1r")
-        result = pw.go_off_grid(confirm=True) if off_grid else pw.reconnect_grid()
+        try:
+            result = pw.go_off_grid(confirm=True) if off_grid else pw.reconnect_grid()
+        except Exception as err:  # noqa: BLE001
+            result = self._command_error("Go off-grid" if off_grid else "Grid reconnect", err)
         if not result:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="contactor_refused")
         _LOGGER.warning("%s requested (gateway result %s)",
@@ -1373,6 +1430,14 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except ValueError as err:
                 raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_invalid",
                                          translation_placeholders={"error": str(err)}) from err
+            except Exception as err:  # noqa: BLE001
+                # Anything else pypowerwall raises (the gateway dropped the
+                # connection, say): a refusal like any other, so a session's
+                # renewals count it and callers get one kind of error.
+                self._command_error("Battery dispatch", err)
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN, translation_key="dispatch_refused_reason",
+                    translation_placeholders={"reason": f"{type(err).__name__}: {err}"}) from err
         if not result:
             # pypowerwall only logs why: show the gateway's reason too.
             reasons = [m for m in gateway_errors.messages if m.startswith("Battery dispatch")]
@@ -1386,7 +1451,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         pw = self._pw
         if pw is None or getattr(pw, "tedapi_mode", None) != "v1r":
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="dispatch_needs_v1r")
-        result = pw.resume_battery_operation()
+        try:
+            result = pw.resume_battery_operation()
+        except Exception as err:  # noqa: BLE001
+            result = self._command_error("Battery resume", err)
         if not result:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="resume_refused")
         return result
@@ -1429,6 +1497,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.grid_check.restore(stored.get("grid_check") or {})
         self.flows.restore(stored.get("flows") or {})
         self.capacity_trend.restore(stored.get("capacity_trend") or {})
+        names = stored.get("pack_names")
+        self._pack_names = {str(k): str(v) for k, v in names.items()} if isinstance(names, dict) else {}
 
     def _state_to_save(self) -> dict[str, Any]:
         return {"export_wanted": self.wanted["grid_export"],
@@ -1439,7 +1509,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "daily": self.daily.as_dict(),
                 "grid_check": self.grid_check.as_dict(),
                 "flows": self.flows.as_dict(),
-                "capacity_trend": self.capacity_trend.as_dict()}
+                "capacity_trend": self.capacity_trend.as_dict(),
+                "pack_names": dict(self._pack_names)}
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:

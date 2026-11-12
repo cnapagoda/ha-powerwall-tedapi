@@ -324,6 +324,10 @@ def test_diagnostics_tariff_and_pack_names() -> None:
     assert data["alert_details"][0]["sources"] == ["Battery 1", "gateway"]
     assert "06TN" not in str(data) and data["battery_level"] == 50.0
     assert number_packs({"battery_level": 50.0}) == ({"battery_level": 50.0, "packs": []}, ())
+    # Two packs whose serials end alike: the numbered one is hidden too.
+    data, _ = number_packs({"packs": {"AA00006TN": {"name": "Battery 06TN"},
+                                      "BB00006TN": {"name": "Battery 06TN (2)"}}})
+    assert [p["name"] for p in data["packs"]] == ["Battery 1", "Battery 2"] and "06TN" not in str(data)
 
     out = redact_values({"token_cache": {"present": True}, "host": "192.168.1.30",
                          "note": "meter 0a:1b:2c:3d:4e:5f", "serials": ["x TG12345678906TN"]}, serials)
