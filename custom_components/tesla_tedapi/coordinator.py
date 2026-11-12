@@ -26,6 +26,7 @@ from homeassistant.util import dt as dt_util
 
 from . import gateway, phases as phases_mod, tariff as tariff_mod, tesla_cloud
 from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, problem_after, summary
+from .client import local_kwargs
 from .cloud import CloudBackend, OwnerSettings, live_readings, live_time, wall_connectors
 from .const import (
     AUTH_FILE,
@@ -258,6 +259,13 @@ def _extract_fans(vitals: dict, din: str | None = None) -> dict[str, dict[str, A
         if rpm is not None:
             fans[str(index)] = {"rpm": rpm, "target_rpm": num(d.get("PVAC_Fan_Speed_Target_RPM"))}
     return fans
+
+
+def _client_mismatch(err: Exception) -> bool:
+    """Whether the client refused its own arguments: a pypowerwall that
+    doesn't match this integration, not a gateway that refuses or doesn't
+    answer."""
+    return isinstance(err, TypeError) and "unexpected keyword argument" in str(err)
 
 
 def _key_refused(pw: Any) -> bool | None:
@@ -496,6 +504,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Consecutive polls where the gateway refused the password or the key.
         self._password_refused = 0
         self._key_refused = 0
+        self._client_error_logged = False
         self._reauth_started = False
         # Gateway down while the cloud backup keeps the settings: logged once.
         self._gateway_down = False
@@ -599,43 +608,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _init_powerwall(self):
         import pypowerwall  # noqa: PLC0415
 
-        kwargs: dict[str, Any] = {
-            "host": self._host,
-            "password": "",
-            "email": "",
-            "timezone": str(self.hass.config.time_zone),
+        kwargs = local_kwargs(
+            self._conn_mode, self._host, self._gw_pwd, self._rsa_key_path, str(self.hass.config.time_zone),
+            full_login=self._full_login, wifi_host=self._wifi_host,
             # pypowerwall's own cache: shorter than a fast poll, so each one
             # reads the gateway.
-            "pwcacheexpire": min(5, max(1, int(self._scan_interval(self.config_entry).total_seconds()) - 1)),
-            "auto_select": True,
-            "failover": False,
-            # pypowerwall's failover switches to cloud mode when it finds a token
-            # cache in authpath (default: the working directory, which is the HA
-            # config folder). Point it at a folder without one: this client is
-            # local only, and the cloud backup is a separate client.
-            "authpath": os.path.dirname(__file__),
-        }
-        if self._conn_mode == MODE_V1R:
-            kwargs["rsa_key_path"] = self._rsa_key_path
-            if self._full_login:
-                kwargs["password"] = self._gw_pwd
-            if self._gw_pwd:
-                kwargs["gw_pwd"] = self._gw_pwd
-            if self._wifi_host and self._wifi_host != self._host:
-                # After 3 failures on the home-network address, use signed v1r
-                # over the Powerwall's Wi-Fi hotspot; the main host is retried later.
-                kwargs["wifi_host"] = self._wifi_host
-                kwargs["failover"] = True
-                kwargs["wifi_v1r_fallback"] = True
-            elif self._host == DEFAULT_HOST_WIFI and self._gw_pwd:
-                # The signed connection already uses the Powerwall's own Wi-Fi.
-                # pypowerwall reads follower Powerwall 3s through wifi_host
-                # only, and that may be the same address: there is nothing to
-                # fail over to (its failover needs a different address).
-                kwargs["wifi_host"] = self._host
-        else:
-            kwargs["gw_pwd"] = self._gw_pwd
-
+            cache_seconds=min(5, max(1, int(self._scan_interval(self.config_entry).total_seconds()) - 1)))
         pw = pypowerwall.Powerwall(**kwargs)
         if pw.mode != "local":
             raise RuntimeError(f"pypowerwall picked {pw.mode} mode, not local")
@@ -1473,7 +1451,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 key_refused = _key_refused(self._pw)
                 self._pw = None
                 self._full_at = None  # a full read first once it answers again
-                await self._async_note_local_failure(key_refused)
+                if _client_mismatch(err):
+                    # Not an answer from the gateway: don't count it as a
+                    # refused password or key (that would ask for new access).
+                    self._note_client_error(err)
+                else:
+                    await self._async_note_local_failure(key_refused)
                 if not (self.cloud_enabled and self.din):
                     raise
                 data = await self.hass.async_add_executor_job(self._fetch_cloud_only)
@@ -1777,6 +1760,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # ------------------------------------------------------------------
     # Password / key problems -> reauth; cloud sign-in -> repair
     # ------------------------------------------------------------------
+
+    def _note_client_error(self, err: Exception) -> None:
+        """A failure in the client code itself, such as another integration's
+        older pypowerwall taking over after this entry was set up. Logged once."""
+        if not self._client_error_logged:
+            self._client_error_logged = True
+            _LOGGER.error(
+                "The Powerwall client failed before reaching the gateway (%s: %s). If another integration "
+                "installs a different pypowerwall, remove it and restart Home Assistant", type(err).__name__, err)
 
     def _classify_failure(self, key_refused: bool | None = None) -> str:
         """Why the signed connection failed: password, key, network, or a

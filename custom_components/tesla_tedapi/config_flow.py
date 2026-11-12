@@ -51,7 +51,7 @@ import voluptuous as vol
 if TYPE_CHECKING:
     from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 
-from . import fleet, gateway, tesla_cloud
+from . import client, fleet, gateway, tesla_cloud
 from .const import (
     BACKEND_FLEET,
     BACKEND_OWNER,
@@ -182,23 +182,17 @@ def _probe(mode: str, host: str, gw_pwd: str, rsa_key_path: str, timezone: str, 
     """Connect like the integration does and return the gateway DIN."""
     import pypowerwall  # noqa: PLC0415
 
+    client.ensure_supported()
     if not gw_pwd:
         # pypowerwall logs in to the gateway with the password's last 5
         # characters before using the key; without it v1r cannot start.
         raise PasswordRequired
-    kwargs: dict[str, Any] = {
-        # A Backup Gateway 1 logs in with the full password; otherwise
-        # pypowerwall uses its last 5 characters.
-        "host": host, "password": gw_pwd if full_login and mode == MODE_V1R else "",
-        "email": "", "timezone": timezone,
-        "auto_select": True, "failover": False, "gw_pwd": gw_pwd,
-        # Keep pypowerwall from picking up a cloud token cache (see coordinator).
-        "authpath": os.path.dirname(__file__),
-    }
-    if mode == MODE_V1R:
-        if not os.path.isfile(rsa_key_path):
-            raise InvalidRsaKey(rsa_key_path)
-        kwargs["rsa_key_path"] = rsa_key_path
+    if mode == MODE_V1R and not os.path.isfile(rsa_key_path):
+        raise InvalidRsaKey(rsa_key_path)
+    # The same arguments as polling uses, without the Wi-Fi fallback: this
+    # check is about the gateway address itself.
+    kwargs = client.local_kwargs(mode, host, gw_pwd, rsa_key_path, timezone, full_login=full_login,
+                                 fallback=False)
     try:
         pw = pypowerwall.Powerwall(**kwargs)
         if mode == MODE_V1R and getattr(pw, "tedapi_mode", None) != "v1r":
@@ -454,7 +448,18 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
     # Find the gateway
     # ------------------------------------------------------------------
 
+    def _abort_client_too_old(self, err: client.ClientTooOld) -> ConfigFlowResult:
+        _LOGGER.error("Setup stopped: %s. Another integration loaded it; remove that one and restart "
+                      "Home Assistant", err)
+        return self.async_abort(reason="pypowerwall_too_old", description_placeholders={
+            "found": err.found, "required": client.required()})
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        try:
+            # Before the password and the key: nothing would work after them.
+            await self.hass.async_add_executor_job(client.ensure_supported)
+        except client.ClientTooOld as err:
+            return self._abort_client_too_old(err)
         return self.async_show_menu(step_id="user", menu_options=["gateway", "scan"])
 
     async def async_step_scan(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -790,6 +795,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 _probe, self._mode, data[CONF_HOST], data.get(CONF_GW_PWD, ""),
                 data.get(CONF_RSA_KEY_PATH, ""), str(self.hass.config.time_zone),
                 full_login=bool(data.get(CONF_FULL_PASSWORD_LOGIN))))
+        except client.ClientTooOld as err:
+            return self._abort_client_too_old(err)
         except (CannotConnect, KeyNotAccepted, InvalidRsaKey, PasswordRequired) as err:
             _LOGGER.debug("Connection check failed: %r", err)
             return self.async_show_form(

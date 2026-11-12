@@ -206,7 +206,8 @@
       "missing_credentials": "Añade primero la app de desarrollador de Tesla en Ajustes → Credenciales de aplicación.",
       "missing_configuration": "Añade primero la app de desarrollador de Tesla en Ajustes → Credenciales de aplicación.",
       "oauth_implementation_unavailable": "La app de desarrollador de Tesla no está disponible. Revisa las credenciales de aplicación.",
-      "fleet_not_registered": "Tesla rechazó la app de desarrollador (HTTP 412): su dominio no está registrado en Tesla para la región de tu cuenta. Regístralo como se describe en la [guía de configuración]({docs_url}) y vuelve a iniciar sesión."
+      "fleet_not_registered": "Tesla rechazó la app de desarrollador (HTTP 412): su dominio no está registrado en Tesla para la región de tu cuenta. Regístralo como se describe en la [guía de configuración]({docs_url}) y vuelve a iniciar sesión.",
+      "pypowerwall_too_old": "Home Assistant tiene cargado pypowerwall {found}, pero esta integración necesita {required} o posterior. Otra integración personalizada que usa un pypowerwall más antiguo lo cargó primero (por ejemplo, ha-pypowerwall). Elimina esa integración (deshabilitarla no basta), reinicia Home Assistant y vuelve a empezar la configuración."
     }
   },
   "options": {
@@ -810,6 +811,9 @@
     },
     "history_already_imported": {
       "message": "{sensor} ya tiene historial de ese periodo: ya se importó."
+    },
+    "pypowerwall_too_old": {
+      "message": "Home Assistant tiene cargado pypowerwall {found}, pero esta integración necesita {required} o posterior. Otra integración personalizada cargó la versión más antigua: elimínala y reinicia Home Assistant."
     }
   },
   "services": {

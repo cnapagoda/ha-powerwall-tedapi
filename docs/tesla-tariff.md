@@ -12,7 +12,7 @@ You then get:
 - the **Tesla tariff** sensor (`sensor.powerwall_tedapi_tesla_tariff`),
 - the **Tariff buy price** and **Tariff sell price** sensors and the **Buy tariff** / **Sell tariff** calendars ([below](#price-sensors-and-calendars)),
 - the `tesla_tedapi.get_tariff` and `tesla_tedapi.set_tariff` actions,
-- the tariff in diagnostics downloads.
+- the tariff in diagnostics downloads (without the plan and retailer names).
 
 The tariff is read every 6 hours, and after each write.
 

@@ -206,7 +206,8 @@
       "missing_credentials": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
       "missing_configuration": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
       "oauth_implementation_unavailable": "De Tesla-ontwikkelaarsapp is niet beschikbaar. Controleer de applicatiegegevens.",
-      "fleet_not_registered": "Tesla weigerde de ontwikkelaarsapp (HTTP 412): het domein is voor de regio van je account niet bij Tesla geregistreerd. Registreer het zoals beschreven in de [installatiehandleiding]({docs_url}) en meld je daarna opnieuw aan."
+      "fleet_not_registered": "Tesla weigerde de ontwikkelaarsapp (HTTP 412): het domein is voor de regio van je account niet bij Tesla geregistreerd. Registreer het zoals beschreven in de [installatiehandleiding]({docs_url}) en meld je daarna opnieuw aan.",
+      "pypowerwall_too_old": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie met een oudere pypowerwall heeft die eerst geladen (bijvoorbeeld ha-pypowerwall). Verwijder die integratie (uitschakelen is niet genoeg), herstart Home Assistant en begin de installatie opnieuw."
     }
   },
   "options": {
@@ -810,6 +811,9 @@
     },
     "history_already_imported": {
       "message": "{sensor} heeft al geschiedenis uit die periode: die is al geïmporteerd."
+    },
+    "pypowerwall_too_old": {
+      "message": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie heeft de oudere versie geladen: verwijder die en herstart Home Assistant."
     }
   },
   "services": {

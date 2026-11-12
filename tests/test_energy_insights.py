@@ -277,7 +277,7 @@ def test_capacity_trend_keeps_its_history_through_an_odd_read() -> None:
     assert stored.pending == (5, (first + timedelta(days=122)).toordinal())
 
 
-# Shape of pypowerwall's TEDAPI vitals for a Powerwall 2 (as in issue #19).
+# Shape of pypowerwall's TEDAPI vitals for a Powerwall 2 (as a user reported it).
 PW2_VITALS = {
     "TETHC--1092170-03-G--TG1234506TN": {"THC_AmbientTemp": 23.4, "THC_State": "THC_STATE_AUTONOMOUSCONTROL"},
     "TEPINV--1092170-03-G--TG1234506TN": {"PINV_Fout": 50.0, "PINV_VSplit1": 120.1},

@@ -8,13 +8,14 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import Event, HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
-from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady, ServiceValidationError
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 import voluptuous as vol
 
+from . import client
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
     ATTR_CONFIRM,
@@ -271,6 +272,15 @@ async def async_migrate_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> 
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bool:
+    try:
+        await hass.async_add_executor_job(client.ensure_supported)
+    except client.ClientTooOld as err:
+        # Not ConfigEntryNotReady: retrying can't help, only a restart
+        # without the integration that loaded the older pypowerwall.
+        _LOGGER.error("%s. Another integration loaded it; remove that one and restart Home Assistant", err)
+        raise ConfigEntryError(
+            translation_domain=DOMAIN, translation_key="pypowerwall_too_old",
+            translation_placeholders={"found": err.found, "required": client.required()}) from err
     coordinator = TedapiCoordinator(hass, entry)
     await coordinator.async_load_state()
     try:

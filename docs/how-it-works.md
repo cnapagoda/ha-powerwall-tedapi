@@ -69,7 +69,7 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 
 - **No data leaves your network** unless you set up a cloud backup, and then only to Tesla (directly, or through Teslemetry).
 - The key and the Tesla sign-in are secrets: anyone with the key on your network can control the Powerwall. They're included in Home Assistant backups.
-- **Diagnostics downloads** hide the password, email, site ID and serial numbers. The optional gateway configuration in diagnostics also removes location, names and credentials. Check a download before you share it.
+- **Diagnostics downloads** hide the password, email, site ID, serial numbers, MAC addresses and the tariff's plan and retailer names. The optional gateway configuration in diagnostics also removes location (the country, grid code and time zone stay), names and credentials. Check a download before you share it.
 - See [SECURITY.md](../SECURITY.md).
 
 ## Known limitations

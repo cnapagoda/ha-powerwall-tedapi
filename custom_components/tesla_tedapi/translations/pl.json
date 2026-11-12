@@ -206,7 +206,8 @@
       "missing_credentials": "Najpierw dodaj aplikację deweloperską Tesla w Ustawienia → Dane uwierzytelniające aplikacji.",
       "missing_configuration": "Najpierw dodaj aplikację deweloperską Tesla w Ustawienia → Dane uwierzytelniające aplikacji.",
       "oauth_implementation_unavailable": "Aplikacja deweloperska Tesla jest niedostępna. Sprawdź dane uwierzytelniające aplikacji.",
-      "fleet_not_registered": "Tesla odrzuciła aplikację deweloperską (HTTP 412): jej domena nie jest zarejestrowana w Tesli dla regionu Twojego konta. Zarejestruj ją zgodnie z [instrukcją konfiguracji]({docs_url}), a potem zaloguj się ponownie."
+      "fleet_not_registered": "Tesla odrzuciła aplikację deweloperską (HTTP 412): jej domena nie jest zarejestrowana w Tesli dla regionu Twojego konta. Zarejestruj ją zgodnie z [instrukcją konfiguracji]({docs_url}), a potem zaloguj się ponownie.",
+      "pypowerwall_too_old": "W Home Assistant załadowano pypowerwall {found}, a ta integracja wymaga wersji {required} lub nowszej. Inna integracja niestandardowa ze starszym pypowerwall załadowała go wcześniej (na przykład ha-pypowerwall). Usuń tę integrację (samo wyłączenie nie wystarczy), uruchom ponownie Home Assistant i zacznij konfigurację od nowa."
     }
   },
   "options": {
@@ -810,6 +811,9 @@
     },
     "history_already_imported": {
       "message": "{sensor} ma już historię z tego okresu: została już zaimportowana."
+    },
+    "pypowerwall_too_old": {
+      "message": "W Home Assistant załadowano pypowerwall {found}, a ta integracja wymaga wersji {required} lub nowszej. Inna integracja niestandardowa załadowała starszą wersję: usuń ją i uruchom ponownie Home Assistant."
     }
   },
   "services": {
