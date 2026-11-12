@@ -1186,7 +1186,10 @@
         "pws_a045_battvrationality": "La tensione della batteria letta è anomala",
         "batterycalibration": "La batteria sta calibrando il livello di carica",
         "realpowerconfiglimited": "La potenza è mantenuta sotto un limite configurato",
-        "batterycomms": "Il gateway non riesce a comunicare con una batteria"
+        "batterycomms": "Il gateway non riesce a comunicare con una batteria",
+        "gridcodeswrite": "Il gateway sta scrivendo le impostazioni del codice di rete",
+        "podcommissiontime": "Una batteria sta registrando la data di messa in servizio",
+        "solarmetercomms": "Comunicazione persa con il contatore solare (brevi interruzioni sono comuni)"
       }
     },
     "alert_short": {
@@ -1216,7 +1219,10 @@
         "no_alerts": "Nessuno",
         "batterycalibration": "Batteria in calibrazione",
         "realpowerconfiglimited": "Potenza limitata da impostazione",
-        "batterycomms": "Batteria non raggiungibile"
+        "batterycomms": "Batteria non raggiungibile",
+        "gridcodeswrite": "Scrittura impostazioni di rete",
+        "podcommissiontime": "Messa in servizio batteria",
+        "solarmetercomms": "Contatore solare non raggiungibile"
       }
     },
     "logbook": {

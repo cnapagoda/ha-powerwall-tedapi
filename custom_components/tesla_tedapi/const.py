@@ -43,13 +43,6 @@ LIVE_OPTIONS = frozenset({
     CONF_DISPATCH_FLOOR_RESERVE, CONF_DISPATCH_MAX_WATTS, CONF_DIAGNOSTICS_GATEWAY, CONF_CLOUD_READINGS,
 })
 
-# Cloud backups: a Tesla account signed in here (Owner API), or a Fleet API
-# sign-in made here (Tesla Fleet with the user's own developer app, or
-# Teslemetry).
-BACKEND_OWNER = "owner_api"
-BACKEND_FLEET = "tesla_fleet"
-# The Fleet API sign-in, in the entry data. A Tesla Fleet sign-in also keeps
-# "auth_implementation" and "token" (Home Assistant's OAuth2 keys).
 # The gateway's network MAC addresses (lower case, no separators), learnt
 # from DHCP discovery: only a discovery with one of them is followed to a
 # new address. Saved without a reload.
@@ -60,6 +53,14 @@ CONF_FULL_PASSWORD_LOGIN = "full_password_login"
 # The oldest pypowerwall this version works with: the same as the lower
 # bound in manifest.json (a test keeps them in step).
 MIN_PYPOWERWALL = (0, 25, 0)
+
+# Cloud backups: a Tesla account signed in here (Owner API), or a Fleet API
+# sign-in made here (Tesla Fleet with the user's own developer app, or
+# Teslemetry).
+BACKEND_OWNER = "owner_api"
+BACKEND_FLEET = "tesla_fleet"
+# The Fleet API sign-in, in the entry data. A Tesla Fleet sign-in also keeps
+# "auth_implementation" and "token" (Home Assistant's OAuth2 keys).
 CONF_FLEET_PROVIDER = "fleet_provider"
 CONF_FLEET_SITE_ID = "fleet_site_id"
 CONF_FLEET_SERVER = "fleet_server"

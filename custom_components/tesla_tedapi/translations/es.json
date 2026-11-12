@@ -1186,7 +1186,10 @@
         "pws_a045_battvrationality": "La lectura de tensión de la batería es inverosímil",
         "batterycalibration": "La batería está calibrando su nivel de carga",
         "realpowerconfiglimited": "La potencia se mantiene por debajo de un límite configurado",
-        "batterycomms": "La pasarela no puede comunicarse con una batería"
+        "batterycomms": "La pasarela no puede comunicarse con una batería",
+        "gridcodeswrite": "La puerta de enlace está escribiendo su configuración de código de red",
+        "podcommissiontime": "Una batería está registrando su fecha de puesta en servicio",
+        "solarmetercomms": "Se perdió la comunicación con el medidor solar (las caídas breves son habituales)"
       }
     },
     "alert_short": {
@@ -1216,7 +1219,10 @@
         "no_alerts": "Ninguna",
         "batterycalibration": "Batería calibrando",
         "realpowerconfiglimited": "Potencia limitada por ajustes",
-        "batterycomms": "Sin comunicación con la batería"
+        "batterycomms": "Sin comunicación con la batería",
+        "gridcodeswrite": "Escribiendo ajustes de red",
+        "podcommissiontime": "Puesta en servicio de batería",
+        "solarmetercomms": "Medidor solar sin comunicación"
       }
     },
     "logbook": {

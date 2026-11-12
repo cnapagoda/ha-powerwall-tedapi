@@ -14,7 +14,7 @@
 
 Fixes and changes:
 
-- **Battery calibrating** binary sensor, on while the Powerwall calibrates its charge level. Three more gateway alerts are recognised: `BatteryCalibration` and `RealPowerConfigLimited` (status), and `BatteryComms` (warning: it now counts toward **Problem**).
+- **Battery calibrating** binary sensor, on while the Powerwall calibrates its charge level. Six more gateway alerts are recognised: `BatteryCalibration`, `RealPowerConfigLimited`, `GridCodesWrite` and `PodCommissionTime` (status), and `BatteryComms` and `SolarMeterComms` (warning: they now count toward **Problem** if they last).
 - **pypowerwall 0.25.0** (was 0.23.1): **Gateway last started** now works on Powerwall 2 gateways that left it empty, and battery energy counters no longer dip to 0 after a failed read. A gateway that stalls now shows as a gap after about a minute instead of frozen readings; a stall no longer counts as a refused key (no *set up access again* prompt), and an unreadable gateway config is no longer taken as dropped settings (nothing is written back).
 - **Powerwall 2:** each battery's temperature sensor now shows the Powerwall's thermal controller reading. The inverter temperature sensors (Powerwall 3 only) are no longer created on a Powerwall 2.
 - **A cleared Wi-Fi fallback address stays cleared** at setup and in **Reconfigure** (it came back as `192.168.91.1`), and a cleared key path in **Reconfigure** now switches to the Wi-Fi password connection as intended.

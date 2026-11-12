@@ -1186,7 +1186,10 @@
         "pws_a045_battvrationality": "Batterijspanning is onwaarschijnlijk",
         "batterycalibration": "De batterij kalibreert haar laadniveau",
         "realpowerconfiglimited": "Het vermogen blijft onder een ingestelde limiet",
-        "batterycomms": "De gateway kan niet communiceren met een batterij"
+        "batterycomms": "De gateway kan niet communiceren met een batterij",
+        "gridcodeswrite": "De gateway schrijft zijn netcode-instellingen",
+        "podcommissiontime": "Een batterij legt haar inbedrijfstellingstijd vast",
+        "solarmetercomms": "Verbinding met de zonnemeter verbroken (korte onderbrekingen komen vaak voor)"
       }
     },
     "alert_short": {
@@ -1216,7 +1219,10 @@
         "no_alerts": "Geen",
         "batterycalibration": "Batterij kalibreert",
         "realpowerconfiglimited": "Vermogen begrensd door instelling",
-        "batterycomms": "Batterij onbereikbaar"
+        "batterycomms": "Batterij onbereikbaar",
+        "gridcodeswrite": "Netinstellingen schrijven",
+        "podcommissiontime": "Inbedrijfstelling batterij",
+        "solarmetercomms": "Zonnemeter onbereikbaar"
       }
     },
     "logbook": {

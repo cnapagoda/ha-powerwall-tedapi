@@ -151,6 +151,15 @@ def test_calibration_comms_and_power_limit_alerts() -> None:
     assert summary(["BatteryCalibration"]) == "Battery calibrating"
 
 
+def test_grid_codes_commissioning_and_solar_meter_alerts() -> None:
+    assert describe("GridCodesWrite")[0] == SEVERITY_STATUS
+    assert describe("PodCommissionTime")[0] == SEVERITY_STATUS
+    assert describe("SolarMeterComms")[0] == "warning"
+    assert level(["SystemConnectedToGrid", "GridCodesWrite", "PodCommissionTime"]) == "ok"
+    assert level(["SolarMeterComms"]) == "warning"
+    assert summary(["SolarMeterComms"]) == "Solar meter comms lost"
+
+
 async def test_battery_calibrating_sensor(hass: HomeAssistant, fake_powerwall) -> None:
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R, title="Powerwall")
     entry.add_to_hass(hass)

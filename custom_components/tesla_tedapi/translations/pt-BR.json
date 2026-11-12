@@ -1186,7 +1186,10 @@
         "pws_a045_battvrationality": "A leitura de tensão da bateria é implausível",
         "batterycalibration": "A bateria está calibrando o nível de carga",
         "realpowerconfiglimited": "A potência é mantida abaixo de um limite configurado",
-        "batterycomms": "O gateway não consegue se comunicar com uma bateria"
+        "batterycomms": "O gateway não consegue se comunicar com uma bateria",
+        "gridcodeswrite": "O gateway está gravando as configurações de código de rede",
+        "podcommissiontime": "Uma bateria está registrando a data de comissionamento",
+        "solarmetercomms": "Comunicação perdida com o medidor solar (quedas breves são comuns)"
       }
     },
     "alert_short": {
@@ -1216,7 +1219,10 @@
         "no_alerts": "Nenhum",
         "batterycalibration": "Bateria calibrando",
         "realpowerconfiglimited": "Potência limitada por configuração",
-        "batterycomms": "Sem comunicação com a bateria"
+        "batterycomms": "Sem comunicação com a bateria",
+        "gridcodeswrite": "Gravando ajustes de rede",
+        "podcommissiontime": "Comissionamento da bateria",
+        "solarmetercomms": "Medidor solar sem comunicação"
       }
     },
     "logbook": {

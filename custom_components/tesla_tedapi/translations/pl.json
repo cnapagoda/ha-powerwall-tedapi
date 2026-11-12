@@ -1186,7 +1186,10 @@
         "pws_a045_battvrationality": "Odczyt napięcia baterii jest nieprawdopodobny",
         "batterycalibration": "Bateria kalibruje poziom naładowania",
         "realpowerconfiglimited": "Moc jest utrzymywana poniżej skonfigurowanego limitu",
-        "batterycomms": "Bramka nie może komunikować się z baterią"
+        "batterycomms": "Bramka nie może komunikować się z baterią",
+        "gridcodeswrite": "Bramka zapisuje ustawienia kodu sieci",
+        "podcommissiontime": "Bateria zapisuje czas uruchomienia",
+        "solarmetercomms": "Utracono komunikację z licznikiem PV (krótkie przerwy są częste)"
       }
     },
     "alert_short": {
@@ -1216,7 +1219,10 @@
         "no_alerts": "Brak",
         "batterycalibration": "Kalibracja baterii",
         "realpowerconfiglimited": "Moc ograniczona ustawieniem",
-        "batterycomms": "Brak łączności z baterią"
+        "batterycomms": "Brak łączności z baterią",
+        "gridcodeswrite": "Zapis ustawień sieci",
+        "podcommissiontime": "Uruchomienie baterii",
+        "solarmetercomms": "Brak łączności z licznikiem PV"
       }
     },
     "logbook": {

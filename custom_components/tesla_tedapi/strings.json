@@ -1186,7 +1186,10 @@
         "pws_a045_battvrationality": "Battery voltage reading is implausible",
         "batterycalibration": "Battery is calibrating its charge level",
         "realpowerconfiglimited": "Power is held below a configured limit",
-        "batterycomms": "The gateway can't communicate with a battery"
+        "batterycomms": "The gateway can't communicate with a battery",
+        "gridcodeswrite": "The gateway is writing its grid-code settings",
+        "podcommissiontime": "A battery is recording its commissioning time",
+        "solarmetercomms": "Lost communication with the solar meter (brief dropouts are common)"
       }
     },
     "alert_short": {
@@ -1216,7 +1219,10 @@
         "no_alerts": "None",
         "batterycalibration": "Battery calibrating",
         "realpowerconfiglimited": "Power limited by settings",
-        "batterycomms": "Battery comms lost"
+        "batterycomms": "Battery comms lost",
+        "gridcodeswrite": "Writing grid settings",
+        "podcommissiontime": "Battery commissioning",
+        "solarmetercomms": "Solar meter comms lost"
       }
     },
     "logbook": {

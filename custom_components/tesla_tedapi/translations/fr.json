@@ -1186,7 +1186,10 @@
         "pws_a045_battvrationality": "La mesure de tension de la batterie est improbable",
         "batterycalibration": "La batterie calibre son niveau de charge",
         "realpowerconfiglimited": "La puissance est maintenue sous une limite configurée",
-        "batterycomms": "La passerelle ne peut pas communiquer avec une batterie"
+        "batterycomms": "La passerelle ne peut pas communiquer avec une batterie",
+        "gridcodeswrite": "La passerelle écrit ses paramètres de code réseau",
+        "podcommissiontime": "Une batterie enregistre sa date de mise en service",
+        "solarmetercomms": "Communication perdue avec le compteur solaire (les coupures brèves sont courantes)"
       }
     },
     "alert_short": {
@@ -1216,7 +1219,10 @@
         "no_alerts": "Aucune",
         "batterycalibration": "Batterie en calibrage",
         "realpowerconfiglimited": "Puissance limitée par réglage",
-        "batterycomms": "Batterie injoignable"
+        "batterycomms": "Batterie injoignable",
+        "gridcodeswrite": "Écriture des paramètres réseau",
+        "podcommissiontime": "Mise en service batterie",
+        "solarmetercomms": "Compteur solaire injoignable"
       }
     },
     "logbook": {

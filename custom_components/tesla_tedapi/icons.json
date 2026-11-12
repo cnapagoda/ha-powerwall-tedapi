@@ -240,6 +240,15 @@
     },
     "reconnect_grid": {
       "service": "mdi:transmission-tower-import"
+    },
+    "get_tariff": {
+      "service": "mdi:cash-clock"
+    },
+    "set_tariff": {
+      "service": "mdi:cash-edit"
+    },
+    "import_battery_history": {
+      "service": "mdi:database-import"
     }
   }
 }

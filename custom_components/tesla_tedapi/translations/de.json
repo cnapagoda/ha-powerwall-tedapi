@@ -1186,7 +1186,10 @@
         "pws_a045_battvrationality": "Batteriespannung ist unplausibel",
         "batterycalibration": "Die Batterie kalibriert ihren Ladestand",
         "realpowerconfiglimited": "Die Leistung wird unter einer eingestellten Grenze gehalten",
-        "batterycomms": "Das Gateway kann nicht mit einer Batterie kommunizieren"
+        "batterycomms": "Das Gateway kann nicht mit einer Batterie kommunizieren",
+        "gridcodeswrite": "Das Gateway schreibt seine Netzcode-Einstellungen",
+        "podcommissiontime": "Eine Batterie speichert ihren Inbetriebnahmezeitpunkt",
+        "solarmetercomms": "Verbindung zum Solarzähler verloren (kurze Aussetzer sind häufig)"
       }
     },
     "alert_short": {
@@ -1216,7 +1219,10 @@
         "no_alerts": "Keine",
         "batterycalibration": "Batterie kalibriert",
         "realpowerconfiglimited": "Leistung durch Einstellung begrenzt",
-        "batterycomms": "Batterie nicht erreichbar"
+        "batterycomms": "Batterie nicht erreichbar",
+        "gridcodeswrite": "Netzeinstellungen werden geschrieben",
+        "podcommissiontime": "Batterie-Inbetriebnahme",
+        "solarmetercomms": "Solarzähler nicht erreichbar"
       }
     },
     "logbook": {
