@@ -118,6 +118,8 @@ The sign-in is kept (a Tesla account in `config/tesla_tedapi/.pypowerwall.auth`,
 <details>
 <summary>Screenshots: Tesla sign-in, confirmation, done</summary>
 
+<img src="images/setup-05a-sign-in-choice.png" alt="Choose how to sign in: Tesla account, Tesla Fleet or Teslemetry" width="640">
+
 <img src="images/setup-05-tesla-sign-in.png" alt="Tesla sign-in step" width="640">
 
 <img src="images/setup-06-confirm-key.png" alt="Waiting for the switch toggle at the Powerwall" width="640">
