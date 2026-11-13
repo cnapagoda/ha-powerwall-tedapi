@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.8.0
+
+- **Six new blueprints** (Automations → Blueprints, one-click import):
+  - **Backup reserve schedule:** one reserve during a time window and another after it, on the days you choose. No dispatch.
+  - **Low battery alert:** a notification when the battery falls below a level while the grid is down (or at any time).
+  - **Shed loads during a grid outage:** turns off the loads you choose when the grid has been down for a few minutes, or once the battery falls below a level, and puts them back the way they were when the grid returns.
+  - **Full battery before a storm:** starts a max backup when a weather warning (or a calendar with planned outages) turns on, and ends it when the warning clears. Needs a signed connection.
+  - **Run a load on surplus solar:** turns a load on while the battery is nearly full and the house still exports, and off when the house imports or the battery falls below a level.
+  - **Problem alert:** a notification when the **Problem** sensor turns on, with what the Powerwall reports, and when it clears.
+- Docs: the blueprints are grouped by use, and the blueprint import links point to this release.
+
 ## 2.7.0
 
 - **Energy flows:** seven new energy sensors (solar to home, battery and grid; battery to home and grid; grid to home and battery), in kWh, attributed from the gateway's power readings. Local, no cloud. They count from this version on.

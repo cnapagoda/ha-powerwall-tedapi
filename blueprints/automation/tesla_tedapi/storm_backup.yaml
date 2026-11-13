@@ -1,0 +1,83 @@
+blueprint:
+  name: Powerwall - full battery before a storm
+  description: >-
+    When a weather warning turns on, start a max backup with
+    `tesla_tedapi.start_max_backup`: the Powerwall charges to full, from the
+    grid if solar isn't enough, and holds it. When the warning clears, the max
+    backup ends. Any entity that is on while you want a full battery works,
+    for example a calendar with planned outages. It doesn't need Tesla's Storm
+    Watch. Needs a signed connection.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/storm_backup.yaml
+  input:
+    powerwall:
+      name: Powerwall
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    warning:
+      name: Weather warning
+      description: On while there is a warning.
+      selector:
+        entity:
+          domain:
+            - binary_sensor
+            - input_boolean
+            - calendar
+            - schedule
+            - switch
+    hours:
+      name: Keep the battery full for at most
+      description: A warning that lasts longer isn't renewed.
+      default: 12
+      selector:
+        number:
+          min: 1
+          max: 48
+          unit_of_measurement: h
+    cancel_when_clear:
+      name: End the max backup when the warning clears
+      description: This also ends a max backup started in the Tesla app.
+      default: true
+      selector:
+        boolean:
+
+mode: queued
+max: 5
+
+variables:
+  hours: !input hours
+  cancel_when_clear: !input cancel_when_clear
+
+triggers:
+  - trigger: state
+    id: warning
+    entity_id: !input warning
+    from: "off"
+    to: "on"
+  - trigger: state
+    id: clear
+    entity_id: !input warning
+    from: "on"
+    to: "off"
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: warning
+        sequence:
+          - action: tesla_tedapi.start_max_backup
+            data:
+              config_entry_id: !input powerwall
+              duration_minutes: "{{ (hours * 60) | int }}"
+      - conditions:
+          - condition: trigger
+            id: clear
+          - condition: template
+            value_template: "{{ cancel_when_clear }}"
+        sequence:
+          - action: tesla_tedapi.cancel_max_backup
+            continue_on_error: true
+            data:
+              config_entry_id: !input powerwall

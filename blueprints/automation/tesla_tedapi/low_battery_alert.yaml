@@ -1,0 +1,74 @@
+blueprint:
+  name: Powerwall - low battery alert
+  description: >-
+    Send a notification when the battery falls below a level while the grid is
+    down, or when an outage starts with the battery already below it. It can
+    also alert while the grid is up. Home Assistant and your network need
+    power during the outage to send it.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/low_battery_alert.yaml
+  input:
+    battery_level:
+      name: Powerwall Battery level
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: sensor
+    grid_connected:
+      name: Powerwall Grid connected
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: binary_sensor
+    threshold:
+      name: Below
+      default: 20
+      selector:
+        number:
+          min: 1
+          max: 99
+          unit_of_measurement: "%"
+    only_outage:
+      name: Only while the grid is down
+      default: true
+      selector:
+        boolean:
+    notify_action:
+      name: Notify action
+      description: For example `notify.mobile_app_my_phone`, or `notify.notify` for all.
+      default: notify.notify
+      selector:
+        text:
+
+mode: queued
+max: 10
+
+variables:
+  battery_level: !input battery_level
+  grid_connected: !input grid_connected
+  threshold: !input threshold
+  only_outage: !input only_outage
+  notify_action: !input notify_action
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input battery_level
+    below: !input threshold
+  - trigger: state
+    entity_id: !input grid_connected
+    from: "on"
+    to: "off"
+
+conditions:
+  - condition: numeric_state
+    entity_id: !input battery_level
+    below: !input threshold
+  - condition: template
+    value_template: "{{ not only_outage or is_state(grid_connected, 'off') }}"
+
+actions:
+  - action: "{{ notify_action }}"
+    data:
+      title: Powerwall
+      message: >-
+        Battery at {{ states(battery_level) }} %{{ ' and the grid is down' if is_state(grid_connected, 'off') }}.

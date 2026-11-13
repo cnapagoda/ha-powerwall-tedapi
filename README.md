@@ -21,7 +21,7 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 - **Keeps working when it can't reach the gateway:** an optional Tesla cloud backup (your Tesla account, Tesla Fleet or Teslemetry) keeps the settings usable, and can also show power and battery level.
 - **More from the cloud backup:** Wall Connector power and state, and Tesla's tariff as buy and sell price sensors and calendars.
 - **A setup wizard:** it finds the Powerwall on your network and registers the access key for you. No command line.
-- **Ready-made blueprints** for cheap charging, price spikes, negative feed-in, time-of-use and outage alerts.
+- **Ready-made blueprints** for cheap charging, price spikes, negative feed-in, time-of-use, reserve schedules, storms, outages, surplus solar and alerts.
 
 > ⚠️ **Not affiliated with Tesla.** It talks to the gateway through its local interface (TEDAPI), which Tesla can change at any time. Battery dispatch overrides your export setting and may affect your warranty; going off-grid disconnects your house from the grid. Read [Safety](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/safety.md) before you use them.
 

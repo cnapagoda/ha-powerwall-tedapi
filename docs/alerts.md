@@ -40,6 +40,8 @@ actions:
            | map(attribute='description') | join(', ') }}
 ```
 
+The **[Problem alert](automations.md#blueprints)** blueprint does this for you.
+
 ## Dashboard card
 
 ```yaml
