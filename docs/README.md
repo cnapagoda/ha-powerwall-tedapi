@@ -19,7 +19,7 @@ Tesla Powerwall TEDAPI for Home Assistant: local monitoring and control of a Tes
 
 ## Reference
 
-- **[Entities](entities.md)**: every sensor, switch, select, number and event, with its attributes.
+- **[Entities](entities.md)**: every sensor, switch, select, number, calendar and event, with its attributes.
 - **[Actions](actions.md)**: dispatch, charge/discharge to a level, max backup, go off-grid, tariff and history import.
 - **[Events](events.md)**: the events the integration fires, with their data.
 - **[Cloud backup](cloud-backup.md)**: the Owner API and Fleet API (Tesla Fleet or Teslemetry) backups.

@@ -14,7 +14,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.tesla_tedapi.const import DOMAIN
 
-from .conftest import DIN, cloud, local
+from .conftest import DIN, FakePowerwall, cloud, local
 
 V1R = {"connection_mode": "v1r", "host": "192.168.1.50", "wifi_host": "",
        "rsa_key_path": "/tmp/key.pem", "gw_pwd": "ABCDE12345", "scan_interval": 30}
@@ -254,6 +254,34 @@ async def test_unreachable_does_not_start_reauth(hass: HomeAssistant, fake_power
     for _ in range(12):
         await _refresh(hass, entry)
     assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+
+
+async def test_stalled_gateway_does_not_start_reauth(hass: HomeAssistant, fake_powerwall) -> None:
+    """The login works but reads come back empty (pypowerwall 0.24+ returns
+    None from a stalled gateway): not a refused key, so no reauth."""
+    entry = await _setup(hass, V1R)
+    fake_powerwall.v1r_flags = {"key_unknown": False, "pending_verification": False}
+    with patch.object(FakePowerwall, "din", lambda self: None):
+        for _ in range(12):
+            await _refresh(hass, entry)
+        assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+        # The gateway refuses the key: after enough polls, set up access again.
+        fake_powerwall.v1r_flags = {"key_unknown": True, "pending_verification": False}
+        for _ in range(10):
+            await _refresh(hass, entry)
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert [f["context"]["source"] for f in flows] == [SOURCE_REAUTH]
+
+
+async def test_no_config_is_not_a_dropped_setting(hass: HomeAssistant, fake_powerwall) -> None:
+    """No gateway config at all (a stalled gateway) is unreadable, not every
+    setting dropped: nothing is written back."""
+    entry = await _setup(hass, V1R)
+    fake_powerwall.export_rule = None
+    local(fake_powerwall).client.tedapi.get_config = lambda force=False: None
+    await _refresh(hass, entry)
+    assert ("grid_export", "pv_only") not in local(fake_powerwall).writes
+    assert hass.states.get(_eid(hass, "select", "grid_export")).attributes["restored_count"] == 0
 
 
 async def test_cloud_login_repair(hass: HomeAssistant, fake_powerwall) -> None:

@@ -8,8 +8,8 @@ This integration uses interfaces Tesla doesn't document, so what works depends o
 |---|---|---|
 | **Powerwall 3** | ✅ Tested by the maintainer | Signed connection over the home network; firmware 26.x. Built-in solar inputs, fans, per-pack wear counters. |
 | **Powerwall 3 with Expansion Packs** | ✅ Tested by the maintainer | Each Expansion Pack gets its own capacity, temperature and health sensors, and **Battery health** and **Battery full capacity** count every pack. Packs added later appear by themselves. |
-| **Powerwall 2 / Powerwall+** | 🟡 Less tested | Signed access works if the firmware supports it. The Wi-Fi password connection gives readings. Some readings differ (see below). |
-| Backup Gateway 1 (part number `1118431-…`) | 🟡 Less tested | Recognised at setup: it logs in with the full gateway password instead of its last 5 characters. Reports welcome. |
+| **Powerwall 2 / Powerwall+** | 🟡 Less tested | Signed access works if the firmware supports it; reported working on firmware 26.34.2 with a Backup Gateway 1. The Wi-Fi password connection gives readings. Some readings differ (see below). |
+| Backup Gateway 1 (part number `1118431-…`) | 🟡 Less tested | Recognised at setup: it logs in with the full gateway password instead of its last 5 characters. Reported working with a Powerwall 2 on firmware 26.34.2: signed connection, readings, backup reserve, battery dispatch and `charge_to` (thanks [@BJReplay](https://github.com/BJReplay)). Grid charging and export expected to work. |
 | Several Powerwalls on one gateway | 🟡 Expected to work | One entry per gateway; packs appear by themselves. |
 | Several gateways | 🟡 Expected to work | Add the integration once per gateway. |
 | Powerwall 1 | ❓ Unknown | |
@@ -21,14 +21,17 @@ This integration uses interfaces Tesla doesn't document, so what works depends o
 | Feature | Powerwall 3 (with or without Expansion Packs) | Powerwall 2 / + |
 |---|---|---|
 | Power, battery level, energy counters, grid status | ✅ | ✅ |
-| Settings over a signed connection | ✅ | 🟡 firmware dependent |
-| Battery dispatch, `charge_to` / `discharge_to` | ✅ | 🟡 firmware dependent |
+| Settings over a signed connection | ✅ | 🟡 firmware dependent; backup reserve reported working on 26.34.2 |
+| Battery dispatch, `charge_to` / `discharge_to` | ✅ | 🟡 firmware dependent; dispatch and `charge_to` reported working on 26.34.2 |
 | Max backup | ✅ | 🟡 |
 | Go off-grid / reconnect | ✅ | ❓ |
 | Solar input *A–F* sensors | ✅ built-in inverter | ❓ a Powerwall+ solar inverter may report them; reports welcome |
 | Fan speeds | ✅ inverter fans A/B, with duty | 🟡 one fan per Powerwall, with target speed |
 | Per-pack lifetime discharge and cycles | ✅ | ❓ only if the gateway reports the counters |
-| Inverter temperatures | ✅ (heatsink doesn't change on some firmware) | 🟡 |
+| Inverter temperatures | ✅ (heatsink doesn't change on some firmware) | ❌ not reported (no sensors); each battery's temperature comes from its thermal controller |
+| Energy flows, round-trip efficiency, capacity trend | ✅ | ✅ |
+| Per-phase voltage and meter sensors | ✅ where the gateway reports them | ✅ where the gateway reports them |
+| Wall Connector and tariff sensors (cloud backup) | ✅ | ✅ |
 | Dropped-settings restore | ✅ seen and restored on firmware 26.x | ❓ |
 | On-grid solar curtailment (experimental) | ❓ not tested on a real Powerwall | ❓ |
 

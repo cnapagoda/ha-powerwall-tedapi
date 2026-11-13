@@ -16,6 +16,7 @@
 |---|---|
 | *The gateway refused this password* | Use the password from the QR sticker inside the Powerwall's cover, in upper case. Usually only the last 5 characters are used, so you can also enter just those. A Backup Gateway 1 (part number `1118431-…`) needs the full password. |
 | *The Powerwall didn't accept the dispatch: …* | The text after the colon is the gateway's own reason, with its status code. One Powerwall 3 refuses more than 10,000 W. Lower the power, or **Largest dispatch power**. |
+| *pypowerwall … is loaded in Home Assistant, but this integration needs … or newer* (setup stops, or the integration shows *Failed to set up*) | Home Assistant runs one pypowerwall for all integrations, and another custom integration that pins an older one loaded it first (for example `ha-pypowerwall`). Remove that integration (disabling it isn't enough: delete it in HACS or from `custom_components`), restart Home Assistant and try again. See [which integrations can stay](migration.md#which-integrations-can-stay). |
 | *The gateway is refusing logins after too many attempts* | The gateway locks its login for a few minutes after several wrong passwords. Wait about 15 minutes before you try again. |
 | *Could not reach the Powerwall* | Check the address. `ping` it from the Home Assistant host. Home Assistant and the gateway must be on the same network (or routed). The gateway uses HTTPS on port 443. |
 | **Search my network** finds nothing (*No Powerwall answered on this network*) | Enter the address yourself. Your router lists the gateway as `teslapw_…` (or a Tesla part number such as `1707000-…`). The scan only covers Home Assistant's own network. |
@@ -41,6 +42,7 @@
 | Symptom | Try |
 |---|---|
 | All sensors *unavailable* | The gateway can't be reached. Check the network; settings keep working through the cloud backup if you have one. **Setup health** shows `gateway_reachable: false`. |
+| Power sensors *unknown* for a moment | The gateway's meters didn't answer that poll. The next reading fills it in; a missed reading is no longer recorded as 0 W. |
 | Readings stop now and then | Add the Powerwall's Wi-Fi as **Wi-Fi fallback address** if Home Assistant can reach it, or improve the network path (Ethernet for the gateway, a better access point). Try a longer **Polling interval** if another app also polls the gateway. |
 | **Battery level** differs from the Tesla app by a point | Normal rounding and timing: the app updates less often. **Battery state of energy** is the raw value and reads 2–4 points higher. |
 | No **Solar input** sensors | Normal when your solar has its own inverter: they only appear for the Powerwall 3's built-in inputs in use. Inputs that start producing later appear by themselves. |
@@ -48,6 +50,11 @@
 | A pack or expansion pack is missing | Packs appear when the gateway first reports them. Check the **Alerts** sensor for *Battery packs missing*. |
 | Energy counters don't move | **Setup health** checks `energy_counters`. Readings that are missing or zero are ignored, and so is a lower reading unless it stays lower for 10 readings in a row (then it's taken as a counter reset, for example after a gateway replacement). |
 | **Grid counter check** says *Counters differ* | The gateway's grid meters disagree with the grid power readings by more than 10 %. An occasional day can come from gaps in readings. If it lasts, mention it in an issue with diagnostics. |
+| No **Grid voltage L1–L3** or **Meter** sensors | They're created for the phases and current transformers the gateway reports and that are in use. Ones that start carrying current later appear by themselves. |
+| **Battery capacity trend** and **Battery warranty level date** show *unknown* | They build up from one sample a day and show once there are 30 samples over 90 days. |
+| **Battery round-trip efficiency** shows *unknown* | It shows once 50 kWh has been charged into the battery. It also stays *unknown* if the counters give more energy out than in, which can happen when solar charges the battery without being counted as charge. |
+| No **Wall Connector** sensors | They come from the cloud backup and appear once the site's Wall Connector shows up there. |
+| **Tariff buy price** / **Tariff sell price** missing | Turn on the **Tesla tariff (cloud)** option. The sell price shows for tariffs with feed-in rates. |
 | **Inverter heatsink temperature** never changes | Known on some firmware. |
 | Entity IDs start with an area name | Home Assistant 2026.8+ includes the area by default. Replace `powerwall_tedapi_` in the examples with yours, or change the format and use **Recreate entity IDs**. See [conventions](README.md#conventions-in-these-pages). |
 
@@ -87,11 +94,11 @@
 | *Powerwall alert: …* | A warning or fault has lasted the Problem delay. It disappears when the alert clears. See [Alerts](alerts.md). |
 | *Sign in to Tesla again* | The Owner API backup failed 3 checks in a row. Fixable: select it to sign in. |
 | *Fleet API cloud backup is not working* / *can't change settings* | See above. |
-| *Signed local access stopped after a firmware update* | The first reading on new firmware couldn't use the signed connection. Wait for a few polls; if it stays, register the key again (**Configure → Register a new signed key**) and open an issue with the firmware version. |
+| *Signed local access stopped after a firmware update* | The first reading on new firmware couldn't use the signed connection. Wait for a few polls; if it stays, register a new key (**Configure → Register a new signed key**) and open an issue with the firmware version. |
 | *The Powerwall couldn't reconnect to the grid* | The automatic reconnect failed; it's retried every minute. Check the gateway connection, or reconnect in the Tesla app. |
 | *Tesla's cloud capped the backup reserve* / *A cloud change did not apply as set* | See [Settings and control](#settings-and-control). |
 | *Tesla stored a different tariff* | A tariff write wasn't shown by Tesla after 35 minutes (or a Fleet API read-back showed other rates). See [Tesla tariff](tesla-tariff.md). |
-| *A Powerwall 3 is missing from the readings* | With several Powerwall 3s, one stayed out of the readings for 10 polls. On the signed connection the followers are read over the **Wi-Fi fallback address** only: set it to `192.168.91.1` if Home Assistant can reach the Powerwall's Wi-Fi. Totals still count every Powerwall. See [Several Powerwalls](setup.md#several-powerwalls). |
+| *A Powerwall 3 is missing from the readings* | With several Powerwall 3s, one stayed out of the readings for 10 polls. On the signed connection the followers are read over the **Wi-Fi fallback address** only: set it to `192.168.91.1` if Home Assistant can reach the Powerwall's Wi-Fi (if the connection already uses `192.168.91.1`, check that it still answers). Totals and **Battery health** still count every Powerwall. See [Several Powerwalls](setup.md#several-powerwalls). |
 
 The integration's card can also show **Reauthenticate**: the gateway keeps refusing the password or the key. See [Configuration](configuration.md#when-the-powerwall-stops-accepting-home-assistant).
 

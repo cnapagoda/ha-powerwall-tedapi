@@ -6,6 +6,7 @@ from __future__ import annotations
 import io
 import json
 import os
+from pathlib import Path
 from unittest.mock import patch
 import urllib.error
 
@@ -182,6 +183,36 @@ def test_ensure_rsa_key_creates_once(tmp_path) -> None:
     # The second call reuses the key.
     assert tesla_cloud.ensure_rsa_key(folder) == (private_path, public_der)
     assert len(tesla_cloud.fingerprint(public_der)) == 64
+
+
+def test_ensure_rsa_key_new_and_own_path(tmp_path) -> None:
+    """A new key gets files of its own: the key in use isn't touched."""
+    folder = str(tmp_path / "keys")
+    first_path, first_der = tesla_cloud.ensure_rsa_key(folder)
+    first_pem = Path(first_path).read_bytes()
+    new_path, new_der = tesla_cloud.ensure_rsa_key(folder, first_path, new=True)
+    assert new_path != first_path and new_der != first_der
+    assert os.path.dirname(new_path) == folder and os.stat(new_path).st_mode & 0o777 == 0o600
+    name = tesla_cloud.fingerprint(new_der)[:12]
+    assert os.path.basename(new_path) == f"tedapi_rsa_private_{name}.pem"
+    assert Path(first_path).read_bytes() == first_pem
+    assert Path(folder, "tedapi_rsa_public.der").read_bytes() == first_der
+    assert Path(folder, f"tedapi_rsa_public_{name}.der").read_bytes() == new_der
+    # An entry's own key is used when its file exists; a missing one falls
+    # back to the folder's first key.
+    assert tesla_cloud.ensure_rsa_key(folder, new_path) == (new_path, new_der)
+    assert tesla_cloud.ensure_rsa_key(folder, str(tmp_path / "gone.pem")) == (first_path, first_der)
+    # Removing a key takes its public half; the other key stays. A key
+    # outside the folder is the user's own file and is never removed.
+    outside = tmp_path / "mine.pem"
+    outside.write_bytes(first_pem)
+    tesla_cloud.remove_key_files(folder, str(outside))
+    assert outside.is_file()
+    tesla_cloud.remove_key_files(folder, new_path)
+    assert sorted(os.listdir(folder)) == ["tedapi_rsa_private.pem", "tedapi_rsa_public.der"]
+    tesla_cloud.remove_key_files(folder, new_path)  # already gone: fine
+    tesla_cloud.remove_key_files(folder, first_path)
+    assert os.listdir(folder) == []
 
 
 def test_register_key_and_state() -> None:

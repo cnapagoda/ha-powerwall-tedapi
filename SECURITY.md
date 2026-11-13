@@ -18,7 +18,7 @@ Never post these in an issue, pull request, log or screenshot:
 - the Tesla refresh or access token (`.pypowerwall.auth`),
 - the gateway password (from the QR sticker).
 
-The integration's diagnostics hide passwords, email addresses and serial numbers, but check them before you share them. If a secret has been exposed, register a new key (**Configure → Register a new signed key**) and sign in to Tesla again.
+The integration's diagnostics hide the password, email, site ID, serial numbers (packs are numbered instead), MAC addresses and the tariff's plan and retailer names. The optional gateway configuration also leaves out the location (the country, grid code and time zone stay), names, the network area (distributor, utility, retailer) and credentials. Check a download before you share it. If a secret has been exposed, register a new key (**Configure → Register a new signed key**: it makes another key and removes the exposed key's file once the Powerwall has confirmed the new one) and sign in to Tesla again. The Powerwall itself keeps trusting a key it has confirmed, and this integration can't take one off the Powerwall. Signed access also needs the gateway password and a connection to the gateway on your network.
 
 ## How the integration stores secrets
 

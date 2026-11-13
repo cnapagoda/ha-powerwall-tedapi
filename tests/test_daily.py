@@ -83,6 +83,7 @@ def test_round_trip(adelaide) -> None:
     assert copy.day is None and copy.baseline == {}
 
 
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")  # disabled by default
 async def test_today_sensors(hass: HomeAssistant, fake_powerwall, hass_storage, freezer) -> None:
     await hass.config.async_set_time_zone("Australia/Adelaide")
     freezer.move_to("2026-11-02T01:30:00+00:00")  # 12:00 local

@@ -10,8 +10,9 @@ In **Time-Based Control** (`autonomous`), the Powerwall decides when to charge, 
 You then get:
 
 - the **Tesla tariff** sensor (`sensor.powerwall_tedapi_tesla_tariff`),
+- the **Tariff buy price** and **Tariff sell price** sensors and the **Buy tariff** / **Sell tariff** calendars ([below](#price-sensors-and-calendars)),
 - the `tesla_tedapi.get_tariff` and `tesla_tedapi.set_tariff` actions,
-- the tariff in diagnostics downloads.
+- the tariff in diagnostics downloads (without the plan and retailer names).
 
 The tariff is read every 6 hours, and after each write.
 
@@ -27,6 +28,19 @@ The tariff is read every 6 hours, and after each write.
 | `tariff` | Tesla's raw tariff (not stored in the recorder). |
 
 Fields Tesla leaves out of a tariff count as 0, as Tesla means them: a period without a rate is free.
+
+## Price sensors and calendars
+
+The option also adds:
+
+| Entity | What it shows |
+|---|---|
+| **Tariff buy price** | The buy price now, per kWh in Home Assistant's currency. Attributes `season`, `period`. Ready to use as the Energy dashboard's price entity. |
+| **Tariff sell price** | The feed-in price now, for sites with a feed-in tariff. |
+| **Buy tariff** calendar | The tariff as events, one per stretch with the same period and price, for the calendar view and calendar triggers. |
+| **Sell tariff** calendar | The same for feed-in. |
+
+They follow the tariff as it's read (every 6 hours and after each write).
 
 ## Reading: `get_tariff`
 

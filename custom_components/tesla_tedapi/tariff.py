@@ -17,7 +17,7 @@ Monday has no toDayOfWeek, a free period no rate), so a missing field is 0.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 # Keys only the read format has at its top level.
@@ -298,3 +298,80 @@ def check_write(tou_settings: dict[str, Any]) -> list[str]:
     if not isinstance(content.get("sell_tariff"), dict):
         out.append("no sell_tariff, so no feed-in rates are sent")
     return out
+
+
+# -- schedule (for the tariff calendars) ---------------------------------
+
+# The longest stretch schedule() lays out in one call.
+MAX_SCHEDULE_DAYS = 100
+
+
+def _period_rate(table: dict[str, dict[str, float]], season: str | None, period: str | None) -> float | None:
+    """The rate current() gives for a season and period."""
+    for s_key in (season, "ALL"):
+        rates = table.get(s_key) or {}
+        for p_key in (period, "ALL"):
+            if p_key in rates:
+                return rates[p_key]
+    return 0.0 if period is not None and table else None
+
+
+def _day_segments(norm: dict[str, Any], day: date) -> list[tuple[int, int, str | None, str | None]]:
+    """(from minute, to minute, season, period) for each stretch of `day`
+    with one period, the same way current() picks it minute by minute."""
+    probe = datetime(day.year, day.month, day.day)
+    season = next((n for n, s in norm["seasons"].items() if _in_season(s, probe)), None)
+    if season is None and len(norm["buy"]) == 1:
+        season = next(iter(norm["buy"]))
+    owners: list[str | None] = [None] * 1440
+    if season in norm["seasons"]:
+        for period, ranges in norm["seasons"][season]["periods"].items():
+            for rng in ranges:
+                if day.weekday() not in _days(rng):
+                    continue
+                for minute, covered in enumerate(_minutes(rng)):
+                    if covered and owners[minute] is None:
+                        owners[minute] = period
+    segments, start = [], 0
+    for minute in range(1, 1441):
+        if minute == 1440 or owners[minute] != owners[start]:
+            segments.append((start, minute, season, owners[start]))
+            start = minute
+    return segments
+
+
+def schedule(norm: dict[str, Any] | None, start: datetime, end: datetime) -> list[dict[str, Any]]:
+    """The tariff between `start` and `end` (local time, with their time
+    zone): [{"start", "end", "season", "period", "buy_rate", "sell_rate"}],
+    oldest first. Stretches that follow each other with the same period and
+    rates are one entry, also over midnight. At most MAX_SCHEDULE_DAYS."""
+    if not norm or end <= start:
+        return []
+    tz = start.tzinfo
+    out: list[dict[str, Any]] = []
+    day = start.date()
+    last = min(end.date(), day + timedelta(days=MAX_SCHEDULE_DAYS))
+    while day <= last:
+        midnight = datetime(day.year, day.month, day.day, tzinfo=tz)
+        for first, after, season, period in _day_segments(norm, day):
+            item = {
+                "start": midnight + timedelta(minutes=first),
+                "end": midnight + timedelta(minutes=after),
+                "season": season,
+                "period": period,
+                "buy_rate": _period_rate(norm["buy"], season, period),
+                "sell_rate": _period_rate(norm["sell"], season, period),
+            }
+            previous = out[-1] if out else None
+            if previous and previous["end"] == item["start"] and all(
+                    previous[key] == item[key] for key in ("season", "period", "buy_rate", "sell_rate")):
+                previous["end"] = item["end"]
+            else:
+                out.append(item)
+        day += timedelta(days=1)
+    clipped = []
+    for item in out:
+        if item["end"] <= start or item["start"] >= end:
+            continue
+        clipped.append({**item, "start": max(item["start"], start), "end": min(item["end"], end)})
+    return clipped

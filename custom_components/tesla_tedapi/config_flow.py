@@ -19,7 +19,6 @@ from collections.abc import Mapping
 from functools import partial
 import logging
 import os
-import shutil
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import (
@@ -51,7 +50,7 @@ import voluptuous as vol
 if TYPE_CHECKING:
     from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 
-from . import fleet, gateway, tesla_cloud
+from . import client, fleet, gateway, tesla_cloud
 from .const import (
     BACKEND_FLEET,
     BACKEND_OWNER,
@@ -62,6 +61,7 @@ from .const import (
     CLOUD_WITHOUT_FLEET,
     CLOUD_WITHOUT_OWNER,
     CONF_CLOUD_BACKENDS,
+    CONF_CLOUD_READINGS,
     CONF_CONNECTION_MODE,
     CONF_DIAGNOSTICS_GATEWAY,
     CONF_DISPATCH_FLOOR_RESERVE,
@@ -76,6 +76,7 @@ from .const import (
     CONF_MACS,
     CONF_OWNERS_AUTHPATH,
     CONF_OWNERS_EMAIL,
+    CONF_POWER_INTERVAL,
     CONF_PROBLEM_MINUTES,
     CONF_RESTORE_EXPORT,
     CONF_RSA_KEY_PATH,
@@ -91,13 +92,14 @@ from .const import (
     DISPATCH_MAX_WATTS,
     DOMAIN,
     FLEET_DATA_KEYS,
+    MAX_POWER_INTERVAL,
     MAX_SCAN_INTERVAL,
+    MIN_POWER_INTERVAL,
     MIN_SCAN_INTERVAL,
     MODE_V1R,
     MODE_WIFI,
     PROVIDER_TESLA_FLEET,
     PROVIDER_TESLEMETRY,
-    RSA_KEY_FILE,
     STORAGE_FOLDER,
     cloud_choice,
 )
@@ -178,23 +180,17 @@ def _probe(mode: str, host: str, gw_pwd: str, rsa_key_path: str, timezone: str, 
     """Connect like the integration does and return the gateway DIN."""
     import pypowerwall  # noqa: PLC0415
 
+    client.ensure_supported()
     if not gw_pwd:
         # pypowerwall logs in to the gateway with the password's last 5
         # characters before using the key; without it v1r cannot start.
         raise PasswordRequired
-    kwargs: dict[str, Any] = {
-        # A Backup Gateway 1 logs in with the full password; otherwise
-        # pypowerwall uses its last 5 characters.
-        "host": host, "password": gw_pwd if full_login and mode == MODE_V1R else "",
-        "email": "", "timezone": timezone,
-        "auto_select": True, "failover": False, "gw_pwd": gw_pwd,
-        # Keep pypowerwall from picking up a cloud token cache (see coordinator).
-        "authpath": os.path.dirname(__file__),
-    }
-    if mode == MODE_V1R:
-        if not os.path.isfile(rsa_key_path):
-            raise InvalidRsaKey(rsa_key_path)
-        kwargs["rsa_key_path"] = rsa_key_path
+    if mode == MODE_V1R and not os.path.isfile(rsa_key_path):
+        raise InvalidRsaKey(rsa_key_path)
+    # The same arguments as polling uses, without the Wi-Fi fallback: this
+    # check is about the gateway address itself.
+    kwargs = client.local_kwargs(mode, host, gw_pwd, rsa_key_path, timezone, full_login=full_login,
+                                 fallback=False)
     try:
         pw = pypowerwall.Powerwall(**kwargs)
         if mode == MODE_V1R and getattr(pw, "tedapi_mode", None) != "v1r":
@@ -233,7 +229,11 @@ def _scan() -> list[dict[str, str]]:
 
 
 def _store_key(hass: HomeAssistant, file_id: str, folder: str) -> str:
-    """Check the uploaded key and copy it into the integration folder (0600)."""
+    """Check the uploaded key and copy it into the integration folder (0600).
+
+    A key file already there is never written over: an entry may be using it,
+    and this key isn't checked against the Powerwall yet. The same key again
+    is that file; a different key gets a file of its own."""
     from cryptography.hazmat.primitives import serialization  # noqa: PLC0415
     from cryptography.hazmat.primitives.asymmetric import rsa  # noqa: PLC0415
     from homeassistant.components.file_upload import process_uploaded_file  # noqa: PLC0415
@@ -247,11 +247,19 @@ def _store_key(hass: HomeAssistant, file_id: str, folder: str) -> str:
     if not isinstance(key, rsa.RSAPrivateKey):
         raise InvalidRsaKey("not an RSA key")
     os.makedirs(folder, exist_ok=True)
-    target = os.path.join(folder, RSA_KEY_FILE)
+    public_der = tesla_cloud.public_der_of(key)
+    target = tesla_cloud.key_paths(folder)[0]
     if os.path.isfile(target):
-        shutil.copy2(target, target + ".bak")
-    with open(os.open(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "wb") as f:
-        f.write(pem)
+        try:
+            with open(target, "rb") as f:
+                same = tesla_cloud.public_der_of(
+                    serialization.load_pem_private_key(f.read(), password=None)) == public_der
+        except (OSError, ValueError, TypeError, AttributeError):
+            same = False  # unreadable: leave it alone all the same
+        if same:
+            return target
+        target = tesla_cloud.key_paths(folder, public_der)[0]
+    tesla_cloud.write_private_key(target, pem)
     return target
 
 
@@ -429,6 +437,11 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         self._cloud_wanted = False
         self._site: tesla_cloud.EnergySite | None = None
         self._public_der: bytes | None = None
+        # Options -> Register a new signed key: a key of its own is made, and
+        # this is its file until the entry is switched to it (removed again
+        # if the flow ends before that).
+        self._new_key = False
+        self._made_key: str | None = None
         self._key_state: int | None = None
         self._verify_task: asyncio.Task | None = None
         self._din: str | None = None
@@ -450,7 +463,18 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
     # Find the gateway
     # ------------------------------------------------------------------
 
+    def _abort_client_too_old(self, err: client.ClientTooOld) -> ConfigFlowResult:
+        _LOGGER.error("Setup stopped: %s. Another integration loaded it; remove that one and restart "
+                      "Home Assistant", err)
+        return self.async_abort(reason="pypowerwall_too_old", description_placeholders={
+            "found": err.found, "required": client.required()})
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        try:
+            # Before the password and the key: nothing would work after them.
+            await self.hass.async_add_executor_job(client.ensure_supported)
+        except client.ClientTooOld as err:
+            return self._abort_client_too_old(err)
         return self.async_show_menu(step_id="user", menu_options=["gateway", "scan"])
 
     async def async_step_scan(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -539,8 +563,10 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         schema = vol.Schema({
             vol.Required(CONF_HOST, default=host): str,
             vol.Required(CONF_GW_PWD, default=self._data.get(CONF_GW_PWD, "")): PASSWORD,
-            vol.Optional(CONF_WIFI_HOST, default=self._data.get(
-                CONF_WIFI_HOST, "" if host == DEFAULT_HOST_WIFI else DEFAULT_HOST_WIFI)): str,
+            # Suggested, not a default: a default would come back when the
+            # field is cleared (the frontend leaves an empty field out).
+            vol.Optional(CONF_WIFI_HOST, description={"suggested_value": self._data.get(
+                CONF_WIFI_HOST, "" if host == DEFAULT_HOST_WIFI else DEFAULT_HOST_WIFI)}): str,
         })
         return self.async_show_form(step_id="gateway", data_schema=schema, errors=errors)
 
@@ -711,8 +737,15 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
 
     async def async_step_register_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         try:
-            key_path, self._public_der = await self.hass.async_add_executor_job(
-                tesla_cloud.ensure_rsa_key, self._folder)
+            # A new key is made once per flow (registering again after a
+            # missed confirmation keeps it). Otherwise: the entry's own key
+            # (reauth), or the folder's first key.
+            make = self._new_key and self._made_key is None
+            key_path, self._public_der = await self.hass.async_add_executor_job(partial(
+                tesla_cloud.ensure_rsa_key, self._folder,
+                self._made_key or self._data.get(CONF_RSA_KEY_PATH), new=make))
+            if make:
+                self._made_key = key_path
             self._key_state = await self._async_register()
         except _REGISTER_ERRORS as err:
             _LOGGER.warning("Key registration failed: %s", err)
@@ -784,6 +817,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 _probe, self._mode, data[CONF_HOST], data.get(CONF_GW_PWD, ""),
                 data.get(CONF_RSA_KEY_PATH, ""), str(self.hass.config.time_zone),
                 full_login=bool(data.get(CONF_FULL_PASSWORD_LOGIN))))
+        except client.ClientTooOld as err:
+            return self._abort_client_too_old(err)
         except (CannotConnect, KeyNotAccepted, InvalidRsaKey, PasswordRequired) as err:
             _LOGGER.debug("Connection check failed: %r", err)
             return self.async_show_form(
@@ -823,6 +858,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             data.update(self._fleet)
         if self.source == SOURCE_REAUTH:
             entry = self._get_reauth_entry()
+            self._retire_key(entry, data.get(CONF_RSA_KEY_PATH))
             if self._fleet is not None:
                 return self._update_and_reload(
                     entry, data={**{k: v for k, v in entry.data.items() if k not in FLEET_DATA_KEYS}, **data},
@@ -855,6 +891,33 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             self.hass.config_entries.async_schedule_reload(entry.entry_id)
         return result
 
+    def _retire_key(self, entry: ConfigEntry, new_path: str | None) -> None:
+        """The entry is switching to another key, which the Powerwall has just
+        accepted: remove the key it used, unless another entry uses that file
+        (keys outside the integration folder are never removed). The
+        Powerwall itself keeps trusting the old key."""
+        self._made_key = None  # in use now: not removed with the flow
+        old_path = entry.data.get(CONF_RSA_KEY_PATH)
+        if not old_path or not new_path or os.path.abspath(old_path) == os.path.abspath(new_path):
+            return
+        old_file = os.path.abspath(old_path)
+        if any(other.entry_id != entry.entry_id and other.data.get(CONF_RSA_KEY_PATH)
+               and os.path.abspath(other.data[CONF_RSA_KEY_PATH]) == old_file
+               for other in self._async_current_entries(include_ignore=False)):
+            return
+        _LOGGER.info("Powerwall %s uses a new key; removing the previous key file", entry.unique_id)
+        self.hass.async_add_executor_job(tesla_cloud.remove_key_files, self._folder, old_path)
+
+    @callback
+    def async_remove(self) -> None:
+        """The flow ended: a new key made here that no entry switched to
+        (cancelled, or the Powerwall never confirmed it) is removed."""
+        if self._verify_task is not None and not self._verify_task.done():
+            self._verify_task.cancel()
+        if self._made_key:
+            self.hass.async_add_executor_job(tesla_cloud.remove_key_files, self._folder, self._made_key)
+            self._made_key = None
+
     def _abort_if_known_gateway(self) -> None:
         """Abort when this gateway (by its DIN) is already set up. A gateway
         found by DHCP discovery and confirmed with its password here gives
@@ -882,12 +945,15 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             self._fleet_only = True
             return await self.async_step_fleet_signin()
         if entry_data.get(NEW_KEY):
+            self._new_key = True
             return await self.async_step_new_key()
         return await self.async_step_reauth_confirm()
 
     async def async_step_new_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Started from the options: register another key while the current
-        one still works. The entry only changes once the new key is confirmed."""
+        one still works. The new key is made or uploaded into a file of its
+        own; the entry (and its key file) only change once the Powerwall has
+        confirmed the new key and the connection check passes with it."""
         return self.async_show_menu(step_id="new_key", menu_options=["register", "key_upload"])
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -936,6 +1002,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             try:
                 din = await self.hass.async_add_executor_job(partial(
                     _probe, mode, host, gw_pwd, key_path, str(self.hass.config.time_zone), full_login=full))
+            except client.ClientTooOld as err:
+                return self._abort_client_too_old(err)
             except (CannotConnect, KeyNotAccepted, InvalidRsaKey, PasswordRequired) as err:
                 errors = _gateway_errors(err)
                 if isinstance(err, InvalidRsaKey):
@@ -968,8 +1036,11 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         schema = vol.Schema({
             vol.Required(CONF_HOST, default=current.get(CONF_HOST, DEFAULT_HOST_WIFI)): str,
             vol.Required(CONF_GW_PWD, default=current.get(CONF_GW_PWD, "") or ""): PASSWORD,
-            vol.Optional(CONF_RSA_KEY_PATH, default=current.get(CONF_RSA_KEY_PATH, "") or ""): str,
-            vol.Optional(CONF_WIFI_HOST, default=current.get(CONF_WIFI_HOST, "") or ""): str,
+            # Suggested, not defaults: clearing either field must stick.
+            vol.Optional(CONF_RSA_KEY_PATH,
+                         description={"suggested_value": current.get(CONF_RSA_KEY_PATH, "") or ""}): str,
+            vol.Optional(CONF_WIFI_HOST,
+                         description={"suggested_value": current.get(CONF_WIFI_HOST, "") or ""}): str,
         })
         return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)
 
@@ -1016,6 +1087,12 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         if user_input is not None:
             flat = {key: value for name in SETTINGS_SECTIONS
                     for key, value in (user_input.get(name) or {}).items()}
+            if CONF_POWER_INTERVAL in flat:
+                # 0 is off; anything shorter than the minimum is the minimum.
+                # Done here, not in the schema: the frontend can't show a
+                # schema with a plain function in it.
+                value = int(flat[CONF_POWER_INTERVAL] or 0)
+                flat[CONF_POWER_INTERVAL] = 0 if value <= 0 else max(MIN_POWER_INTERVAL, value)
             return self.async_create_entry(data={**self.config_entry.options, **flat})
         opts = self.config_entry.options
         scan = opts.get(CONF_SCAN_INTERVAL, self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
@@ -1025,8 +1102,10 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                 min=lo, max=hi, step=step, unit_of_measurement=unit, mode=NumberSelectorMode.BOX))
 
         advanced: dict[Any, Any] = {
-            # Tesla tariff (cloud only): offered once a cloud backup is set up.
-            **({vol.Required(CONF_TESLA_TARIFF, default=opts.get(CONF_TESLA_TARIFF, False)): bool}
+            # Tesla tariff and cloud readings (cloud only): offered once a
+            # cloud backup is set up.
+            **({vol.Required(CONF_TESLA_TARIFF, default=opts.get(CONF_TESLA_TARIFF, False)): bool,
+                vol.Required(CONF_CLOUD_READINGS, default=opts.get(CONF_CLOUD_READINGS, False)): bool}
                if cloud_choice(self.config_entry.data, opts) != CLOUD_NONE else {}),
             vol.Required(CONF_DIAGNOSTICS_GATEWAY, default=opts.get(CONF_DIAGNOSTICS_GATEWAY, False)): bool,
         }
@@ -1036,6 +1115,8 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                 vol.Required("general"): section(vol.Schema({
                     vol.Required(CONF_SCAN_INTERVAL, default=scan): vol.All(
                         box(MIN_SCAN_INTERVAL, MAX_SCAN_INTERVAL, 1, "s"), vol.Coerce(int)),
+                    vol.Required(CONF_POWER_INTERVAL, default=opts.get(CONF_POWER_INTERVAL, 0)): vol.All(
+                        box(0, MAX_POWER_INTERVAL, 1, "s"), vol.Coerce(int)),
                     vol.Required(CONF_RESTORE_EXPORT, default=opts.get(CONF_RESTORE_EXPORT, True)): bool,
                 }), {"collapsed": False}),
                 vol.Required("alerts"): section(vol.Schema({

@@ -200,31 +200,94 @@ def energy_sites(token: str) -> list[EnergySite]:
     ]
 
 
-def ensure_rsa_key(folder: str) -> tuple[str, bytes]:
-    """Return (private key path, public key DER), creating an RSA-4096 pair if needed."""
+def public_der_of(key: Any) -> bytes:
+    """The public key as the Powerwall takes it (PKCS#1 DER)."""
+    from cryptography.hazmat.primitives import serialization  # noqa: PLC0415
+
+    return key.public_key().public_bytes(serialization.Encoding.DER, serialization.PublicFormat.PKCS1)
+
+
+def key_paths(folder: str, public_der: bytes | None = None) -> tuple[str, str]:
+    """(private key path, public key path) in the folder: the first key's
+    files, or with public_der a key's own files, named after the start of its
+    fingerprint."""
+    from .const import (  # noqa: PLC0415
+        KEY_NAME_LENGTH,
+        RSA_KEY_FILE,
+        RSA_KEY_FILE_FORMAT,
+        RSA_PUBLIC_KEY_FILE,
+        RSA_PUBLIC_KEY_FILE_FORMAT,
+    )
+
+    if public_der is None:
+        return os.path.join(folder, RSA_KEY_FILE), os.path.join(folder, RSA_PUBLIC_KEY_FILE)
+    name = fingerprint(public_der)[:KEY_NAME_LENGTH]
+    return (os.path.join(folder, RSA_KEY_FILE_FORMAT.format(name)),
+            os.path.join(folder, RSA_PUBLIC_KEY_FILE_FORMAT.format(name)))
+
+
+def write_private_key(path: str, pem: bytes) -> None:
+    """Write a private key with owner-only permissions."""
+    with open(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "wb") as f:
+        f.write(pem)
+
+
+def remove_key_files(folder: str, private_path: str) -> None:
+    """Remove a key this integration keeps in its folder, with its public
+    half. A key anywhere else is the user's own file and stays."""
+    if os.path.dirname(os.path.abspath(private_path)) != os.path.abspath(folder):
+        return
+    paths = [private_path]
+    try:
+        with open(private_path, "rb") as f:
+            from cryptography.hazmat.primitives import serialization  # noqa: PLC0415
+
+            public_der = public_der_of(serialization.load_pem_private_key(f.read(), password=None))
+        default_private, default_public = key_paths(folder)
+        paths.append(default_public if os.path.abspath(private_path) == os.path.abspath(default_private)
+                     else key_paths(folder, public_der)[1])
+    except (OSError, ValueError, TypeError):
+        pass
+    for path in paths:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
+def ensure_rsa_key(folder: str, path: str | None = None, *, new: bool = False) -> tuple[str, bytes]:
+    """Return (private key path, public key DER).
+
+    Without `new`: the key at `path` (an entry's own key) when that file
+    exists, else the folder's first key, creating an RSA-4096 pair there if
+    there is none.
+    With `new`: always another key, in files of its own. No existing key file
+    is touched, so a key in use keeps working until the new one is confirmed
+    and the entry is switched to it."""
     from cryptography.hazmat.primitives import serialization  # noqa: PLC0415
     from cryptography.hazmat.primitives.asymmetric import rsa  # noqa: PLC0415
 
-    from .const import RSA_KEY_FILE, RSA_PUBLIC_KEY_FILE  # noqa: PLC0415
-
     os.makedirs(folder, exist_ok=True)
-    private_path = os.path.join(folder, RSA_KEY_FILE)
-    if os.path.isfile(private_path):
+    private_path, public_path = key_paths(folder)
+    if not new and path and os.path.isfile(path):
+        private_path = path
+    if not new and os.path.isfile(private_path):
         with open(private_path, "rb") as f:
             key = serialization.load_pem_private_key(f.read(), password=None)
+        public_der = public_der_of(key)
+        if os.path.abspath(private_path) != os.path.abspath(key_paths(folder)[0]):
+            public_path = key_paths(folder, public_der)[1]
     else:
         key = rsa.generate_private_key(public_exponent=65537, key_size=4096)
-        pem = key.private_bytes(
+        public_der = public_der_of(key)
+        if new:
+            private_path, public_path = key_paths(folder, public_der)
+        write_private_key(private_path, key.private_bytes(
             serialization.Encoding.PEM,
             serialization.PrivateFormat.TraditionalOpenSSL,
             serialization.NoEncryption(),
-        )
-        with open(os.open(private_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "wb") as f:
-            f.write(pem)
-    public_der = key.public_key().public_bytes(
-        serialization.Encoding.DER, serialization.PublicFormat.PKCS1
-    )
-    with open(os.path.join(folder, RSA_PUBLIC_KEY_FILE), "wb") as f:
+        ))
+    with open(public_path, "wb") as f:
         f.write(public_der)
     return private_path, public_der
 

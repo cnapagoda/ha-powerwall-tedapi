@@ -45,6 +45,12 @@ class CloudBackend:
     # at most every extras_seconds.
     extras: tuple[float, dict[str, Any]] | None = None
     extras_seconds: float = 0
+    # The site's live status: (monotonic time, values), read only when it is
+    # needed (Wall Connectors, cloud readings) and at most every
+    # CLOUD_LIVE_SECONDS_*.
+    live: tuple[float, dict[str, Any]] | None = None
+    # When that live status was read (UTC).
+    live_at: datetime | None = None
     # The name shown for it, when it isn't the backend's own (Teslemetry).
     display: str | None = None
 
@@ -93,7 +99,69 @@ def site_extras(info: dict[str, Any], user_settings: dict[str, Any], components:
         "grid_services_active": live.get("grid_services_active"),
         "off_grid_reserve_supported": components.get("off_grid_vehicle_charging_reserve_supported"),
         "off_grid_reserve": info.get("off_grid_vehicle_charging_reserve_percent"),
+        # How many Wall Connectors the site has (None without any): their
+        # readings are only fetched when there is one.
+        "wall_connectors": len(_dicts(components.get("wall_connectors"))
+                               or _dicts(live.get("wall_connectors"))) or None,
     }
+
+
+def _dicts(value: Any) -> list[dict[str, Any]]:
+    return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
+
+
+def _number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def wall_connectors(live: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """{DIN: {"power" (W), "state", "fault_state"}} from the site's live
+    status. The states are Tesla's own numbers, passed on as they are."""
+    found: dict[str, dict[str, Any]] = {}
+    for item in _dicts((live or {}).get("wall_connectors")):
+        din = str(item.get("din") or "")
+        if not din:
+            continue
+        power = item.get("wall_connector_power")
+        state, fault = item.get("wall_connector_state"), item.get("wall_connector_fault_state")
+        found[din] = {
+            "power": round(float(power), 1) if _number(power) else None,
+            "state": int(state) if _number(state) else None,
+            "fault_state": int(fault) if _number(fault) else None,
+        }
+    return found
+
+
+# Readings the site's live status can stand in for: ours -> Tesla's. The
+# signs match the gateway's (battery + discharging, grid + importing), and
+# percentage_charged is on the Tesla app's scale, like Battery level.
+LIVE_READINGS = {
+    "solar_power": "solar_power",
+    "battery_power": "battery_power",
+    "grid_power": "grid_power",
+    "home_power": "load_power",
+    "battery_level": "percentage_charged",
+}
+
+
+def live_time(live: dict[str, Any], read_at: datetime) -> datetime:
+    """The time the live status is for: its own "timestamp" when it has a
+    valid one, else when it was read."""
+    stamp = (live or {}).get("timestamp")
+    if isinstance(stamp, str):
+        try:
+            parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        except ValueError:
+            parsed = None
+        if parsed is not None and parsed.tzinfo is not None:
+            return min(parsed, read_at)
+    return read_at
+
+
+def live_readings(live: dict[str, Any]) -> dict[str, float]:
+    """The readings in LIVE_READINGS that the live status has a number for."""
+    return {key: round(float(live[source]), 1) for key, source in LIVE_READINGS.items()
+            if _number((live or {}).get(source))}
 
 
 class OwnerSettings:
@@ -143,6 +211,10 @@ class OwnerSettings:
             return {}
         live = (client.get_site_power() or {}).get("response") or {}
         return site_extras(info, info.get("user_settings") or {}, info.get("components") or {}, live)
+
+    def get_live(self) -> dict[str, Any]:
+        """The site's live status (power, battery level, Wall Connectors)."""
+        return (self._pw.client.get_site_power() or {}).get("response") or {}
 
     def _site_command(self, name: str, **kwargs: Any) -> Any:
         client = self._pw.client

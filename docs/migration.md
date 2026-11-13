@@ -17,6 +17,7 @@ Most people arrive here from another way of connecting a Powerwall to Home Assis
 | **Tesla Fleet** / **Teslemetry** | **Yes, keep it.** | Its battery history can be [imported](actions.md#tesla_tedapiimport_battery_history), and it covers your Tesla vehicles. The same developer app or Teslemetry plan can give this integration its own [cloud backup](cloud-backup.md) sign-in. |
 | **Tesla Powerwall** (core, `powerwall`) | Optional. | If it still works for you, it can run alongside. If it stopped working (common on Powerwall 3, which doesn't offer the old local API on the home network), remove it after you've kept its history (below). |
 | **Tesla Custom** (`alandtse/tesla`) | Optional. | It's cloud only. Don't share a refresh token between it and this integration: [each needs its own](setup.md#refresh-token-easiest). |
+| **ha-pypowerwall** (custom, `pypowerwall`) and other custom integrations that install pypowerwall | **No, remove it.** | Home Assistant runs one pypowerwall for all integrations. One that pins another version (ha-pypowerwall pins an older one) replaces the version this integration needs; setup then stops with a message that says so. Delete it (disabling isn't enough) and restart Home Assistant. A proxy in its own add-on or container isn't affected. |
 | **pypowerwall proxy / Powerwall-Dashboard** | Optional. | See [below](#from-a-pypowerwall-proxy-or-powerwall-dashboard). |
 
 **Let one place make changes.** Reading from several integrations is fine. But if two of them (or an automation in each) change the operation mode, reserve or grid charging, they will fight. Move your automations to this integration and leave the others read-only.
@@ -67,6 +68,7 @@ You probably want to keep these.
 1. Set this integration up with **Register a new key**, and sign in with **Tesla Fleet** (the same developer app) or **Teslemetry**. That sign-in is also the cloud backup.
 2. Move automations that change Powerwall settings to this integration's entities: they're local, so they're faster and keep working without the internet.
 3. For the Energy dashboard, add this integration's sensors next to theirs, or [import the battery history](actions.md#tesla_tedapiimport_battery_history).
+4. Energy split by source (solar to home, grid to battery, …) is available locally as the [energy flow](entities.md#energy-flows) sensors, counting from when you install them. Wall Connector readings come through this integration's cloud backup too.
 
 ## From a pypowerwall proxy or Powerwall-Dashboard
 

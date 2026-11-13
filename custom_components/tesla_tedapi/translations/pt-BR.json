@@ -206,7 +206,8 @@
       "missing_credentials": "Adicione primeiro o app de desenvolvedor Tesla em Configurações → Credenciais do aplicativo.",
       "missing_configuration": "Adicione primeiro o app de desenvolvedor Tesla em Configurações → Credenciais do aplicativo.",
       "oauth_implementation_unavailable": "O app de desenvolvedor Tesla não está disponível. Verifique as credenciais do aplicativo.",
-      "fleet_not_registered": "A Tesla recusou o app de desenvolvedor (HTTP 412): o domínio dele não está registrado na Tesla para a região da sua conta. Registre-o como descrito no [guia de configuração]({docs_url}) e entre novamente."
+      "fleet_not_registered": "A Tesla recusou o app de desenvolvedor (HTTP 412): o domínio dele não está registrado na Tesla para a região da sua conta. Registre-o como descrito no [guia de configuração]({docs_url}) e entre novamente.",
+      "pypowerwall_too_old": "O pypowerwall {found} está carregado no Home Assistant, mas esta integração precisa da versão {required} ou mais recente. Outra integração personalizada que usa um pypowerwall mais antigo o carregou primeiro (por exemplo, ha-pypowerwall). Remova essa integração (desativar não basta), reinicie o Home Assistant e comece a configuração de novo."
     }
   },
   "options": {
@@ -229,9 +230,11 @@
             "name": "Geral",
             "data": {
               "scan_interval": "Intervalo de consulta",
+              "power_interval": "Intervalo de consulta rápida para a potência",
               "restore_export": "Restaurar configurações quando a Powerwall as perder"
             },
             "data_description": {
+              "power_interval": "Com que frequência a potência, o nível da bateria e o estado da rede são lidos. `0` = desligado: são lidos com todo o resto, no intervalo de consulta. De 5 a 60 s, e só é usado se for menor que o intervalo de consulta. Menor dá gráficos mais suaves e limites de despacho mais rápidos, mas mais carga no gateway e um banco de dados maior. Alterar recarrega a integração.",
               "restore_export": "A Powerwall às vezes perde a regra de exportação para a rede e a configuração de carga pela rede (visto de hora em hora em uma Powerwall 3); a carga pela rede então liga. Quando ativado, a configuração escolhida é regravada em um ou dois minutos (só conexão assinada)."
             }
           },
@@ -261,10 +264,12 @@
             "name": "Avançado",
             "data": {
               "tesla_tariff": "Tarifa da Tesla (nuvem)",
+              "cloud_readings": "Leituras da nuvem enquanto o gateway está inacessível",
               "diagnostics_gateway_config": "Configuração do gateway no diagnóstico"
             },
             "data_description": {
-              "tesla_tariff": "Ler da reserva na nuvem a tarifa que a Tesla usa no controle por horário (sensor e ações de ler/definir). Somente nuvem.",
+              "tesla_tariff": "Ler da reserva na nuvem a tarifa que a Tesla usa no controle por horário (sensores, calendários e ações de ler/definir). Somente nuvem.",
+              "cloud_readings": "Enquanto o gateway está inacessível, mostrar a potência e o nível da bateria a partir do backup na nuvem (levam o atributo `source: cloud` e podem ter alguns minutos). Os contadores de energia e todo o resto continuam indisponíveis. Desligado: todas as leituras ficam indisponíveis até o gateway responder.",
               "diagnostics_gateway_config": "Adicionar a configuração do gateway aos downloads de diagnóstico, sem números de série, localização, nomes e credenciais. Útil para relatar erros."
             },
             "description": "A opção **Tarifa da Tesla** aparece aqui depois que um backup na nuvem é configurado: no menu, escolha primeiro **Vincular uma conta Tesla** ou **Entrar no Tesla Fleet ou Teslemetry**."
@@ -335,6 +340,9 @@
       },
       "alert_problem": {
         "name": "Problema"
+      },
+      "battery_calibrating": {
+        "name": "Bateria calibrando"
       },
       "backup_event": {
         "name": "Evento de backup"
@@ -612,6 +620,66 @@
           "mismatch": "Os medidores diferem",
           "unknown": "Ainda sem dados suficientes"
         }
+      },
+      "flow_solar_to_home": {
+        "name": "Energia solar para a casa"
+      },
+      "flow_solar_to_battery": {
+        "name": "Energia solar para a bateria"
+      },
+      "flow_solar_to_grid": {
+        "name": "Energia solar para a rede"
+      },
+      "flow_battery_to_home": {
+        "name": "Energia da bateria para a casa"
+      },
+      "flow_battery_to_grid": {
+        "name": "Energia da bateria para a rede"
+      },
+      "flow_grid_to_home": {
+        "name": "Energia da rede para a casa"
+      },
+      "flow_grid_to_battery": {
+        "name": "Energia da rede para a bateria"
+      },
+      "battery_round_trip_efficiency": {
+        "name": "Eficiência de ida e volta da bateria"
+      },
+      "battery_capacity_fade": {
+        "name": "Tendência da capacidade da bateria"
+      },
+      "battery_warranty_date": {
+        "name": "Data do nível de garantia da bateria (estimativa)"
+      },
+      "phase_grid_voltage": {
+        "name": "Tensão da rede L{phase}"
+      },
+      "phase_home_voltage": {
+        "name": "Tensão da casa L{phase}"
+      },
+      "meter_ct_power": {
+        "name": "Potência do medidor {meter} TC {ct}"
+      },
+      "meter_ct_current": {
+        "name": "Corrente do medidor {meter} TC {ct}"
+      },
+      "meter_ct_reactive_power": {
+        "name": "Potência reativa do medidor {meter} TC {ct}"
+      },
+      "wall_connector_power": {
+        "name": "Potência do Wall Connector {connector}"
+      },
+      "wall_connector_state": {
+        "name": "Estado do Wall Connector {connector}"
+      },
+      "wall_connector_fault_state": {
+        "name": "Estado de falha do Wall Connector {connector}"
+      },
+      "tariff_buy_price": {
+        "name": "Preço de compra da tarifa"
+      },
+      "tariff_sell_price": {
+        "name": "Preço de venda da tarifa"
       }
     },
     "switch": {
@@ -636,6 +704,14 @@
             }
           }
         }
+      }
+    },
+    "calendar": {
+      "buy_tariff": {
+        "name": "Tarifa de compra"
+      },
+      "sell_tariff": {
+        "name": "Tarifa de venda"
       }
     }
   },
@@ -735,6 +811,9 @@
     },
     "history_already_imported": {
       "message": "{sensor} já tem histórico desse período: ele já foi importado."
+    },
+    "pypowerwall_too_old": {
+      "message": "O pypowerwall {found} está carregado no Home Assistant, mas esta integração precisa da versão {required} ou mais recente. Outra integração personalizada carregou a versão mais antiga: remova-a e reinicie o Home Assistant."
     }
   },
   "services": {
@@ -1046,6 +1125,10 @@
       "title": "Um Powerwall 3 está faltando nas leituras",
       "description": "{count} Powerwall 3 deste gateway não aparecem nas leituras, embora o Wi-Fi alternativo (`{wifi_host}`) esteja configurado. Na conexão assinada, os Powerwall seguidores são lidos apenas por esse Wi-Fi: verifique se o Home Assistant ainda o alcança.\n\nOs totais de potência, energia e capacidade já incluem todos os Powerwall; faltam apenas as baterias, temperaturas e ventiladores das unidades ausentes. Isso some sozinho quando elas aparecerem."
     },
+    "powerwall_follower_hotspot": {
+      "title": "Um Powerwall 3 está faltando nas leituras",
+      "description": "{count} Powerwall 3 deste gateway não aparecem nas leituras. A conexão assinada usa o Wi-Fi do próprio Powerwall (`{wifi_host}`), e os Powerwall seguidores são lidos por esse Wi-Fi: verifique se o Home Assistant o alcança de forma confiável.\n\nOs totais de potência, energia e capacidade já incluem todos os Powerwall; faltam apenas as baterias, temperaturas e ventiladores das unidades ausentes. Isso some sozinho quando elas aparecerem."
+    },
     "powerwall_follower_missing": {
       "title": "Um Powerwall 3 está faltando nas leituras",
       "description": "{count} Powerwall 3 da configuração do gateway não aparecem nas leituras. Os totais de potência, energia e capacidade já incluem todos os Powerwall; faltam apenas as baterias, temperaturas e ventiladores das unidades ausentes.\n\nIsso some sozinho quando elas aparecerem. Se continuar, baixe o diagnóstico e abra uma issue."
@@ -1100,7 +1183,13 @@
         "pws_a009_rsd": "O desligamento rápido está ativo (chave liga/desliga ou botão de desligamento rápido)",
         "pws_a014_hvpfault": "Falha do controlador de alta tensão da bateria",
         "pws_a044_hvprsdfault": "Falha do desligamento rápido da bateria",
-        "pws_a045_battvrationality": "A leitura de tensão da bateria é implausível"
+        "pws_a045_battvrationality": "A leitura de tensão da bateria é implausível",
+        "batterycalibration": "A bateria está calibrando o nível de carga",
+        "realpowerconfiglimited": "A potência é mantida abaixo de um limite configurado",
+        "batterycomms": "O gateway não consegue se comunicar com uma bateria",
+        "gridcodeswrite": "O gateway está gravando as configurações de código de rede",
+        "podcommissiontime": "Uma bateria está registrando a data de comissionamento",
+        "solarmetercomms": "Comunicação perdida com o medidor solar (quedas breves são comuns)"
       }
     },
     "alert_short": {
@@ -1127,7 +1216,13 @@
         "pws_a014_hvpfault": "Falha do controlador da bateria",
         "pws_a044_hvprsdfault": "Falha do desligamento rápido",
         "pws_a045_battvrationality": "Tensão da bateria implausível",
-        "no_alerts": "Nenhum"
+        "no_alerts": "Nenhum",
+        "batterycalibration": "Bateria calibrando",
+        "realpowerconfiglimited": "Potência limitada por configuração",
+        "batterycomms": "Sem comunicação com a bateria",
+        "gridcodeswrite": "Gravando ajustes de rede",
+        "podcommissiontime": "Comissionamento da bateria",
+        "solarmetercomms": "Medidor solar sem comunicação"
       }
     },
     "logbook": {

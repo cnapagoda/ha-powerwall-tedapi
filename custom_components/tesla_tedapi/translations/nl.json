@@ -206,7 +206,8 @@
       "missing_credentials": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
       "missing_configuration": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
       "oauth_implementation_unavailable": "De Tesla-ontwikkelaarsapp is niet beschikbaar. Controleer de applicatiegegevens.",
-      "fleet_not_registered": "Tesla weigerde de ontwikkelaarsapp (HTTP 412): het domein is voor de regio van je account niet bij Tesla geregistreerd. Registreer het zoals beschreven in de [installatiehandleiding]({docs_url}) en meld je daarna opnieuw aan."
+      "fleet_not_registered": "Tesla weigerde de ontwikkelaarsapp (HTTP 412): het domein is voor de regio van je account niet bij Tesla geregistreerd. Registreer het zoals beschreven in de [installatiehandleiding]({docs_url}) en meld je daarna opnieuw aan.",
+      "pypowerwall_too_old": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie met een oudere pypowerwall heeft die eerst geladen (bijvoorbeeld ha-pypowerwall). Verwijder die integratie (uitschakelen is niet genoeg), herstart Home Assistant en begin de installatie opnieuw."
     }
   },
   "options": {
@@ -229,9 +230,11 @@
             "name": "Algemeen",
             "data": {
               "scan_interval": "Pollinginterval",
+              "power_interval": "Snel pollinginterval voor vermogen",
               "restore_export": "Instellingen herstellen als de Powerwall ze kwijtraakt"
             },
             "data_description": {
+              "power_interval": "Hoe vaak vermogen, batterijniveau en netstatus worden gelezen. `0` = uit: ze worden met al het andere gelezen, op het pollinginterval. 5 tot 60 s, en alleen gebruikt als het korter is dan het pollinginterval. Korter geeft vloeiendere grafieken en snellere dispatchgrenzen, maar meer belasting van de gateway en een grotere database. Wijzigen herlaadt de integratie.",
               "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding)."
             }
           },
@@ -261,10 +264,12 @@
             "name": "Geavanceerd",
             "data": {
               "tesla_tariff": "Tesla-tarief (cloud)",
+              "cloud_readings": "Cloudmetingen zolang de gateway onbereikbaar is",
               "diagnostics_gateway_config": "Gatewayconfiguratie in diagnostiek"
             },
             "data_description": {
-              "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensor en acties om te lezen/instellen). Alleen cloud.",
+              "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensoren, agenda's en acties om te lezen/instellen). Alleen cloud.",
+              "cloud_readings": "Zolang de gateway onbereikbaar is, vermogen en batterijniveau uit de cloudback-up tonen (ze dragen het attribuut `source: cloud` en kunnen enkele minuten oud zijn). Energietellers en al het andere blijven niet beschikbaar. Uit: alle metingen zijn niet beschikbaar tot de gateway antwoordt.",
               "diagnostics_gateway_config": "De configuratie van de gateway toevoegen aan diagnostiekdownloads, zonder serienummers, locatie, namen en inloggegevens. Handig voor bugmeldingen."
             },
             "description": "De optie **Tesla-tarief** verschijnt hier zodra een cloudback-up is ingesteld: kies in het menu eerst **Een Tesla-account koppelen** of **Aanmelden bij Tesla Fleet of Teslemetry**."
@@ -335,6 +340,9 @@
       },
       "alert_problem": {
         "name": "Probleem"
+      },
+      "battery_calibrating": {
+        "name": "Batterij kalibreert"
       },
       "backup_event": {
         "name": "Back-upgebeurtenis"
@@ -612,6 +620,66 @@
           "mismatch": "Meters wijken af",
           "unknown": "Nog te weinig gegevens"
         }
+      },
+      "flow_solar_to_home": {
+        "name": "Zonne-energie naar huis"
+      },
+      "flow_solar_to_battery": {
+        "name": "Zonne-energie naar batterij"
+      },
+      "flow_solar_to_grid": {
+        "name": "Zonne-energie naar het net"
+      },
+      "flow_battery_to_home": {
+        "name": "Batterij-energie naar huis"
+      },
+      "flow_battery_to_grid": {
+        "name": "Batterij-energie naar het net"
+      },
+      "flow_grid_to_home": {
+        "name": "Netenergie naar huis"
+      },
+      "flow_grid_to_battery": {
+        "name": "Netenergie naar batterij"
+      },
+      "battery_round_trip_efficiency": {
+        "name": "Batterijrendement (laden en ontladen)"
+      },
+      "battery_capacity_fade": {
+        "name": "Trend batterijcapaciteit"
+      },
+      "battery_warranty_date": {
+        "name": "Batterij bereikt garantiegrens (schatting)"
+      },
+      "phase_grid_voltage": {
+        "name": "Netspanning L{phase}"
+      },
+      "phase_home_voltage": {
+        "name": "Huisspanning L{phase}"
+      },
+      "meter_ct_power": {
+        "name": "Meter {meter} stroomtrafo {ct} vermogen"
+      },
+      "meter_ct_current": {
+        "name": "Meter {meter} stroomtrafo {ct} stroom"
+      },
+      "meter_ct_reactive_power": {
+        "name": "Meter {meter} stroomtrafo {ct} blindvermogen"
+      },
+      "wall_connector_power": {
+        "name": "Wall Connector {connector} vermogen"
+      },
+      "wall_connector_state": {
+        "name": "Wall Connector {connector} status"
+      },
+      "wall_connector_fault_state": {
+        "name": "Wall Connector {connector} storingsstatus"
+      },
+      "tariff_buy_price": {
+        "name": "Tarief afnameprijs"
+      },
+      "tariff_sell_price": {
+        "name": "Tarief terugleverprijs"
       }
     },
     "switch": {
@@ -636,6 +704,14 @@
             }
           }
         }
+      }
+    },
+    "calendar": {
+      "buy_tariff": {
+        "name": "Afnametarief"
+      },
+      "sell_tariff": {
+        "name": "Teruglevertarief"
       }
     }
   },
@@ -735,6 +811,9 @@
     },
     "history_already_imported": {
       "message": "{sensor} heeft al geschiedenis uit die periode: die is al geïmporteerd."
+    },
+    "pypowerwall_too_old": {
+      "message": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie heeft de oudere versie geladen: verwijder die en herstart Home Assistant."
     }
   },
   "services": {
@@ -1046,6 +1125,10 @@
       "title": "Er ontbreekt een Powerwall 3 in de metingen",
       "description": "{count} Powerwall 3 van deze gateway staan niet in de metingen, hoewel het wifi-terugvaladres (`{wifi_host}`) is ingesteld. Via de ondertekende verbinding worden volg-Powerwalls alleen via die wifi gelezen: controleer of Home Assistant die nog bereikt.\n\nTotalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken. Dit verdwijnt vanzelf zodra ze verschijnen."
     },
+    "powerwall_follower_hotspot": {
+      "title": "Er ontbreekt een Powerwall 3 in de metingen",
+      "description": "{count} Powerwall 3 van deze gateway staan niet in de metingen. De ondertekende verbinding gebruikt de eigen wifi van de Powerwall (`{wifi_host}`) en volg-Powerwalls worden via die wifi gelezen: controleer of Home Assistant die betrouwbaar bereikt.\n\nTotalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken. Dit verdwijnt vanzelf zodra ze verschijnen."
+    },
     "powerwall_follower_missing": {
       "title": "Er ontbreekt een Powerwall 3 in de metingen",
       "description": "{count} Powerwall 3 uit de gatewayconfiguratie staan niet in de metingen. Totalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken.\n\nDit verdwijnt vanzelf zodra ze verschijnen. Blijft het, download dan de diagnostiek en open een issue."
@@ -1100,7 +1183,13 @@
         "pws_a009_rsd": "Snelle uitschakeling is actief (aan/uit-schakelaar of noodstopknop)",
         "pws_a014_hvpfault": "Storing in de hoogspanningsregelaar van de batterij",
         "pws_a044_hvprsdfault": "Storing in de snelle uitschakeling van de batterij",
-        "pws_a045_battvrationality": "Batterijspanning is onwaarschijnlijk"
+        "pws_a045_battvrationality": "Batterijspanning is onwaarschijnlijk",
+        "batterycalibration": "De batterij kalibreert haar laadniveau",
+        "realpowerconfiglimited": "Het vermogen blijft onder een ingestelde limiet",
+        "batterycomms": "De gateway kan niet communiceren met een batterij",
+        "gridcodeswrite": "De gateway schrijft zijn netcode-instellingen",
+        "podcommissiontime": "Een batterij legt haar inbedrijfstellingstijd vast",
+        "solarmetercomms": "Verbinding met de zonnemeter verbroken (korte onderbrekingen komen vaak voor)"
       }
     },
     "alert_short": {
@@ -1127,7 +1216,13 @@
         "pws_a014_hvpfault": "Storing batterijregelaar",
         "pws_a044_hvprsdfault": "Storing snelle uitschakeling",
         "pws_a045_battvrationality": "Batterijspanning onwaarschijnlijk",
-        "no_alerts": "Geen"
+        "no_alerts": "Geen",
+        "batterycalibration": "Batterij kalibreert",
+        "realpowerconfiglimited": "Vermogen begrensd door instelling",
+        "batterycomms": "Batterij onbereikbaar",
+        "gridcodeswrite": "Netinstellingen schrijven",
+        "podcommissiontime": "Inbedrijfstelling batterij",
+        "solarmetercomms": "Zonnemeter onbereikbaar"
       }
     },
     "logbook": {

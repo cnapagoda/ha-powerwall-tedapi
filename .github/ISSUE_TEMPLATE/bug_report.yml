@@ -82,7 +82,7 @@ body:
     id: diagnostics
     attributes:
       label: Diagnostics
-      description: "Drag the file here: Settings → Devices & services → Tesla Powerwall TEDAPI → ⋮ → Download diagnostics. It hides passwords, email and serial numbers, but check it first."
+      description: "Drag the file here: Settings → Devices & services → Tesla Powerwall TEDAPI → ⋮ → Download diagnostics. It hides the password, email, site ID, serial numbers, MAC addresses, location and the tariff's plan and retailer names, but check it first."
   - type: textarea
     id: logs
     attributes:

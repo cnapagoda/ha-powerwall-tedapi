@@ -51,6 +51,48 @@ async def test_optional_reads_fail_one_by_one(hass: HomeAssistant, fake_powerwal
     assert hass.states.get(_eid(hass, "sensor", "battery_level")).state == "50.0"
 
 
+ZERO_POWER = {"site": 0.0, "solar": 0.0, "battery": 0.0, "load": 0.0}
+POWER_KEYS = ("solar_power", "battery_power", "grid_power", "home_power")
+
+
+async def test_unread_meters_are_not_zero_watts(hass: HomeAssistant, fake_powerwall) -> None:
+    """pypowerwall's power() gives 0.0 for every reading when the meters
+    can't be read: unknown here, not a recorded 0 W."""
+    with patch.multiple(FakePowerwall, poll=_raise, power=lambda self: dict(ZERO_POWER)):
+        entry = await _setup(hass, V1R)
+        data = entry.runtime_data.coordinator.data
+    assert all(data[key] is None for key in POWER_KEYS)
+    for key in (*POWER_KEYS, "grid_import_power", "battery_charge_power"):
+        assert hass.states.get(_eid(hass, "sensor", key)).state == "unknown"
+    assert hass.states.get(_eid(hass, "sensor", "battery_level")).state == "50.0"
+
+
+async def test_partly_read_meters_keep_what_was_read(hass: HomeAssistant, fake_powerwall) -> None:
+    """A meters payload with only the site section: pypowerwall's power()
+    leaves solar, battery and home at 0.0. Only the grid reading is real, and
+    the readings come from the meters payload, not from power()."""
+    partial = {"site": {"instant_power": 100.0, "energy_imported": 1_000_000, "energy_exported": 2_000_000}}
+    with patch.multiple(FakePowerwall, poll=lambda self, path: partial,
+                        power=lambda self: dict(ZERO_POWER)):
+        entry = await _setup(hass, V1R)
+        data = entry.runtime_data.coordinator.data
+    assert data["grid_power"] == 100.0
+    assert data["solar_power"] is None and data["battery_power"] is None and data["home_power"] is None
+    assert data["energy"]["grid_energy_imported"] == 1000.0
+
+
+async def test_a_real_zero_is_kept(hass: HomeAssistant, fake_powerwall) -> None:
+    night = {"site": {"instant_power": 400.0}, "battery": {"instant_power": 0.0},
+             "solar": {"instant_power": 0}, "load": {"instant_power": 400.0}}
+    with patch.multiple(FakePowerwall, poll=lambda self, path: night,
+                        power=lambda self: dict(ZERO_POWER)):
+        entry = await _setup(hass, V1R)
+        data = entry.runtime_data.coordinator.data
+    assert data["solar_power"] == 0.0 and data["battery_power"] == 0.0
+    assert data["grid_power"] == 400.0 and data["home_power"] == 400.0
+    assert hass.states.get(_eid(hass, "sensor", "solar_power")).state == "0.0"
+
+
 async def test_din_read_failing_retries_setup(hass: HomeAssistant, fake_powerwall) -> None:
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R, title="Powerwall")
     entry.add_to_hass(hass)

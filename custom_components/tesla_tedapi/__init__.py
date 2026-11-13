@@ -6,15 +6,16 @@ import logging
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
-from homeassistant.exceptions import ConfigEntryNotReady, ServiceValidationError
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
+from homeassistant.core import Event, HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady, ServiceValidationError
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.typing import ConfigType
 import voluptuous as vol
 
+from . import client
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
     ATTR_CONFIRM,
@@ -60,8 +61,8 @@ from .texts import async_setup_texts
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.EVENT, Platform.NUMBER, Platform.SELECT, Platform.SENSOR,
-             Platform.SWITCH]
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CALENDAR, Platform.EVENT, Platform.NUMBER,
+             Platform.SELECT, Platform.SENSOR, Platform.SWITCH]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _SOC = vol.All(vol.Coerce(float), vol.Range(min=0, max=100))
@@ -271,6 +272,15 @@ async def async_migrate_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> 
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bool:
+    try:
+        await hass.async_add_executor_job(client.ensure_supported)
+    except client.ClientTooOld as err:
+        # Not ConfigEntryNotReady: retrying can't help, only a restart
+        # without the integration that loaded the older pypowerwall.
+        _LOGGER.error("%s. Another integration loaded it; remove that one and restart Home Assistant", err)
+        raise ConfigEntryError(
+            translation_domain=DOMAIN, translation_key="pypowerwall_too_old",
+            translation_placeholders={"found": err.found, "required": client.required()}) from err
     coordinator = TedapiCoordinator(hass, entry)
     await coordinator.async_load_state()
     try:
@@ -298,6 +308,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         coordinator.intentional_off_grid = lambda: off_grid.intentional
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+
+    async def _async_stop(_event: Event) -> None:
+        # Home Assistant doesn't unload entries when it stops or restarts:
+        # end a running dispatch here, so the battery is handed back now (not
+        # when the last command expires) and the ended event still fires.
+        if (dispatch := entry.runtime_data.dispatch) is not None:
+            await dispatch.async_shutdown()
+
+    # async_listen, not async_listen_once: removing a once-listener that has
+    # already fired (unload after the stop) logs an error.
+    entry.async_on_unload(hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, _async_stop))
     _LOGGER.debug("Powerwall %s loaded (firmware %s, %s, settings %s)",
                   coordinator.din, coordinator.firmware_version, coordinator.connection_mode,
                   "enabled" if coordinator.control_enabled else "read-only")

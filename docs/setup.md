@@ -118,6 +118,8 @@ The sign-in is kept (a Tesla account in `config/tesla_tedapi/.pypowerwall.auth`,
 <details>
 <summary>Screenshots: Tesla sign-in, confirmation, done</summary>
 
+<img src="images/setup-05a-sign-in-choice.png" alt="Choose how to sign in: Tesla account, Tesla Fleet or Teslemetry" width="640">
+
 <img src="images/setup-05-tesla-sign-in.png" alt="Tesla sign-in step" width="640">
 
 <img src="images/setup-06-confirm-key.png" alt="Waiting for the switch toggle at the Powerwall" width="640">
@@ -136,7 +138,7 @@ On an existing setup, use **Configure → Register a new signed key**, or **Conf
 
 ### B. Upload a key that is already registered
 
-If you registered a key with `python -m pypowerwall register`, upload its `tedapi_rsa_private.pem`. It is checked (it must be an RSA private key) and copied into `config/tesla_tedapi/` with owner-only permissions. You can also link a Tesla account here for the cloud backup.
+If you registered a key with `python -m pypowerwall register`, upload its `tedapi_rsa_private.pem`. It is checked (it must be an RSA private key) and copied into `config/tesla_tedapi/` with owner-only permissions. A different key already there is kept: the upload gets a file of its own. You can also link a Tesla account here for the cloud backup.
 
 <details>
 <summary>Screenshot: key upload</summary>
@@ -229,7 +231,7 @@ You only need this for your **own** Tesla developer app: for the [Tesla Fleet si
 
 Add the integration once per **gateway**. Expansion packs and the batteries behind one gateway belong to that gateway's entry and show up by themselves.
 
-**Several Powerwall 3s on one gateway, signed connection:** the follower Powerwalls have no address of their own; they're reached through the leader. Over the home network the signed connection reaches the leader only, so the followers' battery packs, temperatures and fans are read over the **Wi-Fi fallback address** (`192.168.91.1`, **⋮ → Reconfigure**). That needs Home Assistant to reach the Powerwall's own Wi-Fi, for example with a USB Wi-Fi adapter. Without it, totals such as power, energy and **Battery full capacity** still count every Powerwall, but the followers' packs are missing and a repair says so. The Wi-Fi password connection reads every Powerwall.
+**Several Powerwall 3s on one gateway, signed connection:** the follower Powerwalls have no address of their own; they're reached through the leader. Over the home network the signed connection reaches the leader only, so the followers' battery packs, temperatures and fans are read over the **Wi-Fi fallback address** (`192.168.91.1`, **⋮ → Reconfigure**). That needs Home Assistant to reach the Powerwall's own Wi-Fi, for example with a USB Wi-Fi adapter. Without it, totals such as power, energy, **Battery full capacity** and **Battery health** still count every Powerwall, but the followers' packs are missing and a repair says so. If the signed connection itself uses `192.168.91.1`, the followers are read over it and no fallback address is needed. The Wi-Fi password connection reads every Powerwall.
 
 - The second entry's entity IDs end in `_2` (both devices are called *Powerwall TEDAPI*). Rename the device to tell them apart.
 - Actions need `config_entry_id` when more than one Powerwall is set up. In the action editor, pick the Powerwall from the list.

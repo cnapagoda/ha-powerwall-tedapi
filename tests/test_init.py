@@ -251,6 +251,89 @@ def test_gateway_config_redaction() -> None:
     assert out["battery_blocks"][0]["type"] == "Powerwall3" and out["note"] == REDACTED
 
 
+def test_gateway_config_redaction_issue_19() -> None:
+    """What a Powerwall 2 download still showed: a meter's MAC address
+    under server_name, its short_id, the state and distributor, the
+    commission date and the tariff's plan and retailer."""
+    from custom_components.tesla_tedapi.diagnostics import REDACTED, redact_config  # noqa: PLC0415
+
+    tariff = {
+        "name": "Night Saver", "utility": "Acme Energy", "code": "ACME-NS-1",
+        "daily_charges": [{"amount": 0, "name": "Charge"}],
+        "energy_charges": {"Summer": {"ON_PEAK": 0.31, "OFF_PEAK": 0.19}},
+        "seasons": {"Summer": {"fromMonth": 1, "toMonth": 12, "tou_periods": {
+            "ON_PEAK": [{"fromDayOfWeek": 0, "toDayOfWeek": 6, "fromHour": 18, "toHour": 20}]}}},
+    }
+    config = {
+        "meters": [{"location": "site", "type": "neurio_tcp", "connection": {
+            "ip_address": "192.168.1.77", "port": 443, "short_id": "54321", "device_serial": "VAH1234AB5678",
+            "neurio_connected": True,
+            "https_conf": {"client_cert": "PEM", "client_key": "/var/lib/neurio/neurio.key",
+                           "server_ca_cert": "PEM", "server_name": "0A-1B-2C-3D-4E-5F"}}}],
+        "site_info": {
+            "state": "Victoria", "distributor": "Northgrid", "utility": "Acme Energy", "retailer": "Acme Energy",
+            "battery_commission_date": "2024-10-19T13:05:05+11:00", "country": "Australia",
+            "grid_code": "50Hz_230V_1_ASNZS4777.2:2020_AUS_A", "timezone": "Australia/Melbourne",
+            "tariff_content": {**tariff, "sell_tariff": {**tariff, "name": "Night Saver Export"}}},
+        "island_contactor_controller": {"type": "sync", "state": "closed"},
+        "notes": ["meter 0a:1b:2c:3d:4e:5f paired", "pack TG9876543210ZZ added", "13:05:05+11:00"],
+    }
+    out = redact_config(config, ("TG9876543210ZZ",))
+    text = str(out)
+    for secret in ("0A-1B-2C-3D-4E-5F", "0a:1b:2c:3d:4e:5f", "54321", "VAH1234AB5678", "192.168.1.77", "Victoria",
+                   "Northgrid", "Acme", "Night Saver", "ACME-NS-1", "2024-10-19", "TG9876543210ZZ"):
+        assert secret not in text, secret
+    site = out["site_info"]
+    # What a bug report needs stays: country, grid code, periods and prices.
+    assert site["country"] == "Australia" and site["grid_code"].endswith("AUS_A")
+    assert site["timezone"] == "Australia/Melbourne"
+    assert site["tariff_content"]["energy_charges"]["Summer"] == {"ON_PEAK": 0.31, "OFF_PEAK": 0.19}
+    assert site["tariff_content"]["sell_tariff"]["seasons"]["Summer"]["tou_periods"]["ON_PEAK"][0]["fromHour"] == 18
+    assert site["tariff_content"]["sell_tariff"]["name"] == REDACTED
+    # "state" is only the site's state under site_info; a time isn't a MAC address.
+    assert out["island_contactor_controller"]["state"] == "closed"
+    assert out["notes"] == [REDACTED, REDACTED, "13:05:05+11:00"]
+    assert out["meters"][0]["connection"]["port"] == 443
+
+
+def test_diagnostics_tariff_and_pack_names() -> None:
+    from custom_components.tesla_tedapi.diagnostics import (  # noqa: PLC0415
+        REDACTED,
+        number_packs,
+        redact_tariff,
+        redact_values,
+    )
+
+    tariff = redact_tariff({"name": "Night Saver", "utility": "Acme Energy",
+                            "energy_charges": {"Summer": {"ON_PEAK": 0.31}},
+                            "sell_tariff": {"name": "Export", "energy_charges": {"Summer": {"ON_PEAK": 0.15}}}})
+    assert tariff["name"] == REDACTED and tariff["utility"] == REDACTED
+    assert tariff["sell_tariff"]["name"] == REDACTED
+    assert tariff["energy_charges"]["Summer"]["ON_PEAK"] == 0.31
+    assert tariff["sell_tariff"]["energy_charges"]["Summer"]["ON_PEAK"] == 0.15
+    assert redact_tariff(None) is None
+
+    # A pack named after the end of its serial is numbered, wherever the name is.
+    data, serials = number_packs({
+        "packs": {"TG12345678906TN": {"name": "Battery 06TN", "full_kwh": 13.0},
+                  "TG1234567890ABC": {"name": "Powerwall 3", "full_kwh": 13.5}},
+        "alert_details": [{"alert": "BatteryFault", "sources": ["Battery 06TN", "gateway"]}],
+        "battery_level": 50.0})
+    assert serials == ("TG12345678906TN", "TG1234567890ABC")
+    assert [p["name"] for p in data["packs"]] == ["Battery 1", "Powerwall 3"]
+    assert data["alert_details"][0]["sources"] == ["Battery 1", "gateway"]
+    assert "06TN" not in str(data) and data["battery_level"] == 50.0
+    assert number_packs({"battery_level": 50.0}) == ({"battery_level": 50.0, "packs": []}, ())
+    # Two packs whose serials end alike: the numbered one is hidden too.
+    data, _ = number_packs({"packs": {"AA00006TN": {"name": "Battery 06TN"},
+                                      "BB00006TN": {"name": "Battery 06TN (2)"}}})
+    assert [p["name"] for p in data["packs"]] == ["Battery 1", "Battery 2"] and "06TN" not in str(data)
+
+    out = redact_values({"token_cache": {"present": True}, "host": "192.168.1.30",
+                         "note": "meter 0a:1b:2c:3d:4e:5f", "serials": ["x TG12345678906TN"]}, serials)
+    assert out == {"token_cache": {"present": True}, "host": "192.168.1.30", "note": REDACTED, "serials": [REDACTED]}
+
+
 async def test_diagnostics_gateway_config_option(hass: HomeAssistant) -> None:
     from unittest.mock import patch  # noqa: PLC0415
 

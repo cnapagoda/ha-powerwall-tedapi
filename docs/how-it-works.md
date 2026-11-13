@@ -27,7 +27,8 @@
 └──────────────────────────────────┘
 ```
 
-- **Readings** always come from the gateway on your network.
+- **Readings** come from the gateway on your network. With the **Cloud readings while the gateway is unreachable** option, power and battery level come from the cloud backup while the gateway can't be reached.
+- **Wall Connectors** come from the cloud backup.
 - **Settings** are written to the gateway over the signed connection. The [cloud backup](cloud-backup.md) is only used when that fails, or on a Wi-Fi password connection.
 - **Dispatch, max backup and go off-grid** are local only.
 - **Storm Watch, grid services, the off-grid vehicle charging reserve and the tariff** exist only in Tesla's cloud, so they always use the cloud backup.
@@ -35,30 +36,32 @@
 
 ## Data updates
 
-The integration polls the gateway every 30 seconds by default (**Polling interval**, 10–300 s). Each poll reads power flows, battery level, grid status, settings, energy counters, battery packs, temperatures, fans and alerts in one go. Some values are read less often:
+The integration polls the gateway every 30 seconds by default (**Polling interval**, 10–300 s). Each poll reads power flows, battery level, grid status, settings, energy counters, battery packs, temperatures, fans, phases and alerts in one go. With **Fast polling interval for power**, power, battery level and grid status are also read in between. Some values are read on their own schedule:
 
 | What | How often |
 |---|---|
 | Backup events (signed connection) | Every 5 minutes, and straight after a max backup is started or cancelled |
 | Settings from the cloud backup, when the gateway can't give them | Cached for 5 minutes |
 | Storm Watch, grid services, off-grid vehicle charging reserve | Every 30 minutes |
+| Power, battery level and grid status, with **Fast polling interval for power** set | Every 5–60 s (your setting); everything else stays at the polling interval |
+| Wall Connectors, and cloud readings while the gateway is unreachable (both from the cloud backup, only when needed) | Every minute through Tesla Fleet or Teslemetry, every 5 minutes through the Owner API |
 | Tesla tariff (option) | Every 6 hours, and after each write |
 | Cloud backup health check | About once an hour, or 10 minutes after a failure |
 | Restoring a dropped setting | At most every 2 minutes per setting |
 
 After you change a setting, the integration reads the Powerwall again straight away, so the entity shows the new value within seconds. A change made through the cloud is read back for up to 5 minutes.
 
-If the gateway can't be reached, readings show *unavailable* until it answers again. Nothing is filled in for the missed time, except that the lifetime energy counters catch up.
+If the gateway can't be reached, readings show *unavailable* until it answers again (or, with the **Cloud readings** option, power and battery level come from the cloud backup). Nothing is filled in for the missed time, except that the lifetime energy counters catch up.
 
-**Choosing a polling interval:** 30 s suits most people. Shorter intervals give smoother power graphs and quicker dispatch limits, but more load on the gateway and a bigger database. If you also run Powerwall-Dashboard or another poller, consider a longer interval.
+**Choosing a polling interval:** 30 s suits most people. Shorter intervals give smoother power graphs and quicker dispatch limits, but more load on the gateway and a bigger database. If you also run Powerwall-Dashboard or another poller, consider a longer interval. For smooth power graphs, set **Fast polling interval for power** (5–60 s) and keep the polling interval for everything else.
 
 ## What is stored
 
 | Where | What |
 |---|---|
 | Config entry | Gateway address and password, key path, connection type, Tesla account email and site (if linked), options. |
-| `config/tesla_tedapi/` | `tedapi_rsa_private.pem` (the key), `tedapi_rsa_public.der`, `.pypowerwall.auth` (Owner API tokens). Owner-only permissions. |
-| `.storage/tesla_tedapi.<entry>` | Alert start times, the settings to restore, outage history, firmware history, today's energy baselines, grid counter check. Removed when you delete the entry. |
+| `config/tesla_tedapi/` | `tedapi_rsa_private.pem` (the key), `tedapi_rsa_public.der`, `.pypowerwall.auth` (Owner API tokens). Owner-only permissions. A key registered or uploaded later is kept beside it as `tedapi_rsa_private_<start of its fingerprint>.pem`: a key file is never written over. The entry's **RSA private key file** (under **Reconfigure**) says which one is in use. |
+| `.storage/tesla_tedapi.<entry>` | Alert start times, the settings to restore, outage history, firmware history, today's energy baselines, grid counter check, energy flow totals, battery capacity samples. Removed when you delete the entry. |
 | `.storage/tesla_tedapi.<entry>.off_grid` | A running off-grid run, so the reconnect survives a restart. |
 | Recorder | States, and the attributes that matter in history. Attributes that change on nearly every reading or are only detail (pack temperatures and remaining energy, the grid counter check figures, Setup health checks, fan duty, alert details) are shown live but not recorded. |
 
@@ -66,7 +69,7 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 
 - **No data leaves your network** unless you set up a cloud backup, and then only to Tesla (directly, or through Teslemetry).
 - The key and the Tesla sign-in are secrets: anyone with the key on your network can control the Powerwall. They're included in Home Assistant backups.
-- **Diagnostics downloads** hide the password, email, site ID and serial numbers. The optional gateway configuration in diagnostics also removes location, names and credentials. Check a download before you share it.
+- **Diagnostics downloads** hide the password, email, site ID, serial numbers, MAC addresses and the tariff's plan and retailer names. The optional gateway configuration in diagnostics also removes location (the country, grid code and time zone stay), names and credentials. Check a download before you share it.
 - See [SECURITY.md](../SECURITY.md).
 
 ## Known limitations

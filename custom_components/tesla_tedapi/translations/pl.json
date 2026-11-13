@@ -206,7 +206,8 @@
       "missing_credentials": "Najpierw dodaj aplikację deweloperską Tesla w Ustawienia → Dane uwierzytelniające aplikacji.",
       "missing_configuration": "Najpierw dodaj aplikację deweloperską Tesla w Ustawienia → Dane uwierzytelniające aplikacji.",
       "oauth_implementation_unavailable": "Aplikacja deweloperska Tesla jest niedostępna. Sprawdź dane uwierzytelniające aplikacji.",
-      "fleet_not_registered": "Tesla odrzuciła aplikację deweloperską (HTTP 412): jej domena nie jest zarejestrowana w Tesli dla regionu Twojego konta. Zarejestruj ją zgodnie z [instrukcją konfiguracji]({docs_url}), a potem zaloguj się ponownie."
+      "fleet_not_registered": "Tesla odrzuciła aplikację deweloperską (HTTP 412): jej domena nie jest zarejestrowana w Tesli dla regionu Twojego konta. Zarejestruj ją zgodnie z [instrukcją konfiguracji]({docs_url}), a potem zaloguj się ponownie.",
+      "pypowerwall_too_old": "W Home Assistant załadowano pypowerwall {found}, a ta integracja wymaga wersji {required} lub nowszej. Inna integracja niestandardowa ze starszym pypowerwall załadowała go wcześniej (na przykład ha-pypowerwall). Usuń tę integrację (samo wyłączenie nie wystarczy), uruchom ponownie Home Assistant i zacznij konfigurację od nowa."
     }
   },
   "options": {
@@ -229,9 +230,11 @@
             "name": "Ogólne",
             "data": {
               "scan_interval": "Interwał odpytywania",
+              "power_interval": "Szybki interwał odpytywania mocy",
               "restore_export": "Przywracaj ustawienia, gdy Powerwall je utraci"
             },
             "data_description": {
+              "power_interval": "Jak często odczytywane są moc, poziom baterii i stan sieci. `0` = wyłączone: są odczytywane razem z resztą, w interwale odpytywania. Od 5 do 60 s, i używane tylko wtedy, gdy jest krótsze niż interwał odpytywania. Krótszy daje gładsze wykresy i szybsze limity dispatchu, ale większe obciążenie bramy i większą bazę danych. Zmiana przeładowuje integrację.",
               "restore_export": "Powerwall czasem gubi swoją regułę oddawania do sieci i ustawienie ładowania z sieci (co godzinę na Powerwall 3); ładowanie z sieci się wtedy włącza. Gdy włączone, wybrane ustawienie jest zapisywane z powrotem w ciągu minuty lub dwóch (tylko połączenie podpisane)."
             }
           },
@@ -261,10 +264,12 @@
             "name": "Zaawansowane",
             "data": {
               "tesla_tariff": "Taryfa Tesla (chmura)",
+              "cloud_readings": "Odczyty z chmury, gdy brama jest nieosiągalna",
               "diagnostics_gateway_config": "Konfiguracja bramy w diagnostyce"
             },
             "data_description": {
-              "tesla_tariff": "Odczytuj z kopii w chmurze taryfę, której Tesla używa do sterowania czasowego (czujnik i akcje odczytu/ustawienia). Tylko chmura.",
+              "tesla_tariff": "Odczytuj z kopii w chmurze taryfę, której Tesla używa do sterowania czasowego (czujniki, kalendarze i akcje odczytu/ustawienia). Tylko chmura.",
+              "cloud_readings": "Gdy brama jest nieosiągalna, pokazuj moc i poziom baterii z kopii w chmurze (mają atrybut `source: cloud` i mogą mieć kilka minut). Liczniki energii i cała reszta pozostają niedostępne. Wyłączone: wszystkie odczyty są niedostępne, dopóki brama nie odpowie.",
               "diagnostics_gateway_config": "Dodaj konfigurację bramy do pobieranej diagnostyki, bez numerów seryjnych, lokalizacji, nazw i danych logowania. Przydatne przy zgłaszaniu błędów."
             },
             "description": "Opcja **Taryfa Tesla** pojawia się tutaj po skonfigurowaniu kopii w chmurze: najpierw wybierz w menu **Połącz konto Tesla** lub **Zaloguj się do Tesla Fleet lub Teslemetry**."
@@ -335,6 +340,9 @@
       },
       "alert_problem": {
         "name": "Problem"
+      },
+      "battery_calibrating": {
+        "name": "Kalibracja baterii"
       },
       "backup_event": {
         "name": "Zdarzenie awaryjne"
@@ -612,6 +620,66 @@
           "mismatch": "Liczniki się różnią",
           "unknown": "Jeszcze za mało danych"
         }
+      },
+      "flow_solar_to_home": {
+        "name": "Energia z fotowoltaiki do domu"
+      },
+      "flow_solar_to_battery": {
+        "name": "Energia z fotowoltaiki do baterii"
+      },
+      "flow_solar_to_grid": {
+        "name": "Energia z fotowoltaiki do sieci"
+      },
+      "flow_battery_to_home": {
+        "name": "Energia z baterii do domu"
+      },
+      "flow_battery_to_grid": {
+        "name": "Energia z baterii do sieci"
+      },
+      "flow_grid_to_home": {
+        "name": "Energia z sieci do domu"
+      },
+      "flow_grid_to_battery": {
+        "name": "Energia z sieci do baterii"
+      },
+      "battery_round_trip_efficiency": {
+        "name": "Sprawność baterii (ładowanie i rozładowanie)"
+      },
+      "battery_capacity_fade": {
+        "name": "Trend pojemności baterii"
+      },
+      "battery_warranty_date": {
+        "name": "Data osiągnięcia poziomu gwarancji baterii (szacunek)"
+      },
+      "phase_grid_voltage": {
+        "name": "Napięcie sieci L{phase}"
+      },
+      "phase_home_voltage": {
+        "name": "Napięcie domu L{phase}"
+      },
+      "meter_ct_power": {
+        "name": "Moc licznika {meter} przekładnik {ct}"
+      },
+      "meter_ct_current": {
+        "name": "Prąd licznika {meter} przekładnik {ct}"
+      },
+      "meter_ct_reactive_power": {
+        "name": "Moc bierna licznika {meter} przekładnik {ct}"
+      },
+      "wall_connector_power": {
+        "name": "Moc Wall Connector {connector}"
+      },
+      "wall_connector_state": {
+        "name": "Stan Wall Connector {connector}"
+      },
+      "wall_connector_fault_state": {
+        "name": "Stan błędu Wall Connector {connector}"
+      },
+      "tariff_buy_price": {
+        "name": "Cena zakupu w taryfie"
+      },
+      "tariff_sell_price": {
+        "name": "Cena sprzedaży w taryfie"
       }
     },
     "switch": {
@@ -636,6 +704,14 @@
             }
           }
         }
+      }
+    },
+    "calendar": {
+      "buy_tariff": {
+        "name": "Taryfa zakupu"
+      },
+      "sell_tariff": {
+        "name": "Taryfa sprzedaży"
       }
     }
   },
@@ -735,6 +811,9 @@
     },
     "history_already_imported": {
       "message": "{sensor} ma już historię z tego okresu: została już zaimportowana."
+    },
+    "pypowerwall_too_old": {
+      "message": "W Home Assistant załadowano pypowerwall {found}, a ta integracja wymaga wersji {required} lub nowszej. Inna integracja niestandardowa załadowała starszą wersję: usuń ją i uruchom ponownie Home Assistant."
     }
   },
   "services": {
@@ -1046,6 +1125,10 @@
       "title": "Brak jednego Powerwall 3 w odczytach",
       "description": "{count} Powerwall 3 tej bramy nie pojawia się w odczytach, choć zapasowy adres Wi-Fi (`{wifi_host}`) jest ustawiony. Przy połączeniu podpisanym Powerwalle podrzędne odczytuje się tylko przez to Wi-Fi: sprawdź, czy Home Assistant nadal ma do niego dostęp.\n\nSumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek. Zgłoszenie zniknie samo, gdy się pojawią."
     },
+    "powerwall_follower_hotspot": {
+      "title": "Brak jednego Powerwall 3 w odczytach",
+      "description": "{count} Powerwall 3 tej bramy nie pojawia się w odczytach. Połączenie podpisane korzysta z Wi-Fi Powerwalla (`{wifi_host}`), a Powerwalle podrzędne odczytuje się przez to Wi-Fi: sprawdź, czy Home Assistant ma do niego niezawodny dostęp.\n\nSumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek. Zgłoszenie zniknie samo, gdy się pojawią."
+    },
     "powerwall_follower_missing": {
       "title": "Brak jednego Powerwall 3 w odczytach",
       "description": "{count} Powerwall 3 z konfiguracji bramy nie pojawia się w odczytach. Sumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek.\n\nZgłoszenie zniknie samo, gdy się pojawią. Jeśli nie zniknie, pobierz diagnostykę i zgłoś problem."
@@ -1100,7 +1183,13 @@
         "pws_a009_rsd": "Szybkie wyłączenie jest aktywne (włącznik lub przycisk szybkiego wyłączenia)",
         "pws_a014_hvpfault": "Usterka sterownika wysokiego napięcia baterii",
         "pws_a044_hvprsdfault": "Usterka szybkiego wyłączenia baterii",
-        "pws_a045_battvrationality": "Odczyt napięcia baterii jest nieprawdopodobny"
+        "pws_a045_battvrationality": "Odczyt napięcia baterii jest nieprawdopodobny",
+        "batterycalibration": "Bateria kalibruje poziom naładowania",
+        "realpowerconfiglimited": "Moc jest utrzymywana poniżej skonfigurowanego limitu",
+        "batterycomms": "Bramka nie może komunikować się z baterią",
+        "gridcodeswrite": "Bramka zapisuje ustawienia kodu sieci",
+        "podcommissiontime": "Bateria zapisuje czas uruchomienia",
+        "solarmetercomms": "Utracono komunikację z licznikiem PV (krótkie przerwy są częste)"
       }
     },
     "alert_short": {
@@ -1127,7 +1216,13 @@
         "pws_a014_hvpfault": "Usterka sterownika baterii",
         "pws_a044_hvprsdfault": "Usterka szybkiego wyłączenia",
         "pws_a045_battvrationality": "Napięcie baterii nieprawdopodobne",
-        "no_alerts": "Brak"
+        "no_alerts": "Brak",
+        "batterycalibration": "Kalibracja baterii",
+        "realpowerconfiglimited": "Moc ograniczona ustawieniem",
+        "batterycomms": "Brak łączności z baterią",
+        "gridcodeswrite": "Zapis ustawień sieci",
+        "podcommissiontime": "Uruchomienie baterii",
+        "solarmetercomms": "Brak łączności z licznikiem PV"
       }
     },
     "logbook": {

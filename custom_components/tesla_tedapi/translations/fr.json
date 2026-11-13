@@ -206,7 +206,8 @@
       "missing_credentials": "Ajoutez d'abord l'app développeur Tesla dans Paramètres → Identifiants d'application.",
       "missing_configuration": "Ajoutez d'abord l'app développeur Tesla dans Paramètres → Identifiants d'application.",
       "oauth_implementation_unavailable": "L'app développeur Tesla n'est pas disponible. Vérifiez les identifiants d'application.",
-      "fleet_not_registered": "Tesla a refusé l'app développeur (HTTP 412) : son domaine n'est pas enregistré auprès de Tesla pour la région de votre compte. Enregistrez-le comme décrit dans le [guide d'installation]({docs_url}), puis reconnectez-vous."
+      "fleet_not_registered": "Tesla a refusé l'app développeur (HTTP 412) : son domaine n'est pas enregistré auprès de Tesla pour la région de votre compte. Enregistrez-le comme décrit dans le [guide d'installation]({docs_url}), puis reconnectez-vous.",
+      "pypowerwall_too_old": "pypowerwall {found} est chargé dans Home Assistant, mais cette intégration nécessite la version {required} ou une version plus récente. Une autre intégration personnalisée utilisant un pypowerwall plus ancien l'a chargé en premier (par exemple ha-pypowerwall). Supprimez cette intégration (la désactiver ne suffit pas), redémarrez Home Assistant et recommencez la configuration."
     }
   },
   "options": {
@@ -229,9 +230,11 @@
             "name": "Général",
             "data": {
               "scan_interval": "Intervalle d'interrogation",
+              "power_interval": "Intervalle d'interrogation rapide pour la puissance",
               "restore_export": "Rétablir les paramètres quand la Powerwall les perd"
             },
             "data_description": {
+              "power_interval": "Fréquence de lecture de la puissance, du niveau de batterie et de l'état du réseau. `0` = désactivé : ils sont lus avec tout le reste, à l'intervalle d'interrogation. De 5 à 60 s, et seulement s'il est plus court que l'intervalle d'interrogation. Plus court : des graphiques plus lisses et des limites de dispatch plus rapides, mais plus de charge sur la passerelle et une base de données plus grande. Le modifier recharge l'intégration.",
               "restore_export": "La Powerwall perd parfois sa règle d'export vers le réseau et son paramètre de charge depuis le réseau (observé toutes les heures sur une Powerwall 3) ; la charge depuis le réseau s'active alors. Si activé, le paramètre choisi est réécrit en une ou deux minutes (connexion signée uniquement)."
             }
           },
@@ -261,10 +264,12 @@
             "name": "Avancé",
             "data": {
               "tesla_tariff": "Tarif Tesla (cloud)",
+              "cloud_readings": "Mesures du cloud tant que la passerelle est injoignable",
               "diagnostics_gateway_config": "Configuration de la passerelle dans les diagnostics"
             },
             "data_description": {
-              "tesla_tariff": "Lire le tarif utilisé par Tesla pour le contrôle selon l'heure via la sauvegarde cloud (capteur et actions de lecture/écriture). Cloud uniquement.",
+              "tesla_tariff": "Lire le tarif utilisé par Tesla pour le contrôle selon l'heure via la sauvegarde cloud (capteurs, calendriers et actions de lecture/écriture). Cloud uniquement.",
+              "cloud_readings": "Tant que la passerelle est injoignable, afficher la puissance et le niveau de batterie depuis la sauvegarde cloud (ils portent l'attribut `source: cloud` et peuvent dater de quelques minutes). Les compteurs d'énergie et tout le reste restent indisponibles. Désactivé : toutes les mesures sont indisponibles jusqu'à ce que la passerelle réponde.",
               "diagnostics_gateway_config": "Ajouter la configuration de la passerelle aux téléchargements de diagnostic, sans numéros de série, emplacement, noms ni identifiants. Utile pour signaler un bug."
             },
             "description": "L'option **Tarif Tesla** apparaît ici une fois une sauvegarde cloud configurée : dans le menu, choisissez d'abord **Associer un compte Tesla** ou **Se connecter à Tesla Fleet ou Teslemetry**."
@@ -335,6 +340,9 @@
       },
       "alert_problem": {
         "name": "Problème"
+      },
+      "battery_calibrating": {
+        "name": "Batterie en calibrage"
       },
       "backup_event": {
         "name": "Événement de secours"
@@ -612,6 +620,66 @@
           "mismatch": "Les compteurs diffèrent",
           "unknown": "Pas encore assez de données"
         }
+      },
+      "flow_solar_to_home": {
+        "name": "Énergie solaire vers la maison"
+      },
+      "flow_solar_to_battery": {
+        "name": "Énergie solaire vers la batterie"
+      },
+      "flow_solar_to_grid": {
+        "name": "Énergie solaire vers le réseau"
+      },
+      "flow_battery_to_home": {
+        "name": "Énergie de la batterie vers la maison"
+      },
+      "flow_battery_to_grid": {
+        "name": "Énergie de la batterie vers le réseau"
+      },
+      "flow_grid_to_home": {
+        "name": "Énergie du réseau vers la maison"
+      },
+      "flow_grid_to_battery": {
+        "name": "Énergie du réseau vers la batterie"
+      },
+      "battery_round_trip_efficiency": {
+        "name": "Rendement aller-retour de la batterie"
+      },
+      "battery_capacity_fade": {
+        "name": "Tendance de la capacité de la batterie"
+      },
+      "battery_warranty_date": {
+        "name": "Date du seuil de garantie de la batterie (estimation)"
+      },
+      "phase_grid_voltage": {
+        "name": "Tension du réseau L{phase}"
+      },
+      "phase_home_voltage": {
+        "name": "Tension de la maison L{phase}"
+      },
+      "meter_ct_power": {
+        "name": "Puissance du compteur {meter} TC {ct}"
+      },
+      "meter_ct_current": {
+        "name": "Courant du compteur {meter} TC {ct}"
+      },
+      "meter_ct_reactive_power": {
+        "name": "Puissance réactive du compteur {meter} TC {ct}"
+      },
+      "wall_connector_power": {
+        "name": "Puissance du Wall Connector {connector}"
+      },
+      "wall_connector_state": {
+        "name": "État du Wall Connector {connector}"
+      },
+      "wall_connector_fault_state": {
+        "name": "État de défaut du Wall Connector {connector}"
+      },
+      "tariff_buy_price": {
+        "name": "Prix d'achat du tarif"
+      },
+      "tariff_sell_price": {
+        "name": "Prix de revente du tarif"
       }
     },
     "switch": {
@@ -636,6 +704,14 @@
             }
           }
         }
+      }
+    },
+    "calendar": {
+      "buy_tariff": {
+        "name": "Tarif d'achat"
+      },
+      "sell_tariff": {
+        "name": "Tarif de revente"
       }
     }
   },
@@ -735,6 +811,9 @@
     },
     "history_already_imported": {
       "message": "{sensor} a déjà un historique de cette période : il a déjà été importé."
+    },
+    "pypowerwall_too_old": {
+      "message": "pypowerwall {found} est chargé dans Home Assistant, mais cette intégration nécessite la version {required} ou une version plus récente. Une autre intégration personnalisée a chargé l'ancienne version : supprimez-la et redémarrez Home Assistant."
     }
   },
   "services": {
@@ -1046,6 +1125,10 @@
       "title": "Un Powerwall 3 manque dans les mesures",
       "description": "{count} Powerwall 3 de cette passerelle n'apparaissent pas dans les mesures, bien que le Wi-Fi de secours (`{wifi_host}`) soit configuré. Avec la connexion signée, les Powerwall suiveurs ne sont lus que par ce Wi-Fi : vérifiez que Home Assistant peut encore le joindre.\n\nLes totaux de puissance, d'énergie et de capacité incluent déjà tous les Powerwall ; seuls les packs de batterie, températures et ventilateurs des unités manquantes sont absents. Ce message disparaît de lui-même dès qu'elles apparaissent."
     },
+    "powerwall_follower_hotspot": {
+      "title": "Un Powerwall 3 manque dans les mesures",
+      "description": "{count} Powerwall 3 de cette passerelle n'apparaissent pas dans les mesures. La connexion signée utilise le Wi-Fi du Powerwall (`{wifi_host}`), et les Powerwall suiveurs sont lus par ce Wi-Fi : vérifiez que Home Assistant le joint de façon fiable.\n\nLes totaux de puissance, d'énergie et de capacité incluent déjà tous les Powerwall ; seuls les packs de batterie, températures et ventilateurs des unités manquantes sont absents. Ce message disparaît de lui-même dès qu'elles apparaissent."
+    },
     "powerwall_follower_missing": {
       "title": "Un Powerwall 3 manque dans les mesures",
       "description": "{count} Powerwall 3 de la configuration de la passerelle n'apparaissent pas dans les mesures. Les totaux de puissance, d'énergie et de capacité incluent déjà tous les Powerwall ; seuls les packs de batterie, températures et ventilateurs des unités manquantes sont absents.\n\nCe message disparaît de lui-même dès qu'elles apparaissent. S'il persiste, téléchargez les diagnostics et ouvrez un ticket."
@@ -1100,7 +1183,13 @@
         "pws_a009_rsd": "L'arrêt rapide est actif (interrupteur marche/arrêt ou bouton d'arrêt rapide)",
         "pws_a014_hvpfault": "Défaut du contrôleur haute tension de la batterie",
         "pws_a044_hvprsdfault": "Défaut d'arrêt rapide de la batterie",
-        "pws_a045_battvrationality": "La mesure de tension de la batterie est improbable"
+        "pws_a045_battvrationality": "La mesure de tension de la batterie est improbable",
+        "batterycalibration": "La batterie calibre son niveau de charge",
+        "realpowerconfiglimited": "La puissance est maintenue sous une limite configurée",
+        "batterycomms": "La passerelle ne peut pas communiquer avec une batterie",
+        "gridcodeswrite": "La passerelle écrit ses paramètres de code réseau",
+        "podcommissiontime": "Une batterie enregistre sa date de mise en service",
+        "solarmetercomms": "Communication perdue avec le compteur solaire (les coupures brèves sont courantes)"
       }
     },
     "alert_short": {
@@ -1127,7 +1216,13 @@
         "pws_a014_hvpfault": "Défaut contrôleur batterie",
         "pws_a044_hvprsdfault": "Défaut d'arrêt rapide",
         "pws_a045_battvrationality": "Tension batterie improbable",
-        "no_alerts": "Aucune"
+        "no_alerts": "Aucune",
+        "batterycalibration": "Batterie en calibrage",
+        "realpowerconfiglimited": "Puissance limitée par réglage",
+        "batterycomms": "Batterie injoignable",
+        "gridcodeswrite": "Écriture des paramètres réseau",
+        "podcommissiontime": "Mise en service batterie",
+        "solarmetercomms": "Compteur solaire injoignable"
       }
     },
     "logbook": {

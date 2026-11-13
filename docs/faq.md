@@ -32,7 +32,13 @@ It compares the measured capacity with Tesla's rated 13.5 kWh per pack. New batt
 Yes: the lifetime energy sensors are made for it. See [Energy dashboard](energy-dashboard.md).
 
 **How often does it update?**
-Every 30 seconds by default (10–300 s in the options). See [Data updates](how-it-works.md#data-updates).
+Every 30 seconds by default (10–300 s in the options). Power, battery level and grid status can be read as often as every 5 seconds with **Fast polling interval for power**. See [Data updates](how-it-works.md#data-updates).
+
+**Can I see where my energy goes?**
+Yes: the [energy flow](entities.md#energy-flows) sensors split solar, battery and grid energy into seven flows (solar to home, battery to grid, and so on), in kWh.
+
+**Why don't the energy flows add up to Home energy consumed?**
+The flows are the energy delivered at the gateway. The gateway's **Home energy consumed** also counts the Powerwall's own conversion and standby use, typically 80–220 W. For the same reason, **Battery round-trip efficiency** is measured at the battery and reads higher than the round trip seen from the grid.
 
 **What happens during a power cut?**
 **Grid connected** turns off within one poll, the outage is counted, and `tesla_tedapi_grid_outage` fires, as long as Home Assistant and your network have power (a UPS helps).
@@ -55,7 +61,7 @@ When the change goes through Tesla's cloud, Tesla caps it at 80 %. Over the sign
 Changing the mode or reserve is what the Tesla app does: the Powerwall still decides how to run. A dispatch tells it exactly what power to charge or discharge at, overriding the export setting. Dispatching may affect your warranty; see [Safety](safety.md).
 
 **What happens to a dispatch if Home Assistant restarts or crashes?**
-Commands are sent in steps of at most 5 minutes, so the Powerwall returns to normal within 5 minutes. A dispatch isn't resumed after a restart.
+A normal stop or restart ends the dispatch straight away and hands the battery back. After a crash or power loss, the Powerwall returns to normal within 5 minutes, because commands are sent in steps of at most 5 minutes. A dispatch isn't resumed after a restart.
 
 **What happens to an off-grid run if Home Assistant restarts?**
 The run is saved and picked up again, so it still reconnects on time. If Home Assistant stays down, nothing reconnects: reconnect in the Tesla app.

@@ -206,7 +206,8 @@
       "missing_credentials": "Füge die Tesla-Entwickler-App zuerst unter Einstellungen → Anwendungs-Anmeldedaten hinzu.",
       "missing_configuration": "Füge die Tesla-Entwickler-App zuerst unter Einstellungen → Anwendungs-Anmeldedaten hinzu.",
       "oauth_implementation_unavailable": "Die Tesla-Entwickler-App ist nicht verfügbar. Prüfe die Anwendungs-Anmeldedaten.",
-      "fleet_not_registered": "Tesla hat die Entwickler-App abgelehnt (HTTP 412): Ihre Domain ist für die Region deines Kontos nicht bei Tesla registriert. Registriere sie wie in der [Einrichtungsanleitung]({docs_url}) beschrieben und melde dich dann erneut an."
+      "fleet_not_registered": "Tesla hat die Entwickler-App abgelehnt (HTTP 412): Ihre Domain ist für die Region deines Kontos nicht bei Tesla registriert. Registriere sie wie in der [Einrichtungsanleitung]({docs_url}) beschrieben und melde dich dann erneut an.",
+      "pypowerwall_too_old": "In Home Assistant ist pypowerwall {found} geladen, diese Integration braucht aber {required} oder neuer. Eine andere benutzerdefinierte Integration mit einem älteren pypowerwall hat es zuerst geladen (zum Beispiel ha-pypowerwall). Entferne diese Integration (Deaktivieren reicht nicht), starte Home Assistant neu und beginne die Einrichtung erneut."
     }
   },
   "options": {
@@ -229,9 +230,11 @@
             "name": "Allgemein",
             "data": {
               "scan_interval": "Abfrageintervall",
+              "power_interval": "Schnelles Abfrageintervall für Leistung",
               "restore_export": "Einstellungen wiederherstellen, wenn die Powerwall sie verliert"
             },
             "data_description": {
+              "power_interval": "Wie oft Leistung, Batteriestand und Netzstatus gelesen werden. `0` = aus: sie werden mit allem anderen im Abfrageintervall gelesen. 5 bis 60 s, und nur wirksam, wenn kürzer als das Abfrageintervall. Kürzer ergibt glattere Diagramme und schnellere Dispatch-Grenzen, aber mehr Last auf dem Gateway und eine größere Datenbank. Eine Änderung lädt die Integration neu.",
               "restore_export": "Die Powerwall verliert manchmal ihre Netzeinspeiseregel und ihre Einstellung zum Laden aus dem Netz (stündlich bei einer Powerwall 3 beobachtet); das Laden aus dem Netz schaltet sich dann ein. Wenn aktiv, wird die gewählte Einstellung innerhalb von ein bis zwei Minuten zurückgeschrieben (nur signierte Verbindung)."
             }
           },
@@ -261,10 +264,12 @@
             "name": "Erweitert",
             "data": {
               "tesla_tariff": "Tesla-Tarif (Cloud)",
+              "cloud_readings": "Cloud-Messwerte, solange das Gateway nicht erreichbar ist",
               "diagnostics_gateway_config": "Gateway-Konfiguration in der Diagnose"
             },
             "data_description": {
-              "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensor und Aktionen zum Lesen/Setzen). Nur Cloud.",
+              "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensoren, Kalender und Aktionen zum Lesen/Setzen). Nur Cloud.",
+              "cloud_readings": "Solange das Gateway nicht erreichbar ist, Leistung und Batteriestand stattdessen aus dem Cloud-Backup anzeigen (sie tragen das Attribut `source: cloud` und können einige Minuten alt sein). Energiezähler und alles andere bleiben nicht verfügbar. Aus: alle Messwerte sind nicht verfügbar, bis das Gateway antwortet.",
               "diagnostics_gateway_config": "Die Konfiguration des Gateways zu Diagnose-Downloads hinzufügen, ohne Seriennummern, Standort, Namen und Zugangsdaten. Hilfreich für Fehlerberichte."
             },
             "description": "Die Option **Tesla-Tarif** erscheint hier, sobald ein Cloud-Backup eingerichtet ist: Wähle im Menü zuerst **Tesla-Konto verknüpfen** oder **Bei Tesla Fleet oder Teslemetry anmelden**."
@@ -335,6 +340,9 @@
       },
       "alert_problem": {
         "name": "Problem"
+      },
+      "battery_calibrating": {
+        "name": "Batterie kalibriert"
       },
       "backup_event": {
         "name": "Backup-Ereignis"
@@ -612,6 +620,66 @@
           "mismatch": "Zähler weichen ab",
           "unknown": "Noch zu wenig Daten"
         }
+      },
+      "flow_solar_to_home": {
+        "name": "PV-Energie ins Haus"
+      },
+      "flow_solar_to_battery": {
+        "name": "PV-Energie in die Batterie"
+      },
+      "flow_solar_to_grid": {
+        "name": "PV-Energie ins Netz"
+      },
+      "flow_battery_to_home": {
+        "name": "Batterie-Energie ins Haus"
+      },
+      "flow_battery_to_grid": {
+        "name": "Batterie-Energie ins Netz"
+      },
+      "flow_grid_to_home": {
+        "name": "Netz-Energie ins Haus"
+      },
+      "flow_grid_to_battery": {
+        "name": "Netz-Energie in die Batterie"
+      },
+      "battery_round_trip_efficiency": {
+        "name": "Batterie-Wirkungsgrad (Laden und Entladen)"
+      },
+      "battery_capacity_fade": {
+        "name": "Trend der Batteriekapazität"
+      },
+      "battery_warranty_date": {
+        "name": "Batterie erreicht Garantiegrenze (Schätzung)"
+      },
+      "phase_grid_voltage": {
+        "name": "Netzspannung L{phase}"
+      },
+      "phase_home_voltage": {
+        "name": "Hausspannung L{phase}"
+      },
+      "meter_ct_power": {
+        "name": "Zähler {meter} Stromwandler {ct} Leistung"
+      },
+      "meter_ct_current": {
+        "name": "Zähler {meter} Stromwandler {ct} Strom"
+      },
+      "meter_ct_reactive_power": {
+        "name": "Zähler {meter} Stromwandler {ct} Blindleistung"
+      },
+      "wall_connector_power": {
+        "name": "Wall Connector {connector} Leistung"
+      },
+      "wall_connector_state": {
+        "name": "Wall Connector {connector} Status"
+      },
+      "wall_connector_fault_state": {
+        "name": "Wall Connector {connector} Fehlerstatus"
+      },
+      "tariff_buy_price": {
+        "name": "Tarif Bezugspreis"
+      },
+      "tariff_sell_price": {
+        "name": "Tarif Einspeisepreis"
       }
     },
     "switch": {
@@ -636,6 +704,14 @@
             }
           }
         }
+      }
+    },
+    "calendar": {
+      "buy_tariff": {
+        "name": "Bezugstarif"
+      },
+      "sell_tariff": {
+        "name": "Einspeisetarif"
       }
     }
   },
@@ -735,6 +811,9 @@
     },
     "history_already_imported": {
       "message": "{sensor} hat bereits Verlauf aus dieser Zeit: er wurde schon importiert."
+    },
+    "pypowerwall_too_old": {
+      "message": "In Home Assistant ist pypowerwall {found} geladen, diese Integration braucht aber {required} oder neuer. Eine andere benutzerdefinierte Integration hat die ältere Version geladen: Entferne sie und starte Home Assistant neu."
     }
   },
   "services": {
@@ -1046,6 +1125,10 @@
       "title": "Eine Powerwall 3 fehlt in den Messwerten",
       "description": "{count} Powerwall 3 an diesem Gateway erscheinen nicht in den Messwerten, obwohl die WLAN-Ausweichadresse (`{wifi_host}`) gesetzt ist. Über die signierte Verbindung werden Folge-Powerwalls nur über dieses WLAN gelesen: Prüfe, ob Home Assistant es noch erreicht.\n\nSummen für Leistung, Energie und Kapazität enthalten bereits jede Powerwall; nur Akkupacks, Temperaturen und Lüfter der fehlenden Geräte fehlen. Die Meldung verschwindet von selbst, sobald sie erscheinen."
     },
+    "powerwall_follower_hotspot": {
+      "title": "Eine Powerwall 3 fehlt in den Messwerten",
+      "description": "{count} Powerwall 3 an diesem Gateway erscheinen nicht in den Messwerten. Die signierte Verbindung nutzt das WLAN der Powerwall (`{wifi_host}`), und Folge-Powerwalls werden über dieses WLAN gelesen: Prüfe, ob Home Assistant es zuverlässig erreicht.\n\nSummen für Leistung, Energie und Kapazität enthalten bereits jede Powerwall; nur Akkupacks, Temperaturen und Lüfter der fehlenden Geräte fehlen. Die Meldung verschwindet von selbst, sobald sie erscheinen."
+    },
     "powerwall_follower_missing": {
       "title": "Eine Powerwall 3 fehlt in den Messwerten",
       "description": "{count} Powerwall 3 aus der Gateway-Konfiguration erscheinen nicht in den Messwerten. Summen für Leistung, Energie und Kapazität enthalten bereits jede Powerwall; nur Akkupacks, Temperaturen und Lüfter der fehlenden Geräte fehlen.\n\nDie Meldung verschwindet von selbst, sobald sie erscheinen. Wenn sie bleibt, lade die Diagnosedaten herunter und eröffne ein Issue."
@@ -1100,7 +1183,13 @@
         "pws_a009_rsd": "Schnellabschaltung ist aktiv (Ein/Aus-Schalter oder Not-Aus-Taster)",
         "pws_a014_hvpfault": "Störung der Hochvolt-Steuerung der Batterie",
         "pws_a044_hvprsdfault": "Störung der Schnellabschaltung der Batterie",
-        "pws_a045_battvrationality": "Batteriespannung ist unplausibel"
+        "pws_a045_battvrationality": "Batteriespannung ist unplausibel",
+        "batterycalibration": "Die Batterie kalibriert ihren Ladestand",
+        "realpowerconfiglimited": "Die Leistung wird unter einer eingestellten Grenze gehalten",
+        "batterycomms": "Das Gateway kann nicht mit einer Batterie kommunizieren",
+        "gridcodeswrite": "Das Gateway schreibt seine Netzcode-Einstellungen",
+        "podcommissiontime": "Eine Batterie speichert ihren Inbetriebnahmezeitpunkt",
+        "solarmetercomms": "Verbindung zum Solarzähler verloren (kurze Aussetzer sind häufig)"
       }
     },
     "alert_short": {
@@ -1127,7 +1216,13 @@
         "pws_a014_hvpfault": "Störung Batteriesteuerung",
         "pws_a044_hvprsdfault": "Störung Schnellabschaltung",
         "pws_a045_battvrationality": "Batteriespannung unplausibel",
-        "no_alerts": "Keine"
+        "no_alerts": "Keine",
+        "batterycalibration": "Batterie kalibriert",
+        "realpowerconfiglimited": "Leistung durch Einstellung begrenzt",
+        "batterycomms": "Batterie nicht erreichbar",
+        "gridcodeswrite": "Netzeinstellungen werden geschrieben",
+        "podcommissiontime": "Batterie-Inbetriebnahme",
+        "solarmetercomms": "Solarzähler nicht erreichbar"
       }
     },
     "logbook": {

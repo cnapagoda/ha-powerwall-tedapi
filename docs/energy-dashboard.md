@@ -22,7 +22,7 @@ Statistics are built hourly, so the dashboard fills in from the next full hour.
 
 ### Costs
 
-Add your tariff to the grid entries as usual (a fixed price, or a price sensor from your retailer's integration). The integration doesn't provide a price sensor of its own; the **Tesla tariff** sensor's `buy_rate` and `sell_rate` attributes show the rates Tesla uses, which you can turn into template sensors if you want.
+Add your tariff to the grid entries as usual: a fixed price, a price sensor from your retailer's integration, or this integration's own. With the **Tesla tariff (cloud)** option, **Tariff buy price** and **Tariff sell price** follow the tariff Tesla uses: pick them as the price entities for grid consumption and return to grid. See [Tesla tariff](tesla-tariff.md#price-sensors-and-calendars).
 
 ## Which sensors not to use
 
@@ -31,6 +31,7 @@ Add your tariff to the grid entries as usual (a fixed price, or a price sensor f
 | The **… today** sensors | They reset at midnight. They're for cards and automations; the Energy dashboard builds its own daily totals from the lifetime counters. |
 | **Solar input *A–F* power**, **Battery power** and other power (W) sensors | Power, not energy. The energy sections need kWh counters. |
 | **Pack lifetime discharge** | Per-pack wear counter, not a meter for the whole system. |
+| **Energy flows** (*Solar to home energy*, …) | For cards and automations. The Energy dashboard works out these flows itself from the lifetime counters. |
 
 ## Live power
 

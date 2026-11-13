@@ -139,3 +139,37 @@ async def test_alert_entities_and_repairs(hass: HomeAssistant, fake_powerwall, f
     assert hass.states.get(problem).state == "off"
     assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
     assert hass.states.get(event).attributes["event_type"] == "cleared"
+
+
+def test_calibration_comms_and_power_limit_alerts() -> None:
+    assert describe("BatteryCalibration")[0] == SEVERITY_STATUS
+    assert describe("RealPowerConfigLimited")[0] == SEVERITY_STATUS
+    assert describe("BatteryComms")[0] == "warning"
+    # Calibrating or a configured power limit is normal operation.
+    assert level(["SystemConnectedToGrid", "BatteryCalibration", "RealPowerConfigLimited"]) == "ok"
+    assert level(["BatteryComms"]) == "warning"
+    assert summary(["BatteryCalibration"]) == "Battery calibrating"
+
+
+def test_grid_codes_commissioning_and_solar_meter_alerts() -> None:
+    assert describe("GridCodesWrite")[0] == SEVERITY_STATUS
+    assert describe("PodCommissionTime")[0] == SEVERITY_STATUS
+    assert describe("SolarMeterComms")[0] == "warning"
+    assert level(["SystemConnectedToGrid", "GridCodesWrite", "PodCommissionTime"]) == "ok"
+    assert level(["SolarMeterComms"]) == "warning"
+    assert summary(["SolarMeterComms"]) == "Solar meter comms lost"
+
+
+async def test_battery_calibrating_sensor(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R, title="Powerwall")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    calibrating = _eid(hass, "binary_sensor", "battery_calibrating")
+    state = hass.states.get(calibrating)
+    assert state.state == "off" and state.attributes["device_class"] == "running"
+    fake_powerwall.alert_list = ["SystemConnectedToGrid", "BatteryCalibration"]
+    await entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert hass.states.get(calibrating).state == "on"
+    assert hass.states.get(_eid(hass, "sensor", "alert_level")).state == "ok"
