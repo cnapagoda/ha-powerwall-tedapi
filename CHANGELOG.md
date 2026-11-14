@@ -9,6 +9,7 @@
   - **Full battery before a storm:** starts a max backup when a weather warning (or a calendar with planned outages) turns on, and ends it when the warning clears. Needs a signed connection.
   - **Run a load on surplus solar:** turns a load on while the battery is nearly full and the house still exports, and off when the house imports or the battery falls below a level.
   - **Problem alert:** a notification when the **Problem** sensor turns on, with what the Powerwall reports, and when it clears.
+- **Five more gateway alerts are recognised:** `BMS_a023_SW_Assertion` (warning: it now counts toward **Problem** if it lasts, so the **Problem alert** blueprint reports it), and `OpticasterRetry`, `EVSEMIA`, `UserEVSEMIA` and `EVSENotChargingWhenAllowed` (notice).
 - Docs: the blueprints are grouped by use, and the blueprint import links point to this release.
 
 ## 2.7.0

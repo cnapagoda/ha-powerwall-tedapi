@@ -76,6 +76,10 @@ More cards in [Dashboards](dashboards.md).
 | `PodCommissionTime` | status | Battery commissioning | A battery is recording its commissioning time |
 | `BMS_a089_LifeModel_StoDcrGrowth_Change` | status | Ageing estimate updated | Battery updated its ageing estimate |
 | `EnergyAccumulatorIrrational` | notice | Energy counter jump | An energy counter jumped implausibly |
+| `OpticasterRetry` | notice | Optimiser retrying | The gateway's energy optimiser is retrying |
+| `EVSEMIA` | notice | EV charger not responding | The gateway can't reach an EV charger (Wall Connector) |
+| `UserEVSEMIA` | notice | EV charger not responding (user alert) | The gateway can't reach an EV charger (Wall Connector), user-facing alert |
+| `EVSENotChargingWhenAllowed` | notice | EV charger not charging | An EV charger (Wall Connector) is not charging although it is allowed to |
 | `IslandChecksFailed` | warning | Backup check failed | Backup readiness check failed (normal for a few minutes when the battery fills or after a restart) |
 | `BatteryComms` | warning | Battery comms lost | The gateway can't communicate with a battery |
 | `PVInverterComms` | warning | Solar inverter comms lost | Lost communication with the solar inverter |
@@ -88,6 +92,7 @@ More cards in [Dashboards](dashboards.md).
 | `PWS_a021_HvpMia` | warning | Battery controller not responding | Battery high-voltage controller is not responding |
 | `BAGGR_a005_NumBatteriesExpectedMismatch` | warning | Battery packs missing | Fewer battery packs found than expected |
 | `BMS_a037_SW_NVRAM_Config_Error` | warning | Battery settings error | Battery management settings could not be read |
+| `BMS_a023_SW_Assertion` | warning | Battery software error | Battery management software reported an internal error |
 | `BatteryFault` | fault | Battery fault | Battery fault |
 | `SystemShutdown` | fault | System shut down | System shut down |
 | `PWS_a009_Rsd` | fault | Rapid shutdown active | Rapid shutdown is active (On/Off switch or rapid-shutdown button) |

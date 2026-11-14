@@ -160,6 +160,31 @@ def test_grid_codes_commissioning_and_solar_meter_alerts() -> None:
     assert summary(["SolarMeterComms"]) == "Solar meter comms lost"
 
 
+def test_battery_software_optimiser_and_ev_charger_alerts() -> None:
+    assert describe("BMS_a023_SW_Assertion") == (
+        "warning", "Battery management software reported an internal error")
+    assert describe("OpticasterRetry")[0] == SEVERITY_NOTICE
+    assert describe("EVSEMIA")[0] == SEVERITY_NOTICE
+    assert describe("UserEVSEMIA")[0] == SEVERITY_NOTICE
+    assert describe("EVSENotChargingWhenAllowed") == (
+        SEVERITY_NOTICE, "An EV charger (Wall Connector) is not charging although it is allowed to")
+    assert level(["SystemConnectedToGrid", "OpticasterRetry", "EVSEMIA"]) == "notice"
+    assert level(["EVSEMIA", "UserEVSEMIA", "EVSENotChargingWhenAllowed"]) == "notice"
+    assert summary(["UserEVSEMIA", "EVSENotChargingWhenAllowed"]) == (
+        "EV charger not charging · EV charger not responding (user alert)")
+    assert level(["EVSEMIA", "BMS_a023_SW_Assertion"]) == "warning"
+    assert summary(["EVSEMIA", "OpticasterRetry", "BMS_a023_SW_Assertion"]) == (
+        "Battery software error · EV charger not responding · Optimiser retrying")
+    # A lasting battery software error is a Problem; the two notices never are.
+    t = AlertTracker()
+    now = dt_util.utcnow()
+    t.update([], {}, now)
+    t.update(["BMS_a023_SW_Assertion", "OpticasterRetry", "EVSEMIA", "UserEVSEMIA",
+              "EVSENotChargingWhenAllowed"], {}, now)
+    assert t.problems(now + timedelta(minutes=9)) == []
+    assert t.problems(now + timedelta(days=7)) == ["BMS_a023_SW_Assertion"]
+
+
 async def test_battery_calibrating_sensor(hass: HomeAssistant, fake_powerwall) -> None:
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R, title="Powerwall")
     entry.add_to_hass(hass)
