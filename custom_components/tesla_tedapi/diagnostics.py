@@ -15,17 +15,21 @@ from .const import (
     CONF_FLEET_SITE_ID,
     CONF_FLEET_TOKEN,
     CONF_GW_PWD,
+    CONF_HOST,
     CONF_MACS,
     CONF_OAUTH_IMPLEMENTATION,
     CONF_OAUTH_TOKEN,
     CONF_OWNERS_AUTHPATH,
     CONF_OWNERS_EMAIL,
+    CONF_RSA_KEY_PATH,
     CONF_SITE_ID,
+    CONF_WIFI_HOST,
 )
 from .coordinator import TedapiConfigEntry
 
 TO_REDACT = {CONF_GW_PWD, CONF_OWNERS_EMAIL, CONF_SITE_ID, CONF_FLEET_SITE_ID, CONF_FLEET_TOKEN,
-             CONF_OAUTH_TOKEN, CONF_OAUTH_IMPLEMENTATION, CONF_MACS, "din", "serial", "unique_id", "title"}
+             CONF_OAUTH_TOKEN, CONF_OAUTH_IMPLEMENTATION, CONF_MACS, CONF_HOST, CONF_WIFI_HOST,
+             CONF_RSA_KEY_PATH, "din", "serial", "unique_id", "title"}
 REDACTED = "**REDACTED**"
 # Gateway config keys that identify the site, a person or a device, or hold
 # credentials: any key containing one of these, or equal to one of the short ones.
@@ -151,8 +155,12 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: TedapiC
     authpath = entry.data.get(CONF_OWNERS_AUTHPATH) or ""
     token = (await hass.async_add_executor_job(
         tesla_cloud.redact_token_file, os.path.join(authpath, AUTH_FILE))) if authpath else None
+    # The gateway's home network address and the key file's path, also where
+    # they appear in a message (the Wi-Fi fallback address is often Tesla's
+    # 192.168.91.1, which is not private but is redacted too).
     secrets = _secrets(coordinator.din, entry.unique_id, entry.data.get(CONF_SITE_ID),
-                       entry.data.get(CONF_FLEET_SITE_ID), *pack_serials)
+                       entry.data.get(CONF_FLEET_SITE_ID), entry.data.get(CONF_HOST),
+                       entry.data.get(CONF_WIFI_HOST), entry.data.get(CONF_RSA_KEY_PATH), *pack_serials)
     result: dict[str, Any] = {
         "entry": redact_values(async_redact_data(entry.as_dict(), TO_REDACT), secrets),
         "connection_mode": coordinator.connection_mode,

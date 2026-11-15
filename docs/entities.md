@@ -237,7 +237,7 @@ All diagnostic 🩺.
 |---|---|---|
 | Inverter ambient temperature | `sensor.powerwall_tedapi_inverter_ambient_temperature` | °C. Powerwall 3 only: created once the gateway reports it. |
 | Inverter heatsink temperature | `sensor.powerwall_tedapi_inverter_heatsink_temperature` | °C. Powerwall 3 only. Doesn't change on some firmware. |
-| Fan *A*/*B* speed 🔍 | `sensor.powerwall_tedapi_fan_a_speed` | rpm. Powerwall 3: the inverter's two fans, with the drive `duty` (%) as an attribute. With more than one Powerwall 3, *Fan A* and *B* are the leader's, and the next inverters' fans are *Fan 2A*, *Fan 2B* and so on. Powerwall 2: one fan per Powerwall (*Fan 1*, *Fan 2*, …), with `target_rpm`. |
+| Fan *A*/*B* speed 🔍 | `sensor.powerwall_tedapi_fan_a_speed` | rpm. Powerwall 3: the inverter's two fans, with the drive `duty` (%) as an attribute. With more than one Powerwall 3, *Fan A* and *B* are the leader's, and the next inverters' fans are *Fan 2A*, *Fan 2B* and so on. Powerwall+: one fan per built-in solar inverter (*Fan 1*, *Fan 2*, …), with `target_rpm`. Only on a Powerwall 3 or Powerwall+: a Powerwall 2 without the built-in solar inverter has no fan sensors. |
 | Firmware version | `sensor.powerwall_tedapi_firmware_version` | For example `26.34.1`. Attributes: `build`, `previous_version`, `updated_at`. The last two stay empty until the integration has seen a firmware update. |
 | Gateway last started | `sensor.powerwall_tedapi_gateway_last_started` | When the gateway last restarted. |
 
