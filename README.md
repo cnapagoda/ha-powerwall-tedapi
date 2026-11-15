@@ -88,6 +88,7 @@ Which sign-in to use: see [Setup](https://github.com/cnapagoda/ha-powerwall-teda
 
 - [pypowerwall](https://github.com/jasonacox/pypowerwall) by Jason Cox and contributors: TEDAPI, v1r signing, dispatch and Tesla login.
 - [Tesla-API](https://github.com/Matthew1471/Tesla-API) research by Matthew1471 into the gateway's battery dispatch fields.
+- [BJReplay](https://github.com/BJReplay) for testing on a Powerwall 2 with a Backup Gateway 1: setup, readings, settings, battery dispatch and max backup over the signed connection.
 
 ## Contributing
 
