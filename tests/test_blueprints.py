@@ -2,6 +2,7 @@
 integration's actions (mocked) as intended."""
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from pathlib import Path
 import shutil
@@ -466,3 +467,102 @@ async def test_backup_reserve_schedule_within_a_day(hass: HomeAssistant, bluepri
         async_fire_time_changed(hass)
         await hass.async_block_till_done()
     assert [c.data["value"] for c in calls["set_value"]] == [80, 20]
+
+
+BATTERY_PLAN, GRID_PLAN = "sensor.battery_active_power", "sensor.grid_active_power"
+
+
+async def _settle(hass: HomeAssistant, freezer, seconds: float = 3) -> None:
+    """Let the runs start (they wait 2 s), then move time past the wait.
+    async_block_till_done would wait for a delay itself, also one a time
+    trigger starts here, so the loop is run by hand."""
+    for _ in range(10):
+        await asyncio.sleep(0)
+    freezer.tick(timedelta(seconds=seconds))
+    async_fire_time_changed(hass)
+    for _ in range(20):
+        await asyncio.sleep(0)
+
+
+async def _set_plan(hass: HomeAssistant, freezer, battery: float, grid: float, unit: str = "W") -> None:
+    hass.states.async_set(BATTERY_PLAN, str(battery), {"unit_of_measurement": unit})
+    hass.states.async_set(GRID_PLAN, str(grid), {"unit_of_measurement": unit})
+    await _settle(hass, freezer)
+
+
+async def _plan(hass: HomeAssistant, freezer, **inputs) -> dict:
+    freezer.move_to("2026-11-16T00:01:00+00:00")  # clear of the 5-minute trigger
+    calls = _calls(hass, DOMAIN, "dispatch_battery_power", "resume_battery_operation")
+    await _automation(hass, "follow_energy_plan.yaml", {
+        "powerwall": "entry1", "battery_plan": BATTERY_PLAN, "grid_plan": GRID_PLAN,
+        "dispatch_active": DISPATCH, **inputs})
+    return calls
+
+
+def _powers(calls: dict) -> list:
+    return [c.data["power_watts"] for c in calls["dispatch_battery_power"]]
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])  # the 5-minute trigger
+async def test_follow_energy_plan_emhass(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    """EMHASS (W): charging while importing charges at the planned power,
+    capped; exporting from the battery discharges; importing with the battery
+    idle holds it at 0 W. Both sensors updating together send one dispatch."""
+    calls = await _plan(hass, freezer)
+    await _set_plan(hass, freezer, -3040, 4000)
+    assert _powers(calls) == [-3000]
+    assert calls["dispatch_battery_power"][-1].data["duration_seconds"] == 600
+    assert calls["dispatch_battery_power"][-1].data["config_entry_id"] == "entry1"
+    await _set_plan(hass, freezer, -9000, 9500)
+    assert _powers(calls)[-1] == -5000  # Largest battery power
+    await _set_plan(hass, freezer, 2460, -1500)
+    assert _powers(calls)[-1] == 2500
+    await _set_plan(hass, freezer, 40, 1200)
+    assert _powers(calls) == [-3000, -5000, 2500, 0]
+    assert calls["resume_battery_operation"] == []
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])
+async def test_follow_energy_plan_haeo_kw(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    """HAEO (kW) is scaled to W; with Export at full power an export runs at
+    the largest power."""
+    calls = await _plan(hass, freezer, max_power=10000, full_rate_export=True)
+    await _set_plan(hass, freezer, -2.0, 2.6, "kW")
+    assert _powers(calls) == [-2000]
+    await _set_plan(hass, freezer, 1.2, -3.0, "kW")
+    assert _powers(calls) == [-2000, 10000]
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])
+async def test_follow_energy_plan_normal(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    """Solar charging the battery, a balanced house or an unavailable plan:
+    the battery is handed back, only if a dispatch is running."""
+    calls = await _plan(hass, freezer)
+    await _set_plan(hass, freezer, -2000, -600)  # solar to the battery and the grid
+    assert calls["dispatch_battery_power"] == [] and calls["resume_battery_operation"] == []
+    hass.states.async_set(DISPATCH, "on")
+    await _set_plan(hass, freezer, 500, 0)  # battery covers the house
+    assert len(calls["resume_battery_operation"]) == 1
+    assert calls["resume_battery_operation"][0].data["config_entry_id"] == "entry1"
+    hass.states.async_set(GRID_PLAN, "unavailable")
+    await _settle(hass, freezer)
+    assert len(calls["resume_battery_operation"]) == 2
+    assert calls["dispatch_battery_power"] == []
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])
+async def test_follow_energy_plan_too_old(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    """The dispatch is re-sent every 5 minutes; a plan older than the limit
+    counts as no plan."""
+    calls = await _plan(hass, freezer, max_age=30)
+    await _set_plan(hass, freezer, -3000, 4100)
+    assert _powers(calls) == [-3000]
+    hass.states.async_set(DISPATCH, "on")
+    await _settle(hass, freezer, 4 * 60)  # 00:05
+    await _settle(hass, freezer)
+    assert _powers(calls) == [-3000, -3000]
+    for _ in range(6):  # to 00:35
+        await _settle(hass, freezer, 5 * 60)
+        await _settle(hass, freezer)
+    assert _powers(calls) == [-3000] * 7
+    assert len(calls["resume_battery_operation"]) == 1

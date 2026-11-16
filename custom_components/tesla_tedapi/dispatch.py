@@ -181,6 +181,9 @@ class DispatchSession:
                 # is queued behind this lock and hands the battery back.
                 _LOGGER.info("Battery dispatch stopped before it started")
                 return {**self.as_dict(), "response": result}
+        # The same power again while running (a planner such as Predbat
+        # re-sends its dispatch every cycle): already warned at the start.
+        repeat = self.state is not None and self.state.power_watts == power_watts
         self._cancel_timers()
         self.state = state
         self._failures = 0
@@ -192,10 +195,13 @@ class DispatchSession:
             # so a target stops on the reading that reaches it.
             self.coordinator.async_add_listener(self._on_reading),
         ]
-        _LOGGER.warning("Battery dispatch started: %s W until %s. A dispatch overrides the backup "
-                        "reserve and export setting and may affect the Powerwall warranty; use at "
-                        "your own risk", power_watts, state.ends)
-        if power_watts < 0 and (self.coordinator.data or {}).get("grid_charging") is False:
+        if repeat:
+            _LOGGER.debug("Battery dispatch extended: %s W until %s", power_watts, state.ends)
+        else:
+            _LOGGER.warning("Battery dispatch started: %s W until %s. A dispatch overrides the backup "
+                            "reserve and export setting and may affect the Powerwall warranty; use at "
+                            "your own risk", power_watts, state.ends)
+        if not repeat and power_watts < 0 and (self.coordinator.data or {}).get("grid_charging") is False:
             _LOGGER.warning("Battery dispatch is charging with Grid charging off: the Powerwall "
                             "charges from solar only, not from the grid. Turn on Grid charging "
                             "to charge from the grid")

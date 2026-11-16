@@ -1,0 +1,53 @@
+# Scripts for evcc's Home Assistant battery meter (modeNormal, modeHold,
+# modeCharge, modeDischarge), for Tesla Powerwall TEDAPI. Paste them into
+# scripts.yaml; see docs/evcc.md for the evcc side.
+#
+# evcc calls a script when its battery mode changes, not again while the mode
+# lasts, so each dispatch runs for up to 24 hours and is ended by the next
+# mode. A charge also ends at 100 % and an export at the backup reserve. If
+# evcc stops while a mode is on, end it with "Powerwall - evcc normal" or the
+# integration's Stop battery dispatch button.
+#
+# Change power_watts to what your Powerwall can do (one Powerwall 3: 10,000 W)
+# and at most Largest dispatch power in the integration options. With more
+# than one Powerwall set up, add config_entry_id to each action.
+#
+# Battery dispatch may affect your warranty: read docs/safety.md first.
+
+powerwall_evcc_normal:
+  alias: Powerwall - evcc normal
+  description: Hand the battery back to the Powerwall's normal operation.
+  mode: queued
+  sequence:
+    - action: tesla_tedapi.resume_battery_operation
+
+powerwall_evcc_hold:
+  alias: Powerwall - evcc hold
+  description: Keep the battery idle (no discharge and no charge).
+  mode: queued
+  sequence:
+    - action: tesla_tedapi.dispatch_battery_power
+      data:
+        power_watts: 0
+        duration_seconds: 86400
+
+powerwall_evcc_charge:
+  alias: Powerwall - evcc charge
+  description: Charge the battery from solar and the grid until it's full.
+  mode: queued
+  sequence:
+    - action: tesla_tedapi.dispatch_battery_power
+      data:
+        power_watts: -5000
+        duration_seconds: 86400
+        max_soc: 100
+
+powerwall_evcc_discharge:
+  alias: Powerwall - evcc discharge
+  description: Discharge the battery to the house and the grid, down to the backup reserve.
+  mode: queued
+  sequence:
+    - action: tesla_tedapi.dispatch_battery_power
+      data:
+        power_watts: 5000
+        duration_seconds: 86400

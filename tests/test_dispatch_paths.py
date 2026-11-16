@@ -313,3 +313,24 @@ async def test_charge_with_grid_charging_off_warns(hass: HomeAssistant, fake_pow
         assert coordinator.data["grid_charging"] is True
         await _dispatch(hass, watts=-1000)
     assert not any(warning in r.getMessage() for r in caplog.records)
+
+
+async def test_repeated_dispatch_warns_once(hass: HomeAssistant, fake_powerwall, caplog) -> None:
+    """A planner re-sending the same power every cycle gets the warranty and
+    grid charging warnings once; a new power warns again."""
+    import logging  # noqa: PLC0415
+
+    entry = await _setup(hass, V1R)
+    with caplog.at_level(logging.WARNING):
+        await _dispatch(hass, watts=-1000)
+        await _dispatch(hass, watts=-1000)
+        await _dispatch(hass, watts=-1000)
+    texts = [r.getMessage() for r in caplog.records]
+    assert sum("may affect the Powerwall warranty" in t for t in texts) == 1
+    assert sum("charging with Grid charging off" in t for t in texts) == 1
+    assert entry.runtime_data.dispatch.active
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        await _dispatch(hass, watts=0)
+    assert sum("may affect the Powerwall warranty" in r.getMessage() for r in caplog.records) == 1

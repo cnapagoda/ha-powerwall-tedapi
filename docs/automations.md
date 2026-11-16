@@ -16,6 +16,7 @@ The price blueprints work with any price sensor (Amber, Octopus, Nord Pool, Tibb
 | **Time-of-use charge and discharge** ⚠️ | For fixed time-of-use tariffs without a price feed: charge in the off-peak window, discharge in the peak window. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Ftime_of_use.yaml) |
 | **Dynamic price tariff** | Keeps Tesla's tariff in step with a price forecast (Amber by default), so the Powerwall can stay in Time-Based Control. No dispatch. Needs the [Tesla tariff](tesla-tariff.md) option. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fdynamic_price_tariff.yaml) |
 | **Backup reserve schedule** | Sets **Backup reserve** to one value during a time window and to another after it, on the days you choose, for example to keep the battery for an expensive evening. No dispatch. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fbackup_reserve_schedule.yaml) |
+| **Follow an energy plan** ⚠️ | Applies an [EMHASS](emhass.md) or [HAEO](haeo.md) plan with battery dispatches: charges, exports or holds the battery when the plan trades with the grid, and leaves the Powerwall to its normal operation otherwise. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Ffollow_energy_plan.yaml) |
 
 **Outages and storms**
 
@@ -234,6 +235,8 @@ Price entities and suggested thresholds per retailer are collected in the [wiki]
 ## Example automations
 
 More examples, ready to copy, are in [`examples/automations.yaml`](../examples/automations.yaml).
+
+To have an energy planner decide instead, see [Predbat](predbat.md), [EMHASS](emhass.md), [HAEO](haeo.md) and [evcc](evcc.md).
 
 ### Charge from the grid when power is cheap
 

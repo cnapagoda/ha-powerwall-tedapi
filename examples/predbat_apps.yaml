@@ -1,0 +1,165 @@
+# Predbat (https://github.com/springfall2008/batpred) apps.yaml for a Tesla
+# Powerwall controlled locally through Tesla Powerwall TEDAPI.
+#
+# Predbat reads the integration's sensors and drives the battery with its
+# tesla_tedapi.dispatch_battery_power and tesla_tedapi.resume_battery_operation
+# actions, over the local signed connection. It never changes the operation
+# mode, export rule, grid charging or backup reserve; the Powerwall returns to
+# its normal operation by itself within 10 minutes if Predbat stops.
+#
+# Before you start, see docs/predbat.md:
+#   - the signed (v1r) connection, which battery dispatch needs
+#   - the four "today" energy sensors enabled (disabled by default)
+#   - two Number helpers for the charge and discharge rate
+#   - Grid charging on, so a charge can draw from the grid
+#   - Largest dispatch power (integration options) at least battery_rate_max
+#
+# Entity IDs assume the device "Powerwall TEDAPI" with no area, for example
+# sensor.powerwall_tedapi_battery_level. If yours start with an area (for
+# example sensor.garage_powerwall_tedapi_...) or end in _2, adjust them; see
+# docs/README.md, "Conventions in these pages".
+#
+# Battery dispatch may affect your warranty: read docs/safety.md first.
+pred_bat:
+  module: predbat
+  class: PredBat
+
+  # Sets the prefix for all created entities in HA - only change if you want to run more than one instance
+  prefix: predbat
+
+  # Your time zone
+  timezone: Australia/Sydney
+
+  # XXX: Template configuration, delete this line once you have set up for your system
+  template: True
+
+  # Currency, symbol for main currency second symbol for 1/100s e.g. $ c or £ p
+  currency_symbols:
+    - '$'
+    - 'c'
+
+  # Number of threads to use in plan calculation
+  threads: auto
+
+  # --- Tesla Powerwall via Tesla Powerwall TEDAPI local battery dispatch ---
+  inverter_type: TESLA
+  inverter:
+    name: "Tesla Powerwall via Tesla Powerwall TEDAPI"
+    has_rest_api: False
+    has_mqtt_api: False
+    # Predbat writes the rate it chose (W) to charge_rate / discharge_rate and
+    # passes it to the service hooks below as {power}
+    output_charge_control: "power"
+    # Charging and exporting are started and stopped by the service hooks, not
+    # by time windows, target SoC or backup reserve
+    has_charge_enable_time: False
+    has_discharge_enable_time: False
+    has_target_soc: False
+    has_reserve_soc: False
+    charge_time_format: "S"
+    charge_time_entity_is_option: False
+    soc_units: "%"
+    num_load_entities: 1
+    time_button_press: False
+    clock_time_format: "%Y-%m-%d %H:%M:%S"
+    write_and_poll_sleep: 2
+    has_time_window: False
+    # A 0 W dispatch holds the battery (no charge, no discharge)
+    support_charge_freeze: True
+    support_discharge_freeze: True
+    has_idle_time: False
+
+  # ---- Live power (W) ----
+  # Battery positive is discharging, grid positive is importing
+  battery_power:
+    - sensor.powerwall_tedapi_battery_power
+  battery_power_invert:
+    - False
+
+  pv_power:
+    - sensor.powerwall_tedapi_solar_power
+
+  load_power:
+    - sensor.powerwall_tedapi_home_power
+
+  grid_power:
+    - sensor.powerwall_tedapi_grid_power
+  grid_power_invert:
+    - True
+
+  # ---- Today's energy (kWh, reset at midnight) ----
+  # Disabled by default: enable them on each entity's settings page
+  load_today:
+    - sensor.powerwall_tedapi_home_energy_consumed_today
+  import_today:
+    - sensor.powerwall_tedapi_grid_energy_imported_today
+  export_today:
+    - sensor.powerwall_tedapi_grid_energy_exported_today
+  pv_today:
+    - sensor.powerwall_tedapi_solar_energy_produced_today
+
+  # ---- State of charge (kWh, all packs, real basis) ----
+  # Both already add up every Powerwall and expansion pack, and the full
+  # capacity follows the battery as it ages
+  soc_kw:
+    - sensor.powerwall_tedapi_battery_energy_remaining
+  soc_max:
+    - sensor.powerwall_tedapi_battery_full_capacity
+
+  # Hard floor on the real basis: these sensors include the bottom 5 % the
+  # Tesla app hides. Raise input_number.predbat_best_soc_keep for a soft
+  # planning floor. A discharge also stops at the backup reserve (option
+  # "Discharges stop at the backup reserve"), so keep the reserve at or below
+  # the lowest level you want Predbat to use.
+  battery_min_soc:
+    - 5
+
+  # ---- Rates (W) ----
+  # One Powerwall 3: 10000. Powerwall 2: 5000 per Powerwall.
+  battery_rate_max:
+    - 10000
+  inverter_limit:
+    - 10000
+
+  # ---- Charge and discharge rate (written by Predbat, passed to the hooks as {power}) ----
+  # Two Number helpers, minimum 0, maximum 10000 (or your battery_rate_max),
+  # step 100, unit W
+  charge_rate:
+    - input_number.predbat_powerwall_charge_rate
+  discharge_rate:
+    - input_number.predbat_powerwall_discharge_rate
+
+  # ---- Service hooks: local battery dispatch ----
+  # Charge: dispatch -{power} W. Export: dispatch {power} W. Hold: dispatch 0 W.
+  # Stop: resume the Powerwall's normal operation. Each dispatch lasts 600 s
+  # and repeat: True re-sends it every Predbat cycle (5 minutes). The hold
+  # power must be the string "0": Predbat drops a hook value that is 0 or empty.
+  # With more than one Powerwall set up, add config_entry_id to each hook.
+  charge_start_service:
+    - service: tesla_tedapi.dispatch_battery_power
+      power_watts: "-{power}"
+      duration_seconds: 600
+      repeat: True
+  charge_freeze_service:
+    - service: tesla_tedapi.dispatch_battery_power
+      power_watts: "0"
+      duration_seconds: 600
+      repeat: True
+  charge_stop_service:
+    - service: tesla_tedapi.resume_battery_operation
+  discharge_start_service:
+    - service: tesla_tedapi.dispatch_battery_power
+      power_watts: "{power}"
+      duration_seconds: 600
+      repeat: True
+  discharge_freeze_service:
+    - service: tesla_tedapi.dispatch_battery_power
+      power_watts: "0"
+      duration_seconds: 600
+      repeat: True
+  discharge_stop_service:
+    - service: tesla_tedapi.resume_battery_operation
+
+  # ---- Energy rates ----
+  # Add your tariff or price sensors here; see Predbat's energy rates docs:
+  # https://springfall2008.github.io/batpred/energy-rates/

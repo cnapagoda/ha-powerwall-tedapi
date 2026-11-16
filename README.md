@@ -21,6 +21,7 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 - **Keeps working when it can't reach the gateway:** an optional Tesla cloud backup (your Tesla account, Tesla Fleet or Teslemetry) keeps the settings usable, and can also show power and battery level.
 - **More from the cloud backup:** Wall Connector power and state, and Tesla's tariff as buy and sell price sensors and calendars.
 - **A setup wizard:** it finds the Powerwall on your network and registers the access key for you. No command line.
+- **Works with energy planners:** [Predbat](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/predbat.md), [EMHASS](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/emhass.md), [HAEO](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/haeo.md) and [evcc](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/evcc.md) can control the battery locally.
 - **Ready-made blueprints** for cheap charging, price spikes, negative feed-in, time-of-use, reserve schedules, storms, outages, surplus solar and alerts.
 
 > ⚠️ **Not affiliated with Tesla.** It talks to the gateway through its local interface (TEDAPI), which Tesla can change at any time. Battery dispatch overrides your export setting and may affect your warranty; going off-grid disconnects your house from the grid. Read [Safety](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/safety.md) before you use them.
@@ -62,6 +63,7 @@ The full walkthrough, with screenshots and the other ways to connect, is in **[Q
 | [Configuration](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/configuration.md) | [Automations & blueprints](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/automations.md) | [Events](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/events.md) | [Compatibility](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/compatibility.md) |
 | [Migrating from another integration](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/migration.md) | [Alerts](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/alerts.md) | [Cloud backup](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/cloud-backup.md) | [Safety](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/safety.md) |
 | | [Tesla tariff](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/tesla-tariff.md) | [Dropped settings](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/dropped-settings.md) | [How it works & limitations](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/how-it-works.md) |
+| | Energy planners: [Predbat](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/predbat.md), [EMHASS](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/emhass.md), [HAEO](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/haeo.md), [evcc](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/evcc.md) | | |
 
 ## Which connection?
 
