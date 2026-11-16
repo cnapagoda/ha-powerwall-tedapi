@@ -12,7 +12,7 @@
 - **Five more gateway alerts are recognised:** `BMS_a023_SW_Assertion` (warning: it now counts toward **Problem** if it lasts, so the **Problem alert** blueprint reports it), and `OpticasterRetry`, `EVSEMIA`, `UserEVSEMIA` and `EVSENotChargingWhenAllowed` (notice).
 - **Diagnostics downloads no longer show the gateway's address or the key file's path:** the home network address, the Wi-Fi fallback address and the signed key's path are redacted, also where they appear in a message.
 - Docs: the blueprints are grouped by use, and the blueprint import links point to this release.
-- Docs: Powerwall 2 with a Backup Gateway 1 (firmware 26.34.2) is reported working over the signed connection for everything except going off-grid, which wasn't tested (thanks [@BJReplay](https://github.com/BJReplay)). Fan speed sensors are documented as Powerwall 3 and Powerwall+ only: a Powerwall 2 without the built-in solar inverter has none.
+- Docs: Powerwall 2 with a Backup Gateway 1 (firmware 26.34.2) is reported working over the signed connection: setup, readings, settings, battery dispatch, max backup, and going off-grid with the timed and the manual reconnect (thanks [@BJReplay](https://github.com/BJReplay)). Fan speed sensors are documented as Powerwall 3 and Powerwall+ only: a Powerwall 2 without the built-in solar inverter has none.
 
 ## 2.7.0
 
