@@ -307,6 +307,27 @@ def auto_enable_custom_integrations(enable_custom_integrations):
     yield
 
 
+class CloudNet:
+    """Whether Tesla's servers answer the cloud backup's reachability check
+    (cloud.reachable), and which addresses it checked."""
+
+    up = True
+    checked: list[str] = []
+
+
+@pytest.fixture(autouse=True)
+def cloud_net():
+    """No test reaches the internet: the reachability check answers CloudNet.up."""
+    CloudNet.up, CloudNet.checked = True, []
+
+    def reachable(url: str) -> bool:
+        CloudNet.checked.append(url)
+        return CloudNet.up
+
+    with patch("custom_components.tesla_tedapi.cloud.reachable", reachable):
+        yield CloudNet
+
+
 @pytest.fixture(autouse=True)
 def no_tariff_readback_waits():
     """Read a written tariff back twice, without the real 25 s of waits."""

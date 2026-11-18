@@ -612,7 +612,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.fleet_signin_needed = False
         for name in CLOUD_CHOICES.get(cloud_choice(data, entry.options), ()):
             if name == BACKEND_OWNER and self._owners_email:
-                backends.append(CloudBackend(name, self._init_cloud, extras_seconds=OWNER_EXTRAS_SECONDS))
+                backends.append(CloudBackend(name, self._init_cloud, server=lambda: tesla_cloud.OWNER_API,
+                                             extras_seconds=OWNER_EXTRAS_SECONDS))
             elif name == BACKEND_FLEET:
                 api = entry_api(hass, entry)
                 if api is None:
@@ -621,6 +622,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 fleet = FleetBackup(hass, api, int(data[CONF_FLEET_SITE_ID]))
                 backends.append(CloudBackend(
                     name, lambda fleet=fleet: fleet, writable=lambda fleet=fleet: fleet.can_write,
+                    server=lambda api=api: api.server,
                     extras_seconds=OWNER_EXTRAS_SECONDS, display=provider_label(data.get(CONF_FLEET_PROVIDER))))
         return backends
 
@@ -850,13 +852,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return {}
         if any(v is not None for v in values.values()):
             backend.cache = (now, values)
-            backend.failures = 0
-            backend.last_ok = dt_util.utcnow()
+            backend.note_ok(dt_util.utcnow())
         else:
             # Logged in but every read failed, e.g. a refreshed token the
-            # Owner API rejects: log in again next time.
+            # Owner API rejects (or the internet went down): log in again
+            # next time.
             _LOGGER.debug("%s settings read returned nothing", backend.label)
-            backend.failures += 1
+            backend.note_failure()
             backend.drop()
             backend.cache = (now, {})
         return values
@@ -1109,8 +1111,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 errors.append(f"{backend.label}: {err}")
                 continue
             if ok:
-                backend.failures = 0
-                backend.last_ok = dt_util.utcnow()
+                backend.note_ok(dt_util.utcnow())
                 # Accepted is not applied: Tesla may change the value (e.g. it
                 # caps the reserve). It is read back before it counts as done.
                 _LOGGER.info("%s: sent through %s, checking that the Powerwall applies it", what, backend.label)

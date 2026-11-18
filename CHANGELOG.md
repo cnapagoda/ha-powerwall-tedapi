@@ -16,6 +16,7 @@
   - **EMHASS and HAEO:** the **Follow an energy plan** blueprint charges, exports or holds the battery when the plan trades with the grid, and leaves the Powerwall to its normal operation otherwise; see [EMHASS](docs/emhass.md) and [HAEO](docs/haeo.md).
   - **evcc:** scripts for its Home Assistant battery meter ([`examples/evcc_scripts.yaml`](examples/evcc_scripts.yaml)); see [evcc](docs/evcc.md).
 - **A dispatch re-sent at the same power** (as Predbat does every 5 minutes) no longer logs the warranty and grid charging warnings again; they're logged when the dispatch starts or its power changes.
+- **An internet outage no longer asks you to sign in to Tesla again:** a cloud backup failure only counts toward that repair while Tesla's server answers. The repair also says it clears itself after the next successful check.
 - Docs: the blueprints are grouped by use, and the blueprint import links point to this release.
 - Docs: Powerwall 2 with a Backup Gateway 1 (firmware 26.34.2) is reported working over the signed connection: setup, readings, settings, battery dispatch, max backup, and going off-grid with the timed and the manual reconnect (thanks [@BJReplay](https://github.com/BJReplay)). Fan speed sensors are documented as Powerwall 3 and Powerwall+ only: a Powerwall 2 without the built-in solar inverter has none.
 

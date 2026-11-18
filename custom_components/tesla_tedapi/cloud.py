@@ -2,7 +2,8 @@
 
 Each backup keeps its own client, cache, failure count and hourly check, so one
 that stops working is reported (and skipped for reads) while the other keeps
-the settings working."""
+the settings working. A failure while Tesla's server can't be reached (the
+internet connection is down) is not counted: it says nothing about the sign-in."""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -23,6 +24,21 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 LABELS = {BACKEND_OWNER: "Owner API", BACKEND_FLEET: "Tesla Fleet"}
+# How long the reachability check waits for Tesla's server.
+PROBE_TIMEOUT = 5
+
+
+def reachable(url: str) -> bool:
+    """Whether the server at url answers at all (blocking). Any HTTP answer
+    below 500 counts, even a refusal; a connection error, a timeout or a
+    server error means it can't be asked right now."""
+    import requests  # noqa: PLC0415
+
+    try:
+        response = requests.head(url, timeout=PROBE_TIMEOUT, allow_redirects=False)
+    except requests.RequestException:
+        return False
+    return response.status_code < 500
 
 
 @dataclass(eq=False)
@@ -33,8 +49,13 @@ class CloudBackend:
     name: str
     factory: Callable[[], Any]
     writable: Callable[[], bool] = lambda: True
+    # The server it talks to, checked when a login or read fails (None: not
+    # checked, every failure counts).
+    server: Callable[[], str | None] = lambda: None
     client: Any = None
     failures: int = 0
+    # The last failure came while its server couldn't be reached.
+    offline: bool = False
     last_ok: datetime | None = None
     # (monotonic time, settings) of the last read, good or failed.
     cache: tuple[float, dict[str, Any]] | None = None
@@ -66,14 +87,34 @@ class CloudBackend:
     @property
     def ok(self) -> bool:
         """Proven by a real read (not just "no failures yet")."""
-        return self.failures == 0 and self.last_ok is not None
+        return self.failures == 0 and self.last_ok is not None and not self.offline
+
+    def note_ok(self, now: datetime) -> None:
+        """A read or write that worked."""
+        if self.offline:
+            _LOGGER.info("%s answers again", self.label)
+        self.failures, self.last_ok, self.offline = 0, now, False
+
+    def note_failure(self) -> None:
+        """A login or read that failed (blocking: checks the server). Counted
+        toward the sign-in repair only while the server can be reached: during
+        an internet outage the sign-in may well still be good."""
+        url = self.server()
+        if url and not reachable(url):
+            if not self.offline:
+                _LOGGER.info("%s can't be reached (is the internet connection down?); "
+                             "not counted as a sign-in problem", self.label)
+            self.offline = True
+            return
+        self.offline = False
+        self.failures += 1
 
     def get_client(self) -> Any:
         if self.client is None:
             try:
                 self.client = self.factory()
             except Exception:
-                self.failures += 1
+                self.note_failure()
                 raise
             # A login alone doesn't reset failures: only a read that returns
             # data does (the Owner API can log in, then reject reads).
