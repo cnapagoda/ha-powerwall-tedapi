@@ -28,6 +28,7 @@ All entities belong to one device per gateway, **Powerwall TEDAPI**. Entity IDs 
 - [Wall Connector](#wall-connector)
 - [Tesla tariff](#tesla-tariff)
 - [Hardware](#hardware)
+- [Network, site limits and keys](#network-site-limits-and-keys)
 - [Setup and connection](#setup-and-connection)
 
 ## Power
@@ -240,6 +241,19 @@ All diagnostic 🩺.
 | Fan *A*/*B* speed 🔍 | `sensor.powerwall_tedapi_fan_a_speed` | rpm. Powerwall 3: the inverter's two fans, with the drive `duty` (%) as an attribute. With more than one Powerwall 3, *Fan A* and *B* are the leader's, and the next inverters' fans are *Fan 2A*, *Fan 2B* and so on. Powerwall+: one fan per built-in solar inverter (*Fan 1*, *Fan 2*, …), with `target_rpm`. Only on a Powerwall 3 or Powerwall+: a Powerwall 2 without the built-in solar inverter has no fan sensors. |
 | Firmware version | `sensor.powerwall_tedapi_firmware_version` | For example `26.34.1`. Attributes: `build`, `previous_version`, `updated_at`. The last two stay empty until the integration has seen a firmware update. |
 | Gateway last started | `sensor.powerwall_tedapi_gateway_last_started` | When the gateway last restarted. |
+
+## Network, site limits and keys
+
+Read from the gateway every 5 minutes (the site limits with each full read where the integration reads the gateway's settings). Each entity appears once the gateway first reports it.
+
+| Entity | Entity ID | Notes |
+|---|---|---|
+| Network connection 🩺🔍 | `sensor.powerwall_tedapi_network_connection` | The interface the gateway uses for its internet connection: *Wi-Fi*, *Ethernet*, *Cellular* or *None*. Attribute `interfaces`: per interface `enabled`, `connected`, `internet`, `tesla` (reaches Tesla's servers), `signal` and `state`. A Powerwall 2 reports this over the Gateway Wi-Fi only: on the signed connection it needs a Wi-Fi fallback address. |
+| Wi-Fi signal / Cellular signal 🩺🔍 | `sensor.powerwall_tedapi_wifi_signal` | %, as the gateway reports it. |
+| Wi-Fi / Ethernet / Cellular internet 🩺🔍 | `binary_sensor.powerwall_tedapi_wifi_internet` | On while the gateway reaches the internet over that interface. |
+| Site import limit / Site export limit 🩺🔍 | `sensor.powerwall_tedapi_site_export_limit` | kW. *Unknown* with `limited: false` when no limit is set. Change them with [`set_site_limit`](actions.md#tesla_tedapiset_site_limit). |
+| Registered keys 🩺🔍 | `sensor.powerwall_tedapi_registered_keys` | How many keys may send the gateway commands (the Tesla app, vehicles, this integration). Attributes: `states` (how many in each state), `this_key` (the state of this integration's key, signed connection), `keys` (each key's fingerprint start, type, state and when it was added). Remove one with [`remove_registered_key`](actions.md#tesla_tedapiremove_registered_key). |
+| Calibration delays left 🔑🩺🔍 | `sensor.powerwall_tedapi_calibration_delays_left` | How many more times the battery calibration can be postponed. Attributes `max_calibration_delays`, `delay_remaining_seconds`. Only where the firmware reports it (a Powerwall 3 on 26.34.3 doesn't). |
 
 ## Setup and connection
 

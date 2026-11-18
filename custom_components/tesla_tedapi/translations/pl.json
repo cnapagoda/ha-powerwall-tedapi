@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Usługi sieciowe aktywne"
+      },
+      "wifi_internet": {
+        "name": "Internet przez Wi-Fi"
+      },
+      "ethernet_internet": {
+        "name": "Internet przez Ethernet"
+      },
+      "cellular_internet": {
+        "name": "Internet komórkowy"
       }
     },
     "button": {
@@ -680,6 +689,33 @@
       },
       "tariff_sell_price": {
         "name": "Cena sprzedaży w taryfie"
+      },
+      "network_connection": {
+        "name": "Połączenie sieciowe",
+        "state": {
+          "wifi": "Wi-Fi",
+          "ethernet": "Ethernet",
+          "cellular": "Komórkowe",
+          "none": "Brak"
+        }
+      },
+      "wifi_signal": {
+        "name": "Sygnał Wi-Fi"
+      },
+      "cellular_signal": {
+        "name": "Sygnał komórkowy"
+      },
+      "site_import_limit": {
+        "name": "Limit poboru instalacji"
+      },
+      "site_export_limit": {
+        "name": "Limit oddawania instalacji"
+      },
+      "registered_keys": {
+        "name": "Zarejestrowane klucze"
+      },
+      "calibration_delays_left": {
+        "name": "Pozostałe odroczenia kalibracji"
       }
     },
     "switch": {
@@ -814,6 +850,21 @@
     },
     "pypowerwall_too_old": {
       "message": "W Home Assistant załadowano pypowerwall {found}, a ta integracja wymaga wersji {required} lub nowszej. Inna integracja niestandardowa załadowała starszą wersję: usuń ją i uruchom ponownie Home Assistant."
+    },
+    "command_needs_v1r": {
+      "message": "To wymaga podpisanego połączenia (v1r) z bramką."
+    },
+    "command_not_confirmed": {
+      "message": "Ustaw confirm na true, aby wysłać to polecenie."
+    },
+    "gateway_command_failed": {
+      "message": "Bramka nie wykonała polecenia: {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "Firmware Powerwall nie obsługuje tego polecenia."
+    },
+    "key_not_removed": {
+      "message": "Klucz nie został usunięty: {error}"
     }
   },
   "services": {
@@ -1008,6 +1059,60 @@
         "source_discharged": {
           "name": "Źródło rozładowania",
           "description": "Czujnik energii z energią rozładowaną z baterii, na przykład *Battery discharged* z Tesla Fleet lub Teslemetry."
+        }
+      }
+    },
+    "set_site_limit": {
+      "name": "Ustaw limit instalacji",
+      "description": "Ustawia lub usuwa limit poboru z sieci lub oddawania do sieci, przez podpisane połączenie lokalne. Instalator mógł ustawić limit zgodnie z umową przyłączeniową (na przykład limit oddawania operatora sieci): nie podnoś go ani nie usuwaj, jeśli nie masz na to zgody.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "direction": {
+          "name": "Kierunek",
+          "description": "Pobór (z sieci) lub oddawanie (do sieci)."
+        },
+        "limit_kw": {
+          "name": "Limit",
+          "description": "Limit w kW. Pozostaw puste, aby usunąć limit."
+        },
+        "confirm": {
+          "name": "Potwierdź",
+          "description": "Musi być włączone: to zmienia ustawienia Powerwall."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Odrocz kalibrację baterii",
+      "description": "Odracza następną kalibrację baterii Powerwall, przez podpisane połączenie lokalne. Bramka pozwala na ograniczoną liczbę odroczeń, a każde wywołanie może zużyć jedno. Niektóre wersje firmware tego nie obsługują.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "delay_hours": {
+          "name": "Odroczenie",
+          "description": "Na ile odroczyć kalibrację, w godzinach."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Usuń zarejestrowany klucz",
+      "description": "Usuwa klucz zarejestrowany w bramce, przez podpisane połączenie lokalne. Ta aplikacja lub urządzenie nie będzie już mogło wysyłać jej poleceń. Klucza używanego przez tę integrację nie można usunąć.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "fingerprint": {
+          "name": "Odcisk",
+          "description": "Początek odcisku klucza (co najmniej 8 znaków), tak jak pokazuje go czujnik Zarejestrowane klucze."
+        },
+        "confirm": {
+          "name": "Potwierdź",
+          "description": "Musi być włączone: to zmienia ustawienia Powerwall."
         }
       }
     }
@@ -1262,6 +1367,12 @@
         "min_soc": "bateria na poziomie ponownego podłączenia",
         "requested": "zażądano ponownego podłączenia",
         "reconnected_elsewhere": "podłączono gdzie indziej"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Pobór",
+        "export": "Oddawanie"
       }
     }
   }

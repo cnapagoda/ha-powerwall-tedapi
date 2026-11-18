@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Services du réseau électrique actifs"
+      },
+      "wifi_internet": {
+        "name": "Internet par Wi-Fi"
+      },
+      "ethernet_internet": {
+        "name": "Internet par Ethernet"
+      },
+      "cellular_internet": {
+        "name": "Internet cellulaire"
       }
     },
     "button": {
@@ -680,6 +689,33 @@
       },
       "tariff_sell_price": {
         "name": "Prix de revente du tarif"
+      },
+      "network_connection": {
+        "name": "Connexion réseau",
+        "state": {
+          "wifi": "Wi-Fi",
+          "ethernet": "Ethernet",
+          "cellular": "Cellulaire",
+          "none": "Aucune"
+        }
+      },
+      "wifi_signal": {
+        "name": "Signal Wi-Fi"
+      },
+      "cellular_signal": {
+        "name": "Signal cellulaire"
+      },
+      "site_import_limit": {
+        "name": "Limite d'import du site"
+      },
+      "site_export_limit": {
+        "name": "Limite d'export du site"
+      },
+      "registered_keys": {
+        "name": "Clés enregistrées"
+      },
+      "calibration_delays_left": {
+        "name": "Reports de calibration restants"
       }
     },
     "switch": {
@@ -814,6 +850,21 @@
     },
     "pypowerwall_too_old": {
       "message": "pypowerwall {found} est chargé dans Home Assistant, mais cette intégration nécessite la version {required} ou une version plus récente. Une autre intégration personnalisée a chargé l'ancienne version : supprimez-la et redémarrez Home Assistant."
+    },
+    "command_needs_v1r": {
+      "message": "Cela nécessite la connexion signée (v1r) à la passerelle."
+    },
+    "command_not_confirmed": {
+      "message": "Mettez confirm à true pour envoyer cette commande."
+    },
+    "gateway_command_failed": {
+      "message": "La passerelle n'a pas exécuté la commande : {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "Le firmware de la Powerwall ne prend pas en charge cette commande."
+    },
+    "key_not_removed": {
+      "message": "La clé n'a pas été supprimée : {error}"
     }
   },
   "services": {
@@ -1008,6 +1059,60 @@
         "source_discharged": {
           "name": "Source décharge",
           "description": "Le capteur d'énergie de l'énergie déchargée par la batterie, par exemple *Battery discharged* de Tesla Fleet ou Teslemetry."
+        }
+      }
+    },
+    "set_site_limit": {
+      "name": "Définir la limite du site",
+      "description": "Définit ou supprime la limite d'import ou d'export réseau du site, via la connexion locale signée. Un installateur a peut-être fixé une limite pour respecter votre contrat de raccordement (par exemple une limite d'export du gestionnaire de réseau) : ne l'augmentez pas et ne la supprimez pas sans en avoir le droit.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "direction": {
+          "name": "Sens",
+          "description": "Import (depuis le réseau) ou export (vers le réseau)."
+        },
+        "limit_kw": {
+          "name": "Limite",
+          "description": "La limite en kW. Laissez vide pour supprimer la limite."
+        },
+        "confirm": {
+          "name": "Confirmer",
+          "description": "Doit être activé : cela modifie la Powerwall."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Reporter la calibration de la batterie",
+      "description": "Reporte la prochaine calibration de la batterie de la Powerwall, via la connexion locale signée. La passerelle n'autorise qu'un nombre limité de reports, et chaque appel peut en utiliser un. Certains firmwares ne le prennent pas en charge.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "delay_hours": {
+          "name": "Report",
+          "description": "Durée du report de la calibration, en heures."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Supprimer une clé enregistrée",
+      "description": "Supprime une clé enregistrée auprès de la passerelle, via la connexion locale signée. Cette app ou cet appareil ne pourra plus lui envoyer de commandes. La clé utilisée par cette intégration ne peut pas être supprimée.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "fingerprint": {
+          "name": "Empreinte",
+          "description": "Le début de l'empreinte de la clé (au moins 8 caractères), telle que l'affiche le capteur Clés enregistrées."
+        },
+        "confirm": {
+          "name": "Confirmer",
+          "description": "Doit être activé : cela modifie la Powerwall."
         }
       }
     }
@@ -1262,6 +1367,12 @@
         "min_soc": "batterie au niveau de reconnexion",
         "requested": "reconnexion demandée",
         "reconnected_elsewhere": "reconnecté ailleurs"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Import",
+        "export": "Export"
       }
     }
   }

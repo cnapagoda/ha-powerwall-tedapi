@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Servicios de red activos"
+      },
+      "wifi_internet": {
+        "name": "Internet por Wi-Fi"
+      },
+      "ethernet_internet": {
+        "name": "Internet por Ethernet"
+      },
+      "cellular_internet": {
+        "name": "Internet por móvil"
       }
     },
     "button": {
@@ -680,6 +689,33 @@
       },
       "tariff_sell_price": {
         "name": "Precio de venta de la tarifa"
+      },
+      "network_connection": {
+        "name": "Conexión de red",
+        "state": {
+          "wifi": "Wi-Fi",
+          "ethernet": "Ethernet",
+          "cellular": "Móvil",
+          "none": "Ninguna"
+        }
+      },
+      "wifi_signal": {
+        "name": "Señal Wi-Fi"
+      },
+      "cellular_signal": {
+        "name": "Señal móvil"
+      },
+      "site_import_limit": {
+        "name": "Límite de importación del sitio"
+      },
+      "site_export_limit": {
+        "name": "Límite de exportación del sitio"
+      },
+      "registered_keys": {
+        "name": "Claves registradas"
+      },
+      "calibration_delays_left": {
+        "name": "Aplazamientos de calibración restantes"
       }
     },
     "switch": {
@@ -814,6 +850,21 @@
     },
     "pypowerwall_too_old": {
       "message": "Home Assistant tiene cargado pypowerwall {found}, pero esta integración necesita {required} o posterior. Otra integración personalizada cargó la versión más antigua: elimínala y reinicia Home Assistant."
+    },
+    "command_needs_v1r": {
+      "message": "Esto necesita la conexión firmada (v1r) con el gateway."
+    },
+    "command_not_confirmed": {
+      "message": "Pon confirm en true para enviar esta orden."
+    },
+    "gateway_command_failed": {
+      "message": "El gateway no ejecutó la orden: {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "El firmware de la Powerwall no admite esta orden."
+    },
+    "key_not_removed": {
+      "message": "La clave no se quitó: {error}"
     }
   },
   "services": {
@@ -1008,6 +1059,60 @@
         "source_discharged": {
           "name": "Fuente de descarga",
           "description": "El sensor de energía con la energía descargada de la batería, por ejemplo *Battery discharged* de Tesla Fleet o Teslemetry."
+        }
+      }
+    },
+    "set_site_limit": {
+      "name": "Fijar límite del sitio",
+      "description": "Fija o quita el límite de importación o exportación de red del sitio, por la conexión local firmada. Es posible que un instalador haya fijado un límite para cumplir tu contrato de conexión a la red (por ejemplo, un límite de exportación de la distribuidora): no lo subas ni lo quites si no tienes permiso.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Solo es necesario si hay más de una Powerwall configurada."
+        },
+        "direction": {
+          "name": "Sentido",
+          "description": "Importación (desde la red) o exportación (a la red)."
+        },
+        "limit_kw": {
+          "name": "Límite",
+          "description": "El límite en kW. Déjalo vacío para quitar el límite."
+        },
+        "confirm": {
+          "name": "Confirmar",
+          "description": "Debe estar activado: esto cambia la Powerwall."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Aplazar la calibración de la batería",
+      "description": "Aplaza la próxima calibración de la batería de la Powerwall, por la conexión local firmada. El gateway permite un número limitado de aplazamientos y cada llamada puede gastar uno. Algunos firmware no lo admiten.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Solo es necesario si hay más de una Powerwall configurada."
+        },
+        "delay_hours": {
+          "name": "Aplazamiento",
+          "description": "Cuánto aplazar la calibración, en horas."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Quitar clave registrada",
+      "description": "Quita una clave registrada en el gateway, por la conexión local firmada. Esa app o ese dispositivo ya no podrá enviarle órdenes. La clave que usa esta integración no se puede quitar.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Solo es necesario si hay más de una Powerwall configurada."
+        },
+        "fingerprint": {
+          "name": "Huella",
+          "description": "El inicio de la huella de la clave (al menos 8 caracteres), tal como la muestra el sensor Claves registradas."
+        },
+        "confirm": {
+          "name": "Confirmar",
+          "description": "Debe estar activado: esto cambia la Powerwall."
         }
       }
     }
@@ -1262,6 +1367,12 @@
         "min_soc": "batería en el nivel de reconexión",
         "requested": "reconexión solicitada",
         "reconnected_elsewhere": "reconectado en otro lugar"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Importación",
+        "export": "Exportación"
       }
     }
   }

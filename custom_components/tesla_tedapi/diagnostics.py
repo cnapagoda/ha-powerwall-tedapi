@@ -29,7 +29,7 @@ from .coordinator import TedapiConfigEntry
 
 TO_REDACT = {CONF_GW_PWD, CONF_OWNERS_EMAIL, CONF_SITE_ID, CONF_FLEET_SITE_ID, CONF_FLEET_TOKEN,
              CONF_OAUTH_TOKEN, CONF_OAUTH_IMPLEMENTATION, CONF_MACS, CONF_HOST, CONF_WIFI_HOST,
-             CONF_RSA_KEY_PATH, "din", "serial", "unique_id", "title"}
+             CONF_RSA_KEY_PATH, "din", "serial", "unique_id", "title", "fingerprint"}
 REDACTED = "**REDACTED**"
 # Gateway config keys that identify the site, a person or a device, or hold
 # credentials: any key containing one of these, or equal to one of the short ones.

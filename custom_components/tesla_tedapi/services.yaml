@@ -242,3 +242,67 @@ import_battery_history:
         entity:
           domain: sensor
           device_class: energy
+set_site_limit:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    direction:
+      required: true
+      example: export
+      selector:
+        select:
+          options:
+            - import
+            - export
+          translation_key: site_limit_direction
+    limit_kw:
+      required: false
+      example: 5
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 0.1
+          unit_of_measurement: kW
+          mode: box
+    confirm:
+      required: true
+      default: false
+      selector:
+        boolean:
+delay_battery_calibration:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    delay_hours:
+      required: true
+      example: 24
+      selector:
+        number:
+          min: 1
+          max: 168
+          unit_of_measurement: h
+          mode: box
+remove_registered_key:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    fingerprint:
+      required: true
+      example: 0123456789abcdef
+      selector:
+        text:
+    confirm:
+      required: true
+      default: false
+      selector:
+        boolean:

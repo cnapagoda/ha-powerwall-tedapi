@@ -35,10 +35,12 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/cnapagoda/ha-powerwall-tedapi/issues",
   "loggers": [
+    "aiopytedapi",
     "pypowerwall"
   ],
   "requirements": [
-    "pypowerwall>=0.25.0,<0.26"
+    "pypowerwall>=0.25.0,<0.26",
+    "aiopytedapi>=0.1.0,<0.2"
   ],
   "version": "2.8.0"
 }

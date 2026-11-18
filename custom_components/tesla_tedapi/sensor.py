@@ -579,6 +579,89 @@ def _string_sensors(name: str) -> list[TedapiSensorEntityDescription]:
 
 # Inverter temperatures: Powerwall 3 only. Added once the gateway reports
 # them, so a Powerwall 2 doesn't get two sensors that stay unknown.
+def _network(d: dict[str, Any]) -> dict[str, Any]:
+    return d.get("network") or {}
+
+
+def _interface(d: dict[str, Any], name: str) -> dict[str, Any]:
+    return (_network(d).get("interfaces") or {}).get(name) or {}
+
+
+def _limit(d: dict[str, Any], key: str) -> Any:
+    return (d.get("site_limits") or {}).get(key)
+
+
+def _keys(d: dict[str, Any]) -> dict[str, Any]:
+    return d.get("registered_keys") or {}
+
+
+def _calibration(d: dict[str, Any]) -> dict[str, Any]:
+    return d.get("calibration_delay") or {}
+
+
+def _signal_sensor(interface: str) -> TedapiSensorEntityDescription:
+    return TedapiSensorEntityDescription(
+        key=f"{interface}_signal",
+        translation_key=f"{interface}_signal",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: _interface(d, interface).get("signal"),
+    )
+
+
+def _limit_sensor(direction: str) -> TedapiSensorEntityDescription:
+    key = f"{direction}_limit_kw"
+    return TedapiSensorEntityDescription(
+        key=f"site_{direction}_limit",
+        translation_key=f"site_{direction}_limit",
+        device_class=SensorDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        # No limit set: unknown, with limited false.
+        value_fn=lambda d: _limit(d, key),
+        attrs_fn=lambda d: {"limited": _limit(d, key) is not None},
+    )
+
+
+# Gateway features read through aiopytedapi (extras.py), each added once the
+# gateway first reports it: (description, reported).
+EXTRA_SENSORS: tuple[tuple[TedapiSensorEntityDescription, Callable[[dict[str, Any]], bool]], ...] = (
+    (TedapiSensorEntityDescription(
+        key="network_connection",
+        translation_key="network_connection",
+        device_class=SensorDeviceClass.ENUM,
+        options=["wifi", "ethernet", "cellular", "none"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: _network(d).get("active"),
+        attrs_fn=lambda d: {"interfaces": _network(d).get("interfaces") or {}},
+    ), lambda d: bool(_network(d))),
+    (_signal_sensor("wifi"), lambda d: bool(_interface(d, "wifi"))),
+    (_signal_sensor("cellular"), lambda d: bool(_interface(d, "cellular"))),
+    (_limit_sensor("import"), lambda d: d.get("site_limits") is not None),
+    (_limit_sensor("export"), lambda d: d.get("site_limits") is not None),
+    (TedapiSensorEntityDescription(
+        key="registered_keys",
+        translation_key="registered_keys",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: _keys(d).get("count"),
+        attrs_fn=lambda d: {"states": _keys(d).get("states") or {}, "this_key": _keys(d).get("this_key"),
+                            "keys": _keys(d).get("keys") or []},
+    ), lambda d: bool(_keys(d))),
+    (TedapiSensorEntityDescription(
+        key="calibration_delays_left",
+        translation_key="calibration_delays_left",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: _calibration(d).get("calibration_delays_left"),
+        attrs_fn=lambda d: {
+            "max_calibration_delays": _calibration(d).get("max_calibration_delays"),
+            "delay_remaining_seconds": _calibration(d).get("calibration_delay_remaining_seconds"),
+        },
+    ), lambda d: bool(_calibration(d))),
+)
+
+
 INVERTER_TEMPERATURES: tuple[TedapiSensorEntityDescription, ...] = (
     TedapiSensorEntityDescription(
         key="inverter_ambient_temperature",
@@ -830,6 +913,10 @@ async def async_setup_entry(
             if description.key not in known and description.value_fn(data) is not None:
                 known.add(description.key)
                 new.append(description)
+        for description, reported in EXTRA_SENSORS:
+            if description.key not in known and reported(data):
+                known.add(description.key)
+                new.append(description)
         for name in data.get("fans") or {}:
             if f"fan_{name}" not in known:
                 known.add(f"fan_{name}")
@@ -888,6 +975,8 @@ class TedapiSensor(TedapiEntity, SensorEntity):
         "details", "pack_alerts",
         # cloud readings: when the cloud's reading was taken
         "last_updated",
+        # network status (signal per interface) and registered keys
+        "interfaces", "keys",
     })
 
     def __init__(self, coordinator: TedapiCoordinator, description: TedapiSensorEntityDescription) -> None:

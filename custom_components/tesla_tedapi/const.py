@@ -239,6 +239,16 @@ SERVICE_START_MAX_BACKUP = "start_max_backup"
 SERVICE_CANCEL_MAX_BACKUP = "cancel_max_backup"
 SERVICE_GO_OFF_GRID = "go_off_grid"
 SERVICE_RECONNECT_GRID = "reconnect_grid"
+SERVICE_SET_SITE_LIMIT = "set_site_limit"
+SERVICE_DELAY_CALIBRATION = "delay_battery_calibration"
+SERVICE_REMOVE_KEY = "remove_registered_key"
+ATTR_DIRECTION = "direction"
+ATTR_LIMIT_KW = "limit_kw"
+ATTR_DELAY_HOURS = "delay_hours"
+ATTR_FINGERPRINT = "fingerprint"
+# The longest calibration delay the action sends (hours). The gateway's own
+# limit isn't documented.
+CALIBRATION_DELAY_MAX_HOURS = 168
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 ATTR_POWER_WATTS = "power_watts"

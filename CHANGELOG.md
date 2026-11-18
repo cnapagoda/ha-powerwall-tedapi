@@ -15,6 +15,10 @@
   - **Predbat:** a ready-made `apps.yaml` ([`examples/predbat_apps.yaml`](examples/predbat_apps.yaml)); see [Predbat](docs/predbat.md).
   - **EMHASS and HAEO:** the **Follow an energy plan** blueprint charges, exports or holds the battery when the plan trades with the grid, and leaves the Powerwall to its normal operation otherwise; see [EMHASS](docs/emhass.md) and [HAEO](docs/haeo.md).
   - **evcc:** scripts for its Home Assistant battery meter ([`examples/evcc_scripts.yaml`](examples/evcc_scripts.yaml)); see [evcc](docs/evcc.md).
+- **Network status, site limits, calibration delay and registered keys** (new, local):
+  - Sensors: **Network connection** (Wi-Fi, Ethernet or cellular), **Wi-Fi signal**, **Cellular signal**, internet connectivity per interface, **Site import limit**, **Site export limit**, **Registered keys** and **Calibration delays left** (where the firmware reports it).
+  - Actions (signed connection): `set_site_limit`, `delay_battery_calibration` and `remove_registered_key`; see [Actions](docs/actions.md).
+  - These use the new [aiopytedapi](https://pypi.org/project/aiopytedapi/) library alongside pypowerwall. A Powerwall 2 reports its network status over the Gateway Wi-Fi only (set a Wi-Fi fallback address).
 - **A dispatch re-sent at the same power** (as Predbat does every 5 minutes) no longer logs the warranty and grid charging warnings again; they're logged when the dispatch starts or its power changes.
 - **An internet outage no longer asks you to sign in to Tesla again:** a cloud backup failure only counts toward that repair while Tesla's server answers. The repair also says it clears itself after the next successful check.
 - Docs: four Powerwall 3s on a Backup Gateway 2 (firmware 26.34.3) are reported working over the signed connection, and battery dispatches kept to the site import and export limits set by the installer (thanks [@acbcarneiro](https://github.com/acbcarneiro)).

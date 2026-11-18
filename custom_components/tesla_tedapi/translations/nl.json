@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Netdiensten actief"
+      },
+      "wifi_internet": {
+        "name": "Internet via wifi"
+      },
+      "ethernet_internet": {
+        "name": "Internet via ethernet"
+      },
+      "cellular_internet": {
+        "name": "Internet via mobiel"
       }
     },
     "button": {
@@ -680,6 +689,33 @@
       },
       "tariff_sell_price": {
         "name": "Tarief terugleverprijs"
+      },
+      "network_connection": {
+        "name": "Netwerkverbinding",
+        "state": {
+          "wifi": "Wifi",
+          "ethernet": "Ethernet",
+          "cellular": "Mobiel",
+          "none": "Geen"
+        }
+      },
+      "wifi_signal": {
+        "name": "Wifi-signaal"
+      },
+      "cellular_signal": {
+        "name": "Mobiel signaal"
+      },
+      "site_import_limit": {
+        "name": "Afnamelimiet van de locatie"
+      },
+      "site_export_limit": {
+        "name": "Teruglevering-limiet van de locatie"
+      },
+      "registered_keys": {
+        "name": "Geregistreerde sleutels"
+      },
+      "calibration_delays_left": {
+        "name": "Resterende kalibratie-uitstellen"
       }
     },
     "switch": {
@@ -814,6 +850,21 @@
     },
     "pypowerwall_too_old": {
       "message": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie heeft de oudere versie geladen: verwijder die en herstart Home Assistant."
+    },
+    "command_needs_v1r": {
+      "message": "Hiervoor is de ondertekende (v1r) verbinding met de gateway nodig."
+    },
+    "command_not_confirmed": {
+      "message": "Zet confirm op true om deze opdracht te versturen."
+    },
+    "gateway_command_failed": {
+      "message": "De gateway heeft de opdracht niet uitgevoerd: {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "De firmware van de Powerwall ondersteunt deze opdracht niet."
+    },
+    "key_not_removed": {
+      "message": "De sleutel is niet verwijderd: {error}"
     }
   },
   "services": {
@@ -1008,6 +1059,60 @@
         "source_discharged": {
           "name": "Bron ontladen",
           "description": "De energiesensor met de ontladen energie van de batterij, bijvoorbeeld *Battery discharged* van Tesla Fleet of Teslemetry."
+        }
+      }
+    },
+    "set_site_limit": {
+      "name": "Locatielimiet instellen",
+      "description": "Stelt de afname- of terugleveringslimiet van de locatie in of verwijdert die, via de ondertekende lokale verbinding. Een installateur heeft misschien een limiet ingesteld vanwege je aansluitovereenkomst (bijvoorbeeld een terugleverlimiet van de netbeheerder): verhoog of verwijder die alleen als dat mag.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "direction": {
+          "name": "Richting",
+          "description": "Afname (van het net) of teruglevering (aan het net)."
+        },
+        "limit_kw": {
+          "name": "Limiet",
+          "description": "De limiet in kW. Laat leeg om de limiet te verwijderen."
+        },
+        "confirm": {
+          "name": "Bevestigen",
+          "description": "Moet aan staan: dit wijzigt de Powerwall."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Batterijkalibratie uitstellen",
+      "description": "Stelt de volgende batterijkalibratie van de Powerwall uit, via de ondertekende lokale verbinding. De gateway staat maar een beperkt aantal uitstellen toe, en elke aanroep kan er een gebruiken. Sommige firmware ondersteunt dit niet.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "delay_hours": {
+          "name": "Uitstel",
+          "description": "Hoe lang de kalibratie wordt uitgesteld, in uren."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Geregistreerde sleutel verwijderen",
+      "description": "Verwijdert een bij de gateway geregistreerde sleutel, via de ondertekende lokale verbinding. Die app of dat apparaat kan de gateway dan geen opdrachten meer sturen. De sleutel van deze integratie kan niet worden verwijderd.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "fingerprint": {
+          "name": "Vingerafdruk",
+          "description": "Het begin van de vingerafdruk van de sleutel (minstens 8 tekens), zoals de sensor Geregistreerde sleutels die toont."
+        },
+        "confirm": {
+          "name": "Bevestigen",
+          "description": "Moet aan staan: dit wijzigt de Powerwall."
         }
       }
     }
@@ -1262,6 +1367,12 @@
         "min_soc": "batterij op het herverbindingsniveau",
         "requested": "herverbinding gevraagd",
         "reconnected_elsewhere": "elders opnieuw verbonden"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Afname",
+        "export": "Teruglevering"
       }
     }
   }

@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Netzdienste aktiv"
+      },
+      "wifi_internet": {
+        "name": "WLAN-Internet"
+      },
+      "ethernet_internet": {
+        "name": "Ethernet-Internet"
+      },
+      "cellular_internet": {
+        "name": "Mobilfunk-Internet"
       }
     },
     "button": {
@@ -680,6 +689,33 @@
       },
       "tariff_sell_price": {
         "name": "Tarif Einspeisepreis"
+      },
+      "network_connection": {
+        "name": "Netzwerkverbindung",
+        "state": {
+          "wifi": "WLAN",
+          "ethernet": "Ethernet",
+          "cellular": "Mobilfunk",
+          "none": "Keine"
+        }
+      },
+      "wifi_signal": {
+        "name": "WLAN-Signal"
+      },
+      "cellular_signal": {
+        "name": "Mobilfunksignal"
+      },
+      "site_import_limit": {
+        "name": "Bezugslimit des Standorts"
+      },
+      "site_export_limit": {
+        "name": "Einspeiselimit des Standorts"
+      },
+      "registered_keys": {
+        "name": "Registrierte Schlüssel"
+      },
+      "calibration_delays_left": {
+        "name": "Verbleibende Kalibrierungsaufschübe"
       }
     },
     "switch": {
@@ -814,6 +850,21 @@
     },
     "pypowerwall_too_old": {
       "message": "In Home Assistant ist pypowerwall {found} geladen, diese Integration braucht aber {required} oder neuer. Eine andere benutzerdefinierte Integration hat die ältere Version geladen: Entferne sie und starte Home Assistant neu."
+    },
+    "command_needs_v1r": {
+      "message": "Dafür ist die signierte (v1r) Verbindung zum Gateway nötig."
+    },
+    "command_not_confirmed": {
+      "message": "Setze confirm auf true, um diesen Befehl zu senden."
+    },
+    "gateway_command_failed": {
+      "message": "Das Gateway hat den Befehl nicht ausgeführt: {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "Die Firmware der Powerwall unterstützt diesen Befehl nicht."
+    },
+    "key_not_removed": {
+      "message": "Der Schlüssel wurde nicht entfernt: {error}"
     }
   },
   "services": {
@@ -1008,6 +1059,60 @@
         "source_discharged": {
           "name": "Quelle entladen",
           "description": "Der Energiesensor mit der entladenen Energie der Batterie, zum Beispiel *Battery discharged* von Tesla Fleet oder Teslemetry."
+        }
+      }
+    },
+    "set_site_limit": {
+      "name": "Standortlimit festlegen",
+      "description": "Legt das Bezugs- oder Einspeiselimit des Standorts über die signierte lokale Verbindung fest oder entfernt es. Ein Installateur hat ein Limit eventuell wegen deines Netzanschlussvertrags gesetzt (zum Beispiel ein Einspeiselimit des Netzbetreibers): Erhöhe oder entferne es nur, wenn du das darfst.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "direction": {
+          "name": "Richtung",
+          "description": "Bezug (aus dem Netz) oder Einspeisung (ins Netz)."
+        },
+        "limit_kw": {
+          "name": "Limit",
+          "description": "Das Limit in kW. Weglassen, um das Limit zu entfernen."
+        },
+        "confirm": {
+          "name": "Bestätigen",
+          "description": "Muss an sein: Damit wird die Powerwall geändert."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Batteriekalibrierung aufschieben",
+      "description": "Schiebt die nächste Batteriekalibrierung der Powerwall über die signierte lokale Verbindung auf. Das Gateway erlaubt nur eine begrenzte Zahl von Aufschüben, und jeder Aufruf kann einen verbrauchen. Manche Firmware unterstützt das nicht.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "delay_hours": {
+          "name": "Aufschub",
+          "description": "Wie lange die Kalibrierung aufgeschoben wird, in Stunden."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Registrierten Schlüssel entfernen",
+      "description": "Entfernt einen beim Gateway registrierten Schlüssel über die signierte lokale Verbindung. Diese App oder dieses Gerät kann dem Gateway dann keine Befehle mehr senden. Der Schlüssel dieser Integration kann nicht entfernt werden.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "fingerprint": {
+          "name": "Fingerabdruck",
+          "description": "Der Anfang des Fingerabdrucks des Schlüssels (mindestens 8 Zeichen), wie ihn der Sensor Registrierte Schlüssel anzeigt."
+        },
+        "confirm": {
+          "name": "Bestätigen",
+          "description": "Muss an sein: Damit wird die Powerwall geändert."
         }
       }
     }
@@ -1262,6 +1367,12 @@
         "min_soc": "Batterie auf Wiederverbindungsgrenze",
         "requested": "Wiederverbindung angefordert",
         "reconnected_elsewhere": "anderswo wieder verbunden"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Bezug",
+        "export": "Einspeisung"
       }
     }
   }

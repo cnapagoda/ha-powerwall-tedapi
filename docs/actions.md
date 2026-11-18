@@ -15,6 +15,9 @@ The integration adds these actions (formerly called *services*). Try them in **D
 | [`reconnect_grid`](#tesla_tedapireconnect_grid) | Signed | Reconnect the house to the grid. |
 | [`get_tariff` / `set_tariff`](#tesla_tedapiget_tariff--tesla_tedapiset_tariff) | Cloud backup + Tesla tariff option | Read or write Tesla's tariff. |
 | [`import_battery_history`](#tesla_tedapiimport_battery_history) | Two energy sensors with history | One-off copy of earlier battery history. |
+| [`set_site_limit`](#tesla_tedapiset_site_limit) | Signed | Set or remove the site's grid import or export limit. |
+| [`delay_battery_calibration`](#tesla_tedapidelay_battery_calibration) | Signed | Postpone the next battery calibration. |
+| [`remove_registered_key`](#tesla_tedapiremove_registered_key) | Signed | Remove a key registered with the gateway. |
 
 > [!WARNING]
 > Battery dispatch and going off-grid change how your house is powered and may affect your warranty. Read [Safety](safety.md) first.
@@ -221,3 +224,50 @@ The response's `summary` lists, per sensor, the `source`, the number of `hours`,
 It's refused when there is nothing to import, or when the history was already imported.
 
 See [Migrating](migration.md) for keeping the rest of your Energy dashboard history.
+
+---
+
+## `tesla_tedapi.set_site_limit`
+
+> [!CAUTION]
+> An installer may have set an import or export limit to meet your grid connection agreement (for example a network export limit). Don't raise or remove one unless you're allowed to. You change it at your own risk; check your agreement and your warranty first.
+
+Sets the limit the Powerwall keeps the whole site to (grid import or export, in kW), or removes it. Battery dispatches keep to these limits too. The **Site import limit** and **Site export limit** [sensors](entities.md#network-site-limits-and-keys) show the result. Returns the new limits.
+
+| Field | Required | |
+|---|---|---|
+| `direction` | Yes | `import` or `export`. |
+| `limit_kw` | No | The limit in kW. Leave it out to remove the limit. |
+| `confirm` | Yes | Must be `true`. |
+| `config_entry_id` | No | Only with several Powerwalls. |
+
+```yaml
+action: tesla_tedapi.set_site_limit
+data:
+  direction: export
+  limit_kw: 5
+  confirm: true
+```
+
+---
+
+## `tesla_tedapi.delay_battery_calibration`
+
+Postpones the Powerwall's next battery calibration by `delay_hours` (1–168). The gateway allows a limited number of delays (see **Calibration delays left**), and each call may use one. A calibration can't be started this way, only postponed. Some firmware doesn't support it (a Powerwall 3 on 26.34.3 doesn't): the action then says so. Returns the calibration delay status where the firmware reports it.
+
+| Field | Required | |
+|---|---|---|
+| `delay_hours` | Yes | 1–168. |
+| `config_entry_id` | No | Only with several Powerwalls. |
+
+---
+
+## `tesla_tedapi.remove_registered_key`
+
+Removes a key registered with the gateway: that app, vehicle or client can no longer send it commands, and adding it back needs a new registration through Tesla. Use it for keys that never verified (state `pending_verification_timeout` in the **Registered keys** sensor). The key this integration uses is refused.
+
+| Field | Required | |
+|---|---|---|
+| `fingerprint` | Yes | The start of the key's fingerprint (8 or more characters), from the `keys` attribute of **Registered keys**. It must match exactly one key. |
+| `confirm` | Yes | Must be `true`. |
+| `config_entry_id` | No | Only with several Powerwalls. |

@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Grid services active"
+      },
+      "wifi_internet": {
+        "name": "Wi-Fi internet"
+      },
+      "ethernet_internet": {
+        "name": "Ethernet internet"
+      },
+      "cellular_internet": {
+        "name": "Cellular internet"
       }
     },
     "button": {
@@ -680,6 +689,33 @@
       },
       "tariff_sell_price": {
         "name": "Tariff sell price"
+      },
+      "network_connection": {
+        "name": "Network connection",
+        "state": {
+          "wifi": "Wi-Fi",
+          "ethernet": "Ethernet",
+          "cellular": "Cellular",
+          "none": "None"
+        }
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi signal"
+      },
+      "cellular_signal": {
+        "name": "Cellular signal"
+      },
+      "site_import_limit": {
+        "name": "Site import limit"
+      },
+      "site_export_limit": {
+        "name": "Site export limit"
+      },
+      "registered_keys": {
+        "name": "Registered keys"
+      },
+      "calibration_delays_left": {
+        "name": "Calibration delays left"
       }
     },
     "switch": {
@@ -814,6 +850,21 @@
     },
     "pypowerwall_too_old": {
       "message": "pypowerwall {found} is loaded in Home Assistant, but this integration needs {required} or newer. Another custom integration loaded the older one: remove it and restart Home Assistant."
+    },
+    "command_needs_v1r": {
+      "message": "This needs the signed (v1r) connection to the gateway."
+    },
+    "command_not_confirmed": {
+      "message": "Set confirm to true to send this command."
+    },
+    "gateway_command_failed": {
+      "message": "The gateway didn't carry out the command: {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "The Powerwall's firmware doesn't support this command."
+    },
+    "key_not_removed": {
+      "message": "The key wasn't removed: {error}"
     }
   },
   "services": {
@@ -1008,6 +1059,60 @@
         "source_discharged": {
           "name": "Discharged source",
           "description": "The energy sensor with the battery's discharged energy to copy, for example Tesla Fleet's or Teslemetry's *Battery discharged*."
+        }
+      }
+    },
+    "set_site_limit": {
+      "name": "Set site limit",
+      "description": "Set or remove the site's grid import or export limit, over the signed local connection. An installer may have set a limit to meet your grid connection agreement (for example a network export limit): don't raise or remove one unless you're allowed to.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "direction": {
+          "name": "Direction",
+          "description": "Import (from the grid) or export (to the grid)."
+        },
+        "limit_kw": {
+          "name": "Limit",
+          "description": "The limit in kW. Leave it out to remove the limit."
+        },
+        "confirm": {
+          "name": "Confirm",
+          "description": "Must be on: this changes the Powerwall."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Delay battery calibration",
+      "description": "Postpone the Powerwall's next battery calibration, over the signed local connection. The gateway allows a limited number of delays, and each one may use one. Some firmware doesn't support it.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "delay_hours": {
+          "name": "Delay",
+          "description": "How long to postpone the calibration, in hours."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Remove registered key",
+      "description": "Remove a key registered with the gateway, over the signed local connection. That app or device can then no longer send it commands. The key this integration uses can't be removed.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "fingerprint": {
+          "name": "Fingerprint",
+          "description": "The start of the key's fingerprint (at least 8 characters), as the Registered keys sensor lists it."
+        },
+        "confirm": {
+          "name": "Confirm",
+          "description": "Must be on: this changes the Powerwall."
         }
       }
     }
@@ -1262,6 +1367,12 @@
         "min_soc": "battery at the reconnect level",
         "requested": "reconnect requested",
         "reconnected_elsewhere": "reconnected elsewhere"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Import",
+        "export": "Export"
       }
     }
   }

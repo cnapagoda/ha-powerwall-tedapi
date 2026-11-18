@@ -19,9 +19,13 @@ from . import client
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
     ATTR_CONFIRM,
+    ATTR_DELAY_HOURS,
+    ATTR_DIRECTION,
     ATTR_DRY_RUN,
     ATTR_DURATION_MINUTES,
     ATTR_DURATION_SECONDS,
+    ATTR_FINGERPRINT,
+    ATTR_LIMIT_KW,
     ATTR_MAX_MINUTES,
     ATTR_MAX_SOC,
     ATTR_MIN_SOC,
@@ -32,6 +36,7 @@ from .const import (
     ATTR_SOURCE_DISCHARGED,
     ATTR_TARGET_SOC,
     ATTR_TOU_SETTINGS,
+    CALIBRATION_DELAY_MAX_HOURS,
     CONF_FLEET_SERVER,
     CONF_MACS,
     CONF_OAUTH_TOKEN,
@@ -43,13 +48,16 @@ from .const import (
     OFF_GRID_MAX_MINUTES,
     SERVICE_CANCEL_MAX_BACKUP,
     SERVICE_CHARGE_TO,
+    SERVICE_DELAY_CALIBRATION,
     SERVICE_DISCHARGE_TO,
     SERVICE_DISPATCH,
     SERVICE_GET_TARIFF,
     SERVICE_GO_OFF_GRID,
     SERVICE_IMPORT_BATTERY_HISTORY,
     SERVICE_RECONNECT_GRID,
+    SERVICE_REMOVE_KEY,
     SERVICE_RESUME,
+    SERVICE_SET_SITE_LIMIT,
     SERVICE_SET_TARIFF,
     SERVICE_START_MAX_BACKUP,
     TARIFF_READ_BACK_MODES,
@@ -110,6 +118,31 @@ GO_OFF_GRID_SCHEMA = vol.Schema({
         vol.Coerce(int), vol.Range(min=1, max=OFF_GRID_MAX_MINUTES)),
     vol.Optional(ATTR_MIN_SOC): _SOC,
 })
+SET_SITE_LIMIT_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    vol.Required(ATTR_DIRECTION): vol.In(("import", "export")),
+    # Left out: no limit.
+    vol.Optional(ATTR_LIMIT_KW): vol.All(vol.Coerce(float), vol.Range(min=0, max=10000)),
+    vol.Required(ATTR_CONFIRM): cv.boolean,
+})
+DELAY_CALIBRATION_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    vol.Required(ATTR_DELAY_HOURS): vol.All(vol.Coerce(int), vol.Range(min=1, max=CALIBRATION_DELAY_MAX_HOURS)),
+})
+REMOVE_KEY_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    # The start of the key's fingerprint, as the Registered keys sensor lists it.
+    vol.Required(ATTR_FINGERPRINT): vol.All(cv.string, vol.Strip, vol.Lower, vol.Match(r"^[0-9a-f]{8,64}$")),
+    vol.Required(ATTR_CONFIRM): cv.boolean,
+})
+
+
+def _confirmed(call: ServiceCall) -> None:
+    if not call.data[ATTR_CONFIRM]:
+        raise ServiceValidationError(
+            "Set confirm to true to send this command",
+            translation_domain=DOMAIN, translation_key="command_not_confirmed",
+        )
 
 
 def _entry(hass: HomeAssistant, call: ServiceCall) -> TedapiConfigEntry:
@@ -236,6 +269,26 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             call.data[ATTR_TOU_SETTINGS], call.data[ATTR_DRY_RUN], call.data[ATTR_READ_BACK],
             call.data[ATTR_ONLY_IF_CHANGED])
 
+    async def set_site_limit(call: ServiceCall) -> ServiceResponse:
+        _confirmed(call)
+        coordinator = _entry(hass, call).runtime_data.coordinator
+        return await coordinator.async_set_site_limit(call.data[ATTR_DIRECTION], call.data.get(ATTR_LIMIT_KW))
+
+    async def delay_battery_calibration(call: ServiceCall) -> ServiceResponse:
+        coordinator = _entry(hass, call).runtime_data.coordinator
+        return {"status": await coordinator.async_delay_calibration(call.data[ATTR_DELAY_HOURS])}
+
+    async def remove_registered_key(call: ServiceCall) -> ServiceResponse:
+        _confirmed(call)
+        coordinator = _entry(hass, call).runtime_data.coordinator
+        return {"registered_keys": await coordinator.async_remove_key(call.data[ATTR_FINGERPRINT])}
+
+    hass.services.async_register(DOMAIN, SERVICE_SET_SITE_LIMIT, set_site_limit, schema=SET_SITE_LIMIT_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_DELAY_CALIBRATION, delay_battery_calibration,
+                                 schema=DELAY_CALIBRATION_SCHEMA, supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_REMOVE_KEY, remove_registered_key, schema=REMOVE_KEY_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_GO_OFF_GRID, go_off_grid, schema=GO_OFF_GRID_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_RECONNECT_GRID, reconnect_grid, schema=RESUME_SCHEMA,
