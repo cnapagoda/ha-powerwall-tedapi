@@ -11,7 +11,7 @@ This integration controls real electrical equipment through interfaces Tesla doe
 
 Applies to `dispatch_battery_power`, `charge_to` and `discharge_to`.
 
-- **A dispatch ignores your grid export setting, and the Powerwall ignores the backup reserve during one.** On a Powerwall 3, a discharge exported to the grid with export set to *never*. The integration stops a discharge at the backup reserve unless you pass `min_soc` (option **Discharges stop at the backup reserve**), and refuses calls above **Largest dispatch power**.
+- **A dispatch ignores your grid export setting, and the Powerwall ignores the backup reserve during one.** On a Powerwall 3, a discharge exported to the grid with export set to *never*. The site import and export limits your installer set still apply (reported on Powerwall 3, firmware 26.34.3). The integration stops a discharge at the backup reserve unless you pass `min_soc` (option **Discharges stop at the backup reserve**), and refuses calls above **Largest dispatch power**.
 - **Dispatching may affect your warranty.** Tesla's warranty may cover unlimited cycles only for self-consumption, time-based control and backup, and limit other use to a total energy throughput (37.8 MWh is quoted for some units). Dispatching may count as other use. Check your own warranty.
 - **A charge uses the grid only while Grid charging is on.** Turn it on before a dispatch that should charge from the grid; it may cost money on your tariff.
 - **If Home Assistant stops, the dispatch stops.** When it stops or restarts normally, the battery is handed back straight away. If it crashes or loses power, the Powerwall returns to normal within 5 minutes: commands are sent in steps of at most 5 minutes.
@@ -30,7 +30,7 @@ Good practice:
 - **Gateway and backup switch:** their current ratings.
 - **Grid connection:** your supply rating and any export limit from your network operator (for example 5 kW per phase), including how it splits across phases.
 
-The Powerwall refuses what it can't deliver, but it doesn't know your wiring or your network operator's rules. A dispatch ignores the grid export setting, and it isn't known whether a site export limit set by your installer still applies during one, so watch your grid export the first time.
+The Powerwall refuses what it can't deliver, but it doesn't know your wiring or your network operator's rules. A dispatch ignores the grid export setting, but the site import and export limits your installer set still apply: on four Powerwall 3s with a Backup Gateway 2 (firmware 26.34.3), grid export stayed at a 2 kW export limit and grid import at a 5 kW import limit during dispatches asking for 7 kW (thanks [@acbcarneiro](https://github.com/acbcarneiro)). Watch your grid power the first time anyway: that is one site, and not every installation has a limit set.
 
 ## Going off-grid
 
