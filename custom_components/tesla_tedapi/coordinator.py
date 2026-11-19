@@ -188,6 +188,24 @@ def _extract_pinv_value(vitals: dict, *keys: str, din: str | None = None) -> flo
     return None
 
 
+def _extract_follower_inverter_temps(vitals: dict, din: str | None = None) -> dict[str, dict[str, Any]]:
+    """Ambient and heatsink temperature of each further Powerwall 3 inverter
+    (TEPINV blocks), numbered like their fans: {"2": {"ambient", "heatsink"}}.
+    The leader's are inverter_ambient_temp and inverter_heatsink_temp."""
+
+    def num(v):
+        return round(float(v), 2) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
+    names = [k for k in sorted(vitals or {}) if k.split("--")[0] == "TEPINV" and isinstance(vitals[k], dict)]
+    temps: dict[str, dict[str, Any]] = {}
+    for index, name in enumerate(_leader_first(names, din), start=1):
+        values = {"ambient": num(vitals[name].get("PCH_AmbientTemp")),
+                  "heatsink": num(vitals[name].get("PCH_heatsinkTemp"))}
+        if index > 1 and any(v is not None for v in values.values()):
+            temps[str(index)] = values
+    return temps
+
+
 def _is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
@@ -1067,6 +1085,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "packs": name_packs(_extract_packs(vitals), self._pack_names, self.din, _pack_count(config)),
             "inverter_ambient_temp": _extract_pinv_value(vitals, "PCH_AmbientTemp", din=self.din),
             "inverter_heatsink_temp": _extract_pinv_value(vitals, "PCH_heatsinkTemp", din=self.din),
+            "inverter_temps": _extract_follower_inverter_temps(vitals, self.din),
             "alerts": alerts,
             "backup_hours": round(backup_hours, 2) if num(backup_hours) else None,
             "gateway_started": gateway_started,

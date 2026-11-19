@@ -495,6 +495,12 @@
       "inverter_heatsink_temperature": {
         "name": "Temperatura del dissipatore dell'inverter"
       },
+      "inverter_n_ambient_temperature": {
+        "name": "Temperatura ambiente dell'inverter {inverter}"
+      },
+      "inverter_n_heatsink_temperature": {
+        "name": "Temperatura del dissipatore dell'inverter {inverter}"
+      },
       "alerts": {
         "name": "Avvisi"
       },

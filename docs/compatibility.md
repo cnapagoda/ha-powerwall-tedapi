@@ -28,7 +28,7 @@ This integration uses interfaces Tesla doesn't document, so what works depends o
 | Solar input *A–F* sensors | ✅ built-in inverter | ❓ a Powerwall+ solar inverter may report them; reports welcome |
 | Fan speeds | ✅ inverter fans A/B, with duty | 🟡 Powerwall+ only: one fan per solar inverter, with target speed. ❌ Powerwall 2 without the solar inverter: none |
 | Per-pack lifetime discharge and cycles | ✅ | ❓ only if the gateway reports the counters |
-| Inverter temperatures | ✅ (heatsink doesn't change on some firmware) | ❌ not reported (no sensors); each battery's temperature comes from its thermal controller |
+| Inverter temperatures | ✅ each Powerwall 3's inverter (heatsink doesn't change on some firmware) | ❌ not reported (no sensors); each battery's temperature comes from its thermal controller |
 | Energy flows, round-trip efficiency, capacity trend | ✅ | ✅ |
 | Per-phase voltage and meter sensors | ✅ where the gateway reports them | ✅ where the gateway reports them |
 | Wall Connector and tariff sensors (cloud backup) | ✅ | ✅ |

@@ -775,6 +775,28 @@ def _fan_sensor(name: str) -> TedapiSensorEntityDescription:
     )
 
 
+def _inverter_temp(d: dict[str, Any], inverter: str) -> dict[str, Any]:
+    return (d.get("inverter_temps") or {}).get(inverter) or {}
+
+
+def _inverter_temp_sensors(inverter: str) -> list[TedapiSensorEntityDescription]:
+    """Ambient and heatsink temperature of a further Powerwall 3 inverter
+    ("2", "3"), numbered like its fans. The leader's are INVERTER_TEMPERATURES."""
+    return [
+        TedapiSensorEntityDescription(
+            key=f"inverter_{inverter}_{kind}_temperature",
+            translation_key=f"inverter_n_{kind}_temperature",
+            translation_placeholders={"inverter": inverter},
+            native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+            device_class=SensorDeviceClass.TEMPERATURE,
+            state_class=SensorStateClass.MEASUREMENT,
+            entity_category=EntityCategory.DIAGNOSTIC,
+            value_fn=lambda d, i=inverter, k=kind: _inverter_temp(d, i).get(k),
+        )
+        for kind in ("ambient", "heatsink")
+    ]
+
+
 def _pack(d: dict[str, Any], serial: str) -> dict[str, Any]:
     return (d.get("packs") or {}).get(serial) or {}
 
@@ -917,6 +939,10 @@ async def async_setup_entry(
             if description.key not in known and reported(data):
                 known.add(description.key)
                 new.append(description)
+        for inverter in data.get("inverter_temps") or {}:
+            if f"inverter_{inverter}_temps" not in known:
+                known.add(f"inverter_{inverter}_temps")
+                new += _inverter_temp_sensors(inverter)
         for name in data.get("fans") or {}:
             if f"fan_{name}" not in known:
                 known.add(f"fan_{name}")
