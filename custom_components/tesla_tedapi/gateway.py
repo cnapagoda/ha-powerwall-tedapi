@@ -6,10 +6,13 @@ blocking; run in the executor."""
 from __future__ import annotations
 
 import json
+import logging
 import ssl
 from typing import Any
 import urllib.error
 import urllib.request
+
+_LOGGER = logging.getLogger(__name__)
 
 TIMEOUT = 10
 
@@ -64,16 +67,29 @@ def _request(host: str, path: str, body: dict[str, Any] | None = None,
         raise GatewayUnreachable(str(err)) from err
 
 
-def full_password_login(host: str) -> bool:
-    """Whether this gateway is a Backup Gateway 1 (its DIN in /api/status,
-    which needs no login), so the customer login takes the full password.
-    False when it can't be told (Powerwall 3 gateways don't serve it)."""
+def _status_din(host: str) -> str | None:
+    """The DIN in /api/status, which needs no login; None when the gateway
+    doesn't serve it (Powerwall 3 gateways) or can't be reached."""
     try:
         status, body = _request(host, "/api/status")
         din = json.loads(body).get("din") if status == 200 else None
     except (GatewayUnreachable, ValueError, AttributeError):
-        return False
-    return isinstance(din, str) and din.startswith(GATEWAY_1_PART)
+        return None
+    return din if isinstance(din, str) else None
+
+
+def part_number(host: str) -> str | None:
+    """The gateway's part number (the start of its DIN), for logs. Never the
+    rest of the DIN: that's the serial."""
+    din = _status_din(host)
+    return din.split("-")[0] if din and "-" in din else None
+
+
+def full_password_login(host: str) -> bool:
+    """Whether this gateway is a Backup Gateway 1, so the customer login takes
+    the full password. False when it can't be told."""
+    din = _status_din(host)
+    return din is not None and din.startswith(GATEWAY_1_PART)
 
 
 def login(host: str, gw_pwd: str, full: bool = False) -> str:
@@ -84,8 +100,11 @@ def login(host: str, gw_pwd: str, full: bool = False) -> str:
         "email": "customer@customer.domain",
         "clientInfo": {"timezone": "UTC"},
     })
+    sent = "the full password" if full else "the last 5 characters"
     if status in (401, 403):
-        raise GatewayPasswordRejected
+        _LOGGER.debug("Customer login at %s refused (HTTP %s, %s of a %d-character password)",
+                      host, status, sent, len(gw_pwd.strip()))
+        raise GatewayPasswordRejected(f"HTTP {status}, {sent}")
     if status == 429:
         raise GatewayLocked("too many login attempts")
     if status != 200:
@@ -111,3 +130,28 @@ def din(host: str, gw_pwd: str, full: bool = False) -> str | None:
     status, body = _request(host, "/tedapi/din", token=token)
     text = body.decode(errors="replace").strip()
     return text if status == 200 and "--" in text else None
+
+
+def _with_full_password(attempt: Any, host: str, gw_pwd: str, full: bool) -> tuple[Any, bool]:
+    """Run attempt with the last 5 characters; if the gateway refuses them and
+    the full password was given, once more with the full password. Some
+    gateways other than a Backup Gateway 1 take only the full password.
+    Returns the result and whether the full password was the one that worked."""
+    try:
+        return attempt(host, gw_pwd, full), full
+    except GatewayPasswordRejected:
+        if full or len(gw_pwd.strip()) <= 5:
+            raise
+    _LOGGER.debug("The gateway at %s refused the last 5 characters of the password; trying the full password",
+                  host)
+    return attempt(host, gw_pwd, True), True
+
+
+def login_any(host: str, gw_pwd: str, full: bool = False) -> tuple[str, bool]:
+    """login(), falling back to the full password: (token, full password used)."""
+    return _with_full_password(login, host, gw_pwd, full)
+
+
+def din_any(host: str, gw_pwd: str, full: bool = False) -> tuple[str | None, bool]:
+    """din(), falling back to the full password: (DIN, full password used)."""
+    return _with_full_password(din, host, gw_pwd, full)

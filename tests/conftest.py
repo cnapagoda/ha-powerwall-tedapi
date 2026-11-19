@@ -381,6 +381,10 @@ def fake_gateway():
     FakeGateway.answers = False
     # A Backup Gateway 1: its customer login takes the full password.
     FakeGateway.gateway1 = False
+    # Whether the gateway takes only the full password, without being a
+    # Backup Gateway 1 (some Powerwall 2 gateways).
+    FakeGateway.full_only = False
+    FakeGateway.part_number = None
     FakeGateway.locked = False
     FakeGateway.logins: list[str] = []
 
@@ -391,7 +395,8 @@ def fake_gateway():
             raise gateway.GatewayLocked("too many login attempts")
         sent = gateway.customer_password(gw_pwd, full)
         FakeGateway.logins.append(sent)
-        if sent != gateway.customer_password(FakeGateway.password, FakeGateway.gateway1):
+        if sent != gateway.customer_password(FakeGateway.password,
+                                             FakeGateway.gateway1 or FakeGateway.full_only):
             raise gateway.GatewayPasswordRejected
         return "token"
 
@@ -399,9 +404,17 @@ def fake_gateway():
         login(host, gw_pwd, full)
         return FakeGateway.din
 
+    def login_any(host, gw_pwd, full=False):
+        return gateway._with_full_password(login, host, gw_pwd, full)
+
+    def din_any(host, gw_pwd, full=False):
+        return gateway._with_full_password(din, host, gw_pwd, full)
+
     with patch.object(gateway, "login", login), patch.object(gateway, "din", din), \
+            patch.object(gateway, "login_any", login_any), patch.object(gateway, "din_any", din_any), \
             patch.object(gateway, "answers", lambda host: FakeGateway.answers), \
-            patch.object(gateway, "full_password_login", lambda host: FakeGateway.gateway1):
+            patch.object(gateway, "full_password_login", lambda host: FakeGateway.gateway1), \
+            patch.object(gateway, "part_number", lambda host: FakeGateway.part_number):
         yield FakeGateway
 
 
