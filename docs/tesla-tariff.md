@@ -23,6 +23,7 @@ The tariff is read every 6 hours, and after each write.
 | State | The tariff's name. |
 | `utility` | The utility Tesla has for it. |
 | `season`, `period` | The season and time-of-use period in effect now. |
+| `sell_season`, `sell_period` | The same for the sell tariff, from its own seasons where it has them. |
 | `buy_rate`, `sell_rate` | The rates in effect now. |
 | `backend` | Which cloud backup answered. |
 | `tariff` | Tesla's raw tariff (not stored in the recorder). |
@@ -36,7 +37,7 @@ The option also adds:
 | Entity | What it shows |
 |---|---|
 | **Tariff buy price** | The buy price now, per kWh in Home Assistant's currency. Attributes `season`, `period`. Ready to use as the Energy dashboard's price entity. |
-| **Tariff sell price** | The feed-in price now, for sites with a feed-in tariff. |
+| **Tariff sell price** | The feed-in price now, for sites with a feed-in tariff. Attributes `season`, `period`, from the sell tariff's own seasons where it has them (they can differ from the buy side's). |
 | **Buy tariff** calendar | The tariff as events, one per stretch with the same period and price, for the calendar view and calendar triggers. |
 | **Sell tariff** calendar | The same for feed-in. |
 
@@ -99,7 +100,7 @@ How the fields work:
 | `seasons.<name>` | `fromMonth`/`toMonth` (1–12) and `fromDay`/`toDay`. A season can wrap over the new year. |
 | `tou_periods.<period>.periods` | A list of time ranges. Days of the week count from **Monday = 0** to Sunday = 6. A range whose end is before its start runs over midnight; a range with the same start and end covers the whole day. |
 | `energy_charges.<season>.rates.<period>` | The buy price. `ALL` is a fallback for any season or period. |
-| `sell_tariff.energy_charges` | The sell prices, in the same layout. Without it, no feed-in rates are sent. |
+| `sell_tariff.energy_charges` | The sell prices, in the same layout. Without it, no feed-in rates are sent. The sell tariff can have its own `seasons`; without them, the buy side's seasons apply. |
 
 ### Always start with a dry run
 

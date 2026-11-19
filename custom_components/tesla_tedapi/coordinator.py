@@ -2078,7 +2078,11 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _sync_issues(self, problems: list[str]) -> None:
         """One repair issue per lasting warning or fault; removed when it clears."""
-        wanted = {f"alert_{self.din}_{name}": name for name in problems}
+        # Named after the config entry, not the gateway DIN: Home Assistant
+        # lists repair ids in every diagnostics download, unredacted, and the
+        # DIN contains the gateway's serial number (#29).
+        entry_id = self.config_entry.entry_id
+        wanted = {f"alert_{entry_id}_{name}": name for name in problems}
         for issue_id, name in wanted.items():
             if issue_id in self._issues:
                 continue

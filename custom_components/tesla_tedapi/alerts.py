@@ -52,6 +52,10 @@ CATALOGUE: dict[str, tuple[str, str]] = {
         SEVERITY_NOTICE,
         "An EV charger (Wall Connector) is not charging although it is allowed to",
     ),
+    # Notice, not warning (2.8.1, #29): a healthy Powerwall 3 and its Expansion
+    # Pack reported it for days after a firmware update, so it isn't a problem
+    # on its own.
+    "BMS_a023_SW_Assertion": (SEVERITY_NOTICE, "Battery management software reported an internal error"),
     # Warnings: expected during restarts or switch toggles, a problem if they last
     "IslandChecksFailed": (
         SEVERITY_WARNING,
@@ -68,7 +72,6 @@ CATALOGUE: dict[str, tuple[str, str]] = {
     "PWS_a021_HvpMia": (SEVERITY_WARNING, "Battery high-voltage controller is not responding"),
     "BAGGR_a005_NumBatteriesExpectedMismatch": (SEVERITY_WARNING, "Fewer battery packs found than expected"),
     "BMS_a037_SW_NVRAM_Config_Error": (SEVERITY_WARNING, "Battery management settings could not be read"),
-    "BMS_a023_SW_Assertion": (SEVERITY_WARNING, "Battery management software reported an internal error"),
     # Faults
     "BatteryFault": (SEVERITY_FAULT, "Battery fault"),
     "SystemShutdown": (SEVERITY_FAULT, "System shut down"),

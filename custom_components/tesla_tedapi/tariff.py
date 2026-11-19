@@ -9,7 +9,10 @@ writes in another (time_of_use_settings with "tariff_content_v2"):
 - v2: energy_charges[season]["rates"][period] = rate, and
   seasons[season]["tou_periods"][period]["periods"] = [range, ...]
 
-Sell rates use the same layout under "sell_tariff".
+Sell rates use the same layout under "sell_tariff", which has its own
+seasons: they can differ from the buy side's (a flat feed-in price in one
+year-round season next to buy rates with a summer and a winter), so each side
+finds its season and period in its own seasons.
 
 Tesla leaves zero-valued fields out of what it returns (a range ending on
 Monday has no toDayOfWeek, a free period no rate), so a missing field is 0.
@@ -47,12 +50,9 @@ def _ranges(tou_period: Any) -> list[dict[str, Any]]:
     return [r for r in tou_period or [] if isinstance(r, dict)]
 
 
-def normalize(tariff: Any) -> dict[str, Any] | None:
-    """One shape for either format, or None when it isn't a tariff."""
-    if not isinstance(tariff, dict) or not tariff:
-        return None
+def _seasons(raw: Any) -> dict[str, dict[str, Any]]:
     seasons: dict[str, dict[str, Any]] = {}
-    for name, season in (tariff.get("seasons") or {}).items():
+    for name, season in (raw or {}).items() if isinstance(raw, dict) else ():
         if not isinstance(season, dict):
             continue
         seasons[name] = {
@@ -60,15 +60,40 @@ def normalize(tariff: Any) -> dict[str, Any] | None:
             "from_day": season.get("fromDay", 0), "to_day": season.get("toDay", 0),
             "periods": {p: _ranges(v) for p, v in (season.get("tou_periods") or {}).items()},
         }
+    return seasons
+
+
+def normalize(tariff: Any) -> dict[str, Any] | None:
+    """One shape for either format, or None when it isn't a tariff.
+    "sell_seasons" is empty when the sell tariff has no seasons of its own
+    (then the buy side's are used)."""
+    if not isinstance(tariff, dict) or not tariff:
+        return None
     sell = tariff.get("sell_tariff") if isinstance(tariff.get("sell_tariff"), dict) else {}
     return {
         "name": tariff.get("name") or tariff.get("code"),
         "utility": tariff.get("utility"),
         "code": tariff.get("code"),
-        "seasons": seasons,
+        "seasons": _seasons(tariff.get("seasons")),
+        "sell_seasons": _seasons(sell.get("seasons")),
         "buy": _rates(tariff.get("energy_charges")),
         "sell": _rates(sell.get("energy_charges")),
     }
+
+
+def _side(norm: dict[str, Any], side: str) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, float]]]:
+    """(seasons, rates) for "buy" or "sell"."""
+    if side == "sell":
+        return norm.get("sell_seasons") or norm["seasons"], norm["sell"]
+    return norm["seasons"], norm["buy"]
+
+
+def _season_at(seasons: dict[str, dict[str, Any]], table: dict[str, dict[str, float]],
+               now: datetime) -> str | None:
+    season = next((n for n, s in seasons.items() if _in_season(s, now)), None)
+    if season is None and len(table) == 1:
+        season = next(iter(table))
+    return season
 
 
 def _in_season(season: dict[str, Any], now: datetime) -> bool:
@@ -106,29 +131,22 @@ def _minutes(rng: dict[str, Any]) -> list[bool]:
 
 
 def current(norm: dict[str, Any] | None, now: datetime) -> dict[str, Any]:
-    """Season, period and buy/sell rates for `now` (local time)."""
-    result: dict[str, Any] = {"season": None, "period": None, "buy_rate": None, "sell_rate": None}
+    """Season, period and buy/sell rates for `now` (local time). "season" and
+    "period" are the buy side's; "sell_season" and "sell_period" the sell
+    side's, from the sell tariff's own seasons where it has them."""
+    result: dict[str, Any] = {"season": None, "period": None, "buy_rate": None,
+                              "sell_season": None, "sell_period": None, "sell_rate": None}
     if not norm:
         return result
-    season_name = next((n for n, s in norm["seasons"].items() if _in_season(s, now)), None)
-    if season_name is None and len(norm["buy"]) == 1:
-        season_name = next(iter(norm["buy"]))
-    period = None
-    if season_name in norm["seasons"]:
-        period = next((p for p, ranges in norm["seasons"][season_name]["periods"].items()
-                       if any(_in_range(r, now) for r in ranges)), None)
-    result["season"], result["period"] = season_name, period
-
-    def rate(table: dict[str, dict[str, float]]) -> float | None:
-        for season in (season_name, "ALL"):
-            rates = table.get(season) or {}
-            for key in (period, "ALL"):
-                if key in rates:
-                    return rates[key]
-        # A known period without a rate is free (Tesla leaves zeros out).
-        return 0.0 if period is not None and table else None
-
-    result["buy_rate"], result["sell_rate"] = rate(norm["buy"]), rate(norm["sell"])
+    for side, prefix in (("buy", ""), ("sell", "sell_")):
+        seasons, table = _side(norm, side)
+        season = _season_at(seasons, table, now)
+        period = None
+        if season in seasons:
+            period = next((p for p, ranges in seasons[season]["periods"].items()
+                           if any(_in_range(r, now) for r in ranges)), None)
+        result[f"{prefix}season"], result[f"{prefix}period"] = season, period
+        result[f"{side}_rate"] = _period_rate(table, season, period)
     return result
 
 
@@ -316,33 +334,41 @@ def _period_rate(table: dict[str, dict[str, float]], season: str | None, period:
     return 0.0 if period is not None and table else None
 
 
-def _day_segments(norm: dict[str, Any], day: date) -> list[tuple[int, int, str | None, str | None]]:
-    """(from minute, to minute, season, period) for each stretch of `day`
-    with one period, the same way current() picks it minute by minute."""
-    probe = datetime(day.year, day.month, day.day)
-    season = next((n for n, s in norm["seasons"].items() if _in_season(s, probe)), None)
-    if season is None and len(norm["buy"]) == 1:
-        season = next(iter(norm["buy"]))
+def _day_owners(norm: dict[str, Any], side: str, day: date) -> tuple[str | None, list[str | None]]:
+    """The season of `day` and the period of each of its minutes on one side,
+    the same way current() picks them."""
+    seasons, table = _side(norm, side)
+    season = _season_at(seasons, table, datetime(day.year, day.month, day.day))
     owners: list[str | None] = [None] * 1440
-    if season in norm["seasons"]:
-        for period, ranges in norm["seasons"][season]["periods"].items():
+    if season in seasons:
+        for period, ranges in seasons[season]["periods"].items():
             for rng in ranges:
                 if day.weekday() not in _days(rng):
                     continue
                 for minute, covered in enumerate(_minutes(rng)):
                     if covered and owners[minute] is None:
                         owners[minute] = period
+    return season, owners
+
+
+def _day_segments(norm: dict[str, Any], day: date) -> list[tuple[int, int, str | None, str | None,
+                                                               str | None, str | None]]:
+    """(from minute, to minute, season, period, sell season, sell period) for
+    each stretch of `day` in which neither side changes period."""
+    season, owners = _day_owners(norm, "buy", day)
+    sell_season, sell_owners = _day_owners(norm, "sell", day)
     segments, start = [], 0
     for minute in range(1, 1441):
-        if minute == 1440 or owners[minute] != owners[start]:
-            segments.append((start, minute, season, owners[start]))
+        if minute == 1440 or (owners[minute], sell_owners[minute]) != (owners[start], sell_owners[start]):
+            segments.append((start, minute, season, owners[start], sell_season, sell_owners[start]))
             start = minute
     return segments
 
 
 def schedule(norm: dict[str, Any] | None, start: datetime, end: datetime) -> list[dict[str, Any]]:
     """The tariff between `start` and `end` (local time, with their time
-    zone): [{"start", "end", "season", "period", "buy_rate", "sell_rate"}],
+    zone): [{"start", "end", "season", "period", "buy_rate", "sell_season",
+    "sell_period", "sell_rate"}],
     oldest first. Stretches that follow each other with the same period and
     rates are one entry, also over midnight. At most MAX_SCHEDULE_DAYS."""
     if not norm or end <= start:
@@ -353,18 +379,21 @@ def schedule(norm: dict[str, Any] | None, start: datetime, end: datetime) -> lis
     last = min(end.date(), day + timedelta(days=MAX_SCHEDULE_DAYS))
     while day <= last:
         midnight = datetime(day.year, day.month, day.day, tzinfo=tz)
-        for first, after, season, period in _day_segments(norm, day):
+        for first, after, season, period, sell_season, sell_period in _day_segments(norm, day):
             item = {
                 "start": midnight + timedelta(minutes=first),
                 "end": midnight + timedelta(minutes=after),
                 "season": season,
                 "period": period,
                 "buy_rate": _period_rate(norm["buy"], season, period),
-                "sell_rate": _period_rate(norm["sell"], season, period),
+                "sell_season": sell_season,
+                "sell_period": sell_period,
+                "sell_rate": _period_rate(norm["sell"], sell_season, sell_period),
             }
             previous = out[-1] if out else None
             if previous and previous["end"] == item["start"] and all(
-                    previous[key] == item[key] for key in ("season", "period", "buy_rate", "sell_rate")):
+                    previous[key] == item[key] for key in ("season", "period", "buy_rate", "sell_season",
+                                                           "sell_period", "sell_rate")):
                 previous["end"] = item["end"]
             else:
                 out.append(item)

@@ -194,7 +194,7 @@ async def test_alerts_in_german(hass: HomeAssistant, fake_powerwall) -> None:
     await _refresh(hass, entry)
     problems = hass.states.get(_eid(hass, "binary_sensor", "alert_problem")).attributes["problems"]
     assert problems[0]["description"] == "Batteriestörung"
-    issue = ir.async_get(hass).async_get_issue(DOMAIN, f"alert_{DIN}_BatteryFault")
+    issue = ir.async_get(hass).async_get_issue(DOMAIN, f"alert_{entry.entry_id}_BatteryFault")
     assert issue.translation_placeholders["description"] == "Batteriestörung"
 
 

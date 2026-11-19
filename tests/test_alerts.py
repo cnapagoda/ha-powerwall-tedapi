@@ -79,7 +79,7 @@ async def test_brief_backup_check_failed_raises_no_repair(hass: HomeAssistant, f
     fake_powerwall.alert_list = ["SystemConnectedToGrid", "IslandChecksFailed"]
     await coordinator.async_refresh()
     raised = coordinator.alerts.since["IslandChecksFailed"]
-    issue_id = f"alert_{DIN}_IslandChecksFailed"
+    issue_id = f"alert_{entry.entry_id}_IslandChecksFailed"
     registry = ir.async_get(hass)
     with patch("custom_components.tesla_tedapi.coordinator.dt_util.utcnow",
                return_value=raised + timedelta(minutes=12)):
@@ -128,9 +128,12 @@ async def test_alert_entities_and_repairs(hass: HomeAssistant, fake_powerwall, f
     await coordinator.async_refresh()
     await hass.async_block_till_done()
     assert hass.states.get(problem).state == "on"
-    issue_id = f"alert_{DIN}_BatteryFault"
+    issue_id = f"alert_{entry.entry_id}_BatteryFault"
     issue = ir.async_get(hass).async_get_issue(DOMAIN, issue_id)
     assert issue is not None and issue.severity == ir.IssueSeverity.ERROR
+    # 2.8.1 (#29): no repair is named after the gateway DIN (it holds the
+    # serial number, and repair names appear unredacted in diagnostics).
+    assert not [i for (domain, i) in ir.async_get(hass).issues if domain == DOMAIN and DIN in i]
 
     # Cleared: problem off, repair gone, "cleared" event
     fake_powerwall.alert_list = ["SystemConnectedToGrid"]
@@ -162,7 +165,7 @@ def test_grid_codes_commissioning_and_solar_meter_alerts() -> None:
 
 def test_battery_software_optimiser_and_ev_charger_alerts() -> None:
     assert describe("BMS_a023_SW_Assertion") == (
-        "warning", "Battery management software reported an internal error")
+        SEVERITY_NOTICE, "Battery management software reported an internal error")
     assert describe("OpticasterRetry")[0] == SEVERITY_NOTICE
     assert describe("EVSEMIA")[0] == SEVERITY_NOTICE
     assert describe("UserEVSEMIA")[0] == SEVERITY_NOTICE
@@ -172,17 +175,19 @@ def test_battery_software_optimiser_and_ev_charger_alerts() -> None:
     assert level(["EVSEMIA", "UserEVSEMIA", "EVSENotChargingWhenAllowed"]) == "notice"
     assert summary(["UserEVSEMIA", "EVSENotChargingWhenAllowed"]) == (
         "EV charger not charging · EV charger not responding (user alert)")
-    assert level(["EVSEMIA", "BMS_a023_SW_Assertion"]) == "warning"
+    assert level(["EVSEMIA", "BMS_a023_SW_Assertion"]) == "notice"
     assert summary(["EVSEMIA", "OpticasterRetry", "BMS_a023_SW_Assertion"]) == (
         "Battery software error · EV charger not responding · Optimiser retrying")
-    # A lasting battery software error is a Problem; the two notices never are.
+    # 2.8.1 (#29): a battery software error that lasts for days (seen on a
+    # healthy Powerwall 3 after a firmware update) is not a Problem, nor are the
+    # other notices.
     t = AlertTracker()
     now = dt_util.utcnow()
     t.update([], {}, now)
     t.update(["BMS_a023_SW_Assertion", "OpticasterRetry", "EVSEMIA", "UserEVSEMIA",
               "EVSENotChargingWhenAllowed"], {}, now)
     assert t.problems(now + timedelta(minutes=9)) == []
-    assert t.problems(now + timedelta(days=7)) == ["BMS_a023_SW_Assertion"]
+    assert t.problems(now + timedelta(days=7)) == []
 
 
 async def test_battery_calibrating_sensor(hass: HomeAssistant, fake_powerwall) -> None:

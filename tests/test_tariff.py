@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from datetime import datetime
 import time
+from zoneinfo import ZoneInfo
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -44,7 +45,8 @@ V2 = {
 def test_current_period_and_rates(hour, period, buy, sell) -> None:
     now = datetime(2026, 11, 2, hour, 30)
     got = tariff.current(tariff.normalize(TARIFF), now)
-    assert got == {"season": "Year", "period": period, "buy_rate": buy, "sell_rate": sell}
+    assert got == {"season": "Year", "period": period, "buy_rate": buy,
+                   "sell_season": "Year", "sell_period": period, "sell_rate": sell}
 
 
 def test_v2_normalises_like_v1() -> None:
@@ -138,7 +140,8 @@ def test_missing_fields_are_zero() -> None:
     norm = tariff.normalize(read)
     # 3 Nov 2026 is a Tuesday: off-peak, free (no rate given).
     assert tariff.current(norm, datetime(2026, 11, 3, 17)) == {
-        "season": "Year", "period": "OFF_PEAK", "buy_rate": 0.0, "sell_rate": 0.0}
+        "season": "Year", "period": "OFF_PEAK", "buy_rate": 0.0,
+        "sell_season": "Year", "sell_period": "OFF_PEAK", "sell_rate": 0.0}
     # 2 Nov 2026 is a Monday: peak.
     assert tariff.current(norm, datetime(2026, 11, 2, 17))["buy_rate"] == 0.5
     warnings = tariff.check_write({"tariff_content_v2": read})
@@ -560,3 +563,53 @@ async def test_pending_check_read_failure_retries_later(hass: HomeAssistant, fak
     await coordinator.async_refresh()
     assert coordinator._tariff_check_at - time.monotonic() == pytest.approx(TARIFF_PENDING_SECONDS, abs=5)
     assert coordinator._tariff_pending
+
+
+# 2.8.1 (#31): a US tariff written in the Tesla app, in Tesla's read format.
+# Buy rates have a summer and a winter season; the flat 6-cent feed-in price
+# sits in the sell tariff's own year-round season. Both sides carry Tesla's
+# "ALL": {"ALL": 0} placeholder, which the sell side fell back to (reading $0)
+# while it looked for the buy side's "Winter".
+_HOURS = {"fromDayOfWeek": 0, "toDayOfWeek": 6}
+US_TARIFF = {
+    "name": "Custom", "currency": "USD",
+    "energy_charges": {"ALL": {"ALL": 0}, "Summer": {"ON_PEAK": 0.45, "OFF_PEAK": 0.30},
+                       "Winter": {"ON_PEAK": 0.40, "OFF_PEAK": 0.28}},
+    "seasons": {
+        "Summer": {"fromMonth": 6, "toMonth": 9, "fromDay": 1, "toDay": 30, "tou_periods": {
+            "ON_PEAK": [{**_HOURS, "fromHour": 16, "toHour": 21}],
+            "OFF_PEAK": [{**_HOURS, "fromHour": 21, "toHour": 16}]}},
+        "Winter": {"fromMonth": 10, "toMonth": 5, "fromDay": 1, "toDay": 31, "tou_periods": {
+            "ON_PEAK": [{**_HOURS, "fromHour": 16, "toHour": 21}],
+            "OFF_PEAK": [{**_HOURS, "fromHour": 21, "toHour": 16}]}}},
+    "sell_tariff": {
+        "energy_charges": {"ALL": {"ALL": 0}, "Year": {"ALL_DAY": 0.06}},
+        "seasons": {"Year": {"fromMonth": 1, "toMonth": 12, "fromDay": 1, "toDay": 31, "tou_periods": {
+            "ALL_DAY": [{**_HOURS, "fromHour": 0, "toHour": 0}]}}}},
+}
+
+
+@pytest.mark.parametrize(("hour", "period", "buy"), [(18, "ON_PEAK", 0.40), (10, "OFF_PEAK", 0.28)])
+def test_sell_side_uses_its_own_seasons(hour, period, buy) -> None:
+    got = tariff.current(tariff.normalize(US_TARIFF), datetime(2026, 11, 19, hour))
+    assert got == {"season": "Winter", "period": period, "buy_rate": buy,
+                   "sell_season": "Year", "sell_period": "ALL_DAY", "sell_rate": 0.06}
+
+
+def test_sell_schedule_uses_its_own_seasons() -> None:
+    tz = ZoneInfo("America/Los_Angeles")
+    items = tariff.schedule(tariff.normalize(US_TARIFF), datetime(2026, 11, 19, tzinfo=tz),
+                            datetime(2026, 11, 20, tzinfo=tz))
+    assert {item["sell_rate"] for item in items} == {0.06}
+    assert {item["sell_period"] for item in items} == {"ALL_DAY"}
+    assert [(item["start"].hour, item["period"], item["buy_rate"]) for item in items] == [
+        (0, "OFF_PEAK", 0.28), (16, "ON_PEAK", 0.40), (21, "OFF_PEAK", 0.28)]
+
+
+def test_sell_tariff_without_seasons_follows_the_buy_side() -> None:
+    plain = copy.deepcopy(US_TARIFF)
+    plain["sell_tariff"] = {"energy_charges": {"Winter": {"ON_PEAK": 0.10, "OFF_PEAK": 0.05}}}
+    norm = tariff.normalize(plain)
+    assert norm["sell_seasons"] == {}
+    got = tariff.current(norm, datetime(2026, 11, 19, 18))
+    assert (got["sell_season"], got["sell_period"], got["sell_rate"]) == ("Winter", "ON_PEAK", 0.10)
