@@ -4,6 +4,7 @@
 
 - **`BMS_a023_SW_Assertion` is a notice again, not a warning:** a healthy Powerwall 3 and its Expansion Pack reported it for days after a firmware update, so it turned **Problem** on and raised a repair that never cleared. It's still listed under the alerts (thanks [@shaggyblue](https://github.com/shaggyblue), #29).
 - **Diagnostics downloads no longer show the gateway's serial number:** the repair raised for a lasting alert was named after the gateway's DIN, and Home Assistant lists repair names in every diagnostics download. It's now named after the integration entry (#29).
+- **Tariff sell price and Sell tariff no longer read 0 when the feed-in tariff has its own seasons:** Tesla keeps the sell tariff's seasons separately, and a flat feed-in price in one year-round season next to buy rates with a summer and a winter read $0.00. Each side now uses its own seasons and periods, also for the sensor's `season` and `period` attributes and the calendar (thanks [@xybu](https://github.com/xybu), #31).
 - Docs: a Powerwall 3 with an Expansion Pack and a Backup Gateway 3 (firmware 26.34.3, US) is reported working over the signed connection: key registration, readings, solar inputs, and changing the operation mode, reserve and export locally. Its site export limit and network status read correctly (thanks [@shaggyblue](https://github.com/shaggyblue), #30).
 
 ## 2.8.0

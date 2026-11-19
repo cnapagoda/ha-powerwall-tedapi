@@ -1131,7 +1131,8 @@ class TariffPriceSensor(TedapiEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         now = self._now
-        return {"season": now["season"], "period": now["period"]}
+        prefix = "sell_" if self._side == "sell" else ""
+        return {"season": now[f"{prefix}season"], "period": now[f"{prefix}period"]}
 
 
 class TeslaTariffSensor(TedapiEntity, SensorEntity):

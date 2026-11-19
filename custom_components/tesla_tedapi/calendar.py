@@ -58,8 +58,9 @@ class TariffCalendar(TedapiEntity, CalendarEntity):
             rate = item[f"{self._side}_rate"]
             if rate is None:
                 continue
-            period = item["period"] or item["season"] or "-"
-            summary = f"{period}: {rate:g} {currency}/kWh"
+            prefix = "sell_" if self._side == "sell" else ""
+            season, period = item[f"{prefix}season"], item[f"{prefix}period"]
+            summary = f"{period or season or '-'}: {rate:g} {currency}/kWh"
             previous = events[-1] if events else None
             if previous is not None and previous.end == item["start"] and previous.summary == summary:
                 # Same period and rate on this side (only the other side's rate changed).
@@ -67,7 +68,7 @@ class TariffCalendar(TedapiEntity, CalendarEntity):
                                            description=previous.description)
                 continue
             events.append(CalendarEvent(start=item["start"], end=item["end"], summary=summary,
-                                        description=f"{item['season']} / {item['period']}"))
+                                        description=f"{season} / {period}"))
         return events
 
     @property

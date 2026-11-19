@@ -14,6 +14,7 @@ from custom_components.tesla_tedapi import calendar as tariff_calendar, tariff
 
 from .conftest import TARIFF
 from .test_storm import ACCOUNT, V1R, _eid, _refresh, _setup
+from .test_tariff import US_TARIFF
 
 ADELAIDE = ZoneInfo("Australia/Adelaide")
 
@@ -31,6 +32,7 @@ SEASONAL = {"name": "Seasonal", "seasons": {
     (TARIFF, datetime(2026, 11, 1, 7, 13, tzinfo=ADELAIDE)),
     (SEASONAL, datetime(2026, 3, 28, 0, 0, tzinfo=ADELAIDE)),   # into winter
     (SEASONAL, datetime(2026, 10, 30, 9, 0, tzinfo=ADELAIDE)),  # into summer, over a weekend
+    (US_TARIFF, datetime(2026, 9, 28, 12, 0, tzinfo=ADELAIDE)),  # sell side's own seasons (#31)
 ])
 def test_schedule_agrees_with_current(raw, start) -> None:
     """Every stretch of the schedule has the period and rates current() gives
@@ -39,7 +41,7 @@ def test_schedule_agrees_with_current(raw, start) -> None:
     end = start + timedelta(days=5, hours=3)
     schedule = tariff.schedule(norm, start, end)
     assert schedule[0]["start"] == start and schedule[-1]["end"] == end
-    keys = ("season", "period", "buy_rate", "sell_rate")
+    keys = ("season", "period", "buy_rate", "sell_season", "sell_period", "sell_rate")
     for first, second in zip(schedule, schedule[1:], strict=False):
         assert first["end"] == second["start"]
         assert [first[key] for key in keys] != [second[key] for key in keys]
@@ -101,6 +103,22 @@ async def test_price_sensors_and_calendars(hass: HomeAssistant, fake_powerwall, 
 
     sell_calendar = _eid(hass, "calendar", "sell_tariff")
     assert hass.states.get(sell_calendar).attributes["message"].startswith("ON_PEAK: 0.02 ")
+
+
+async def test_sell_price_from_the_sell_tariffs_own_seasons(hass: HomeAssistant, fake_powerwall, freezer) -> None:
+    """2.8.1 (#31): a flat feed-in price in the sell tariff's own year-round
+    season read $0.00 while the buy side was in its winter season."""
+    await hass.config.async_set_time_zone("America/Los_Angeles")
+    freezer.move_to("2026-11-19T18:00:00+00:00")  # 10:00 local, winter off-peak
+    fake_powerwall.tariff = copy.deepcopy(US_TARIFF)
+    await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    sell = hass.states.get(_eid(hass, "sensor", "tariff_sell_price"))
+    assert sell.state == "0.06"
+    assert (sell.attributes["season"], sell.attributes["period"]) == ("Year", "ALL_DAY")
+    buy = hass.states.get(_eid(hass, "sensor", "tariff_buy_price"))
+    assert buy.state == "0.28" and buy.attributes["period"] == "OFF_PEAK"
+    assert hass.states.get(_eid(hass, "calendar", "sell_tariff")).attributes["message"].startswith(
+        "ALL_DAY: 0.06 ")
 
 
 async def test_calendar_without_a_feed_in_tariff(hass: HomeAssistant, fake_powerwall, freezer) -> None:
