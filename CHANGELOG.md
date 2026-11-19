@@ -4,6 +4,7 @@
 
 - **`BMS_a023_SW_Assertion` is a notice again, not a warning:** a healthy Powerwall 3 and its Expansion Pack reported it for days after a firmware update, so it turned **Problem** on and raised a repair that never cleared. It's still listed under the alerts (thanks [@shaggyblue](https://github.com/shaggyblue), #29).
 - **Diagnostics downloads no longer show the gateway's serial number:** the repair raised for a lasting alert was named after the gateway's DIN, and Home Assistant lists repair names in every diagnostics download. It's now named after the integration entry (#29).
+- Docs: a Powerwall 3 with an Expansion Pack and a Backup Gateway 3 (firmware 26.34.3, US) is reported working over the signed connection: key registration, readings, solar inputs, and changing the operation mode, reserve and export locally. Its site export limit and network status read correctly (thanks [@shaggyblue](https://github.com/shaggyblue), #30).
 
 ## 2.8.0
 

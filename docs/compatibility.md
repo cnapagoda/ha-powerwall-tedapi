@@ -75,6 +75,7 @@ Tesla updates firmware on its own schedule. When the gateway reports a new versi
 |---|---|---|---|
 | 26.34.3 | Powerwall 3 | ✅ Works (signed connection, settings, battery dispatch) | Maintainer |
 | 26.34.3 | 4 × Powerwall 3, Backup Gateway 2 (26.34.1) | ✅ Works (signed connection, readings, battery dispatch within the site limits) | [@acbcarneiro](https://github.com/acbcarneiro) |
+| 26.34.3 | Powerwall 3 + Expansion Pack, Backup Gateway 3, DC-coupled solar (US) | ✅ Works (key registration, readings, solar inputs, operation mode, reserve and export; site export limit and network status read) | [@shaggyblue](https://github.com/shaggyblue) |
 | 26.34.2 | Powerwall 3 | ✅ Works (signed connection) | Maintainer |
 | 26.34.1 | Powerwall 3 | ✅ Works (key registration verified through the Tesla cloud) | Maintainer |
 | 26.x | Powerwall 3 | ✅ Works; drops export and grid charging settings about hourly ([restored](dropped-settings.md)) | Maintainer |
