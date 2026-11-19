@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.8.1
+
+- **`BMS_a023_SW_Assertion` is a notice again, not a warning:** a healthy Powerwall 3 and its Expansion Pack reported it for days after a firmware update, so it turned **Problem** on and raised a repair that never cleared. It's still listed under the alerts (thanks [@shaggyblue](https://github.com/shaggyblue), #29).
+- **Diagnostics downloads no longer show the gateway's serial number:** the repair raised for a lasting alert was named after the gateway's DIN, and Home Assistant lists repair names in every diagnostics download. It's now named after the integration entry (#29).
+
 ## 2.8.0
 
 - **Six new blueprints** (Automations → Blueprints, one-click import):
