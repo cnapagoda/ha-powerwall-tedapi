@@ -14,7 +14,8 @@
 ┌────────────────┐   signed TEDAPI (v1r)    ┌──────────────┐
 │ Home Assistant │ ───────────────────────▶ │   Powerwall  │
 │  tesla_tedapi  │   readings + commands    │   gateway    │
-│  (pypowerwall) │ ─ ─ Wi-Fi fallback ─ ─ ▶ │ 192.168.91.1 │
+│  (pypowerwall, │ ─ ─ Wi-Fi fallback ─ ─ ▶ │ 192.168.91.1 │
+│   aiopytedapi) │                          │              │
 └───────┬────────┘                          └──────────────┘
         │  only when local can't answer,
         │  and for cloud-only features
@@ -29,6 +30,7 @@
 
 - **Readings** come from the gateway on your network. With the **Cloud readings while the gateway is unreachable** option, power and battery level come from the cloud backup while the gateway can't be reached.
 - **Wall Connectors** come from the cloud backup.
+- **Two libraries talk to the gateway:** [pypowerwall](https://github.com/jasonacox/pypowerwall) for readings, settings and commands, and [aiopytedapi](https://pypi.org/project/aiopytedapi/) for the network status, site limits, calibration delay and registered keys. aiopytedapi uses Home Assistant's own connection pool, so it doesn't block Home Assistant.
 - **Settings** are written to the gateway over the signed connection. The [cloud backup](cloud-backup.md) is only used when that fails, or on a Wi-Fi password connection.
 - **Dispatch, max backup and go off-grid** are local only.
 - **Storm Watch, grid services, the off-grid vehicle charging reserve and the tariff** exist only in Tesla's cloud, so they always use the cloud backup.
@@ -41,6 +43,7 @@ The integration polls the gateway every 30 seconds by default (**Polling interva
 | What | How often |
 |---|---|
 | Backup events (signed connection) | Every 5 minutes, and straight after a max backup is started or cancelled |
+| Network status, registered keys and calibration delay status | Every 5 minutes, and straight after an action changes them |
 | Settings from the cloud backup, when the gateway can't give them | Cached for 5 minutes |
 | Storm Watch, grid services, off-grid vehicle charging reserve | Every 30 minutes |
 | Power, battery level and grid status, with **Fast polling interval for power** set | Every 5–60 s (your setting); everything else stays at the polling interval |
@@ -88,4 +91,4 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 
 ## Quality
 
-[`quality_scale.yaml`](../custom_components/tesla_tedapi/quality_scale.yaml) tracks Home Assistant's [integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) rule by rule. It is a self-assessment (the scale is only reviewed for core integrations): Bronze, Silver and Gold rules are done, except dependency transparency, which depends on how pypowerwall publishes its releases. Platinum needs an async library.
+[`quality_scale.yaml`](../custom_components/tesla_tedapi/quality_scale.yaml) tracks Home Assistant's [integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/) rule by rule. It is a self-assessment (the scale is only reviewed for core integrations): Bronze, Silver and Gold rules are done, except dependency transparency, which depends on how pypowerwall publishes its releases (aiopytedapi is published from public CI with provenance). Platinum needs the rest of the work moved from pypowerwall to an async library.

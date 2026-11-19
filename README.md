@@ -4,7 +4,7 @@
 [![Validate](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/validate.yml/badge.svg)](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/validate.yml)
 [![Tests](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/tests.yml/badge.svg)](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/tests.yml)
 
-Local monitoring and control of a Tesla Powerwall from Home Assistant, through the gateway's own interface (TEDAPI). Built on [pypowerwall](https://github.com/jasonacox/pypowerwall). Works with the **Powerwall 3**, and with Powerwall 2 / Powerwall+ where the firmware supports it.
+Local monitoring and control of a Tesla Powerwall from Home Assistant, through the gateway's own interface (TEDAPI). Built on [pypowerwall](https://github.com/jasonacox/pypowerwall) and [aiopytedapi](https://pypi.org/project/aiopytedapi/). Works with the **Powerwall 3**, and with Powerwall 2 / Powerwall+ where the firmware supports it.
 
 <img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-10-device.png" alt="Device page with controls and sensors" width="640">
 
@@ -90,6 +90,7 @@ Which sign-in to use: see [Setup](https://github.com/cnapagoda/ha-powerwall-teda
 ## Credits
 
 - [pypowerwall](https://github.com/jasonacox/pypowerwall) by Jason Cox and contributors: TEDAPI, v1r signing, dispatch and Tesla login.
+- [aiopytedapi](https://github.com/cnapagoda/aiopytedapi): async TEDAPI client for the network status, site limits, calibration delay and registered keys. Its wire schema comes from pypowerwall.
 - [Tesla-API](https://github.com/Matthew1471/Tesla-API) research by Matthew1471 into the gateway's battery dispatch fields.
 - [BJReplay](https://github.com/BJReplay) for testing on a Powerwall 2 with a Backup Gateway 1: setup, readings, settings, battery dispatch, max backup and going off-grid over the signed connection.
 

@@ -170,6 +170,35 @@ data:
   option: never
 ```
 
+Changing each setting from an automation or script (pick the steps you need):
+
+```yaml
+sequence:
+  - action: select.select_option            # Operation mode
+    target:
+      entity_id: select.powerwall_tedapi_operation_mode
+    data:
+      option: self_consumption               # or backup, autonomous
+  - action: number.set_value                 # Backup reserve, %
+    target:
+      entity_id: number.powerwall_tedapi_backup_reserve
+    data:
+      value: 30
+  - action: switch.turn_on                   # Grid charging (turn_off to stop)
+    target:
+      entity_id: switch.powerwall_tedapi_grid_charging
+  - action: switch.turn_off                  # Storm Watch (cloud backup)
+    target:
+      entity_id: switch.powerwall_tedapi_storm_watch
+  - action: number.set_value                 # Off-grid vehicle charging reserve, % (cloud backup)
+    target:
+      entity_id: number.powerwall_tedapi_off_grid_vehicle_charging_reserve
+    data:
+      value: 50
+```
+
+The experimental **On-grid solar curtailment** switch works the same way (`switch.turn_on` / `switch.turn_off`) once you enable the entity.
+
 **Grid export mode** and **Grid charging** also have `missing_on_powerwall`, `restored_count` and `last_restored`. See [Dropped settings](dropped-settings.md).
 
 ## Backup, dispatch and cloud states
@@ -193,6 +222,14 @@ Signed connection only 🔑. Each does the same as the matching [action](actions
 | **Stop battery dispatch** 🔑 | `button.powerwall_tedapi_stop_battery_dispatch` | [`resume_battery_operation`](actions.md#tesla_tedapiresume_battery_operation): ends a dispatch and hands the battery back. Also clears a dispatch left over from before a restart. |
 | **Cancel max backup** 🔑 | `button.powerwall_tedapi_cancel_max_backup` | [`cancel_max_backup`](actions.md#tesla_tedapicancel_max_backup): ends a max backup started here or in the Tesla app. Storm Watch events aren't affected. |
 | **Reconnect to the grid** 🔑 | `button.powerwall_tedapi_reconnect_to_the_grid` | [`reconnect_grid`](actions.md#tesla_tedapireconnect_grid): reconnects the house, also after *Go off-grid* in the Tesla app. |
+
+Pressing one from an automation or script:
+
+```yaml
+action: button.press
+target:
+  entity_id: button.powerwall_tedapi_stop_battery_dispatch
+```
 
 There's no button to go off-grid or to start a dispatch or a max backup, on purpose: those need a duration and limits, so use the [actions](actions.md).
 
@@ -250,10 +287,10 @@ Read from the gateway every 5 minutes (the site limits with each full read where
 | Entity | Entity ID | Notes |
 |---|---|---|
 | Network connection 🩺🔍 | `sensor.powerwall_tedapi_network_connection` | The interface the gateway uses for its internet connection: *Wi-Fi*, *Ethernet*, *Cellular* or *None*. Attribute `interfaces`: per interface `enabled`, `connected`, `internet`, `tesla` (reaches Tesla's servers), `signal` and `state`. A Powerwall 2 reports this over the Gateway Wi-Fi only: on the signed connection it needs a Wi-Fi fallback address. |
-| Wi-Fi signal / Cellular signal 🩺🔍 | `sensor.powerwall_tedapi_wifi_signal` | %, as the gateway reports it. |
-| Wi-Fi / Ethernet / Cellular internet 🩺🔍 | `binary_sensor.powerwall_tedapi_wifi_internet` | On while the gateway reaches the internet over that interface. |
+| Wi-Fi signal / Cellular signal 🩺🔍 | `sensor.powerwall_tedapi_wi_fi_signal` | %, as the gateway reports it. |
+| Wi-Fi / Ethernet / Cellular internet 🩺🔍 | `binary_sensor.powerwall_tedapi_wi_fi_internet` | On while the gateway reaches the internet over that interface. Attributes: `enabled`, `connected`, `tesla` (reaches Tesla's servers) and `state`. |
 | Site import limit / Site export limit 🩺🔍 | `sensor.powerwall_tedapi_site_export_limit` | kW. *Unknown* with `limited: false` when no limit is set. Change them with [`set_site_limit`](actions.md#tesla_tedapiset_site_limit). |
-| Registered keys 🩺🔍 | `sensor.powerwall_tedapi_registered_keys` | How many keys may send the gateway commands (the Tesla app, vehicles, this integration). Attributes: `states` (how many in each state), `this_key` (the state of this integration's key, signed connection), `keys` (each key's fingerprint start, type, state and when it was added). Remove one with [`remove_registered_key`](actions.md#tesla_tedapiremove_registered_key). |
+| Registered keys 🩺🔍 | `sensor.powerwall_tedapi_registered_keys` | How many keys are registered with the gateway (the Tesla app, vehicles, this integration), in any state: only verified keys can send commands. Attributes: `states` (how many in each state), `this_key` (the state of this integration's key, signed connection), `keys` (each key's fingerprint start, type, state and when it was added). Remove one with [`remove_registered_key`](actions.md#tesla_tedapiremove_registered_key). |
 | Calibration delays left 🔑🩺🔍 | `sensor.powerwall_tedapi_calibration_delays_left` | How many more times the battery calibration can be postponed. Attributes `max_calibration_delays`, `delay_remaining_seconds`. Only where the firmware reports it (a Powerwall 3 on 26.34.3 doesn't). |
 
 ## Setup and connection

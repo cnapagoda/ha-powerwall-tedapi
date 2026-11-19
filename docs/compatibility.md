@@ -32,6 +32,10 @@ This integration uses interfaces Tesla doesn't document, so what works depends o
 | Energy flows, round-trip efficiency, capacity trend | ✅ | ✅ |
 | Per-phase voltage and meter sensors | ✅ where the gateway reports them | ✅ where the gateway reports them |
 | Wall Connector and tariff sensors (cloud backup) | ✅ | ✅ |
+| Network status and internet sensors | ✅ signed and Wi-Fi password connections | 🟡 over the Powerwall's Wi-Fi only (set a Wi-Fi fallback address on a signed connection) |
+| Site import and export limits | ✅ read on 26.34.3; setting a limit not yet tested | ❓ reports welcome |
+| Registered keys (list, remove) | ✅ on 26.34.3 | ❓ reports welcome |
+| Battery calibration delay | ❌ not supported on 26.34.3 | ❓ reports welcome |
 | Dropped-settings restore | ✅ seen and restored on firmware 26.x | ❓ |
 | On-grid solar curtailment (experimental) | ❓ not tested on a real Powerwall | ❓ |
 
@@ -50,6 +54,7 @@ Nothing in the local connection depends on the region. The Tesla cloud parts (ke
 | Region | Notes |
 |---|---|
 | North America, Europe, Asia-Pacific | No region-specific limits known. Please report what works for you, so this table can say more. |
+| United Kingdom | Powerwall 3 on firmware 26.34.3, signed over the home network: key registration, readings and changing settings locally reported working (thanks [@meteosat007](https://github.com/meteosat007)). |
 | China | Tesla's Fleet API isn't available there, so Tesla Fleet / Teslemetry can't be used. The Owner API path is untested. |
 
 ## Home Assistant

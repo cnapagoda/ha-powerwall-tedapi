@@ -112,6 +112,7 @@ The integration's card can also show **Reauthenticate**: the gateway keeps refus
      logs:
        custom_components.tesla_tedapi: debug
        pypowerwall: debug
+       aiopytedapi: debug
    ```
 
 3. Reproduce the problem, then **Disable debug logging** (the log downloads automatically) or copy the relevant lines.
