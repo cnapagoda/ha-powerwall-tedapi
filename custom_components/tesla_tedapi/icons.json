@@ -33,6 +33,15 @@
       },
       "grid_services_active": {
         "default": "mdi:transmission-tower"
+      },
+      "wifi_internet": {
+        "default": "mdi:wifi"
+      },
+      "ethernet_internet": {
+        "default": "mdi:ethernet"
+      },
+      "cellular_internet": {
+        "default": "mdi:signal-cellular-3"
       }
     },
     "button": {
@@ -191,6 +200,33 @@
       },
       "pack_cycles": {
         "default": "mdi:battery-sync-outline"
+      },
+      "network_connection": {
+        "default": "mdi:router-network",
+        "state": {
+          "wifi": "mdi:wifi",
+          "ethernet": "mdi:ethernet",
+          "cellular": "mdi:signal-cellular-3",
+          "none": "mdi:network-off"
+        }
+      },
+      "wifi_signal": {
+        "default": "mdi:wifi-strength-3"
+      },
+      "cellular_signal": {
+        "default": "mdi:signal-cellular-2"
+      },
+      "site_import_limit": {
+        "default": "mdi:transmission-tower-import"
+      },
+      "site_export_limit": {
+        "default": "mdi:transmission-tower-export"
+      },
+      "registered_keys": {
+        "default": "mdi:key-chain"
+      },
+      "calibration_delays_left": {
+        "default": "mdi:battery-clock"
       }
     },
     "switch": {
@@ -249,6 +285,15 @@
     },
     "import_battery_history": {
       "service": "mdi:database-import"
+    },
+    "set_site_limit": {
+      "service": "mdi:transmission-tower-export"
+    },
+    "delay_battery_calibration": {
+      "service": "mdi:battery-clock"
+    },
+    "remove_registered_key": {
+      "service": "mdi:key-remove"
     }
   }
 }

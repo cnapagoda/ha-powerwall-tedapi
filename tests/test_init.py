@@ -226,6 +226,10 @@ async def test_diagnostics(hass: HomeAssistant) -> None:
     text = str(diag)
     assert "secret" not in text and "a@b.c" not in text and DIN not in text
     assert diag["data"]["battery_level"] == 50.0
+    # The gateway's address and the key path (issue #21's download showed both).
+    for key in ("host", "rsa_key_path"):
+        assert entry.data[key] and str(entry.data[key]) not in text, key
+        assert diag["entry"]["data"][key] == "**REDACTED**"
 
 
 def test_gateway_config_redaction() -> None:

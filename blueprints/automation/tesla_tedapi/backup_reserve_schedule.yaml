@@ -1,0 +1,91 @@
+blueprint:
+  name: Powerwall - backup reserve schedule
+  description: >-
+    Set the Powerwall's **Backup reserve** to one value during a time window
+    and to another outside it, for example to keep the battery for an
+    expensive evening or for the night. Changing the reserve doesn't count as
+    dispatching. A window may run past midnight.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/backup_reserve_schedule.yaml
+  input:
+    backup_reserve:
+      name: Powerwall Backup reserve
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: number
+    start:
+      name: Window starts
+      default: "14:00:00"
+      selector:
+        time:
+    end:
+      name: Window ends
+      default: "17:00:00"
+      selector:
+        time:
+    reserve_inside:
+      name: Reserve during the window
+      default: 80
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+    reserve_outside:
+      name: Reserve after the window
+      default: 20
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+    weekdays:
+      name: On these days
+      description: The days the window starts on. On other days nothing changes.
+      default: [mon, tue, wed, thu, fri, sat, sun]
+      selector:
+        select:
+          multiple: true
+          options:
+            - mon
+            - tue
+            - wed
+            - thu
+            - fri
+            - sat
+            - sun
+
+mode: queued
+max: 5
+
+variables:
+  start: !input start
+  end: !input end
+  weekdays: !input weekdays
+  reserve_inside: !input reserve_inside
+  reserve_outside: !input reserve_outside
+  # The day this window started on: yesterday for the end of a window that
+  # runs past midnight.
+  window_day: >-
+    {{ ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][
+         (now() - timedelta(days=1 if trigger.id == 'end' and end <= start else 0)).weekday()] }}
+
+triggers:
+  - trigger: time
+    id: start
+    at: !input start
+  - trigger: time
+    id: end
+    at: !input end
+
+conditions:
+  - condition: template
+    value_template: "{{ window_day in weekdays }}"
+
+actions:
+  - action: number.set_value
+    target:
+      entity_id: !input backup_reserve
+    data:
+      value: "{{ reserve_inside if trigger.id == 'start' else reserve_outside }}"

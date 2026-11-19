@@ -4,7 +4,8 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EntityCategory
+from homeassistant.core import HomeAssistant, callback
 
 from .alerts import describe
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
@@ -14,6 +15,8 @@ from .off_grid import OffGridSession
 
 # Coordinator-based: no limit on parallel updates.
 PARALLEL_UPDATES = 0
+# The gateway's network interfaces, as the network status names them.
+INTERNET_INTERFACES = ("wifi", "ethernet", "cellular")
 
 
 async def async_setup_entry(
@@ -30,6 +33,18 @@ async def async_setup_entry(
     if coordinator.dispatch_supported:
         entities.append(BackupEventSensor(coordinator))
     async_add_entities(entities)
+    known: set[str] = set()
+
+    @callback
+    def add_interfaces() -> None:
+        interfaces = ((coordinator.data or {}).get("network") or {}).get("interfaces") or {}
+        found = [name for name in INTERNET_INTERFACES if name in interfaces and name not in known]
+        known.update(found)
+        if found:
+            async_add_entities(InternetSensor(coordinator, name) for name in found)
+
+    add_interfaces()
+    entry.async_on_unload(coordinator.async_add_listener(add_interfaces))
     if coordinator.cloud_enabled:
         add_when_reported(entry, coordinator, async_add_entities, [
             ("storm_watch_capable", lambda: CloudStateSensor(coordinator, "storm_watch_active", "storm_active")),
@@ -182,3 +197,34 @@ class CloudStateSensor(TedapiCloudEntity, BinarySensorEntity):
     def is_on(self) -> bool | None:
         value = self.extras.get(self._value_key)
         return bool(value) if value is not None else None
+
+
+class InternetSensor(TedapiEntity, BinarySensorEntity):
+    """On while the gateway reaches the internet over one network interface
+    (the network status, read every few minutes)."""
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator: TedapiCoordinator, interface: str) -> None:
+        super().__init__(coordinator, f"{interface}_internet")
+        self._interface = interface
+        self._attr_translation_key = f"{interface}_internet"
+
+    @property
+    def _values(self) -> dict[str, Any]:
+        return (((self.data.get("network") or {}).get("interfaces") or {}).get(self._interface)) or {}
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.data.get("local_ok")) and bool(self._values)
+
+    @property
+    def is_on(self) -> bool:
+        return bool(self._values.get("internet"))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        values = self._values
+        return {"enabled": values.get("enabled"), "connected": values.get("connected"),
+                "tesla": values.get("tesla"), "state": values.get("state")}

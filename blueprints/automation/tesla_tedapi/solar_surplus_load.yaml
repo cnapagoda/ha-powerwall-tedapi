@@ -1,0 +1,123 @@
+blueprint:
+  name: Powerwall - run a load on surplus solar
+  description: >-
+    Turn something on (hot water, a pool pump, a heater, a charger) while the
+    battery is nearly full and the house still exports, and turn it off when
+    the house imports from the grid or the battery falls below a level. It
+    reads **Battery level** and **Grid power** and doesn't change the
+    Powerwall. It also turns the load off when you switched it on yourself
+    and a stop condition arrives.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/solar_surplus_load.yaml
+  input:
+    battery_level:
+      name: Powerwall Battery level
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: sensor
+    grid_power:
+      name: Powerwall Grid power
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: sensor
+    load:
+      name: Load
+      description: What to turn on and off.
+      selector:
+        target:
+    start_soc:
+      name: Start when the battery is above
+      default: 95
+      selector:
+        number:
+          min: 0
+          max: 99
+          unit_of_measurement: "%"
+    export_watts:
+      name: And the house exports more than
+      description: About what the load draws.
+      default: 1000
+      selector:
+        number:
+          min: 0
+          max: 30000
+          step: 100
+          unit_of_measurement: W
+          mode: box
+    minutes:
+      name: For at least
+      description: Also used for the import below. Ignores passing clouds.
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 60
+          unit_of_measurement: min
+    import_watts:
+      name: Stop when the house imports more than
+      default: 200
+      selector:
+        number:
+          min: 0
+          max: 30000
+          step: 100
+          unit_of_measurement: W
+          mode: box
+    stop_soc:
+      name: Or the battery falls below
+      default: 80
+      selector:
+        number:
+          min: 0
+          max: 99
+          unit_of_measurement: "%"
+
+mode: queued
+max: 5
+
+triggers:
+  - trigger: numeric_state
+    id: start
+    entity_id: !input grid_power
+    value_template: "{{ state.state | float(0) * -1 }}"
+    above: !input export_watts
+    for:
+      minutes: !input minutes
+  - trigger: numeric_state
+    id: start
+    entity_id: !input battery_level
+    above: !input start_soc
+  - trigger: numeric_state
+    id: stop
+    entity_id: !input grid_power
+    above: !input import_watts
+    for:
+      minutes: !input minutes
+  - trigger: numeric_state
+    id: stop
+    entity_id: !input battery_level
+    below: !input stop_soc
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: start
+          - condition: numeric_state
+            entity_id: !input battery_level
+            above: !input start_soc
+          - condition: numeric_state
+            entity_id: !input grid_power
+            value_template: "{{ state.state | float(0) * -1 }}"
+            above: !input export_watts
+        sequence:
+          - action: homeassistant.turn_on
+            target: !input load
+      - conditions:
+          - condition: trigger
+            id: stop
+        sequence:
+          - action: homeassistant.turn_off
+            target: !input load

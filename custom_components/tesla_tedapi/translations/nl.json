@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Netdiensten actief"
+      },
+      "wifi_internet": {
+        "name": "Internet via wifi"
+      },
+      "ethernet_internet": {
+        "name": "Internet via ethernet"
+      },
+      "cellular_internet": {
+        "name": "Internet via mobiel"
       }
     },
     "button": {
@@ -485,6 +494,12 @@
       },
       "inverter_heatsink_temperature": {
         "name": "Koellichaamtemperatuur omvormer"
+      },
+      "inverter_n_ambient_temperature": {
+        "name": "Omgevingstemperatuur omvormer {inverter}"
+      },
+      "inverter_n_heatsink_temperature": {
+        "name": "Koellichaamtemperatuur omvormer {inverter}"
       },
       "alerts": {
         "name": "Waarschuwingen"
@@ -680,6 +695,33 @@
       },
       "tariff_sell_price": {
         "name": "Tarief terugleverprijs"
+      },
+      "network_connection": {
+        "name": "Netwerkverbinding",
+        "state": {
+          "wifi": "Wifi",
+          "ethernet": "Ethernet",
+          "cellular": "Mobiel",
+          "none": "Geen"
+        }
+      },
+      "wifi_signal": {
+        "name": "Wifi-signaal"
+      },
+      "cellular_signal": {
+        "name": "Mobiel signaal"
+      },
+      "site_import_limit": {
+        "name": "Afnamelimiet van de locatie"
+      },
+      "site_export_limit": {
+        "name": "Teruglevering-limiet van de locatie"
+      },
+      "registered_keys": {
+        "name": "Geregistreerde sleutels"
+      },
+      "calibration_delays_left": {
+        "name": "Resterende kalibratie-uitstellen"
       }
     },
     "switch": {
@@ -814,6 +856,21 @@
     },
     "pypowerwall_too_old": {
       "message": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie heeft de oudere versie geladen: verwijder die en herstart Home Assistant."
+    },
+    "command_needs_v1r": {
+      "message": "Hiervoor is de ondertekende (v1r) verbinding met de gateway nodig."
+    },
+    "command_not_confirmed": {
+      "message": "Zet confirm op true om deze opdracht te versturen."
+    },
+    "gateway_command_failed": {
+      "message": "De gateway heeft de opdracht niet uitgevoerd: {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "De firmware van de Powerwall ondersteunt deze opdracht niet."
+    },
+    "key_not_removed": {
+      "message": "De sleutel is niet verwijderd: {error}"
     }
   },
   "services": {
@@ -1010,6 +1067,60 @@
           "description": "De energiesensor met de ontladen energie van de batterij, bijvoorbeeld *Battery discharged* van Tesla Fleet of Teslemetry."
         }
       }
+    },
+    "set_site_limit": {
+      "name": "Locatielimiet instellen",
+      "description": "Stelt de afname- of terugleveringslimiet van de locatie in of verwijdert die, via de ondertekende lokale verbinding. Een installateur heeft misschien een limiet ingesteld vanwege je aansluitovereenkomst (bijvoorbeeld een terugleverlimiet van de netbeheerder): verhoog of verwijder die alleen als dat mag.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "direction": {
+          "name": "Richting",
+          "description": "Afname (van het net) of teruglevering (aan het net)."
+        },
+        "limit_kw": {
+          "name": "Limiet",
+          "description": "De limiet in kW. Laat leeg om de limiet te verwijderen."
+        },
+        "confirm": {
+          "name": "Bevestigen",
+          "description": "Moet aan staan: dit wijzigt de Powerwall."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Batterijkalibratie uitstellen",
+      "description": "Stelt de volgende batterijkalibratie van de Powerwall uit, via de ondertekende lokale verbinding. De gateway staat maar een beperkt aantal uitstellen toe, en elke aanroep kan er een gebruiken. Sommige firmware ondersteunt dit niet.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "delay_hours": {
+          "name": "Uitstel",
+          "description": "Hoe lang de kalibratie wordt uitgesteld, in uren."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Geregistreerde sleutel verwijderen",
+      "description": "Verwijdert een bij de gateway geregistreerde sleutel, via de ondertekende lokale verbinding. Die app of dat apparaat kan de gateway dan geen opdrachten meer sturen. De sleutel van deze integratie kan niet worden verwijderd.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "fingerprint": {
+          "name": "Vingerafdruk",
+          "description": "Het begin van de vingerafdruk van de sleutel (minstens 8 tekens), zoals de sensor Geregistreerde sleutels die toont."
+        },
+        "confirm": {
+          "name": "Bevestigen",
+          "description": "Moet aan staan: dit wijzigt de Powerwall."
+        }
+      }
     }
   },
   "issues": {
@@ -1023,7 +1134,7 @@
         "step": {
           "login": {
             "title": "Inloggen bij Tesla",
-            "description": "Je Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\n**Inloggen via de browser:**\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.\n\n**Of een refresh-token:** plak de refresh-token van een app-aanmelding, zoals *Auth app for Tesla* (iOS, Android). Gebruik een token die hiervoor gemaakt is, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie afmelden.",
+            "description": "Je Tesla-account wordt gebruikt om de sleutel bij de Powerwall te registreren en als back-up om instellingen te wijzigen als de lokale verbinding wegvalt.\n\nTesla accepteert de aanmelding niet meer. Deze melding verdwijnt na de volgende geslaagde controle (ongeveer elk uur), dus als het alleen een korte storing bij Tesla was, kun je haar laten staan.\n\n**Inloggen via de browser:**\n1. Open deze link op een computer, met de ontwikkelaarstools van de browser open op het tabblad **Netwerk** (F12):\n   [Inloggen bij Tesla]({url})\n2. Log in. De laatste pagina laadt niet, omdat Tesla de browser naar een adres `tesla://auth/callback?code=…` stuurt.\n3. Zoek in het tabblad Netwerk het verzoek dat begint met `callback?code=` (of de `Location`-header van de laatste doorverwijzing) en kopieer dat volledige adres.\n4. Plak het hieronder. Codes verlopen binnen enkele minuten en werken één keer.\n\n**Of een refresh-token:** plak de refresh-token van een app-aanmelding, zoals *Auth app for Tesla* (iOS, Android). Gebruik een token die hiervoor gemaakt is, niet een die een andere integratie al gebruikt: elders inloggen met dezelfde token kan die integratie afmelden.",
             "data": {
               "callback": "Refresh token of callback-adres"
             },
@@ -1168,6 +1279,10 @@
         "bms_a045_sw_soc_change": "Batterij heeft haar laadniveau opnieuw gekalibreerd",
         "bms_a089_lifemodel_stodcrgrowth_change": "Batterij heeft haar verouderingsschatting bijgewerkt",
         "energyaccumulatorirrational": "Een energieteller sprong onwaarschijnlijk",
+        "opticasterretry": "De energie-optimalisatie van de gateway probeert het opnieuw",
+        "evsemia": "De gateway kan een laadpaal (Wall Connector) niet bereiken",
+        "userevsemia": "De gateway kan een laadpaal (Wall Connector) niet bereiken, melding voor de gebruiker",
+        "evsenotchargingwhenallowed": "Een laadpaal (Wall Connector) laadt niet, hoewel laden is toegestaan",
         "islandchecksfailed": "Controle van de back-upgereedheid mislukt (enkele minuten normaal als de batterij vol raakt of na een herstart)",
         "pvinvertercomms": "Communicatie met de zonne-omvormer verloren",
         "ieee1547trip": "Netbeveiliging heeft ingegrepen (netspanning of -frequentie buiten bereik)",
@@ -1178,6 +1293,7 @@
         "pws_a021_hvpmia": "Hoogspanningsregelaar van de batterij reageert niet",
         "baggr_a005_numbatteriesexpectedmismatch": "Minder batterijpakketten gevonden dan verwacht",
         "bms_a037_sw_nvram_config_error": "Instellingen van het batterijbeheer konden niet worden gelezen",
+        "bms_a023_sw_assertion": "De batterijbeheersoftware meldde een interne fout",
         "batteryfault": "Batterijstoring",
         "systemshutdown": "Systeem uitgeschakeld",
         "pws_a009_rsd": "Snelle uitschakeling is actief (aan/uit-schakelaar of noodstopknop)",
@@ -1202,6 +1318,10 @@
         "bms_a045_sw_soc_change": "Laadniveau gekalibreerd",
         "bms_a089_lifemodel_stodcrgrowth_change": "Veroudering bijgewerkt",
         "energyaccumulatorirrational": "Tellersprong",
+        "opticasterretry": "Optimalisatie probeert opnieuw",
+        "evsemia": "Laadpaal reageert niet",
+        "userevsemia": "Laadpaal reageert niet (gebruikersmelding)",
+        "evsenotchargingwhenallowed": "Laadpaal laadt niet",
         "islandchecksfailed": "Back-upcontrole mislukt",
         "pvinvertercomms": "Zonne-omvormer onbereikbaar",
         "ieee1547trip": "Netbeveiliging aangesproken",
@@ -1212,6 +1332,7 @@
         "pws_a021_hvpmia": "Batterijregelaar reageert niet",
         "baggr_a005_numbatteriesexpectedmismatch": "Batterijpakketten ontbreken",
         "bms_a037_sw_nvram_config_error": "Fout in batterij-instellingen",
+        "bms_a023_sw_assertion": "Fout in batterijsoftware",
         "pws_a009_rsd": "Snelle uitschakeling actief",
         "pws_a014_hvpfault": "Storing batterijregelaar",
         "pws_a044_hvprsdfault": "Storing snelle uitschakeling",
@@ -1252,6 +1373,12 @@
         "min_soc": "batterij op het herverbindingsniveau",
         "requested": "herverbinding gevraagd",
         "reconnected_elsewhere": "elders opnieuw verbonden"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Afname",
+        "export": "Teruglevering"
       }
     }
   }

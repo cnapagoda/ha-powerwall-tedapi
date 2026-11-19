@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Usługi sieciowe aktywne"
+      },
+      "wifi_internet": {
+        "name": "Internet przez Wi-Fi"
+      },
+      "ethernet_internet": {
+        "name": "Internet przez Ethernet"
+      },
+      "cellular_internet": {
+        "name": "Internet komórkowy"
       }
     },
     "button": {
@@ -485,6 +494,12 @@
       },
       "inverter_heatsink_temperature": {
         "name": "Temperatura radiatora falownika"
+      },
+      "inverter_n_ambient_temperature": {
+        "name": "Temperatura otoczenia falownika {inverter}"
+      },
+      "inverter_n_heatsink_temperature": {
+        "name": "Temperatura radiatora falownika {inverter}"
       },
       "alerts": {
         "name": "Alerty"
@@ -680,6 +695,33 @@
       },
       "tariff_sell_price": {
         "name": "Cena sprzedaży w taryfie"
+      },
+      "network_connection": {
+        "name": "Połączenie sieciowe",
+        "state": {
+          "wifi": "Wi-Fi",
+          "ethernet": "Ethernet",
+          "cellular": "Komórkowe",
+          "none": "Brak"
+        }
+      },
+      "wifi_signal": {
+        "name": "Sygnał Wi-Fi"
+      },
+      "cellular_signal": {
+        "name": "Sygnał komórkowy"
+      },
+      "site_import_limit": {
+        "name": "Limit poboru instalacji"
+      },
+      "site_export_limit": {
+        "name": "Limit oddawania instalacji"
+      },
+      "registered_keys": {
+        "name": "Zarejestrowane klucze"
+      },
+      "calibration_delays_left": {
+        "name": "Pozostałe odroczenia kalibracji"
       }
     },
     "switch": {
@@ -814,6 +856,21 @@
     },
     "pypowerwall_too_old": {
       "message": "W Home Assistant załadowano pypowerwall {found}, a ta integracja wymaga wersji {required} lub nowszej. Inna integracja niestandardowa załadowała starszą wersję: usuń ją i uruchom ponownie Home Assistant."
+    },
+    "command_needs_v1r": {
+      "message": "To wymaga podpisanego połączenia (v1r) z bramką."
+    },
+    "command_not_confirmed": {
+      "message": "Ustaw confirm na true, aby wysłać to polecenie."
+    },
+    "gateway_command_failed": {
+      "message": "Bramka nie wykonała polecenia: {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "Firmware Powerwall nie obsługuje tego polecenia."
+    },
+    "key_not_removed": {
+      "message": "Klucz nie został usunięty: {error}"
     }
   },
   "services": {
@@ -1010,6 +1067,60 @@
           "description": "Czujnik energii z energią rozładowaną z baterii, na przykład *Battery discharged* z Tesla Fleet lub Teslemetry."
         }
       }
+    },
+    "set_site_limit": {
+      "name": "Ustaw limit instalacji",
+      "description": "Ustawia lub usuwa limit poboru z sieci lub oddawania do sieci, przez podpisane połączenie lokalne. Instalator mógł ustawić limit zgodnie z umową przyłączeniową (na przykład limit oddawania operatora sieci): nie podnoś go ani nie usuwaj, jeśli nie masz na to zgody.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "direction": {
+          "name": "Kierunek",
+          "description": "Pobór (z sieci) lub oddawanie (do sieci)."
+        },
+        "limit_kw": {
+          "name": "Limit",
+          "description": "Limit w kW. Pozostaw puste, aby usunąć limit."
+        },
+        "confirm": {
+          "name": "Potwierdź",
+          "description": "Musi być włączone: to zmienia ustawienia Powerwall."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Odrocz kalibrację baterii",
+      "description": "Odracza następną kalibrację baterii Powerwall, przez podpisane połączenie lokalne. Bramka pozwala na ograniczoną liczbę odroczeń, a każde wywołanie może zużyć jedno. Niektóre wersje firmware tego nie obsługują.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "delay_hours": {
+          "name": "Odroczenie",
+          "description": "Na ile odroczyć kalibrację, w godzinach."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Usuń zarejestrowany klucz",
+      "description": "Usuwa klucz zarejestrowany w bramce, przez podpisane połączenie lokalne. Ta aplikacja lub urządzenie nie będzie już mogło wysyłać jej poleceń. Klucza używanego przez tę integrację nie można usunąć.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "fingerprint": {
+          "name": "Odcisk",
+          "description": "Początek odcisku klucza (co najmniej 8 znaków), tak jak pokazuje go czujnik Zarejestrowane klucze."
+        },
+        "confirm": {
+          "name": "Potwierdź",
+          "description": "Musi być włączone: to zmienia ustawienia Powerwall."
+        }
+      }
     }
   },
   "issues": {
@@ -1023,7 +1134,7 @@
         "step": {
           "login": {
             "title": "Zaloguj się do Tesla",
-            "description": "Konto Tesla służy do zarejestrowania klucza w Powerwall i jako zapas do zmiany ustawień, gdy połączenie lokalne nie działa.\n\n**Logowanie w przeglądarce:**\n1. Otwórz ten link na komputerze, z narzędziami deweloperskimi przeglądarki otwartymi na karcie **Sieć** (F12):\n   [Zaloguj się do Tesla]({url})\n2. Zaloguj się. Ostatnia strona się nie wczyta, bo Tesla przekierowuje przeglądarkę na adres `tesla://auth/callback?code=…`.\n3. Na karcie Sieć znajdź żądanie zaczynające się od `callback?code=` (lub nagłówek `Location` ostatniego przekierowania) i skopiuj cały adres.\n4. Wklej go poniżej. Kody wygasają w ciągu kilku minut i działają raz.\n\n**Albo token odświeżania:** wklej token odświeżania z logowania przez aplikację, np. *Auth app for Tesla* (iOS, Android). Użyj tokenu utworzonego do tego celu, nie takiego, którego używa już inna integracja: zalogowanie się gdzie indziej tym samym tokenem może wylogować tamtą integrację.",
+            "description": "Konto Tesla służy do zarejestrowania klucza w Powerwall i jako zapas do zmiany ustawień, gdy połączenie lokalne nie działa.\n\nTesla przestała akceptować logowanie. To powiadomienie zniknie po następnym udanym sprawdzeniu (mniej więcej co godzinę), więc jeśli była to tylko krótka awaria po stronie Tesli, możesz je zostawić.\n\n**Logowanie w przeglądarce:**\n1. Otwórz ten link na komputerze, z narzędziami deweloperskimi przeglądarki otwartymi na karcie **Sieć** (F12):\n   [Zaloguj się do Tesla]({url})\n2. Zaloguj się. Ostatnia strona się nie wczyta, bo Tesla przekierowuje przeglądarkę na adres `tesla://auth/callback?code=…`.\n3. Na karcie Sieć znajdź żądanie zaczynające się od `callback?code=` (lub nagłówek `Location` ostatniego przekierowania) i skopiuj cały adres.\n4. Wklej go poniżej. Kody wygasają w ciągu kilku minut i działają raz.\n\n**Albo token odświeżania:** wklej token odświeżania z logowania przez aplikację, np. *Auth app for Tesla* (iOS, Android). Użyj tokenu utworzonego do tego celu, nie takiego, którego używa już inna integracja: zalogowanie się gdzie indziej tym samym tokenem może wylogować tamtą integrację.",
             "data": {
               "callback": "Token odświeżania lub adres zwrotny"
             },
@@ -1168,6 +1279,10 @@
         "bms_a045_sw_soc_change": "Bateria ponownie skalibrowała poziom naładowania",
         "bms_a089_lifemodel_stodcrgrowth_change": "Bateria zaktualizowała szacunek zużycia",
         "energyaccumulatorirrational": "Licznik energii skoczył w nieprawdopodobny sposób",
+        "opticasterretry": "Optymalizator energii bramki ponawia próbę",
+        "evsemia": "Bramka nie może połączyć się z ładowarką EV (Wall Connector)",
+        "userevsemia": "Bramka nie może połączyć się z ładowarką EV (Wall Connector), alert dla użytkownika",
+        "evsenotchargingwhenallowed": "Ładowarka EV (Wall Connector) nie ładuje, mimo że ma na to pozwolenie",
         "islandchecksfailed": "Test gotowości zasilania awaryjnego nie powiódł się (normalne przez kilka minut, gdy bateria się zapełnia lub po restarcie)",
         "pvinvertercomms": "Utracono komunikację z falownikiem fotowoltaicznym",
         "ieee1547trip": "Zadziałało zabezpieczenie przyłącza (napięcie lub częstotliwość sieci poza zakresem)",
@@ -1178,6 +1293,7 @@
         "pws_a021_hvpmia": "Sterownik wysokiego napięcia baterii nie odpowiada",
         "baggr_a005_numbatteriesexpectedmismatch": "Znaleziono mniej modułów baterii niż oczekiwano",
         "bms_a037_sw_nvram_config_error": "Nie można odczytać ustawień zarządzania baterią",
+        "bms_a023_sw_assertion": "Oprogramowanie zarządzania baterią zgłosiło błąd wewnętrzny",
         "batteryfault": "Usterka baterii",
         "systemshutdown": "System wyłączony",
         "pws_a009_rsd": "Szybkie wyłączenie jest aktywne (włącznik lub przycisk szybkiego wyłączenia)",
@@ -1202,6 +1318,10 @@
         "bms_a045_sw_soc_change": "Poziom naładowania skalibrowany",
         "bms_a089_lifemodel_stodcrgrowth_change": "Zużycie zaktualizowane",
         "energyaccumulatorirrational": "Skok licznika",
+        "opticasterretry": "Optymalizator ponawia próbę",
+        "evsemia": "Ładowarka EV nie odpowiada",
+        "userevsemia": "Ładowarka EV nie odpowiada (alert użytkownika)",
+        "evsenotchargingwhenallowed": "Ładowarka EV nie ładuje",
         "islandchecksfailed": "Test zasilania awaryjnego nieudany",
         "pvinvertercomms": "Brak łączności z falownikiem",
         "ieee1547trip": "Zadziałało zabezpieczenie sieci",
@@ -1212,6 +1332,7 @@
         "pws_a021_hvpmia": "Sterownik baterii nie odpowiada",
         "baggr_a005_numbatteriesexpectedmismatch": "Brak modułów baterii",
         "bms_a037_sw_nvram_config_error": "Błąd ustawień baterii",
+        "bms_a023_sw_assertion": "Błąd oprogramowania baterii",
         "pws_a009_rsd": "Szybkie wyłączenie aktywne",
         "pws_a014_hvpfault": "Usterka sterownika baterii",
         "pws_a044_hvprsdfault": "Usterka szybkiego wyłączenia",
@@ -1252,6 +1373,12 @@
         "min_soc": "bateria na poziomie ponownego podłączenia",
         "requested": "zażądano ponownego podłączenia",
         "reconnected_elsewhere": "podłączono gdzie indziej"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Pobór",
+        "export": "Oddawanie"
       }
     }
   }

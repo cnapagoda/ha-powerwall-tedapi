@@ -14,7 +14,7 @@
 
 | Symptom | Try |
 |---|---|
-| *The gateway refused this password* | Use the password from the QR sticker inside the Powerwall's cover, in upper case. Usually only the last 5 characters are used, so you can also enter just those. A Backup Gateway 1 (part number `1118431-…`) needs the full password. |
+| *The gateway refused this password* | Enter the full password from the QR sticker inside the Powerwall's cover, in upper case. Setup tries its last 5 characters, then the full password. If both are refused, the gateway's customer password may have been changed (for example by the installer): open `https://<gateway address>/` in a browser and log in as **Customer** to check, and use **Forgot password** there to set a new one. The [debug log](#collecting-information-for-a-bug-report) says why it was refused (HTTP status, gateway part number), never the password. |
 | *The Powerwall didn't accept the dispatch: …* | The text after the colon is the gateway's own reason, with its status code. One Powerwall 3 refuses more than 10,000 W. Lower the power, or **Largest dispatch power**. |
 | *pypowerwall … is loaded in Home Assistant, but this integration needs … or newer* (setup stops, or the integration shows *Failed to set up*) | Home Assistant runs one pypowerwall for all integrations, and another custom integration that pins an older one loaded it first (for example `ha-pypowerwall`). Remove that integration (disabling it isn't enough: delete it in HACS or from `custom_components`), restart Home Assistant and try again. See [which integrations can stay](migration.md#which-integrations-can-stay). |
 | *The gateway is refusing logins after too many attempts* | The gateway locks its login for a few minutes after several wrong passwords. Wait about 15 minutes before you try again. |
@@ -112,6 +112,7 @@ The integration's card can also show **Reauthenticate**: the gateway keeps refus
      logs:
        custom_components.tesla_tedapi: debug
        pypowerwall: debug
+       aiopytedapi: debug
    ```
 
 3. Reproduce the problem, then **Disable debug logging** (the log downloads automatically) or copy the relevant lines.

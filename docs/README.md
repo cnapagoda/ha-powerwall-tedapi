@@ -16,6 +16,7 @@ Tesla Powerwall TEDAPI for Home Assistant: local monitoring and control of a Tes
 - **[Automations and blueprints](automations.md)**: one-click blueprints and example automations.
 - **[Alerts](alerts.md)**: what the Powerwall's alert codes mean, and how to be notified.
 - **[Tesla tariff](tesla-tariff.md)**: read and write the tariff Tesla uses for Time-Based Control.
+- **Energy planners:** let [Predbat](predbat.md), [EMHASS](emhass.md) or [HAEO](haeo.md) plan and control the battery locally, or [evcc](evcc.md) coordinate it with your car charging.
 
 ## Reference
 

@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Netzdienste aktiv"
+      },
+      "wifi_internet": {
+        "name": "WLAN-Internet"
+      },
+      "ethernet_internet": {
+        "name": "Ethernet-Internet"
+      },
+      "cellular_internet": {
+        "name": "Mobilfunk-Internet"
       }
     },
     "button": {
@@ -485,6 +494,12 @@
       },
       "inverter_heatsink_temperature": {
         "name": "Wechselrichter-Kühlkörpertemperatur"
+      },
+      "inverter_n_ambient_temperature": {
+        "name": "Wechselrichter {inverter} Umgebungstemperatur"
+      },
+      "inverter_n_heatsink_temperature": {
+        "name": "Wechselrichter {inverter} Kühlkörpertemperatur"
       },
       "alerts": {
         "name": "Alarme"
@@ -680,6 +695,33 @@
       },
       "tariff_sell_price": {
         "name": "Tarif Einspeisepreis"
+      },
+      "network_connection": {
+        "name": "Netzwerkverbindung",
+        "state": {
+          "wifi": "WLAN",
+          "ethernet": "Ethernet",
+          "cellular": "Mobilfunk",
+          "none": "Keine"
+        }
+      },
+      "wifi_signal": {
+        "name": "WLAN-Signal"
+      },
+      "cellular_signal": {
+        "name": "Mobilfunksignal"
+      },
+      "site_import_limit": {
+        "name": "Bezugslimit des Standorts"
+      },
+      "site_export_limit": {
+        "name": "Einspeiselimit des Standorts"
+      },
+      "registered_keys": {
+        "name": "Registrierte Schlüssel"
+      },
+      "calibration_delays_left": {
+        "name": "Verbleibende Kalibrierungsaufschübe"
       }
     },
     "switch": {
@@ -814,6 +856,21 @@
     },
     "pypowerwall_too_old": {
       "message": "In Home Assistant ist pypowerwall {found} geladen, diese Integration braucht aber {required} oder neuer. Eine andere benutzerdefinierte Integration hat die ältere Version geladen: Entferne sie und starte Home Assistant neu."
+    },
+    "command_needs_v1r": {
+      "message": "Dafür ist die signierte (v1r) Verbindung zum Gateway nötig."
+    },
+    "command_not_confirmed": {
+      "message": "Setze confirm auf true, um diesen Befehl zu senden."
+    },
+    "gateway_command_failed": {
+      "message": "Das Gateway hat den Befehl nicht ausgeführt: {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "Die Firmware der Powerwall unterstützt diesen Befehl nicht."
+    },
+    "key_not_removed": {
+      "message": "Der Schlüssel wurde nicht entfernt: {error}"
     }
   },
   "services": {
@@ -1010,6 +1067,60 @@
           "description": "Der Energiesensor mit der entladenen Energie der Batterie, zum Beispiel *Battery discharged* von Tesla Fleet oder Teslemetry."
         }
       }
+    },
+    "set_site_limit": {
+      "name": "Standortlimit festlegen",
+      "description": "Legt das Bezugs- oder Einspeiselimit des Standorts über die signierte lokale Verbindung fest oder entfernt es. Ein Installateur hat ein Limit eventuell wegen deines Netzanschlussvertrags gesetzt (zum Beispiel ein Einspeiselimit des Netzbetreibers): Erhöhe oder entferne es nur, wenn du das darfst.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "direction": {
+          "name": "Richtung",
+          "description": "Bezug (aus dem Netz) oder Einspeisung (ins Netz)."
+        },
+        "limit_kw": {
+          "name": "Limit",
+          "description": "Das Limit in kW. Weglassen, um das Limit zu entfernen."
+        },
+        "confirm": {
+          "name": "Bestätigen",
+          "description": "Muss an sein: Damit wird die Powerwall geändert."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Batteriekalibrierung aufschieben",
+      "description": "Schiebt die nächste Batteriekalibrierung der Powerwall über die signierte lokale Verbindung auf. Das Gateway erlaubt nur eine begrenzte Zahl von Aufschüben, und jeder Aufruf kann einen verbrauchen. Manche Firmware unterstützt das nicht.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "delay_hours": {
+          "name": "Aufschub",
+          "description": "Wie lange die Kalibrierung aufgeschoben wird, in Stunden."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Registrierten Schlüssel entfernen",
+      "description": "Entfernt einen beim Gateway registrierten Schlüssel über die signierte lokale Verbindung. Diese App oder dieses Gerät kann dem Gateway dann keine Befehle mehr senden. Der Schlüssel dieser Integration kann nicht entfernt werden.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "fingerprint": {
+          "name": "Fingerabdruck",
+          "description": "Der Anfang des Fingerabdrucks des Schlüssels (mindestens 8 Zeichen), wie ihn der Sensor Registrierte Schlüssel anzeigt."
+        },
+        "confirm": {
+          "name": "Bestätigen",
+          "description": "Muss an sein: Damit wird die Powerwall geändert."
+        }
+      }
     }
   },
   "issues": {
@@ -1023,7 +1134,7 @@
         "step": {
           "login": {
             "title": "Bei Tesla anmelden",
-            "description": "Dein Tesla-Konto wird genutzt, um den Schlüssel bei der Powerwall zu registrieren, und als Backup zum Ändern von Einstellungen, wenn die lokale Verbindung ausfällt.\n\n**Anmeldung im Browser:**\n1. Öffne diesen Link an einem Computer, mit geöffneten Entwicklertools des Browsers auf dem Tab **Netzwerk** (F12):\n   [Bei Tesla anmelden]({url})\n2. Melde dich an. Die letzte Seite lädt nicht, weil Tesla den Browser zu einer Adresse `tesla://auth/callback?code=…` schickt.\n3. Suche im Tab Netzwerk die Anfrage, die mit `callback?code=` beginnt (oder den `Location`-Header der letzten Weiterleitung), und kopiere die vollständige Adresse.\n4. Füge sie unten ein. Codes laufen nach wenigen Minuten ab und funktionieren nur einmal.\n\n**Oder ein Refresh-Token:** füge den Refresh-Token aus einer App-Anmeldung ein, zum Beispiel aus *Auth app for Tesla* (iOS, Android). Nimm einen eigens dafür erzeugten Token, nicht einen, den schon eine andere Integration nutzt: eine Anmeldung woanders mit demselben Token kann diese Integration abmelden.",
+            "description": "Dein Tesla-Konto wird genutzt, um den Schlüssel bei der Powerwall zu registrieren, und als Backup zum Ändern von Einstellungen, wenn die lokale Verbindung ausfällt.\n\nTesla akzeptiert die Anmeldung nicht mehr. Dieser Hinweis verschwindet nach der nächsten erfolgreichen Prüfung (etwa stündlich). War es nur ein kurzer Ausfall bei Tesla, kannst du ihn also stehen lassen.\n\n**Anmeldung im Browser:**\n1. Öffne diesen Link an einem Computer, mit geöffneten Entwicklertools des Browsers auf dem Tab **Netzwerk** (F12):\n   [Bei Tesla anmelden]({url})\n2. Melde dich an. Die letzte Seite lädt nicht, weil Tesla den Browser zu einer Adresse `tesla://auth/callback?code=…` schickt.\n3. Suche im Tab Netzwerk die Anfrage, die mit `callback?code=` beginnt (oder den `Location`-Header der letzten Weiterleitung), und kopiere die vollständige Adresse.\n4. Füge sie unten ein. Codes laufen nach wenigen Minuten ab und funktionieren nur einmal.\n\n**Oder ein Refresh-Token:** füge den Refresh-Token aus einer App-Anmeldung ein, zum Beispiel aus *Auth app for Tesla* (iOS, Android). Nimm einen eigens dafür erzeugten Token, nicht einen, den schon eine andere Integration nutzt: eine Anmeldung woanders mit demselben Token kann diese Integration abmelden.",
             "data": {
               "callback": "Refresh-Token oder Callback-Adresse"
             },
@@ -1168,6 +1279,10 @@
         "bms_a045_sw_soc_change": "Batterie hat ihren Ladestand neu kalibriert",
         "bms_a089_lifemodel_stodcrgrowth_change": "Batterie hat ihre Alterungsschätzung aktualisiert",
         "energyaccumulatorirrational": "Ein Energiezähler ist unplausibel gesprungen",
+        "opticasterretry": "Der Energieoptimierer des Gateways versucht es erneut",
+        "evsemia": "Das Gateway erreicht eine Wallbox (Wall Connector) nicht",
+        "userevsemia": "Das Gateway erreicht eine Wallbox (Wall Connector) nicht, Meldung für den Nutzer",
+        "evsenotchargingwhenallowed": "Eine Wallbox (Wall Connector) lädt nicht, obwohl das Laden erlaubt ist",
         "islandchecksfailed": "Backup-Bereitschaftsprüfung fehlgeschlagen (für einige Minuten normal, wenn die Batterie voll wird oder nach einem Neustart)",
         "pvinvertercomms": "Verbindung zum Solar-Wechselrichter verloren",
         "ieee1547trip": "Netzschutz hat ausgelöst (Netzspannung oder -frequenz außerhalb des Bereichs)",
@@ -1178,6 +1293,7 @@
         "pws_a021_hvpmia": "Hochvolt-Steuerung der Batterie antwortet nicht",
         "baggr_a005_numbatteriesexpectedmismatch": "Weniger Batteriemodule gefunden als erwartet",
         "bms_a037_sw_nvram_config_error": "Einstellungen des Batteriemanagements konnten nicht gelesen werden",
+        "bms_a023_sw_assertion": "Die Batteriemanagement-Software hat einen internen Fehler gemeldet",
         "batteryfault": "Batteriestörung",
         "systemshutdown": "System heruntergefahren",
         "pws_a009_rsd": "Schnellabschaltung ist aktiv (Ein/Aus-Schalter oder Not-Aus-Taster)",
@@ -1202,6 +1318,10 @@
         "bms_a045_sw_soc_change": "Ladestand kalibriert",
         "bms_a089_lifemodel_stodcrgrowth_change": "Alterung aktualisiert",
         "energyaccumulatorirrational": "Zählersprung",
+        "opticasterretry": "Optimierer versucht es erneut",
+        "evsemia": "Wallbox antwortet nicht",
+        "userevsemia": "Wallbox antwortet nicht (Nutzermeldung)",
+        "evsenotchargingwhenallowed": "Wallbox lädt nicht",
         "islandchecksfailed": "Backup-Prüfung fehlgeschlagen",
         "pvinvertercomms": "Solar-Wechselrichter getrennt",
         "ieee1547trip": "Netzschutz ausgelöst",
@@ -1212,6 +1332,7 @@
         "pws_a021_hvpmia": "Batteriesteuerung antwortet nicht",
         "baggr_a005_numbatteriesexpectedmismatch": "Batteriemodule fehlen",
         "bms_a037_sw_nvram_config_error": "Fehler in Batterieeinstellungen",
+        "bms_a023_sw_assertion": "Fehler in Batteriesoftware",
         "pws_a009_rsd": "Schnellabschaltung aktiv",
         "pws_a014_hvpfault": "Störung Batteriesteuerung",
         "pws_a044_hvprsdfault": "Störung Schnellabschaltung",
@@ -1252,6 +1373,12 @@
         "min_soc": "Batterie auf Wiederverbindungsgrenze",
         "requested": "Wiederverbindung angefordert",
         "reconnected_elsewhere": "anderswo wieder verbunden"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Bezug",
+        "export": "Einspeisung"
       }
     }
   }

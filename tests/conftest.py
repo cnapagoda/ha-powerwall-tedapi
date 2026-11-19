@@ -307,6 +307,27 @@ def auto_enable_custom_integrations(enable_custom_integrations):
     yield
 
 
+class CloudNet:
+    """Whether Tesla's servers answer the cloud backup's reachability check
+    (cloud.reachable), and which addresses it checked."""
+
+    up = True
+    checked: list[str] = []
+
+
+@pytest.fixture(autouse=True)
+def cloud_net():
+    """No test reaches the internet: the reachability check answers CloudNet.up."""
+    CloudNet.up, CloudNet.checked = True, []
+
+    def reachable(url: str) -> bool:
+        CloudNet.checked.append(url)
+        return CloudNet.up
+
+    with patch("custom_components.tesla_tedapi.cloud.reachable", reachable):
+        yield CloudNet
+
+
 @pytest.fixture(autouse=True)
 def no_tariff_readback_waits():
     """Read a written tariff back twice, without the real 25 s of waits."""
@@ -360,6 +381,10 @@ def fake_gateway():
     FakeGateway.answers = False
     # A Backup Gateway 1: its customer login takes the full password.
     FakeGateway.gateway1 = False
+    # Whether the gateway takes only the full password, without being a
+    # Backup Gateway 1 (some Powerwall 2 gateways).
+    FakeGateway.full_only = False
+    FakeGateway.part_number = None
     FakeGateway.locked = False
     FakeGateway.logins: list[str] = []
 
@@ -370,7 +395,8 @@ def fake_gateway():
             raise gateway.GatewayLocked("too many login attempts")
         sent = gateway.customer_password(gw_pwd, full)
         FakeGateway.logins.append(sent)
-        if sent != gateway.customer_password(FakeGateway.password, FakeGateway.gateway1):
+        if sent != gateway.customer_password(FakeGateway.password,
+                                             FakeGateway.gateway1 or FakeGateway.full_only):
             raise gateway.GatewayPasswordRejected
         return "token"
 
@@ -378,9 +404,17 @@ def fake_gateway():
         login(host, gw_pwd, full)
         return FakeGateway.din
 
+    def login_any(host, gw_pwd, full=False):
+        return gateway._with_full_password(login, host, gw_pwd, full)
+
+    def din_any(host, gw_pwd, full=False):
+        return gateway._with_full_password(din, host, gw_pwd, full)
+
     with patch.object(gateway, "login", login), patch.object(gateway, "din", din), \
+            patch.object(gateway, "login_any", login_any), patch.object(gateway, "din_any", din_any), \
             patch.object(gateway, "answers", lambda host: FakeGateway.answers), \
-            patch.object(gateway, "full_password_login", lambda host: FakeGateway.gateway1):
+            patch.object(gateway, "full_password_login", lambda host: FakeGateway.gateway1), \
+            patch.object(gateway, "part_number", lambda host: FakeGateway.part_number):
         yield FakeGateway
 
 
@@ -481,3 +515,149 @@ def entity_registry_enabled_by_default():
 
     with patch.object(Entity, "entity_registry_enabled_default", True):
         yield
+
+
+# ---- aiopytedapi (network status, site limits, calibration delay, keys) ----
+
+class FakeTedapi:
+    """Stands in for aiopytedapi.TedapiClient (extras.py). Class attributes
+    set what the gateway answers; instances records the clients built."""
+
+    instances: list[FakeTedapi] = []
+    # Raised by get_network_status on the signed connection (a Powerwall 2).
+    signed_network_error: Exception | None = None
+    # Raised by every call on any connection (gateway unreachable).
+    error: Exception | None = None
+    calibration_supported = True
+    calibration = (3, 0, 5)  # delays left, seconds left, max delays
+    limits: dict[str, Any] = {"import": None, "export": 5}
+    key_fail = False
+
+    def __init__(self, signed: bool, host: str, password: str | None, din: str | None) -> None:
+        self.signed_connection = signed
+        self.host, self.password, self.din = host, password, din
+        self.calls: list[tuple] = []
+        FakeTedapi.instances.append(self)
+
+    @classmethod
+    def signed(cls, session, host, key, *, password=None, din=None, timeout=10.0):
+        return cls(True, host, password, din)
+
+    @classmethod
+    def wifi(cls, session, password, *, host="192.168.91.1", din=None, timeout=10.0):
+        return cls(False, host, password, din)
+
+    @property
+    def current_key(self) -> bytes | None:
+        return b"this-key" if self.signed_connection else None
+
+    def _call(self, name: str, *args: Any) -> None:
+        self.calls.append((name, *args))
+        if FakeTedapi.error is not None:
+            raise FakeTedapi.error
+
+    def _require_signed(self) -> None:
+        from aiopytedapi import SignedConnectionRequired
+
+        if not self.signed_connection:
+            raise SignedConnectionRequired("signed only")
+
+    async def get_network_status(self):
+        from aiopytedapi import NetworkInterfaceStatus, NetworkStatus
+
+        self._call("network")
+        if self.signed_connection and FakeTedapi.signed_network_error is not None:
+            raise FakeTedapi.signed_network_error
+        return NetworkStatus(
+            wifi=NetworkInterfaceStatus(enabled=True, active_route=True, connected_physical=True,
+                                        connected_internet=True, connected_tesla=True,
+                                        signal_strength_percent=61, device_state="NETWORK_DEVICE_STATE_READY",
+                                        mac_address="02:00:00:00:00:01"),
+            eth=NetworkInterfaceStatus(enabled=True),
+            gsm=NetworkInterfaceStatus(enabled=True, connected_physical=True, connected_internet=True,
+                                       connected_tesla=True, signal_strength_percent=40),
+            wifi_ssid="HomeNet")
+
+    async def get_authorized_clients(self):
+        from datetime import UTC, datetime
+
+        from aiopytedapi import AuthorizedClient, AuthorizedClients
+
+        self._call("keys")
+
+        def client(key: bytes, fp: str, state: str) -> AuthorizedClient:
+            return AuthorizedClient(
+                fingerprint=fp, type="AUTHORIZED_CLIENT_TYPE_CUSTOMER_MOBILE_APP", key_type="AUTHORIZED_KEY_TYPE_RSA",
+                roles=(), state=f"AUTHORIZED_CLIENT_STATE_{state}", verification="", authorized_by=None,
+                added_time=datetime(2026, 11, 1, tzinfo=UTC), public_key=key, description="Phone")
+
+        return AuthorizedClients(clients=(client(b"this-key", "a" * 64, "VERIFIED"),
+                                          client(b"other", "b" * 64, "PENDING_VERIFICATION_TIMEOUT")))
+
+    async def get_battery_calibration_delay_status(self):
+        from aiopytedapi import CalibrationDelayStatus, NotSupportedError
+
+        self._call("calibration")
+        self._require_signed()
+        if not FakeTedapi.calibration_supported:
+            raise NotSupportedError(12, "not implemented")
+        left, seconds, most = FakeTedapi.calibration
+        return CalibrationDelayStatus(calibration_delays_left=left, calibration_delay_remaining_seconds=seconds,
+                                      max_calibration_delays=most)
+
+    async def delay_battery_calibration(self, hours: int) -> None:
+        from aiopytedapi import NotSupportedError
+
+        self._call("delay", hours)
+        if not FakeTedapi.calibration_supported:
+            raise NotSupportedError(12, "not implemented")
+        left, _, most = FakeTedapi.calibration
+        FakeTedapi.calibration = (left - 1, hours * 3600, most)
+
+    def _limits(self):
+        from aiopytedapi import SiteLimits
+
+        return SiteLimits(import_limit_kw=FakeTedapi.limits["import"], export_limit_kw=FakeTedapi.limits["export"])
+
+    async def get_site_limits(self):
+        self._call("limits")
+        return self._limits()
+
+    async def set_import_limit(self, kilowatts):
+        self._call("set_import", kilowatts)
+        self._require_signed()
+        FakeTedapi.limits["import"] = kilowatts
+        return self._limits()
+
+    async def set_export_limit(self, kilowatts):
+        self._call("set_export", kilowatts)
+        self._require_signed()
+        FakeTedapi.limits["export"] = kilowatts
+        return self._limits()
+
+    async def remove_authorized_client(self, prefix: str, *, allow_current_key: bool = False) -> None:
+        self._call("remove", prefix)
+        if "a".startswith(prefix[:1]) and prefix == "a" * len(prefix):
+            raise ValueError("refusing to remove the key this client signs with")
+        if not ("b" * 64).startswith(prefix):
+            raise ValueError("the fingerprint prefix matches 0 clients (need exactly 1)")
+
+
+@pytest.fixture(autouse=True)
+def fake_tedapi():
+    FakeTedapi.instances = []
+    FakeTedapi.signed_network_error = None
+    FakeTedapi.error = None
+    FakeTedapi.calibration_supported = True
+    FakeTedapi.calibration = (3, 0, 5)
+    FakeTedapi.limits = {"import": None, "export": 5}
+    FakeTedapi.key_fail = False
+
+    def load_key(path: str):
+        if FakeTedapi.key_fail:
+            raise OSError("no such file")
+        return SimpleNamespace(public_key_der=b"this-key")
+
+    with patch("custom_components.tesla_tedapi.extras.TedapiClient", FakeTedapi), \
+            patch("custom_components.tesla_tedapi.extras.load_key", load_key):
+        yield FakeTedapi

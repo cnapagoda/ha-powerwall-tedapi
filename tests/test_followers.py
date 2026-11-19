@@ -11,6 +11,7 @@ from custom_components.tesla_tedapi.const import DOMAIN
 from custom_components.tesla_tedapi.coordinator import (
     FOLLOWER_MISSING_POLLS,
     _extract_fans,
+    _extract_follower_inverter_temps,
     _extract_pinv_value,
     _extract_strings,
     _missing_powerwalls,
@@ -69,6 +70,39 @@ def test_the_leader_comes_first() -> None:
     # Without the gateway's DIN: by serial number, as before.
     assert _extract_fans(vitals)["A"]["rpm"] == 1200.0
     assert _extract_pinv_value(vitals, "PINV_Vout") == 239.0
+
+
+def test_follower_inverter_temperatures() -> None:
+    """2.8.0 (#26): each further Powerwall 3 inverter's temperatures, numbered
+    like its fans; the leader's stay on the unnumbered sensors."""
+    leader, follower, third = "1707000-11-J--TG5", "1707000-11-J--TG1", "1707000-11-J--TG9"
+    vitals = {f"TEPINV--{follower}": {"PCH_AmbientTemp": 27.5, "PCH_heatsinkTemp": 33.0},
+              f"TEPINV--{leader}": {"PCH_AmbientTemp": 25.0, "PCH_heatsinkTemp": 30.0},
+              f"TEPINV--{third}": {"PINV_Fout": 50.0},  # no temperatures: no sensors
+              f"PVAC--{follower}": {"PCH_AmbientTemp": 99.0},  # not an inverter block
+              "TEPINV--x--broken": "junk"}
+    assert _extract_follower_inverter_temps(vitals, leader) == {"2": {"ambient": 27.5, "heatsink": 33.0}}
+    assert _extract_pinv_value(vitals, "PCH_AmbientTemp", din=leader) == 25.0
+    alone = {f"TEPINV--{leader}": vitals[f"TEPINV--{leader}"]}
+    assert _extract_follower_inverter_temps(alone, leader) == {}
+    assert _extract_follower_inverter_temps({}, leader) == {}
+    assert _extract_follower_inverter_temps({f"TEPINV--{follower}": {"PCH_heatsinkTemp": True}}, None) == {}
+
+
+async def test_follower_inverter_temperature_sensors(hass: HomeAssistant, fake_powerwall) -> None:
+    FakePowerwall.battery_blocks = BLOCKS
+    entry = await _setup(hass, V1R)
+    assert hass.states.get("sensor.powerwall_tedapi_inverter_2_ambient_temperature") is None
+    # The follower shows up later (read over the Wi-Fi fallback): its sensors are added then.
+    FakePowerwall.extra_packs = {f"TEPINV--{FOLLOWER}": {"PCH_AmbientTemp": 27.5, "PCH_heatsinkTemp": 33.0}}
+    await _refresh(hass, entry)
+    await hass.async_block_till_done()
+    ambient = hass.states.get("sensor.powerwall_tedapi_inverter_2_ambient_temperature")
+    heatsink = hass.states.get("sensor.powerwall_tedapi_inverter_2_heatsink_temperature")
+    assert ambient.state == "27.5" and heatsink.state == "33.0"
+    assert ambient.attributes["friendly_name"] == "Powerwall TEDAPI Inverter 2 ambient temperature"
+    # The leader's sensors keep their names and values.
+    assert hass.states.get("sensor.powerwall_tedapi_inverter_ambient_temperature").state == "25.0"
 
 
 async def _poll(hass: HomeAssistant, entry, times: int) -> None:

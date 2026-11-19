@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Services du réseau électrique actifs"
+      },
+      "wifi_internet": {
+        "name": "Internet par Wi-Fi"
+      },
+      "ethernet_internet": {
+        "name": "Internet par Ethernet"
+      },
+      "cellular_internet": {
+        "name": "Internet cellulaire"
       }
     },
     "button": {
@@ -485,6 +494,12 @@
       },
       "inverter_heatsink_temperature": {
         "name": "Température du dissipateur de l'onduleur"
+      },
+      "inverter_n_ambient_temperature": {
+        "name": "Température ambiante de l'onduleur {inverter}"
+      },
+      "inverter_n_heatsink_temperature": {
+        "name": "Température du dissipateur de l'onduleur {inverter}"
       },
       "alerts": {
         "name": "Alertes"
@@ -680,6 +695,33 @@
       },
       "tariff_sell_price": {
         "name": "Prix de revente du tarif"
+      },
+      "network_connection": {
+        "name": "Connexion réseau",
+        "state": {
+          "wifi": "Wi-Fi",
+          "ethernet": "Ethernet",
+          "cellular": "Cellulaire",
+          "none": "Aucune"
+        }
+      },
+      "wifi_signal": {
+        "name": "Signal Wi-Fi"
+      },
+      "cellular_signal": {
+        "name": "Signal cellulaire"
+      },
+      "site_import_limit": {
+        "name": "Limite d'import du site"
+      },
+      "site_export_limit": {
+        "name": "Limite d'export du site"
+      },
+      "registered_keys": {
+        "name": "Clés enregistrées"
+      },
+      "calibration_delays_left": {
+        "name": "Reports de calibration restants"
       }
     },
     "switch": {
@@ -814,6 +856,21 @@
     },
     "pypowerwall_too_old": {
       "message": "pypowerwall {found} est chargé dans Home Assistant, mais cette intégration nécessite la version {required} ou une version plus récente. Une autre intégration personnalisée a chargé l'ancienne version : supprimez-la et redémarrez Home Assistant."
+    },
+    "command_needs_v1r": {
+      "message": "Cela nécessite la connexion signée (v1r) à la passerelle."
+    },
+    "command_not_confirmed": {
+      "message": "Mettez confirm à true pour envoyer cette commande."
+    },
+    "gateway_command_failed": {
+      "message": "La passerelle n'a pas exécuté la commande : {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "Le firmware de la Powerwall ne prend pas en charge cette commande."
+    },
+    "key_not_removed": {
+      "message": "La clé n'a pas été supprimée : {error}"
     }
   },
   "services": {
@@ -1010,6 +1067,60 @@
           "description": "Le capteur d'énergie de l'énergie déchargée par la batterie, par exemple *Battery discharged* de Tesla Fleet ou Teslemetry."
         }
       }
+    },
+    "set_site_limit": {
+      "name": "Définir la limite du site",
+      "description": "Définit ou supprime la limite d'import ou d'export réseau du site, via la connexion locale signée. Un installateur a peut-être fixé une limite pour respecter votre contrat de raccordement (par exemple une limite d'export du gestionnaire de réseau) : ne l'augmentez pas et ne la supprimez pas sans en avoir le droit.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "direction": {
+          "name": "Sens",
+          "description": "Import (depuis le réseau) ou export (vers le réseau)."
+        },
+        "limit_kw": {
+          "name": "Limite",
+          "description": "La limite en kW. Laissez vide pour supprimer la limite."
+        },
+        "confirm": {
+          "name": "Confirmer",
+          "description": "Doit être activé : cela modifie la Powerwall."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Reporter la calibration de la batterie",
+      "description": "Reporte la prochaine calibration de la batterie de la Powerwall, via la connexion locale signée. La passerelle n'autorise qu'un nombre limité de reports, et chaque appel peut en utiliser un. Certains firmwares ne le prennent pas en charge.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "delay_hours": {
+          "name": "Report",
+          "description": "Durée du report de la calibration, en heures."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Supprimer une clé enregistrée",
+      "description": "Supprime une clé enregistrée auprès de la passerelle, via la connexion locale signée. Cette app ou cet appareil ne pourra plus lui envoyer de commandes. La clé utilisée par cette intégration ne peut pas être supprimée.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "fingerprint": {
+          "name": "Empreinte",
+          "description": "Le début de l'empreinte de la clé (au moins 8 caractères), telle que l'affiche le capteur Clés enregistrées."
+        },
+        "confirm": {
+          "name": "Confirmer",
+          "description": "Doit être activé : cela modifie la Powerwall."
+        }
+      }
     }
   },
   "issues": {
@@ -1023,7 +1134,7 @@
         "step": {
           "login": {
             "title": "Se connecter à Tesla",
-            "description": "Votre compte Tesla sert à enregistrer la clé auprès de la Powerwall et de secours pour modifier les paramètres quand la connexion locale est coupée.\n\n**Connexion par navigateur :**\n1. Ouvrez ce lien sur un ordinateur, avec les outils de développement du navigateur ouverts sur l'onglet **Réseau** (F12) :\n   [Se connecter à Tesla]({url})\n2. Connectez-vous. La dernière page ne se charge pas, car Tesla envoie le navigateur vers une adresse `tesla://auth/callback?code=…`.\n3. Dans l'onglet Réseau, trouvez la requête commençant par `callback?code=` (ou l'en-tête `Location` de la dernière redirection) et copiez l'adresse complète.\n4. Collez-la ci-dessous. Les codes expirent en quelques minutes et ne fonctionnent qu'une fois.\n\n**Ou un jeton d'actualisation :** collez le jeton d'actualisation d'une connexion par application, par exemple *Auth app for Tesla* (iOS, Android). Utilisez un jeton créé pour cela, pas un jeton qu'une autre intégration utilise déjà : se connecter ailleurs avec le même jeton peut déconnecter cette intégration.",
+            "description": "Votre compte Tesla sert à enregistrer la clé auprès de la Powerwall et de secours pour modifier les paramètres quand la connexion locale est coupée.\n\nTesla n'accepte plus la connexion. Cet avis disparaît après la prochaine vérification réussie (environ toutes les heures) : s'il ne s'agissait que d'une courte panne chez Tesla, vous pouvez le laisser.\n\n**Connexion par navigateur :**\n1. Ouvrez ce lien sur un ordinateur, avec les outils de développement du navigateur ouverts sur l'onglet **Réseau** (F12) :\n   [Se connecter à Tesla]({url})\n2. Connectez-vous. La dernière page ne se charge pas, car Tesla envoie le navigateur vers une adresse `tesla://auth/callback?code=…`.\n3. Dans l'onglet Réseau, trouvez la requête commençant par `callback?code=` (ou l'en-tête `Location` de la dernière redirection) et copiez l'adresse complète.\n4. Collez-la ci-dessous. Les codes expirent en quelques minutes et ne fonctionnent qu'une fois.\n\n**Ou un jeton d'actualisation :** collez le jeton d'actualisation d'une connexion par application, par exemple *Auth app for Tesla* (iOS, Android). Utilisez un jeton créé pour cela, pas un jeton qu'une autre intégration utilise déjà : se connecter ailleurs avec le même jeton peut déconnecter cette intégration.",
             "data": {
               "callback": "Jeton d'actualisation ou adresse de rappel"
             },
@@ -1168,6 +1279,10 @@
         "bms_a045_sw_soc_change": "La batterie a recalibré son niveau de charge",
         "bms_a089_lifemodel_stodcrgrowth_change": "La batterie a mis à jour son estimation de vieillissement",
         "energyaccumulatorirrational": "Un compteur d'énergie a fait un saut improbable",
+        "opticasterretry": "L'optimiseur d'énergie de la passerelle fait une nouvelle tentative",
+        "evsemia": "La passerelle ne peut pas joindre une borne de recharge (Wall Connector)",
+        "userevsemia": "La passerelle ne peut pas joindre une borne de recharge (Wall Connector), alerte pour l'utilisateur",
+        "evsenotchargingwhenallowed": "Une borne de recharge (Wall Connector) ne charge pas alors qu'elle y est autorisée",
         "islandchecksfailed": "Échec du contrôle de disponibilité du secours (normal quelques minutes quand la batterie se remplit ou après un redémarrage)",
         "pvinvertercomms": "Communication perdue avec l'onduleur solaire",
         "ieee1547trip": "La protection de raccordement au réseau s'est déclenchée (tension ou fréquence hors plage)",
@@ -1178,6 +1293,7 @@
         "pws_a021_hvpmia": "Le contrôleur haute tension de la batterie ne répond pas",
         "baggr_a005_numbatteriesexpectedmismatch": "Moins de batteries détectées que prévu",
         "bms_a037_sw_nvram_config_error": "Les réglages de gestion de la batterie n'ont pas pu être lus",
+        "bms_a023_sw_assertion": "Le logiciel de gestion de la batterie a signalé une erreur interne",
         "batteryfault": "Défaut de batterie",
         "systemshutdown": "Système arrêté",
         "pws_a009_rsd": "L'arrêt rapide est actif (interrupteur marche/arrêt ou bouton d'arrêt rapide)",
@@ -1202,6 +1318,10 @@
         "bms_a045_sw_soc_change": "Niveau de charge recalibré",
         "bms_a089_lifemodel_stodcrgrowth_change": "Vieillissement mis à jour",
         "energyaccumulatorirrational": "Saut de compteur",
+        "opticasterretry": "Nouvelle tentative de l'optimiseur",
+        "evsemia": "Borne de recharge injoignable",
+        "userevsemia": "Borne de recharge injoignable (alerte utilisateur)",
+        "evsenotchargingwhenallowed": "Borne de recharge ne charge pas",
         "islandchecksfailed": "Contrôle du secours échoué",
         "pvinvertercomms": "Onduleur solaire injoignable",
         "ieee1547trip": "Protection réseau déclenchée",
@@ -1212,6 +1332,7 @@
         "pws_a021_hvpmia": "Contrôleur batterie muet",
         "baggr_a005_numbatteriesexpectedmismatch": "Batteries manquantes",
         "bms_a037_sw_nvram_config_error": "Erreur de réglages batterie",
+        "bms_a023_sw_assertion": "Erreur logicielle batterie",
         "pws_a009_rsd": "Arrêt rapide actif",
         "pws_a014_hvpfault": "Défaut contrôleur batterie",
         "pws_a044_hvprsdfault": "Défaut d'arrêt rapide",
@@ -1252,6 +1373,12 @@
         "min_soc": "batterie au niveau de reconnexion",
         "requested": "reconnexion demandée",
         "reconnected_elsewhere": "reconnecté ailleurs"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Import",
+        "export": "Export"
       }
     }
   }

@@ -1,0 +1,64 @@
+blueprint:
+  name: Powerwall - problem alert
+  description: >-
+    Send a notification when the Powerwall's **Problem** sensor turns on, with
+    what the Powerwall reports, and when it clears. The sensor turns on when a
+    warning or fault has lasted the problem delay (10 minutes by default).
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/problem_alert.yaml
+  input:
+    problem:
+      name: Powerwall Problem
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: binary_sensor
+    notify_action:
+      name: Notify action
+      description: For example `notify.mobile_app_my_phone`, or `notify.notify` for all.
+      default: notify.notify
+      selector:
+        text:
+    notify_cleared:
+      name: Also when the problem has cleared
+      default: true
+      selector:
+        boolean:
+
+mode: queued
+max: 10
+
+variables:
+  problem: !input problem
+  notify_action: !input notify_action
+  notify_cleared: !input notify_cleared
+
+triggers:
+  - trigger: state
+    id: problem
+    entity_id: !input problem
+    from: "off"
+    to: "on"
+  - trigger: state
+    id: cleared
+    entity_id: !input problem
+    from: "on"
+    to: "off"
+
+conditions:
+  - condition: template
+    value_template: "{{ trigger.id == 'problem' or notify_cleared }}"
+
+actions:
+  - variables:
+      message: >-
+        {% if trigger.id == 'problem' %}
+          {{ (state_attr(problem, 'problems') or []) | map(attribute='description') | join('; ')
+             or 'The Powerwall reports a problem.' }}
+        {% else %}
+          The problem has cleared.
+        {% endif %}
+  - action: "{{ notify_action }}"
+    data:
+      title: Powerwall
+      message: "{{ message | trim }}"

@@ -352,6 +352,15 @@
       },
       "grid_services_active": {
         "name": "Serviços de rede ativos"
+      },
+      "wifi_internet": {
+        "name": "Internet por Wi-Fi"
+      },
+      "ethernet_internet": {
+        "name": "Internet por Ethernet"
+      },
+      "cellular_internet": {
+        "name": "Internet por celular"
       }
     },
     "button": {
@@ -485,6 +494,12 @@
       },
       "inverter_heatsink_temperature": {
         "name": "Temperatura do dissipador do inversor"
+      },
+      "inverter_n_ambient_temperature": {
+        "name": "Temperatura ambiente do inversor {inverter}"
+      },
+      "inverter_n_heatsink_temperature": {
+        "name": "Temperatura do dissipador do inversor {inverter}"
       },
       "alerts": {
         "name": "Alertas"
@@ -680,6 +695,33 @@
       },
       "tariff_sell_price": {
         "name": "Preço de venda da tarifa"
+      },
+      "network_connection": {
+        "name": "Conexão de rede",
+        "state": {
+          "wifi": "Wi-Fi",
+          "ethernet": "Ethernet",
+          "cellular": "Celular",
+          "none": "Nenhuma"
+        }
+      },
+      "wifi_signal": {
+        "name": "Sinal Wi-Fi"
+      },
+      "cellular_signal": {
+        "name": "Sinal celular"
+      },
+      "site_import_limit": {
+        "name": "Limite de importação do local"
+      },
+      "site_export_limit": {
+        "name": "Limite de exportação do local"
+      },
+      "registered_keys": {
+        "name": "Chaves registradas"
+      },
+      "calibration_delays_left": {
+        "name": "Adiamentos de calibração restantes"
       }
     },
     "switch": {
@@ -814,6 +856,21 @@
     },
     "pypowerwall_too_old": {
       "message": "O pypowerwall {found} está carregado no Home Assistant, mas esta integração precisa da versão {required} ou mais recente. Outra integração personalizada carregou a versão mais antiga: remova-a e reinicie o Home Assistant."
+    },
+    "command_needs_v1r": {
+      "message": "Isto precisa da conexão assinada (v1r) com o gateway."
+    },
+    "command_not_confirmed": {
+      "message": "Defina confirm como true para enviar este comando."
+    },
+    "gateway_command_failed": {
+      "message": "O gateway não executou o comando: {error}"
+    },
+    "not_supported_by_firmware": {
+      "message": "O firmware da Powerwall não oferece suporte a este comando."
+    },
+    "key_not_removed": {
+      "message": "A chave não foi removida: {error}"
     }
   },
   "services": {
@@ -1010,6 +1067,60 @@
           "description": "O sensor de energia com a energia descarregada da bateria, por exemplo *Battery discharged* do Tesla Fleet ou Teslemetry."
         }
       }
+    },
+    "set_site_limit": {
+      "name": "Definir limite do local",
+      "description": "Define ou remove o limite de importação ou exportação de rede do local, pela conexão local assinada. Um instalador pode ter definido um limite para cumprir seu contrato de conexão à rede (por exemplo, um limite de exportação da distribuidora): não aumente nem remova sem ter permissão.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessário só quando há mais de uma Powerwall configurada."
+        },
+        "direction": {
+          "name": "Sentido",
+          "description": "Importação (da rede) ou exportação (para a rede)."
+        },
+        "limit_kw": {
+          "name": "Limite",
+          "description": "O limite em kW. Deixe vazio para remover o limite."
+        },
+        "confirm": {
+          "name": "Confirmar",
+          "description": "Precisa estar ativado: isto altera a Powerwall."
+        }
+      }
+    },
+    "delay_battery_calibration": {
+      "name": "Adiar a calibração da bateria",
+      "description": "Adia a próxima calibração da bateria da Powerwall, pela conexão local assinada. O gateway permite um número limitado de adiamentos, e cada chamada pode usar um. Alguns firmwares não oferecem suporte.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessário só quando há mais de uma Powerwall configurada."
+        },
+        "delay_hours": {
+          "name": "Adiamento",
+          "description": "Por quanto tempo adiar a calibração, em horas."
+        }
+      }
+    },
+    "remove_registered_key": {
+      "name": "Remover chave registrada",
+      "description": "Remove uma chave registrada no gateway, pela conexão local assinada. Esse app ou dispositivo não poderá mais enviar comandos a ele. A chave usada por esta integração não pode ser removida.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessário só quando há mais de uma Powerwall configurada."
+        },
+        "fingerprint": {
+          "name": "Impressão digital",
+          "description": "O início da impressão digital da chave (pelo menos 8 caracteres), como o sensor Chaves registradas mostra."
+        },
+        "confirm": {
+          "name": "Confirmar",
+          "description": "Precisa estar ativado: isto altera a Powerwall."
+        }
+      }
     }
   },
   "issues": {
@@ -1023,7 +1134,7 @@
         "step": {
           "login": {
             "title": "Entrar na Tesla",
-            "description": "Sua conta Tesla é usada para registrar a chave na Powerwall e como reserva para alterar configurações quando a conexão local cai.\n\n**Login pelo navegador:**\n1. Abra este link em um computador, com as ferramentas de desenvolvedor do navegador abertas na aba **Rede** (F12):\n   [Entrar na Tesla]({url})\n2. Entre. A última página não carrega, porque a Tesla envia o navegador para um endereço `tesla://auth/callback?code=…`.\n3. Na aba Rede, encontre a requisição que começa com `callback?code=` (ou o cabeçalho `Location` do último redirecionamento) e copie esse endereço completo.\n4. Cole-o abaixo. Os códigos expiram em minutos e funcionam uma vez.\n\n**Ou um refresh token:** cole o refresh token de um login por app, como o *Auth app for Tesla* (iOS, Android). Use um token criado para isso, não um que outra integração já usa: entrar em outro lugar com o mesmo token pode desconectar essa integração.",
+            "description": "Sua conta Tesla é usada para registrar a chave na Powerwall e como reserva para alterar configurações quando a conexão local cai.\n\nA Tesla deixou de aceitar o login. Este aviso some após a próxima verificação bem-sucedida (mais ou menos a cada hora); se foi só uma falha rápida da Tesla, você pode deixá-lo.\n\n**Login pelo navegador:**\n1. Abra este link em um computador, com as ferramentas de desenvolvedor do navegador abertas na aba **Rede** (F12):\n   [Entrar na Tesla]({url})\n2. Entre. A última página não carrega, porque a Tesla envia o navegador para um endereço `tesla://auth/callback?code=…`.\n3. Na aba Rede, encontre a requisição que começa com `callback?code=` (ou o cabeçalho `Location` do último redirecionamento) e copie esse endereço completo.\n4. Cole-o abaixo. Os códigos expiram em minutos e funcionam uma vez.\n\n**Ou um refresh token:** cole o refresh token de um login por app, como o *Auth app for Tesla* (iOS, Android). Use um token criado para isso, não um que outra integração já usa: entrar em outro lugar com o mesmo token pode desconectar essa integração.",
             "data": {
               "callback": "Token de atualização ou endereço de retorno"
             },
@@ -1168,6 +1279,10 @@
         "bms_a045_sw_soc_change": "A bateria recalibrou seu nível de carga",
         "bms_a089_lifemodel_stodcrgrowth_change": "A bateria atualizou sua estimativa de desgaste",
         "energyaccumulatorirrational": "Um contador de energia saltou de forma implausível",
+        "opticasterretry": "O otimizador de energia do gateway está tentando novamente",
+        "evsemia": "O gateway não consegue se comunicar com um carregador de VE (Wall Connector)",
+        "userevsemia": "O gateway não consegue se comunicar com um carregador de VE (Wall Connector), alerta para o usuário",
+        "evsenotchargingwhenallowed": "Um carregador de VE (Wall Connector) não está carregando, embora tenha permissão",
         "islandchecksfailed": "Falha na verificação de prontidão do backup (normal por alguns minutos quando a bateria enche ou após reiniciar)",
         "pvinvertercomms": "Comunicação perdida com o inversor solar",
         "ieee1547trip": "A proteção de conexão à rede atuou (tensão ou frequência da rede fora da faixa)",
@@ -1178,6 +1293,7 @@
         "pws_a021_hvpmia": "O controlador de alta tensão da bateria não responde",
         "baggr_a005_numbatteriesexpectedmismatch": "Encontradas menos baterias que o esperado",
         "bms_a037_sw_nvram_config_error": "Não foi possível ler as configurações de gerenciamento da bateria",
+        "bms_a023_sw_assertion": "O software de gerenciamento da bateria relatou um erro interno",
         "batteryfault": "Falha da bateria",
         "systemshutdown": "Sistema desligado",
         "pws_a009_rsd": "O desligamento rápido está ativo (chave liga/desliga ou botão de desligamento rápido)",
@@ -1202,6 +1318,10 @@
         "bms_a045_sw_soc_change": "Nível de carga recalibrado",
         "bms_a089_lifemodel_stodcrgrowth_change": "Desgaste atualizado",
         "energyaccumulatorirrational": "Salto do contador",
+        "opticasterretry": "Otimizador tentando novamente",
+        "evsemia": "Carregador de VE sem resposta",
+        "userevsemia": "Carregador de VE sem resposta (alerta do usuário)",
+        "evsenotchargingwhenallowed": "Carregador de VE não carrega",
         "islandchecksfailed": "Falha na verificação do backup",
         "pvinvertercomms": "Sem comunicação com o inversor",
         "ieee1547trip": "Proteção da rede atuou",
@@ -1212,6 +1332,7 @@
         "pws_a021_hvpmia": "Controlador da bateria sem resposta",
         "baggr_a005_numbatteriesexpectedmismatch": "Baterias ausentes",
         "bms_a037_sw_nvram_config_error": "Erro nas configurações da bateria",
+        "bms_a023_sw_assertion": "Erro de software da bateria",
         "pws_a009_rsd": "Desligamento rápido ativo",
         "pws_a014_hvpfault": "Falha do controlador da bateria",
         "pws_a044_hvprsdfault": "Falha do desligamento rápido",
@@ -1252,6 +1373,12 @@
         "min_soc": "bateria no nível de reconexão",
         "requested": "reconexão solicitada",
         "reconnected_elsewhere": "reconectado em outro lugar"
+      }
+    },
+    "site_limit_direction": {
+      "options": {
+        "import": "Importação",
+        "export": "Exportação"
       }
     }
   }

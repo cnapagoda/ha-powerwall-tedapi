@@ -2,6 +2,7 @@
 integration's actions (mocked) as intended."""
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from pathlib import Path
 import shutil
@@ -22,6 +23,9 @@ BLUEPRINTS = sorted(p.name for p in SOURCE.glob("*.yaml"))
 PRICE, FEED_IN = "sensor.import_price", "sensor.feed_in_price"
 EXPORT, MODE, DISPATCH, LEVEL = ("select.powerwall_grid_export", "select.powerwall_operation_mode",
                                  "binary_sensor.powerwall_dispatch_active", "sensor.powerwall_battery_level")
+GRID, GRID_POWER, PROBLEM, RESERVE = ("binary_sensor.powerwall_grid_connected", "sensor.powerwall_grid_power",
+                                      "binary_sensor.powerwall_problem", "number.powerwall_backup_reserve")
+PUMP, HEATER, WARNING = "input_boolean.pump", "input_boolean.heater", "binary_sensor.storm_warning"
 
 
 @pytest.fixture
@@ -243,3 +247,322 @@ async def test_dynamic_price_tariff_refuses_a_thin_forecast(hass: HomeAssistant,
     await hass.async_block_till_done()
     assert calls["set_tariff"] == []
     assert "without a price" in notes["create"][0].data["message"]
+
+
+async def _later(hass: HomeAssistant, minutes: int) -> None:
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=minutes))
+    await hass.async_block_till_done()
+
+
+async def _set(hass: HomeAssistant, entity_id: str, state: str, attributes: dict | None = None) -> None:
+    hass.states.async_set(entity_id, state, attributes)
+    await hass.async_block_till_done()
+
+
+@pytest.fixture
+async def loads(hass: HomeAssistant, blueprint_dir) -> str:
+    """Two real loads (the pump on, the heater off) and the scene snapshot
+    the blueprint restores them from."""
+    for domain, config in (("homeassistant", {}), ("scene", {}), ("input_boolean", {"input_boolean": {
+            "pump": {"initial": True}, "heater": {"initial": False}}})):
+        assert await async_setup_component(hass, domain, config)
+    hass.states.async_set(GRID, "on")
+    await hass.async_block_till_done()
+    return "scene.powerwall_shed_outage_load_shedding_yaml"
+
+
+async def test_outage_load_shedding(hass: HomeAssistant, loads) -> None:
+    await _automation(hass, "outage_load_shedding.yaml", {
+        "grid_connected": GRID, "battery_level": LEVEL, "loads": [PUMP, HEATER], "minutes": 2})
+
+    await _set(hass, GRID, "off")
+    assert hass.states.get(PUMP).state == "on"  # not before 2 minutes
+    await _later(hass, 3)
+    assert (hass.states.get(PUMP).state, hass.states.get(HEATER).state) == ("off", "off")
+    assert hass.states.get(loads) is not None
+
+    # The battery level falling further doesn't take a second snapshot.
+    await _set(hass, LEVEL, "40")
+    await _set(hass, GRID, "on")
+    assert (hass.states.get(PUMP).state, hass.states.get(HEATER).state) == ("on", "off")
+    assert hass.states.get(loads) is None
+
+    # An off-grid run started here isn't an outage.
+    await _set(hass, GRID, "off", {"off_grid_run": True})
+    await _later(hass, 6)
+    assert hass.states.get(PUMP).state == "on"
+
+
+async def test_outage_load_shedding_waits_for_the_battery_level(hass: HomeAssistant, loads) -> None:
+    await _automation(hass, "outage_load_shedding.yaml", {
+        "grid_connected": GRID, "battery_level": LEVEL, "loads": [PUMP, HEATER], "below": 50,
+        "restore": False})
+
+    await _set(hass, LEVEL, "45")  # low, but the grid is up
+    await _set(hass, LEVEL, "55")
+    await _set(hass, GRID, "off")
+    await _later(hass, 2)
+    assert hass.states.get(PUMP).state == "on"  # battery still at 55 %
+    await _set(hass, LEVEL, "49")
+    assert hass.states.get(PUMP).state == "off"
+
+    await _set(hass, GRID, "on")
+    assert hass.states.get(PUMP).state == "off"  # not put back
+    assert hass.states.get(loads) is None  # ready for the next outage
+
+
+async def test_storm_backup(hass: HomeAssistant, blueprint_dir) -> None:
+    calls = _calls(hass, DOMAIN, "start_max_backup", "cancel_max_backup")
+    hass.states.async_set(WARNING, "off")
+    await _automation(hass, "storm_backup.yaml", {"powerwall": "entry1", "warning": WARNING})
+
+    await _set(hass, WARNING, "on")
+    assert [c.data for c in calls["start_max_backup"]] == [{"config_entry_id": "entry1", "duration_minutes": 720}]
+    # A warning sensor that drops out doesn't start it again or end it.
+    await _set(hass, WARNING, "unavailable")
+    await _set(hass, WARNING, "on")
+    assert len(calls["start_max_backup"]) == 1
+    assert calls["cancel_max_backup"] == []
+
+    await _set(hass, WARNING, "off")
+    assert [c.data for c in calls["cancel_max_backup"]] == [{"config_entry_id": "entry1"}]
+
+
+async def test_storm_backup_can_run_its_time(hass: HomeAssistant, blueprint_dir) -> None:
+    calls = _calls(hass, DOMAIN, "start_max_backup", "cancel_max_backup")
+    hass.states.async_set(WARNING, "off")
+    await _automation(hass, "storm_backup.yaml", {
+        "powerwall": "entry1", "warning": WARNING, "hours": 6, "cancel_when_clear": False})
+    await _set(hass, WARNING, "on")
+    await _set(hass, WARNING, "off")
+    assert [c.data["duration_minutes"] for c in calls["start_max_backup"]] == [360]
+    assert calls["cancel_max_backup"] == []
+
+
+async def test_solar_surplus_load(hass: HomeAssistant, blueprint_dir) -> None:
+    calls = _calls(hass, "homeassistant", "turn_on", "turn_off")
+    hass.states.async_set(LEVEL, "97")
+    hass.states.async_set(GRID_POWER, "150")
+    await _automation(hass, "solar_surplus_load.yaml", {
+        "battery_level": LEVEL, "grid_power": GRID_POWER, "load": {"entity_id": "switch.pool_pump"},
+        "start_soc": 95, "export_watts": 1000, "minutes": 5, "import_watts": 200, "stop_soc": 80})
+
+    await _set(hass, GRID_POWER, "-1500")
+    assert calls["turn_on"] == []  # not before 5 minutes
+    await _later(hass, 6)
+    assert [c.data["entity_id"] for c in calls["turn_on"]] == [["switch.pool_pump"]]
+
+    await _set(hass, GRID_POWER, "-300")  # the load uses the surplus: stays on
+    await _later(hass, 12)
+    assert calls["turn_off"] == []
+    await _set(hass, GRID_POWER, "600")
+    await _later(hass, 18)
+    assert [c.data["entity_id"] for c in calls["turn_off"]] == [["switch.pool_pump"]]
+
+
+async def test_solar_surplus_load_follows_the_battery_level(hass: HomeAssistant, blueprint_dir) -> None:
+    calls = _calls(hass, "homeassistant", "turn_on", "turn_off")
+    hass.states.async_set(LEVEL, "90")
+    hass.states.async_set(GRID_POWER, "0")
+    await _automation(hass, "solar_surplus_load.yaml", {
+        "battery_level": LEVEL, "grid_power": GRID_POWER, "load": {"entity_id": "switch.pool_pump"}})
+
+    await _set(hass, GRID_POWER, "-2000")
+    await _later(hass, 6)
+    assert calls["turn_on"] == []  # exporting, but the battery isn't full yet
+    await _set(hass, LEVEL, "96")
+    assert len(calls["turn_on"]) == 1
+
+    await _set(hass, GRID_POWER, "-100")
+    await _set(hass, LEVEL, "99")
+    await _set(hass, LEVEL, "94")
+    await _set(hass, LEVEL, "96")
+    assert len(calls["turn_on"]) == 1  # battery full again, but nothing left to export
+    await _set(hass, LEVEL, "79")
+    assert len(calls["turn_off"]) == 1
+
+
+async def test_problem_alert(hass: HomeAssistant, blueprint_dir) -> None:
+    calls = _calls(hass, "notify", "my_phone")
+    hass.states.async_set(PROBLEM, "off", {"problems": []})
+    await _automation(hass, "problem_alert.yaml", {"problem": PROBLEM, "notify_action": "notify.my_phone"})
+
+    await _set(hass, PROBLEM, "on", {"problems": [
+        {"alert": "BatteryComms", "description": "A battery isn't answering", "severity": "warning"},
+        {"alert": "PVS_a018", "description": "Solar input fault", "severity": "fault"}]})
+    await _set(hass, PROBLEM, "unavailable")  # a reload doesn't repeat it
+    await _set(hass, PROBLEM, "on", {"problems": []})
+    await _set(hass, PROBLEM, "off", {"problems": []})
+    assert [(c.data["title"], c.data["message"]) for c in calls["my_phone"]] == [
+        ("Powerwall", "A battery isn't answering; Solar input fault"), ("Powerwall", "The problem has cleared.")]
+
+
+async def test_problem_alert_without_the_all_clear(hass: HomeAssistant, blueprint_dir) -> None:
+    calls = _calls(hass, "notify", "notify")
+    hass.states.async_set(PROBLEM, "off")
+    await _automation(hass, "problem_alert.yaml", {"problem": PROBLEM, "notify_cleared": False})
+    await _set(hass, PROBLEM, "on")
+    await _set(hass, PROBLEM, "off")
+    assert [c.data["message"] for c in calls["notify"]] == ["The Powerwall reports a problem."]
+
+
+async def test_low_battery_alert(hass: HomeAssistant, blueprint_dir) -> None:
+    calls = _calls(hass, "notify", "my_phone")
+    hass.states.async_set(GRID, "on")
+    await _automation(hass, "low_battery_alert.yaml", {
+        "battery_level": LEVEL, "grid_connected": GRID, "threshold": 20, "notify_action": "notify.my_phone"})
+
+    await _set(hass, LEVEL, "15")
+    assert calls["my_phone"] == []  # the grid is up
+    await _set(hass, GRID, "off")  # an outage with the battery already low
+    await _set(hass, LEVEL, "30")
+    await _set(hass, LEVEL, "18.5")
+    await _set(hass, GRID, "on")
+    await _set(hass, LEVEL, "60")
+    await _set(hass, GRID, "off")  # an outage with enough in the battery
+    assert [c.data["message"] for c in calls["my_phone"]] == [
+        "Battery at 15 % and the grid is down.", "Battery at 18.5 % and the grid is down."]
+
+
+async def test_low_battery_alert_with_the_grid_up(hass: HomeAssistant, blueprint_dir) -> None:
+    calls = _calls(hass, "notify", "notify")
+    hass.states.async_set(GRID, "on")
+    await _automation(hass, "low_battery_alert.yaml", {
+        "battery_level": LEVEL, "grid_connected": GRID, "only_outage": False})
+    await _set(hass, LEVEL, "19")
+    await _set(hass, LEVEL, "unavailable")
+    await _set(hass, GRID, "off")
+    assert [c.data["message"] for c in calls["notify"]] == ["Battery at 19 %."]
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])
+async def test_backup_reserve_schedule(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    calls = _calls(hass, "number", "set_value")
+    monday = dt_util.start_of_local_day(dt_util.parse_datetime("2026-11-16T12:00:00+00:00"))
+    freezer.move_to(monday + timedelta(hours=12))
+    await _automation(hass, "backup_reserve_schedule.yaml", {
+        "backup_reserve": RESERVE, "start": "22:00:00", "end": "06:00:00", "reserve_inside": 70,
+        "reserve_outside": 10, "weekdays": ["mon", "wed"]})
+
+    # Monday 22:00 and Tuesday 06:00 (Monday's window), then Tuesday 22:00
+    # and Wednesday 06:00 (Tuesday has no window), then Wednesday 22:00.
+    for hours in (22, 30, 46, 54, 70):
+        freezer.move_to(monday + timedelta(hours=hours))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert [(c.data["entity_id"], c.data["value"]) for c in calls["set_value"]] == [
+        ([RESERVE], 70), ([RESERVE], 10), ([RESERVE], 70)]
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])
+async def test_backup_reserve_schedule_within_a_day(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    calls = _calls(hass, "number", "set_value")
+    saturday = dt_util.start_of_local_day(dt_util.parse_datetime("2026-11-14T12:00:00+00:00"))
+    freezer.move_to(saturday + timedelta(hours=12))
+    await _automation(hass, "backup_reserve_schedule.yaml", {
+        "backup_reserve": RESERVE, "weekdays": ["mon", "tue", "wed", "thu", "fri"]})
+
+    for hours in (14, 17, 24 + 14, 24 + 17, 48 + 14, 48 + 17):  # Saturday, Sunday, Monday
+        freezer.move_to(saturday + timedelta(hours=hours))
+        async_fire_time_changed(hass)
+        await hass.async_block_till_done()
+    assert [c.data["value"] for c in calls["set_value"]] == [80, 20]
+
+
+BATTERY_PLAN, GRID_PLAN = "sensor.battery_active_power", "sensor.grid_active_power"
+
+
+async def _settle(hass: HomeAssistant, freezer, seconds: float = 3) -> None:
+    """Let the runs start (they wait 2 s), then move time past the wait.
+    async_block_till_done would wait for a delay itself, also one a time
+    trigger starts here, so the loop is run by hand."""
+    for _ in range(10):
+        await asyncio.sleep(0)
+    freezer.tick(timedelta(seconds=seconds))
+    async_fire_time_changed(hass)
+    for _ in range(20):
+        await asyncio.sleep(0)
+
+
+async def _set_plan(hass: HomeAssistant, freezer, battery: float, grid: float, unit: str = "W") -> None:
+    hass.states.async_set(BATTERY_PLAN, str(battery), {"unit_of_measurement": unit})
+    hass.states.async_set(GRID_PLAN, str(grid), {"unit_of_measurement": unit})
+    await _settle(hass, freezer)
+
+
+async def _plan(hass: HomeAssistant, freezer, **inputs) -> dict:
+    freezer.move_to("2026-11-16T00:01:00+00:00")  # clear of the 5-minute trigger
+    calls = _calls(hass, DOMAIN, "dispatch_battery_power", "resume_battery_operation")
+    await _automation(hass, "follow_energy_plan.yaml", {
+        "powerwall": "entry1", "battery_plan": BATTERY_PLAN, "grid_plan": GRID_PLAN,
+        "dispatch_active": DISPATCH, **inputs})
+    return calls
+
+
+def _powers(calls: dict) -> list:
+    return [c.data["power_watts"] for c in calls["dispatch_battery_power"]]
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])  # the 5-minute trigger
+async def test_follow_energy_plan_emhass(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    """EMHASS (W): charging while importing charges at the planned power,
+    capped; exporting from the battery discharges; importing with the battery
+    idle holds it at 0 W. Both sensors updating together send one dispatch."""
+    calls = await _plan(hass, freezer)
+    await _set_plan(hass, freezer, -3040, 4000)
+    assert _powers(calls) == [-3000]
+    assert calls["dispatch_battery_power"][-1].data["duration_seconds"] == 600
+    assert calls["dispatch_battery_power"][-1].data["config_entry_id"] == "entry1"
+    await _set_plan(hass, freezer, -9000, 9500)
+    assert _powers(calls)[-1] == -5000  # Largest battery power
+    await _set_plan(hass, freezer, 2460, -1500)
+    assert _powers(calls)[-1] == 2500
+    await _set_plan(hass, freezer, 40, 1200)
+    assert _powers(calls) == [-3000, -5000, 2500, 0]
+    assert calls["resume_battery_operation"] == []
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])
+async def test_follow_energy_plan_haeo_kw(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    """HAEO (kW) is scaled to W; with Export at full power an export runs at
+    the largest power."""
+    calls = await _plan(hass, freezer, max_power=10000, full_rate_export=True)
+    await _set_plan(hass, freezer, -2.0, 2.6, "kW")
+    assert _powers(calls) == [-2000]
+    await _set_plan(hass, freezer, 1.2, -3.0, "kW")
+    assert _powers(calls) == [-2000, 10000]
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])
+async def test_follow_energy_plan_normal(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    """Solar charging the battery, a balanced house or an unavailable plan:
+    the battery is handed back, only if a dispatch is running."""
+    calls = await _plan(hass, freezer)
+    await _set_plan(hass, freezer, -2000, -600)  # solar to the battery and the grid
+    assert calls["dispatch_battery_power"] == [] and calls["resume_battery_operation"] == []
+    hass.states.async_set(DISPATCH, "on")
+    await _set_plan(hass, freezer, 500, 0)  # battery covers the house
+    assert len(calls["resume_battery_operation"]) == 1
+    assert calls["resume_battery_operation"][0].data["config_entry_id"] == "entry1"
+    hass.states.async_set(GRID_PLAN, "unavailable")
+    await _settle(hass, freezer)
+    assert len(calls["resume_battery_operation"]) == 2
+    assert calls["dispatch_battery_power"] == []
+
+
+@pytest.mark.parametrize("expected_lingering_timers", [True])
+async def test_follow_energy_plan_too_old(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    """The dispatch is re-sent every 5 minutes; a plan older than the limit
+    counts as no plan."""
+    calls = await _plan(hass, freezer, max_age=30)
+    await _set_plan(hass, freezer, -3000, 4100)
+    assert _powers(calls) == [-3000]
+    hass.states.async_set(DISPATCH, "on")
+    await _settle(hass, freezer, 4 * 60)  # 00:05
+    await _settle(hass, freezer)
+    assert _powers(calls) == [-3000, -3000]
+    for _ in range(6):  # to 00:35
+        await _settle(hass, freezer, 5 * 60)
+        await _settle(hass, freezer)
+    assert _powers(calls) == [-3000] * 7
+    assert len(calls["resume_battery_operation"]) == 1

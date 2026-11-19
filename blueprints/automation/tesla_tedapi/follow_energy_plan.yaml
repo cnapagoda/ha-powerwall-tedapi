@@ -1,0 +1,142 @@
+blueprint:
+  name: Powerwall - follow an energy plan (HAEO, EMHASS)
+  description: >-
+    Turns the plan of an energy optimiser such as HAEO or EMHASS into battery
+    dispatches. It charges from the grid when the plan buys energy to store,
+    exports when the plan sells from the battery, and holds the battery idle
+    when the plan imports while keeping the battery for later. Otherwise the
+    Powerwall runs normally and follows the real solar and load, so forecast
+    errors don't turn into unplanned imports. The dispatch is re-sent every
+    5 minutes; when the plan is unavailable or older than the limit below, the
+    battery goes back to normal operation.
+
+
+    Use at your own risk: dispatching the battery may affect your Powerwall
+    warranty, which may cover unlimited cycles only for self-consumption,
+    time-based control and backup.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/follow_energy_plan.yaml
+  input:
+    powerwall:
+      name: Powerwall
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    battery_plan:
+      name: Planned battery power
+      description: >-
+        HAEO: your battery's Active power (sensor.<battery>_active_power).
+        EMHASS: sensor.p_batt_forecast. Positive discharges, negative charges;
+        W or kW.
+      selector:
+        entity:
+          domain: sensor
+    grid_plan:
+      name: Planned grid power
+      description: >-
+        HAEO: your grid's Active power (sensor.<grid>_active_power). EMHASS:
+        sensor.p_grid_forecast. Positive imports, negative exports; W or kW.
+      selector:
+        entity:
+          domain: sensor
+    max_power:
+      name: Largest battery power
+      description: Dispatches never go above this (one Powerwall 3 - 10,000 W).
+      default: 5000
+      selector:
+        number:
+          min: 100
+          max: 30000
+          step: 100
+          unit_of_measurement: W
+          mode: box
+    full_rate_export:
+      name: Export at full power
+      description: >-
+        When the plan exports from the battery, discharge at the largest power
+        instead of the planned power, and let your export limit decide. Use it
+        when your plan exports at the export limit.
+      default: false
+      selector:
+        boolean:
+    max_age:
+      name: Plan too old after
+      description: A plan not updated for this long counts as no plan.
+      default: 60
+      selector:
+        number:
+          min: 5
+          max: 1440
+          unit_of_measurement: min
+    dispatch_active:
+      name: Powerwall Dispatch active
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: binary_sensor
+
+# A plan usually updates both sensors at once: wait for both, then act once.
+mode: restart
+
+variables:
+  battery_plan: !input battery_plan
+  grid_plan: !input grid_plan
+  max_power: !input max_power
+  full_rate_export: !input full_rate_export
+  max_age: !input max_age
+  dispatch_active: !input dispatch_active
+  # Planned power in W (kW sensors are scaled), or none when there is no
+  # current plan.
+  battery_w: >-
+    {% set s = states[battery_plan] %}
+    {% if s is not none and is_number(s.state)
+          and (now() - s.last_reported).total_seconds() <= max_age * 60 %}
+      {{ s.state | float * (1000 if s.attributes.unit_of_measurement == 'kW' else 1) }}
+    {% else %}none{% endif %}
+  grid_w: >-
+    {% set s = states[grid_plan] %}
+    {% if s is not none and is_number(s.state)
+          and (now() - s.last_reported).total_seconds() <= max_age * 60 %}
+      {{ s.state | float * (1000 if s.attributes.unit_of_measurement == 'kW' else 1) }}
+    {% else %}none{% endif %}
+  # Below 100 W counts as zero.
+  plan: >-
+    {% if not is_number(battery_w) or not is_number(grid_w) %}normal
+    {% elif battery_w | float < -100 and grid_w | float > 100 %}charge
+    {% elif grid_w | float < -100 and battery_w | float > 100 %}export
+    {% elif grid_w | float > 100 and battery_w | float | abs <= 100 %}hold
+    {% else %}normal{% endif %}
+  power: >-
+    {% set cap = max_power | float %}
+    {% if plan == 'charge' %}{{ -([[(battery_w | float | abs / 100) | round(0) * 100, 100] | max, cap] | min) | int }}
+    {% elif plan == 'export' %}{{ (cap if full_rate_export else [[(battery_w | float / 100) | round(0) * 100, 100] | max, cap] | min) | int }}
+    {% else %}0{% endif %}
+
+triggers:
+  - trigger: state
+    entity_id: !input battery_plan
+  - trigger: state
+    entity_id: !input grid_plan
+  - trigger: time_pattern
+    minutes: /5
+  - trigger: homeassistant
+    event: start
+
+actions:
+  - delay:
+      seconds: 2
+  - choose:
+      - conditions: "{{ plan == 'normal' }}"
+        sequence:
+          - condition: template
+            value_template: "{{ is_state(dispatch_active, 'on') }}"
+          - action: tesla_tedapi.resume_battery_operation
+            data:
+              config_entry_id: !input powerwall
+    default:
+      - action: tesla_tedapi.dispatch_battery_power
+        continue_on_error: true
+        data:
+          config_entry_id: !input powerwall
+          power_watts: "{{ power }}"
+          duration_seconds: 600

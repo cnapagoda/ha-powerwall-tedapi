@@ -15,6 +15,9 @@ The integration adds these actions (formerly called *services*). Try them in **D
 | [`reconnect_grid`](#tesla_tedapireconnect_grid) | Signed | Reconnect the house to the grid. |
 | [`get_tariff` / `set_tariff`](#tesla_tedapiget_tariff--tesla_tedapiset_tariff) | Cloud backup + Tesla tariff option | Read or write Tesla's tariff. |
 | [`import_battery_history`](#tesla_tedapiimport_battery_history) | Two energy sensors with history | One-off copy of earlier battery history. |
+| [`set_site_limit`](#tesla_tedapiset_site_limit) | Signed | Set or remove the site's grid import or export limit. |
+| [`delay_battery_calibration`](#tesla_tedapidelay_battery_calibration) | Signed | Postpone the next battery calibration. |
+| [`remove_registered_key`](#tesla_tedapiremove_registered_key) | Signed | Remove a key registered with the gateway. |
 
 > [!WARNING]
 > Battery dispatch and going off-grid change how your house is powered and may affect your warranty. Read [Safety](safety.md) first.
@@ -139,6 +142,10 @@ This also charges to 100 %, which a backup reserve set through Tesla's cloud can
 
 End a max backup started here or in the Tesla app. Events Tesla scheduled (Storm Watch) aren't affected; turn the **Storm Watch** switch off to stop those. The **Cancel max backup** [button](entities.md#buttons) does the same.
 
+```yaml
+action: tesla_tedapi.cancel_max_backup
+```
+
 ---
 
 ## `tesla_tedapi.go_off_grid`
@@ -181,6 +188,10 @@ data:
 
 Reconnect the house to the grid, also after *Go off-grid* in the Tesla app. It waits up to 90 seconds for the Powerwall to start syncing to the grid (**Grid connected** turns back on once it has synced). It fails during a real outage, when there's no grid to sync to. The **Reconnect to the grid** [button](entities.md#buttons) does the same.
 
+```yaml
+action: tesla_tedapi.reconnect_grid
+```
+
 **Response** (optional): `grid_status` and the gateway's `response`.
 
 ---
@@ -191,6 +202,11 @@ Read or write the tariff Tesla uses for Time-Based Control. They need a [cloud b
 
 **`get_tariff`** always returns a response: `backend` (which backup answered) and `tariff` (Tesla's raw tariff).
 
+```yaml
+action: tesla_tedapi.get_tariff
+response_variable: tariff
+```
+
 **`set_tariff`** fields:
 
 | Field | Default | |
@@ -199,6 +215,8 @@ Read or write the tariff Tesla uses for Time-Based Control. They need a [cloud b
 | `dry_run` | `true` | Only check, list what Tesla would change (`warnings`) and show what would be sent. |
 | `read_back` | `full` | `full`: read back for up to 25 s. `once`: one read after 15 s, for scheduled writes. `none`: no read; the next tariff read confirms it. |
 | `only_if_changed` | `false` | Skip the write when these are the rates last sent, or the ones Tesla shows. |
+
+For a complete `set_tariff` example (a check with `dry_run`, then the write), see [Writing a tariff](tesla-tariff.md#writing-set_tariff).
 
 ---
 
@@ -218,6 +236,100 @@ A one-off copy of the battery charged and discharged history of two energy senso
 
 The response's `summary` lists, per sensor, the `source`, the number of `hours`, the `kwh`, the period (`from`, `to`) and where it joins (`join`).
 
+```yaml
+# Check first (dry_run is the default); run again with dry_run: false to import
+action: tesla_tedapi.import_battery_history
+data:
+  source_charged: sensor.my_powerwall_battery_charged        # your sensors
+  source_discharged: sensor.my_powerwall_battery_discharged
+  dry_run: true
+response_variable: result
+```
+
 It's refused when there is nothing to import, or when the history was already imported.
 
 See [Migrating](migration.md) for keeping the rest of your Energy dashboard history.
+
+---
+
+## `tesla_tedapi.set_site_limit`
+
+> [!CAUTION]
+> An installer may have set an import or export limit to meet your grid connection agreement (for example a network export limit). Don't raise or remove one unless you're allowed to. You change it at your own risk; check your agreement and your warranty first.
+
+Sets the limit the Powerwall keeps the whole site to (grid import or export, in kW), or removes it. Battery dispatches keep to these limits too. The **Site import limit** and **Site export limit** [sensors](entities.md#network-site-limits-and-keys) show the result. Returns the new limits (`import_limit_kw`, `export_limit_kw`; `null` for no limit).
+
+| Field | Required | |
+|---|---|---|
+| `direction` | Yes | `import` or `export`. |
+| `limit_kw` | No | The limit in kW. `0` allows no import (or export) at all. Leave it out to remove the limit. |
+| `confirm` | Yes | Must be `true`. |
+| `config_entry_id` | No | Only with several Powerwalls. |
+
+```yaml
+action: tesla_tedapi.set_site_limit
+data:
+  direction: export
+  limit_kw: 5
+  confirm: true
+```
+
+Remove the import limit (leave `limit_kw` out):
+
+```yaml
+action: tesla_tedapi.set_site_limit
+data:
+  direction: import
+  confirm: true
+response_variable: limits
+```
+
+---
+
+## `tesla_tedapi.delay_battery_calibration`
+
+Postpones the Powerwall's next battery calibration by `delay_hours` (1–168). The gateway allows a limited number of delays (see **Calibration delays left**), and each call may use one. A calibration can't be started this way, only postponed. Some firmware doesn't support it (a Powerwall 3 on 26.34.3 doesn't): the action then says so. Returns the calibration delay status where the firmware reports it.
+
+| Field | Required | |
+|---|---|---|
+| `delay_hours` | Yes | 1–168. |
+| `config_entry_id` | No | Only with several Powerwalls. |
+
+```yaml
+action: tesla_tedapi.delay_battery_calibration
+data:
+  delay_hours: 24
+response_variable: calibration
+```
+
+---
+
+## `tesla_tedapi.remove_registered_key`
+
+Removes a key registered with the gateway: that app, vehicle or client can no longer send it commands, and adding it back needs a new registration through Tesla. Use it for keys that never verified (state `pending_verification_timeout` in the **Registered keys** sensor). The key this integration uses is refused. Returns the registered keys after the removal, as the sensor's attributes list them.
+
+| Field | Required | |
+|---|---|---|
+| `fingerprint` | Yes | The start of the key's fingerprint (8 or more characters), from the `keys` attribute of **Registered keys**. It must match exactly one key. |
+| `confirm` | Yes | Must be `true`. |
+| `config_entry_id` | No | Only with several Powerwalls. |
+
+**Listing the keys:** there's no action for it: the **Registered keys** sensor reads them every 5 minutes. In **Developer tools → Template**:
+
+```jinja
+{% for key in state_attr('sensor.powerwall_tedapi_registered_keys', 'keys') %}
+{{ key.fingerprint }}  {{ key.type }}  {{ key.state }}{{ '  (this integration)' if key.this_key }}
+{% endfor %}
+```
+
+**Removing one:**
+
+```yaml
+action: tesla_tedapi.remove_registered_key
+data:
+  fingerprint: 0123456789abcdef    # from the list above
+  confirm: true
+response_variable: keys
+```
+
+**Adding a key:** there's no action: a key is registered through Tesla's cloud and confirmed at the Powerwall. Use **Configure → Register a new signed key** (see [Configuration](configuration.md#options-configure)).

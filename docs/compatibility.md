@@ -8,30 +8,34 @@ This integration uses interfaces Tesla doesn't document, so what works depends o
 |---|---|---|
 | **Powerwall 3** | ✅ Tested by the maintainer | Signed connection over the home network; firmware 26.x. Built-in solar inputs, fans, per-pack wear counters. |
 | **Powerwall 3 with Expansion Packs** | ✅ Tested by the maintainer | Each Expansion Pack gets its own capacity, temperature and health sensors, and **Battery health** and **Battery full capacity** count every pack. Packs added later appear by themselves. |
-| **Powerwall 2 / Powerwall+** | 🟡 Less tested | Signed access works if the firmware supports it; reported working on firmware 26.34.2 with a Backup Gateway 1. The Wi-Fi password connection gives readings. Some readings differ (see below). |
-| Backup Gateway 1 (part number `1118431-…`) | 🟡 Less tested | Recognised at setup: it logs in with the full gateway password instead of its last 5 characters. Reported working with a Powerwall 2 on firmware 26.34.2: signed connection, readings, backup reserve, battery dispatch and `charge_to` (thanks [@BJReplay](https://github.com/BJReplay)). Grid charging and export expected to work. |
-| Several Powerwalls on one gateway | 🟡 Expected to work | One entry per gateway; packs appear by themselves. |
+| **Powerwall 2 / Powerwall+** | 🟡 Less tested | Signed access works if the firmware supports it; tested on firmware 26.34.2 with a Backup Gateway 1. The Wi-Fi password connection gives readings. Some readings differ (see below). |
+| Backup Gateway 1 (part number `1118431-…`) | 🟡 Less tested | Recognised at setup: it logs in with the full gateway password instead of its last 5 characters. Other gateways that only take the full password are found too: setup tries it when the last 5 characters are refused. Tested with a Powerwall 2 on firmware 26.34.2 over the signed connection on the home network: key registration, readings, operation mode, backup reserve, grid charging, export, Storm Watch, every battery dispatch mode including `charge_to` / `discharge_to`, max backup, and going off-grid with both the timed and the manual reconnect (thanks [@BJReplay](https://github.com/BJReplay)). |
+| Several Powerwall 3s on one gateway | 🟡 Tested by users | Four Powerwall 3s with a Backup Gateway 2 (firmware 26.34.3, gateway 26.34.1), signed connection over the home network: readings and totals for all four, and battery dispatch, which kept to the site import and export limits (thanks [@acbcarneiro](https://github.com/acbcarneiro)). With the [Wi-Fi fallback](setup.md#several-powerwalls) set, every follower appears with its own pack sensors (capacity, temperature, lifetime discharge). |
 | Several gateways | 🟡 Expected to work | Add the integration once per gateway. |
 | Powerwall 1 | ❓ Unknown | |
 
-✅ tested · 🟡 expected or reported, not verified by the maintainer · ❓ unknown · ❌ doesn't work
+✅ tested by the maintainer · 🟡 tested by users or expected · ❓ unknown · ❌ doesn't work
 
 ## Features by model
 
 | Feature | Powerwall 3 (with or without Expansion Packs) | Powerwall 2 / + |
 |---|---|---|
 | Power, battery level, energy counters, grid status | ✅ | ✅ |
-| Settings over a signed connection | ✅ | 🟡 firmware dependent; backup reserve reported working on 26.34.2 |
-| Battery dispatch, `charge_to` / `discharge_to` | ✅ | 🟡 firmware dependent; dispatch and `charge_to` reported working on 26.34.2 |
-| Max backup | ✅ | 🟡 |
-| Go off-grid / reconnect | ✅ | ❓ |
+| Settings over a signed connection | ✅ | 🟡 firmware dependent; operation mode, backup reserve, grid charging, export and Storm Watch tested on 26.34.2 |
+| Battery dispatch, `charge_to` / `discharge_to` | ✅ | 🟡 firmware dependent; every dispatch mode tested on 26.34.2 |
+| Max backup | ✅ | 🟡 tested on 26.34.2 |
+| Go off-grid / reconnect | ✅ | 🟡 tested on 26.34.2 (timed and manual reconnect) |
 | Solar input *A–F* sensors | ✅ built-in inverter | ❓ a Powerwall+ solar inverter may report them; reports welcome |
-| Fan speeds | ✅ inverter fans A/B, with duty | 🟡 one fan per Powerwall, with target speed |
+| Fan speeds | ✅ inverter fans A/B, with duty | 🟡 Powerwall+ only: one fan per solar inverter, with target speed. ❌ Powerwall 2 without the solar inverter: none |
 | Per-pack lifetime discharge and cycles | ✅ | ❓ only if the gateway reports the counters |
-| Inverter temperatures | ✅ (heatsink doesn't change on some firmware) | ❌ not reported (no sensors); each battery's temperature comes from its thermal controller |
+| Inverter temperatures | ✅ each Powerwall 3's inverter (heatsink doesn't change on some firmware) | ❌ not reported (no sensors); each battery's temperature comes from its thermal controller |
 | Energy flows, round-trip efficiency, capacity trend | ✅ | ✅ |
 | Per-phase voltage and meter sensors | ✅ where the gateway reports them | ✅ where the gateway reports them |
 | Wall Connector and tariff sensors (cloud backup) | ✅ | ✅ |
+| Network status and internet sensors | ✅ signed and Wi-Fi password connections | 🟡 over the Powerwall's Wi-Fi only (set a Wi-Fi fallback address on a signed connection) |
+| Site import and export limits | ✅ read on 26.34.3; setting a limit not yet tested | ❓ reports welcome |
+| Registered keys (list, remove) | ✅ on 26.34.3 | ❓ reports welcome |
+| Battery calibration delay | ❌ not supported on 26.34.3 | ❓ reports welcome |
 | Dropped-settings restore | ✅ seen and restored on firmware 26.x | ❓ |
 | On-grid solar curtailment (experimental) | ❓ not tested on a real Powerwall | ❓ |
 
@@ -50,6 +54,7 @@ Nothing in the local connection depends on the region. The Tesla cloud parts (ke
 | Region | Notes |
 |---|---|
 | North America, Europe, Asia-Pacific | No region-specific limits known. Please report what works for you, so this table can say more. |
+| United Kingdom | Powerwall 3 on firmware 26.34.3, signed over the home network: key registration, readings and changing settings locally reported working (thanks [@meteosat007](https://github.com/meteosat007)). |
 | China | Tesla's Fleet API isn't available there, so Tesla Fleet / Teslemetry can't be used. The Owner API path is untested. |
 
 ## Home Assistant
@@ -69,6 +74,7 @@ Tesla updates firmware on its own schedule. When the gateway reports a new versi
 | Firmware | Model | Status | Reported by |
 |---|---|---|---|
 | 26.34.3 | Powerwall 3 | ✅ Works (signed connection, settings, battery dispatch) | Maintainer |
+| 26.34.3 | 4 × Powerwall 3, Backup Gateway 2 (26.34.1) | ✅ Works (signed connection, readings, battery dispatch within the site limits) | [@acbcarneiro](https://github.com/acbcarneiro) |
 | 26.34.2 | Powerwall 3 | ✅ Works (signed connection) | Maintainer |
 | 26.34.1 | Powerwall 3 | ✅ Works (key registration verified through the Tesla cloud) | Maintainer |
 | 26.x | Powerwall 3 | ✅ Works; drops export and grid charging settings about hourly ([restored](dropped-settings.md)) | Maintainer |

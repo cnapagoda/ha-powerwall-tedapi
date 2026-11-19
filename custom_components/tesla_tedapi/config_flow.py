@@ -217,9 +217,30 @@ def _raise_if_refused(mode: str, host: str) -> None:
 
 def _check_gateway(host: str, gw_pwd: str) -> tuple[str | None, bool]:
     """Password check (customer login): the DIN, if the firmware gives it, and
-    whether this gateway takes the full password (Backup Gateway 1)."""
+    whether this gateway takes the full password (a Backup Gateway 1, or one
+    that refuses the last 5 characters and takes the full password)."""
     full = gateway.full_password_login(host)
-    return gateway.din(host, gw_pwd, full), full
+    try:
+        return gateway.din_any(host, gw_pwd, full)
+    except gateway.GatewayPasswordRejected as err:
+        # Enough to tell a changed customer password from a gateway that
+        # wants another form of it; never the password or the whole DIN.
+        _LOGGER.debug("The gateway at %s refused the password (%s): part number %s, %d characters given",
+                      host, str(err) or "refused", gateway.part_number(host) or "not reported", len(gw_pwd.strip()))
+        raise
+
+
+def _login_mode(host: str, gw_pwd: str) -> bool:
+    """Whether the customer login takes the full password, for Reconfigure. A
+    refused password or no answer is left to the connection check that
+    follows, which reports it."""
+    full = gateway.full_password_login(host)
+    if not gw_pwd:
+        return full
+    try:
+        return gateway.login_any(host, gw_pwd, full)[1]
+    except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected):
+        return full
 
 
 def _scan() -> list[dict[str, str]]:
@@ -998,7 +1019,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             mode = MODE_V1R if key_path else MODE_WIFI
             host = user_input[CONF_HOST].strip()
             gw_pwd = user_input.get(CONF_GW_PWD, "").strip()
-            full = await self.hass.async_add_executor_job(gateway.full_password_login, host)
+            full = await self.hass.async_add_executor_job(_login_mode, host, gw_pwd)
             try:
                 din = await self.hass.async_add_executor_job(partial(
                     _probe, mode, host, gw_pwd, key_path, str(self.hass.config.time_zone), full_login=full))

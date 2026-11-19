@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.8.0
+
+- **Six new blueprints** (Automations → Blueprints, one-click import):
+  - **Backup reserve schedule:** one reserve during a time window and another after it, on the days you choose. No dispatch.
+  - **Low battery alert:** a notification when the battery falls below a level while the grid is down (or at any time).
+  - **Shed loads during a grid outage:** turns off the loads you choose when the grid has been down for a few minutes, or once the battery falls below a level, and puts them back the way they were when the grid returns.
+  - **Full battery before a storm:** starts a max backup when a weather warning (or a calendar with planned outages) turns on, and ends it when the warning clears. Needs a signed connection.
+  - **Run a load on surplus solar:** turns a load on while the battery is nearly full and the house still exports, and off when the house imports or the battery falls below a level.
+  - **Problem alert:** a notification when the **Problem** sensor turns on, with what the Powerwall reports, and when it clears.
+- **Five more gateway alerts are recognised:** `BMS_a023_SW_Assertion` (warning: it now counts toward **Problem** if it lasts, so the **Problem alert** blueprint reports it), and `OpticasterRetry`, `EVSEMIA`, `UserEVSEMIA` and `EVSENotChargingWhenAllowed` (notice).
+- **Diagnostics downloads no longer show the gateway's address or the key file's path:** the home network address, the Wi-Fi fallback address and the signed key's path are redacted, also where they appear in a message.
+- **Works with energy planners**, locally through battery dispatch:
+  - **Predbat:** a ready-made `apps.yaml` ([`examples/predbat_apps.yaml`](examples/predbat_apps.yaml)); see [Predbat](docs/predbat.md).
+  - **EMHASS and HAEO:** the **Follow an energy plan** blueprint charges, exports or holds the battery when the plan trades with the grid, and leaves the Powerwall to its normal operation otherwise; see [EMHASS](docs/emhass.md) and [HAEO](docs/haeo.md).
+  - **evcc:** scripts for its Home Assistant battery meter ([`examples/evcc_scripts.yaml`](examples/evcc_scripts.yaml)); see [evcc](docs/evcc.md).
+- **Network status, site limits, calibration delay and registered keys** (new, local):
+  - Sensors: **Network connection** (Wi-Fi, Ethernet or cellular), **Wi-Fi signal**, **Cellular signal**, internet connectivity per interface, **Site import limit**, **Site export limit**, **Registered keys** and **Calibration delays left** (where the firmware reports it).
+  - Actions (signed connection): `set_site_limit`, `delay_battery_calibration` and `remove_registered_key`; see [Actions](docs/actions.md).
+  - These use the new [aiopytedapi](https://pypi.org/project/aiopytedapi/) library alongside pypowerwall. A Powerwall 2 reports its network status over the Gateway Wi-Fi only (set a Wi-Fi fallback address). Diagnostics redact the key fingerprints.
+- **Inverter temperatures of follower Powerwall 3s:** **Inverter 2 ambient temperature** and **Inverter 2 heatsink temperature** (and so on), numbered like their fans. The leader's sensors don't change (thanks [@xybu](https://github.com/xybu)).
+- **Setup tries the full gateway password when the gateway refuses its last 5 characters**, and remembers which one works (some gateways other than a Backup Gateway 1 take only the full password; thanks [@MattJBeard](https://github.com/MattJBeard)). A refused password is now explained in the debug log: the HTTP status and the gateway's part number, never the password.
+- **A dispatch re-sent at the same power** (as Predbat does every 5 minutes) no longer logs the warranty and grid charging warnings again; they're logged when the dispatch starts or its power changes.
+- **An internet outage no longer asks you to sign in to Tesla again:** a cloud backup failure only counts toward that repair while Tesla's server answers. The repair also says it clears itself after the next successful check.
+- Docs: a Powerwall 3 in the United Kingdom (firmware 26.34.3) is reported working over the signed connection: key registration, readings and changing settings locally (thanks [@meteosat007](https://github.com/meteosat007)).
+- Docs: four Powerwall 3s on a Backup Gateway 2 (firmware 26.34.3) are reported working over the signed connection, and battery dispatches kept to the site import and export limits set by the installer (thanks [@acbcarneiro](https://github.com/acbcarneiro)).
+- Docs: the blueprints are grouped by use, and the blueprint import links point to this release.
+- Docs: Powerwall 2 with a Backup Gateway 1 (firmware 26.34.2) is reported working over the signed connection: setup, readings, settings, battery dispatch, max backup, and going off-grid with the timed and the manual reconnect (thanks [@BJReplay](https://github.com/BJReplay)). Fan speed sensors are documented as Powerwall 3 and Powerwall+ only: a Powerwall 2 without the built-in solar inverter has none.
+
 ## 2.7.0
 
 - **Energy flows:** seven new energy sensors (solar to home, battery and grid; battery to home and grid; grid to home and battery), in kWh, attributed from the gateway's power readings. Local, no cloud. They count from this version on.

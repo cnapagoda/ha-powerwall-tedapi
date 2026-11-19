@@ -16,6 +16,7 @@ import threading
 import time
 from typing import TYPE_CHECKING, Any
 
+from aiopytedapi import NotSupportedError, SiteLimits, TedapiError
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
@@ -84,6 +85,7 @@ from .const import (
     cloud_choice,
 )
 from .daily import DailyEnergy, GridCheck
+from .extras import GatewayExtras
 from .firmware import FirmwareTracker, split_version
 from .fleet import FleetBackup, FleetTimeout, entry_api, provider_label
 from .flows import EnergyFlows
@@ -184,6 +186,24 @@ def _extract_pinv_value(vitals: dict, *keys: str, din: str | None = None) -> flo
             if val is not None:
                 return round(float(val), 2)
     return None
+
+
+def _extract_follower_inverter_temps(vitals: dict, din: str | None = None) -> dict[str, dict[str, Any]]:
+    """Ambient and heatsink temperature of each further Powerwall 3 inverter
+    (TEPINV blocks), numbered like their fans: {"2": {"ambient", "heatsink"}}.
+    The leader's are inverter_ambient_temp and inverter_heatsink_temp."""
+
+    def num(v):
+        return round(float(v), 2) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
+    names = [k for k in sorted(vitals or {}) if k.split("--")[0] == "TEPINV" and isinstance(vitals[k], dict)]
+    temps: dict[str, dict[str, Any]] = {}
+    for index, name in enumerate(_leader_first(names, din), start=1):
+        values = {"ambient": num(vitals[name].get("PCH_AmbientTemp")),
+                  "heatsink": num(vitals[name].get("PCH_heatsinkTemp"))}
+        if index > 1 and any(v is not None for v in values.values()):
+            temps[str(index)] = values
+    return temps
 
 
 def _is_number(value: Any) -> bool:
@@ -553,6 +573,11 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Backup events from the gateway: (monotonic time read, raw result).
         self._backup_events: tuple[float, dict[str, Any]] | None = None
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
+        # Network status, site limits, calibration delay and registered keys
+        # (aiopytedapi, async).
+        self.extras = GatewayExtras(
+            hass, mode=self._conn_mode, host=self._host, gw_pwd=self._gw_pwd, rsa_key_path=self._rsa_key_path,
+            full_login=self._full_login, wifi_host=self._wifi_host, din=self.din)
 
         super().__init__(
             hass,
@@ -612,7 +637,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.fleet_signin_needed = False
         for name in CLOUD_CHOICES.get(cloud_choice(data, entry.options), ()):
             if name == BACKEND_OWNER and self._owners_email:
-                backends.append(CloudBackend(name, self._init_cloud, extras_seconds=OWNER_EXTRAS_SECONDS))
+                backends.append(CloudBackend(name, self._init_cloud, server=lambda: tesla_cloud.OWNER_API,
+                                             extras_seconds=OWNER_EXTRAS_SECONDS))
             elif name == BACKEND_FLEET:
                 api = entry_api(hass, entry)
                 if api is None:
@@ -621,6 +647,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 fleet = FleetBackup(hass, api, int(data[CONF_FLEET_SITE_ID]))
                 backends.append(CloudBackend(
                     name, lambda fleet=fleet: fleet, writable=lambda fleet=fleet: fleet.can_write,
+                    server=lambda api=api: api.server,
                     extras_seconds=OWNER_EXTRAS_SECONDS, display=provider_label(data.get(CONF_FLEET_PROVIDER))))
         return backends
 
@@ -785,6 +812,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             **{f"{key}_missing": missing.get(key, False) for key in DROPPABLE_SETTINGS},
             # Experimental: a site_info flag the gateway keeps only while it is on.
             "solar_curtailment": bool(site_info.get(SOLAR_CURTAILMENT_KEY)) if site_info is not None else None,
+            # Import and export limits, from the same config read.
+            "site_limits": SiteLimits.from_config({"site_info": site_info}).to_dict() if site_info is not None
+            else None,
         }
 
     @staticmethod
@@ -850,13 +880,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return {}
         if any(v is not None for v in values.values()):
             backend.cache = (now, values)
-            backend.failures = 0
-            backend.last_ok = dt_util.utcnow()
+            backend.note_ok(dt_util.utcnow())
         else:
             # Logged in but every read failed, e.g. a refreshed token the
-            # Owner API rejects: log in again next time.
+            # Owner API rejects (or the internet went down): log in again
+            # next time.
             _LOGGER.debug("%s settings read returned nothing", backend.label)
-            backend.failures += 1
+            backend.note_failure()
             backend.drop()
             backend.cache = (now, {})
         return values
@@ -1055,6 +1085,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "packs": name_packs(_extract_packs(vitals), self._pack_names, self.din, _pack_count(config)),
             "inverter_ambient_temp": _extract_pinv_value(vitals, "PCH_AmbientTemp", din=self.din),
             "inverter_heatsink_temp": _extract_pinv_value(vitals, "PCH_heatsinkTemp", din=self.din),
+            "inverter_temps": _extract_follower_inverter_temps(vitals, self.din),
             "alerts": alerts,
             "backup_hours": round(backup_hours, 2) if num(backup_hours) else None,
             "gateway_started": gateway_started,
@@ -1109,8 +1140,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 errors.append(f"{backend.label}: {err}")
                 continue
             if ok:
-                backend.failures = 0
-                backend.last_ok = dt_util.utcnow()
+                backend.note_ok(dt_util.utcnow())
                 # Accepted is not applied: Tesla may change the value (e.g. it
                 # caps the reserve). It is read back before it counts as done.
                 _LOGGER.info("%s: sent through %s, checking that the Powerwall applies it", what, backend.label)
@@ -1575,6 +1605,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._tariff_check_at = now + TARIFF_PENDING_SECONDS
             else:
                 self._check_tariff_write()
+        await self._async_extras(data)
         self._process_alerts(data)
         self._track_outages(data)
         self._track_daily(data)
@@ -1593,6 +1624,72 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # closer together than the delay would never let it happen.
             self._store.async_delay_save(self._state_to_save, 10)
         return data
+
+    async def _async_extras(self, data: dict[str, Any]) -> None:
+        """Network status, registered keys, calibration delay and (when the
+        poll doesn't read the gateway's config) site limits: read every
+        EXTRAS_SECONDS while the gateway answers; the last values otherwise."""
+        extras = self.extras
+        if data.get("local_ok") and extras.due():
+            try:
+                await extras.async_read(limits=data.get("site_limits") is None)
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Gateway extras read failed: %s", err)
+        data["network"] = extras.network
+        data["registered_keys"] = extras.keys
+        data["calibration_delay"] = extras.calibration
+        if data.get("site_limits") is None:
+            data["site_limits"] = extras.site_limits
+
+    def _extras_command(self) -> GatewayExtras:
+        if not self.extras.signed_supported:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="command_needs_v1r")
+        return self.extras
+
+    def _apply_extras(self, **values: Any) -> None:
+        """Show a command's result now, without waiting for the next read."""
+        if self.data is not None:
+            self.async_set_updated_data({**self.data, **values})
+
+    async def async_set_site_limit(self, direction: str, kilowatts: float | None) -> dict[str, Any]:
+        extras = self._extras_command()
+        try:
+            limits = await extras.async_set_site_limit(direction, kilowatts)
+        except TedapiError as err:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="gateway_command_failed",
+                                     translation_placeholders={"error": str(err)}) from err
+        _LOGGER.warning("Site %s limit set to %s", direction,
+                        "no limit" if kilowatts is None else f"{kilowatts} kW")
+        if self._full is not None:
+            # The next fast polls lay their readings over the last full read.
+            self._full["site_limits"] = limits
+        self._apply_extras(site_limits=limits)
+        return limits
+
+    async def async_delay_calibration(self, hours: int) -> dict[str, Any] | None:
+        extras = self._extras_command()
+        try:
+            status = await extras.async_delay_calibration(hours)
+        except NotSupportedError as err:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="not_supported_by_firmware") from err
+        except TedapiError as err:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="gateway_command_failed",
+                                     translation_placeholders={"error": str(err)}) from err
+        self._apply_extras(calibration_delay=status)
+        return status
+
+    async def async_remove_key(self, fingerprint: str) -> dict[str, Any] | None:
+        extras = self._extras_command()
+        try:
+            keys = await extras.async_remove_key(fingerprint)
+        except ValueError as err:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="key_not_removed",
+                                         translation_placeholders={"error": str(err)}) from err
+        except TedapiError as err:
+            raise HomeAssistantError(translation_domain=DOMAIN, translation_key="gateway_command_failed",
+                                     translation_placeholders={"error": str(err)}) from err
+        self._apply_extras(registered_keys=keys)
+        return keys
 
     async def _async_cloud_live(self, data: dict[str, Any]) -> None:
         """The site's live status from the cloud, when something needs it:

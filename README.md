@@ -4,7 +4,7 @@
 [![Validate](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/validate.yml/badge.svg)](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/validate.yml)
 [![Tests](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/tests.yml/badge.svg)](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/tests.yml)
 
-Local monitoring and control of a Tesla Powerwall from Home Assistant, through the gateway's own interface (TEDAPI). Built on [pypowerwall](https://github.com/jasonacox/pypowerwall). Works with the **Powerwall 3**, and with Powerwall 2 / Powerwall+ where the firmware supports it.
+Local monitoring and control of a Tesla Powerwall from Home Assistant, through the gateway's own interface (TEDAPI). Built on [pypowerwall](https://github.com/jasonacox/pypowerwall) and [aiopytedapi](https://pypi.org/project/aiopytedapi/). Works with the **Powerwall 3**, and with Powerwall 2 / Powerwall+ where the firmware supports it.
 
 <img src="https://raw.githubusercontent.com/cnapagoda/ha-powerwall-tedapi/main/docs/images/setup-10-device.png" alt="Device page with controls and sensors" width="640">
 
@@ -18,12 +18,14 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 - **Backup tools:** start a max backup, follow Storm Watch, test your backup by going off-grid with an automatic reconnect.
 - **Dashboard buttons:** stop a battery dispatch, cancel a max backup or reconnect to the grid with one press.
 - **Knows when something is wrong:** Tesla's alert codes in plain language, a **Problem** sensor, repairs, grid outage history and firmware update notices.
+- **Gateway network and site limits:** network connection and signal, site import and export limits, registered keys, and battery calibration delays.
 - **Keeps working when it can't reach the gateway:** an optional Tesla cloud backup (your Tesla account, Tesla Fleet or Teslemetry) keeps the settings usable, and can also show power and battery level.
 - **More from the cloud backup:** Wall Connector power and state, and Tesla's tariff as buy and sell price sensors and calendars.
 - **A setup wizard:** it finds the Powerwall on your network and registers the access key for you. No command line.
-- **Ready-made blueprints** for cheap charging, price spikes, negative feed-in, time-of-use and outage alerts.
+- **Works with energy planners:** [Predbat](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/predbat.md), [EMHASS](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/emhass.md), [HAEO](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/haeo.md) and [evcc](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/evcc.md) can control the battery locally.
+- **Ready-made blueprints** for cheap charging, price spikes, negative feed-in, time-of-use, reserve schedules, storms, outages, surplus solar and alerts.
 
-> ⚠️ **Not affiliated with Tesla.** It talks to the gateway through its local interface (TEDAPI), which Tesla can change at any time. Battery dispatch overrides your export setting and may affect your warranty; going off-grid disconnects your house from the grid. Read [Safety](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/safety.md) before you use them.
+> ⚠️ **Not affiliated with Tesla.** It talks to the gateway through its local interface (TEDAPI), which Tesla can change at any time. Battery dispatch overrides your export setting (not the site limits your installer set) and may affect your warranty; going off-grid disconnects your house from the grid. Read [Safety](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/safety.md) before you use them.
 
 **Disclaimer.** This integration is provided "as is", without warranty of any kind, under the MIT license. It controls electrical equipment through interfaces Tesla doesn't document, and nobody knows every way that could go wrong. You are responsible for how you use it: for staying within what your installation can safely carry, your network operator's rules (including export limits) and your Powerwall warranty. The author is not liable for any damage, loss, cost or penalty that results.
 
@@ -62,6 +64,7 @@ The full walkthrough, with screenshots and the other ways to connect, is in **[Q
 | [Configuration](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/configuration.md) | [Automations & blueprints](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/automations.md) | [Events](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/events.md) | [Compatibility](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/compatibility.md) |
 | [Migrating from another integration](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/migration.md) | [Alerts](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/alerts.md) | [Cloud backup](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/cloud-backup.md) | [Safety](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/safety.md) |
 | | [Tesla tariff](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/tesla-tariff.md) | [Dropped settings](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/dropped-settings.md) | [How it works & limitations](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/how-it-works.md) |
+| | Energy planners: [Predbat](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/predbat.md), [EMHASS](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/emhass.md), [HAEO](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/haeo.md), [evcc](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/evcc.md) | | |
 
 ## Which connection?
 
@@ -87,7 +90,9 @@ Which sign-in to use: see [Setup](https://github.com/cnapagoda/ha-powerwall-teda
 ## Credits
 
 - [pypowerwall](https://github.com/jasonacox/pypowerwall) by Jason Cox and contributors: TEDAPI, v1r signing, dispatch and Tesla login.
+- [aiopytedapi](https://github.com/cnapagoda/aiopytedapi): async TEDAPI client for the network status, site limits, calibration delay and registered keys. Its wire schema comes from pypowerwall.
 - [Tesla-API](https://github.com/Matthew1471/Tesla-API) research by Matthew1471 into the gateway's battery dispatch fields.
+- [BJReplay](https://github.com/BJReplay) for testing on a Powerwall 2 with a Backup Gateway 1: setup, readings, settings, battery dispatch, max backup and going off-grid over the signed connection.
 
 ## Contributing
 

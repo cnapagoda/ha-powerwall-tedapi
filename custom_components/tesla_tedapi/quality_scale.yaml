@@ -12,6 +12,8 @@ rules:
       pypowerwall is MIT-licensed, tagged on GitHub and on PyPI, but its PyPI
       releases are not built and uploaded by a public CI pipeline (no Trusted
       Publishing provenance). Upstream issue; nothing to change here.
+      aiopytedapi (network status, site limits, calibration delay, registered
+      keys) is MIT-licensed and published from public CI with Trusted Publishing.
   docs-actions: done
   docs-conditions:
     status: exempt
@@ -74,12 +76,14 @@ rules:
   async-dependency:
     status: todo
     comment: >-
-      pypowerwall is synchronous; its calls run in the executor.
+      pypowerwall is synchronous; its calls run in the executor. aiopytedapi
+      (network status, site limits, calibration delay, registered keys) is async.
   inject-websession:
     status: todo
     comment: >-
       pypowerwall uses requests and its own sessions, so Home Assistant's
-      aiohttp session can't be passed in.
+      aiohttp session can't be passed in. aiopytedapi uses Home Assistant's
+      session (async_get_clientsession).
   strict-typing:
     status: todo
     comment: Not checked with mypy --strict yet, and there is no py.typed.
