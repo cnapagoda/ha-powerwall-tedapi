@@ -776,6 +776,9 @@
     "dispatch_soc_limit": {
       "message": "Der Batteriestand ({soc}%) hat die Grenze {limit} bereits überschritten."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "Der Batteriestand wurde in letzter Zeit nicht vom Gateway gelesen, daher können die Grenzen der Entladung/Ladung nicht geprüft werden. Versuche es erneut, sobald das Gateway antwortet (ein Halten mit 0 W funktioniert weiterhin)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W liegt über der in den Optionen der Integration gesetzten Grenze von {cap} W."
     },

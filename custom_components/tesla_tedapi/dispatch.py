@@ -75,9 +75,7 @@ class DispatchSession:
         self.last_end_reason: str | None = None
         self._unsubs: list[CALLBACK_TYPE] = []
         self._failures = 0
-        # When the battery level was last read from the gateway (UTC), and
-        # whether a missing reading has been logged for this stretch.
-        self._fresh_at: datetime | None = None
+        # Whether a missing battery level has been logged for this stretch.
         self._stale_logged = False
         self._listeners: list[Callable[[], None]] = []
         # Every command to the gateway (start, renewal, resume) is sent under
@@ -172,6 +170,16 @@ class DispatchSession:
         now = dt_util.utcnow()
         state = DispatchState(power_watts, now, now + timedelta(seconds=duration_seconds),
                               min_soc, max_soc, target)
+        # A charge or discharge needs a fresh battery level to check its
+        # limits against. Refusing here also covers a planner re-sending its
+        # dispatch every few minutes: a re-send can't keep a blind session
+        # going (a 0 W hold moves no energy, so it may).
+        age = self._level_age()
+        if power_watts != 0 and (age is None or age > self._stale_limit()):
+            raise ServiceValidationError(
+                "The battery level hasn't been read recently, so the dispatch limits can't be checked",
+                translation_domain=DOMAIN, translation_key="dispatch_battery_level_unknown",
+            )
         reason = self._limit_hit(state)
         if reason:
             raise ServiceValidationError(
@@ -195,7 +203,6 @@ class DispatchSession:
         self.state = state
         self._failures = 0
         self._stale_logged = False
-        self._note_reading()
         self._unsubs = [
             async_track_time_interval(self.hass, self._async_tick,
                                       timedelta(seconds=DISPATCH_RENEW_SECONDS)),
@@ -295,14 +302,11 @@ class DispatchSession:
         if self.state is not None:
             await self._async_resume_quietly("completed")
 
-    @callback
-    def _note_reading(self) -> None:
-        """Remember when the gateway last gave a battery level: a successful
-        update that has one. A failed update leaves the old data in place, so
-        it doesn't count."""
-        if self.coordinator.last_update_success and self._soc() is not None:
-            self._fresh_at = dt_util.utcnow()
-            self._stale_logged = False
+    def _level_age(self) -> float | None:
+        """Seconds since the gateway last gave a battery level, or None if it
+        hasn't (the coordinator records it only from a real local reading)."""
+        read_at = self.coordinator.battery_level_at
+        return None if read_at is None else (dt_util.utcnow() - read_at).total_seconds()
 
     def _stale_limit(self) -> float:
         """How old the battery level may be to renew on: 2 minutes, or 2.5
@@ -312,17 +316,20 @@ class DispatchSession:
         return max(DISPATCH_STALE_SECONDS, polls)
 
     def _stale_for(self, state: DispatchState) -> float | None:
-        """Seconds since the last fresh battery level, if it's too old to
-        renew on; None while it's fresh."""
-        # A session started without a reading counts from its start, not from
-        # a reading taken before it.
-        since = state.started if self._fresh_at is None else max(self._fresh_at, state.started)
-        age = (dt_util.utcnow() - since).total_seconds()
-        return age if age > self._stale_limit() else None
+        """Seconds since the last battery level, if it's too old to renew on;
+        None while it's fresh, and always for a 0 W hold."""
+        if state.power_watts == 0:
+            return None
+        age = self._level_age()
+        if age is None:  # no reading at all: count from the session's start
+            age = (dt_util.utcnow() - state.started).total_seconds()
+        if age > self._stale_limit():
+            return age
+        self._stale_logged = False  # fresh again: a later gap is logged again
+        return None
 
     @callback
     def _on_reading(self) -> None:
-        self._note_reading()
         state = self.state
         if state is not None and self._limit_hit(state):
             self.hass.async_create_task(self._async_stop_at_limit(state))

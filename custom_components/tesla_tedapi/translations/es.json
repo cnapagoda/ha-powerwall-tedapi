@@ -776,6 +776,9 @@
     "dispatch_soc_limit": {
       "message": "El nivel de la batería ({soc}%) ya ha pasado el límite {limit}."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "El nivel de batería no se ha leído de la pasarela recientemente, así que no se pueden comprobar los límites del despacho. Inténtalo de nuevo cuando la pasarela responda (una retención a 0 W sigue funcionando)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W supera el límite de {cap} W fijado en las opciones de la integración."
     },

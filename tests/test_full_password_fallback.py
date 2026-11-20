@@ -284,3 +284,19 @@ def test_extras_signed_client_uses_the_customer_password() -> None:
     assert kwargs["password"] == CUSTOMER and kwargs["gw_pwd"] == PWD
     assert client.local_kwargs("wifi", "h", PWD, "", "UTC", customer_pwd=CUSTOMER)["password"] == ""
     assert client.local_kwargs("v1r", "h", PWD, "/k", "UTC")["password"] == ""
+
+
+async def test_reauth_keeps_and_diagnostics_flag_the_customer_password(hass: HomeAssistant, fake_gateway,
+                                                                      fake_powerwall) -> None:
+    from custom_components.tesla_tedapi.diagnostics import async_get_config_entry_diagnostics  # noqa: PLC0415
+
+    from .test_init import V1R, _setup  # noqa: PLC0415
+
+    fake_gateway.customer = CUSTOMER
+    entry = await _setup(hass, {**V1R, "gw_pwd": PWD, "customer_password": CUSTOMER})
+    assert (await async_get_config_entry_diagnostics(hass, entry))["customer_password_set"] is True
+    with patch(SETUP, return_value=True):
+        result = await entry.start_reauth_flow(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "reauth_password"})
+        field = next(k for k in result["data_schema"].schema if k == "customer_password")
+        assert field.description == {"suggested_value": CUSTOMER}  # shown again, so it's kept

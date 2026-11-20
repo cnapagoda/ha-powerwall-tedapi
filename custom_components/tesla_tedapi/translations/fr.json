@@ -776,6 +776,9 @@
     "dispatch_soc_limit": {
       "message": "Le niveau de la batterie ({soc}%) a déjà dépassé la limite {limit}."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "Le niveau de batterie n'a pas été lu récemment depuis la passerelle, les limites de la commande ne peuvent donc pas être vérifiées. Réessayez quand la passerelle répond (un maintien à 0 W fonctionne toujours)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W dépasse la limite de {cap} W définie dans les options de l'intégration."
     },

@@ -1017,8 +1017,13 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                                  CONF_CUSTOMER_PASSWORD: customer_pwd})
         return self.async_show_form(
             step_id="reauth_password",
-            data_schema=vol.Schema({vol.Required(CONF_GW_PWD): PASSWORD,
-                                    vol.Optional(CONF_CUSTOMER_PASSWORD): PASSWORD}),
+            data_schema=vol.Schema({
+                vol.Required(CONF_GW_PWD): PASSWORD,
+                # Suggested, so re-entering only the sticker password keeps a
+                # customer password set earlier; clearing the field removes it.
+                vol.Optional(CONF_CUSTOMER_PASSWORD, description={"suggested_value": (
+                    self._get_reauth_entry().data.get(CONF_CUSTOMER_PASSWORD) or "")}): PASSWORD,
+            }),
             errors=errors,
         )
 

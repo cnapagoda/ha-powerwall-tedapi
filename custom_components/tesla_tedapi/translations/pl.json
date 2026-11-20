@@ -776,6 +776,9 @@
     "dispatch_soc_limit": {
       "message": "Poziom baterii ({soc}%) już przekroczył limit {limit}."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "Poziom baterii nie był ostatnio odczytany z bramy, więc nie można sprawdzić limitów polecenia. Spróbuj ponownie, gdy brama odpowie (utrzymanie przy 0 W nadal działa)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W przekracza limit {cap} W ustawiony w opcjach integracji."
     },

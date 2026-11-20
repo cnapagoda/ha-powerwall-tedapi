@@ -411,3 +411,65 @@ async def test_slow_polling_allows_an_older_battery_level(hass: HomeAssistant, f
     assert session._stale_limit() == DISPATCH_STALE_SECONDS
     coordinator.update_interval = None
     assert session._stale_limit() == DISPATCH_STALE_SECONDS
+
+
+async def test_blind_start_or_resend_is_refused_but_a_hold_is_allowed(hass: HomeAssistant, fake_powerwall,
+                                                                     freezer) -> None:
+    """A planner re-sending its dispatch every few minutes can't keep a session
+    going without a battery level (review of 2.8.2): a charge or discharge is
+    refused, a 0 W hold isn't."""
+    entry = await _setup(hass, V1R)
+    session = entry.runtime_data.dispatch
+    await _dispatch(hass, -2000, 3600)
+    await _gateway_silent(hass, entry, freezer, 180)  # past the 2-minute limit
+    pw = local(fake_powerwall)
+    sent = len(pw.dispatches)
+    with pytest.raises(ServiceValidationError) as err:
+        await _dispatch(hass, -2000, 3600)  # the planner's re-send
+    assert err.value.translation_key == "dispatch_battery_level_unknown"
+    with pytest.raises(ServiceValidationError):
+        await _dispatch(hass, 3000, 3600)
+    assert len(pw.dispatches) == sent  # nothing sent
+    # The running session still ends on its own once its last command is out.
+    ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)
+    await _gateway_silent(hass, entry, freezer, 330)
+    assert [e.data["reason"] for e in ended] == ["battery_level_unknown"]
+    assert not session.active
+    # A 0 W hold moves no energy past any limit: allowed, and renewed, while blind.
+    await _dispatch(hass, 0, 3600)
+    holds = len(pw.dispatches)
+    await _gateway_silent(hass, entry, freezer, 600)
+    assert session.active and len(pw.dispatches) > holds
+
+
+async def test_only_a_real_reading_counts_as_fresh(hass: HomeAssistant, fake_powerwall, freezer) -> None:
+    """Data shown again (a command's result, a tariff read, options) must not
+    make an old battery level look fresh (review of 2.8.2)."""
+    entry = await _setup(hass, V1R)
+    coordinator = entry.runtime_data.coordinator
+    read_at = coordinator.battery_level_at
+    assert read_at is not None
+    freezer.tick(timedelta(seconds=300))
+    coordinator._apply_extras(site_limits={"import_limit_kw": None, "export_limit_kw": 5})
+    coordinator.async_update_listeners()
+    assert coordinator.battery_level_at == read_at
+    with pytest.raises(ServiceValidationError):
+        await _dispatch(hass, -2000, 600)
+    # A real reading makes it fresh again.
+    await coordinator.async_refresh()
+    assert coordinator.battery_level_at > read_at
+    await _dispatch(hass, -2000, 600)
+    assert entry.runtime_data.dispatch.active
+
+
+async def test_session_without_any_reading_counts_from_its_start(hass: HomeAssistant, fake_powerwall,
+                                                                 freezer) -> None:
+    """Defensive: if the coordinator has no reading time at all, the session's
+    age counts from its start."""
+    entry = await _setup(hass, V1R)
+    session = entry.runtime_data.dispatch
+    await _dispatch(hass, -2000, 3600)
+    entry.runtime_data.coordinator.battery_level_at = None
+    assert session._stale_for(session.state) is None  # just started
+    freezer.tick(timedelta(seconds=200))
+    assert session._stale_for(session.state) == pytest.approx(200, abs=1)

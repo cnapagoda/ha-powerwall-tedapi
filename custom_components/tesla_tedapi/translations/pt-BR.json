@@ -776,6 +776,9 @@
     "dispatch_soc_limit": {
       "message": "O nível da bateria ({soc}%) já passou do limite {limit}."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "O nível da bateria não foi lido do gateway recentemente, então os limites do despacho não podem ser verificados. Tente de novo quando o gateway responder (manter em 0 W ainda funciona)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W está acima do limite de {cap} W definido nas opções da integração."
     },

@@ -776,6 +776,9 @@
     "dispatch_soc_limit": {
       "message": "Het batterijniveau ({soc}%) is al voorbij de grens {limit}."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "Het batterijniveau is de laatste tijd niet van de gateway gelezen, dus de grenzen van de dispatch kunnen niet worden gecontroleerd. Probeer het opnieuw zodra de gateway reageert (vasthouden op 0 W werkt nog wel)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W is hoger dan de grens van {cap} W in de opties van de integratie."
     },

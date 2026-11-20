@@ -165,6 +165,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: TedapiC
     result: dict[str, Any] = {
         "entry": redact_values(async_redact_data(entry.as_dict(), TO_REDACT), secrets),
         "connection_mode": coordinator.connection_mode,
+        # The password itself is redacted, also when empty: say whether one is set.
+        "customer_password_set": bool(entry.data.get(CONF_CUSTOMER_PASSWORD)),
         "control_enabled": coordinator.control_enabled,
         "cloud_enabled": coordinator.cloud_enabled,
         "cloud_backends": [backend.name for backend in coordinator.backends],

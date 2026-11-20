@@ -536,6 +536,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._energy_lower: dict[str, int] = {}
         self.din: str | None = entry.unique_id
         self.firmware_version: str | None = None
+        # When the gateway last gave a battery level (UTC): set only by a
+        # local read that returned one, never by data shown again (a command's
+        # result, a tariff read). Battery dispatches renew only while it's fresh.
+        self.battery_level_at: datetime | None = None
         self.model: str = detect_model(self.din, None)
         # Alert descriptions and summaries in Home Assistant's language.
         self.texts = shared_texts(hass)
@@ -1597,6 +1601,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if data.get("firmware_version"):
             self.firmware_version = data["firmware_version"]
         if data.get("local_ok"):
+            if data.get("battery_level") is not None:
+                self.battery_level_at = dt_util.utcnow()
             self.model = detect_model(self.din, data.get("packs"))
             if data.get("full_read", True):  # it counts polls: full reads only
                 self._sync_follower_issue(data.get("missing_powerwalls"))
