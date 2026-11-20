@@ -1242,6 +1242,10 @@
       "title": "Brak jednego Powerwall 3 w odczytach",
       "description": "{count} Powerwall 3 tej bramy nie pojawia się w odczytach, choć zapasowy adres Wi-Fi (`{wifi_host}`) jest ustawiony. Przy połączeniu podpisanym Powerwalle podrzędne odczytuje się tylko przez to Wi-Fi: sprawdź, czy Home Assistant nadal ma do niego dostęp.\n\nSumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek. Zgłoszenie zniknie samo, gdy się pojawią."
     },
+    "wifi_fallback_unreachable": {
+      "title": "Zapasowy adres Wi-Fi jest nieosiągalny",
+      "description": "Zapasowy adres Wi-Fi (`{wifi_host}`) nie odpowiada od ponad godziny, więc nie może przejąć połączenia, gdy adres bramy w sieci domowej przestanie odpowiadać, a podrzędnych Powerwall 3 nie da się przez niego odczytać. Upewnij się, że Home Assistant jest połączony z własną siecią Wi-Fi Powerwalla, albo usuń adres w **Zmień konfigurację**, jeśli z niego nie korzystasz. Ta naprawa zniknie sama, gdy adres znów odpowie."
+    },
     "powerwall_follower_hotspot": {
       "title": "Brak jednego Powerwall 3 w odczytach",
       "description": "{count} Powerwall 3 tej bramy nie pojawia się w odczytach. Połączenie podpisane korzysta z Wi-Fi Powerwalla (`{wifi_host}`), a Powerwalle podrzędne odczytuje się przez to Wi-Fi: sprawdź, czy Home Assistant ma do niego niezawodny dostęp.\n\nSumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek. Zgłoszenie zniknie samo, gdy się pojawią."

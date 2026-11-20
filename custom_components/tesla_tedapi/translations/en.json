@@ -1242,6 +1242,10 @@
       "title": "A Powerwall 3 is missing from the readings",
       "description": "{count} Powerwall 3 unit(s) on this gateway don't appear in the readings, although the Wi-Fi fallback (`{wifi_host}`) is set. On the signed connection follower Powerwalls are read over that Wi-Fi only: check that Home Assistant can still reach it.\n\nPower, energy and capacity totals already include every Powerwall; only the missing units' battery packs, temperatures and fans are absent. This clears by itself once they appear."
     },
+    "wifi_fallback_unreachable": {
+      "title": "The Wi-Fi fallback address can't be reached",
+      "description": "The Wi-Fi fallback address (`{wifi_host}`) hasn't answered for over an hour, so it can't take over if the gateway's home-network address stops answering, and follower Powerwall 3s can't be read over it. Make sure Home Assistant is connected to the Powerwall's own Wi-Fi, or clear the address under **Reconfigure** if you don't use it. This repair clears itself once the address answers again."
+    },
     "powerwall_follower_hotspot": {
       "title": "A Powerwall 3 is missing from the readings",
       "description": "{count} Powerwall 3 unit(s) on this gateway don't appear in the readings. The signed connection uses the Powerwall's own Wi-Fi (`{wifi_host}`), and follower Powerwalls are read over that Wi-Fi: check that Home Assistant still reaches it reliably.\n\nPower, energy and capacity totals already include every Powerwall; only the missing units' battery packs, temperatures and fans are absent. This clears by itself once they appear."

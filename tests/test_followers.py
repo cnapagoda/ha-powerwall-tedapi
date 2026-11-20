@@ -185,3 +185,64 @@ async def test_failed_vitals_read_is_not_a_missing_follower(hass: HomeAssistant,
         await _poll(hass, entry, FOLLOWER_MISSING_POLLS + 1)
         assert entry.runtime_data.coordinator.data["missing_powerwalls"] is None
     assert _issue(hass, entry) is None
+
+
+# ---- 2.8.2: an unreachable Wi-Fi fallback address ----
+
+
+def _fallback_issue(hass: HomeAssistant, entry):
+    return ir.async_get(hass).async_get_issue(DOMAIN, f"wifi_fallback_unreachable_{entry.entry_id}")
+
+
+async def test_unreachable_wifi_fallback_raises_a_repair_then_clears(hass: HomeAssistant, fake_powerwall,
+                                                                     fake_gateway) -> None:
+    from custom_components.tesla_tedapi.coordinator import WIFI_FALLBACK_DOWN_SECONDS  # noqa: PLC0415
+
+    fake_gateway.answers = False
+    entry = await _setup(hass, {**V1R, "wifi_host": "192.168.91.1"})
+    await hass.async_block_till_done(wait_background_tasks=True)
+    coordinator = entry.runtime_data.coordinator
+    # Checked once in the background at setup: not answering, no repair yet.
+    assert coordinator._fallback_ok is False and _fallback_issue(hass, entry) is None
+    health = coordinator.data["health"]
+    assert health["state"] == "ok"  # not a health problem
+    await _refresh(hass, entry)
+    assert coordinator.data["health"]["wifi_fallback_reachable"] is False
+    # Still not answering an hour later: a repair.
+    down = coordinator._fallback_down_since
+    coordinator._sync_fallback_issue(False, down + WIFI_FALLBACK_DOWN_SECONDS - 1)
+    assert _fallback_issue(hass, entry) is None
+    coordinator._sync_fallback_issue(False, down + WIFI_FALLBACK_DOWN_SECONDS)
+    issue = _fallback_issue(hass, entry)
+    assert issue.translation_key == "wifi_fallback_unreachable"
+    assert issue.translation_placeholders == {"wifi_host": "192.168.91.1"}
+    coordinator._sync_fallback_issue(False, down + 2 * WIFI_FALLBACK_DOWN_SECONDS)  # raised once
+    # It answers again: gone.
+    coordinator._sync_fallback_issue(True, down + 3 * WIFI_FALLBACK_DOWN_SECONDS)
+    assert _fallback_issue(hass, entry) is None and coordinator._fallback_down_since is None
+    # Unloading clears a raised one too.
+    coordinator._sync_fallback_issue(False, 0)
+    coordinator._sync_fallback_issue(False, WIFI_FALLBACK_DOWN_SECONDS)
+    assert _fallback_issue(hass, entry) is not None
+    await hass.config_entries.async_unload(entry.entry_id)
+    assert _fallback_issue(hass, entry) is None
+
+
+async def test_fallback_checked_rarely_and_only_when_set(hass: HomeAssistant, fake_powerwall, fake_gateway) -> None:
+    calls = []
+    fake_gateway.answers = True
+    with patch("custom_components.tesla_tedapi.gateway.answers", side_effect=lambda host: calls.append(host) or True):
+        entry = await _setup(hass, {**V1R, "wifi_host": "192.168.91.1"})
+        await hass.async_block_till_done(wait_background_tasks=True)
+        await _poll(hass, entry, 3)
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert calls == ["192.168.91.1"]  # once per WIFI_FALLBACK_CHECK_SECONDS, not per poll
+    assert entry.runtime_data.coordinator.data["health"]["wifi_fallback_reachable"] is True
+    await hass.config_entries.async_unload(entry.entry_id)
+
+    calls.clear()
+    with patch("custom_components.tesla_tedapi.gateway.answers", side_effect=lambda host: calls.append(host) or True):
+        entry = await _setup(hass, V1R)  # no fallback address
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert calls == []
+    assert entry.runtime_data.coordinator.data["health"]["wifi_fallback_reachable"] is None

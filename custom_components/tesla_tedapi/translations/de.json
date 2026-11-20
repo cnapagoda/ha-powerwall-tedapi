@@ -1242,6 +1242,10 @@
       "title": "Eine Powerwall 3 fehlt in den Messwerten",
       "description": "{count} Powerwall 3 an diesem Gateway erscheinen nicht in den Messwerten, obwohl die WLAN-Ausweichadresse (`{wifi_host}`) gesetzt ist. Über die signierte Verbindung werden Folge-Powerwalls nur über dieses WLAN gelesen: Prüfe, ob Home Assistant es noch erreicht.\n\nSummen für Leistung, Energie und Kapazität enthalten bereits jede Powerwall; nur Akkupacks, Temperaturen und Lüfter der fehlenden Geräte fehlen. Die Meldung verschwindet von selbst, sobald sie erscheinen."
     },
+    "wifi_fallback_unreachable": {
+      "title": "Die WLAN-Ausweichadresse ist nicht erreichbar",
+      "description": "Die WLAN-Ausweichadresse (`{wifi_host}`) antwortet seit über einer Stunde nicht. Sie kann daher nicht einspringen, wenn die Adresse des Gateways im Heimnetz nicht mehr antwortet, und Folge-Powerwall-3 können darüber nicht gelesen werden. Stelle sicher, dass Home Assistant mit dem eigenen WLAN der Powerwall verbunden ist, oder lösche die Adresse unter **Neu konfigurieren**, wenn du sie nicht nutzt. Diese Reparatur verschwindet von selbst, sobald die Adresse wieder antwortet."
+    },
     "powerwall_follower_hotspot": {
       "title": "Eine Powerwall 3 fehlt in den Messwerten",
       "description": "{count} Powerwall 3 an diesem Gateway erscheinen nicht in den Messwerten. Die signierte Verbindung nutzt das WLAN der Powerwall (`{wifi_host}`), und Folge-Powerwalls werden über dieses WLAN gelesen: Prüfe, ob Home Assistant es zuverlässig erreicht.\n\nSummen für Leistung, Energie und Kapazität enthalten bereits jede Powerwall; nur Akkupacks, Temperaturen und Lüfter der fehlenden Geräte fehlen. Die Meldung verschwindet von selbst, sobald sie erscheinen."

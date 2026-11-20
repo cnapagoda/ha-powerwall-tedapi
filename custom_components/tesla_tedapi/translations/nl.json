@@ -1242,6 +1242,10 @@
       "title": "Er ontbreekt een Powerwall 3 in de metingen",
       "description": "{count} Powerwall 3 van deze gateway staan niet in de metingen, hoewel het wifi-terugvaladres (`{wifi_host}`) is ingesteld. Via de ondertekende verbinding worden volg-Powerwalls alleen via die wifi gelezen: controleer of Home Assistant die nog bereikt.\n\nTotalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken. Dit verdwijnt vanzelf zodra ze verschijnen."
     },
+    "wifi_fallback_unreachable": {
+      "title": "Het wifi-terugvaladres is niet bereikbaar",
+      "description": "Het wifi-terugvaladres (`{wifi_host}`) reageert al meer dan een uur niet. Het kan dus niet overnemen als het thuisnetwerkadres van de gateway niet meer reageert, en volgende Powerwall 3's kunnen er niet via worden uitgelezen. Zorg dat Home Assistant verbonden is met de eigen wifi van de Powerwall, of wis het adres onder **Opnieuw configureren** als je het niet gebruikt. Deze reparatie verdwijnt vanzelf zodra het adres weer reageert."
+    },
     "powerwall_follower_hotspot": {
       "title": "Er ontbreekt een Powerwall 3 in de metingen",
       "description": "{count} Powerwall 3 van deze gateway staan niet in de metingen. De ondertekende verbinding gebruikt de eigen wifi van de Powerwall (`{wifi_host}`) en volg-Powerwalls worden via die wifi gelezen: controleer of Home Assistant die betrouwbaar bereikt.\n\nTotalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken. Dit verdwijnt vanzelf zodra ze verschijnen."

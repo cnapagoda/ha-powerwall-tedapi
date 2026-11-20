@@ -135,6 +135,10 @@ ENERGY_COUNTERS: dict[str, tuple[str, str]] = {
 
 # Polls a follower Powerwall 3 may be missing before the repair is raised.
 FOLLOWER_MISSING_POLLS = 10
+# The Wi-Fi fallback address is checked this often (s), in the background, and
+# a repair raised once it hasn't answered for WIFI_FALLBACK_DOWN_SECONDS.
+WIFI_FALLBACK_CHECK_SECONDS = 1800
+WIFI_FALLBACK_DOWN_SECONDS = 3600
 # Battery pack part numbers -> friendly names (TEPOD vitals blocks). Packs of
 # the same model are told apart by name_packs.
 PACK_NAMES = {"1707000": "Powerwall 3", "1807000": "Expansion Pack"}
@@ -562,6 +566,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # True while an off-grid run started here is on (set up in __init__).
         self.intentional_off_grid: Callable[[], bool] = lambda: False
         self._write_issues: set[str] = set()
+        # The Wi-Fi fallback address's last check: when (monotonic), whether
+        # it answered (None until checked), and since when it hasn't.
+        self._fallback_checked_at: float | None = None
+        self._fallback_ok: bool | None = None
+        self._fallback_down_since: float | None = None
+        self._fallback_checking = False
         self._follower_missing = 0
         # Battery packs' names by serial (see name_packs); saved.
         self._pack_names: dict[str, str] = {}
@@ -1590,6 +1600,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.model = detect_model(self.din, data.get("packs"))
             if data.get("full_read", True):  # it counts polls: full reads only
                 self._sync_follower_issue(data.get("missing_powerwalls"))
+        self._schedule_fallback_check()
         due = [backend for backend in self.backends if self._cloud_check_due(backend)]
         if due:
             for backend in due:
@@ -1862,6 +1873,54 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             translation_placeholders={"count": str(len(missing)), "wifi_host": self.follower_host},
         )
 
+    def _schedule_fallback_check(self) -> None:
+        """Check the Wi-Fi fallback address in the background when due: every
+        WIFI_FALLBACK_CHECK_SECONDS, never in the way of a poll."""
+        if self._conn_mode != MODE_V1R or not self._wifi_host or self._wifi_host == self._host:
+            return
+        now = time.monotonic()
+        if self._fallback_checking or (self._fallback_checked_at is not None
+                                       and now - self._fallback_checked_at < WIFI_FALLBACK_CHECK_SECONDS):
+            return
+        self._fallback_checking = True
+        self._fallback_checked_at = now
+        self.config_entry.async_create_background_task(
+            self.hass, self._async_check_fallback(), "tesla_tedapi Wi-Fi fallback check")
+
+    async def _async_check_fallback(self) -> None:
+        try:
+            ok = await self.hass.async_add_executor_job(gateway.answers, self._wifi_host)
+        finally:
+            self._fallback_checking = False
+        self._sync_fallback_issue(ok, time.monotonic())
+
+    def _sync_fallback_issue(self, ok: bool, now: float) -> None:
+        """A repair once the Wi-Fi fallback address hasn't answered for
+        WIFI_FALLBACK_DOWN_SECONDS; removed when it answers again (or the
+        address is cleared: the entry reloads and its repairs are cleared)."""
+        issue_id = f"wifi_fallback_unreachable_{self.config_entry.entry_id}"
+        self._fallback_ok = ok
+        if ok:
+            self._fallback_down_since = None
+            if issue_id in self._write_issues:
+                _LOGGER.info("The Wi-Fi fallback address %s answers again", self._wifi_host)
+                self._write_issues.discard(issue_id)
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        if self._fallback_down_since is None:
+            self._fallback_down_since = now
+        if now - self._fallback_down_since < WIFI_FALLBACK_DOWN_SECONDS or issue_id in self._write_issues:
+            return
+        _LOGGER.warning("The Wi-Fi fallback address %s hasn't answered for over an hour", self._wifi_host)
+        self._write_issues.add(issue_id)
+        ir.async_create_issue(
+            self.hass, DOMAIN, issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="wifi_fallback_unreachable",
+            translation_placeholders={"wifi_host": self._wifi_host},
+        )
+
     def _sync_firmware_issue(self, works: bool) -> None:
         issue_id = f"firmware_signed_access_{self.config_entry.entry_id}"
         version = split_version(self.firmware.version)[0]
@@ -2050,6 +2109,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "checks": checks,
             "problems": problems,
             "wifi_fallback": bool(self._wifi_host) if self._conn_mode == MODE_V1R else None,
+            # None until checked (or without a fallback address).
+            "wifi_fallback_reachable": self._fallback_ok if self._conn_mode == MODE_V1R and self._wifi_host
+            else None,
             "cloud_linked": self.cloud_enabled,
             "cloud_backends": {
                 backend.name: {
