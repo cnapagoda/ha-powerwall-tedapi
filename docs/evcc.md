@@ -32,7 +32,7 @@ meters:
     uri: http://homeassistant.local:8123
     power: sensor.powerwall_tedapi_battery_power       # + discharging
     soc: sensor.powerwall_tedapi_battery_level
-    capacity: 13.5                                     # kWh per Powerwall or expansion pack
+    capacity: 13.5                                     # total kWh: 13.5 for each Powerwall and Expansion Pack, added up
     modeNormal: script.powerwall_evcc_normal
     modeHold: script.powerwall_evcc_hold
     modeCharge: script.powerwall_evcc_charge

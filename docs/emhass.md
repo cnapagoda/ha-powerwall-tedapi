@@ -14,7 +14,7 @@
    | `sensor_power_photovoltaics` | `sensor.powerwall_tedapi_solar_power` |
    | `sensor_power_load_no_var_loads` | `sensor.powerwall_tedapi_home_power` |
    | `set_use_battery` | `true` |
-   | `battery_nominal_energy_capacity` | 13500 Wh per Powerwall or expansion pack |
+   | `battery_nominal_energy_capacity` | The total: 13500 Wh for each Powerwall and Expansion Pack, added up (one Powerwall 3 with one Expansion Pack: 27000) |
    | `battery_charge_power_max`, `battery_discharge_power_max` | One Powerwall 3: 10000 W; Powerwall 2: 5000 W each |
    | `battery_minimum_state_of_charge` | At least your backup reserve, as a fraction (20 % → 0.2) |
 
