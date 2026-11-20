@@ -19,8 +19,16 @@ from .test_storm import V1R, _eid, _refresh, _setup
 
 
 @pytest.mark.parametrize(("readings", "expected"), [
-    # Solar covers the home, charges the battery; the grid tops the charge up.
-    ((3000, -500, 100, 2600), {"solar_to_home": 2600, "solar_to_battery": 400, "grid_to_battery": 100}),
+    # Solar charges the battery and covers most of the home; the grid the rest.
+    ((3000, -500, 100, 2600), {"solar_to_home": 2500, "solar_to_battery": 500, "grid_to_home": 100}),
+    # Grid charging with the sun up (#33): solar goes into the battery and the
+    # grid runs the home, as Tesla's counters and the Energy dashboard count it.
+    ((2000, -5000, 3500, 500), {"solar_to_battery": 2000, "grid_to_home": 500, "grid_to_battery": 3000}),
+    # Solar beyond the charge covers the home, the grid tops the charge up.
+    ((2400, -2000, 1000, 1400), {"solar_to_battery": 2000, "solar_to_home": 400,
+                                 "grid_to_home": 1000}),
+    # Solar beyond the charge and the home is exported.
+    ((6000, -2000, -3000, 1000), {"solar_to_battery": 2000, "solar_to_home": 1000, "solar_to_grid": 3000}),
     # Solar covers the home and exports the rest.
     ((5000, 0, -3000, 2000), {"solar_to_home": 2000, "solar_to_grid": 3000}),
     # Night: the battery runs the home, the grid the rest.
@@ -87,9 +95,11 @@ async def test_flow_sensors(hass: HomeAssistant, fake_powerwall, freezer) -> Non
     freezer.tick(30)
     await _refresh(hass, entry)
     # The fake gateway: solar 3000 W, battery charging 500 W, grid 100 W in, home 2600 W.
-    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_home")).state == "0.022"  # 2.6 kW for 30 s
-    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_battery")).state == "0.003"
-    assert hass.states.get(_eid(hass, "sensor", "flow_grid_to_battery")).state == "0.001"
+    # Solar charges the battery first, then the home; the grid covers the rest of the home.
+    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_home")).state == "0.021"  # 2.5 kW for 30 s
+    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_battery")).state == "0.004"
+    assert hass.states.get(_eid(hass, "sensor", "flow_grid_to_home")).state == "0.001"
+    assert hass.states.get(_eid(hass, "sensor", "flow_grid_to_battery")).state == "0.0"
     assert hass.states.get(_eid(hass, "sensor", "flow_battery_to_grid")).state == "0.0"
     coordinator = entry.runtime_data.coordinator
     assert coordinator._state_to_save()["flows"]["totals"]["solar_to_home"] > 0
@@ -101,7 +111,7 @@ async def test_flow_sensors(hass: HomeAssistant, fake_powerwall, freezer) -> Non
     assert coordinator.flows.last is None
     freezer.tick(30)
     await _refresh(hass, entry)
-    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_home")).state == "0.022"
+    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_home")).state == "0.021"
 
 
 # -- battery economics -----------------------------------------------------

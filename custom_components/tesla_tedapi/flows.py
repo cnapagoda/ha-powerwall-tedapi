@@ -1,11 +1,19 @@
 """Energy flows: where the solar, battery and grid energy went.
 
 The gateway reports four power readings (solar, battery, grid, home). They are
-split into seven flows by the usual priority, the one the Tesla app shows:
+split into seven flows in this order:
 
-- solar feeds the home first, then the battery, then the grid;
+- solar charges the battery first, then feeds the home, then the grid;
 - the battery feeds what the home still needs, then the grid;
 - the grid feeds the rest of the home, then the battery.
+
+Solar into the battery before the home only matters while the grid is
+imported and the battery charges at the same time (grid charging with the sun
+up): solar is then counted into the battery and the grid into the home. That's
+how Tesla's own counters (the Tesla app, tesla_fleet, Teslemetry) and Home
+Assistant's Energy dashboard count it (#33). Solar on a Powerwall 3's own
+inputs does reach the battery first; for a separate solar inverter it's a
+convention, kept the same so the counters match Tesla's.
 
 Each flow's power is integrated between readings into a lifetime energy
 counter (kWh). The split is an attribution, not a measurement: the gateway
@@ -51,9 +59,9 @@ def split(solar: float, battery: float, grid: float, home: float) -> dict[str, f
     imported, exported = max(grid, 0.0), max(-grid, 0.0)
     need = max(home, 0.0)
 
-    solar_to_home = min(produced, need)
-    solar_to_battery = min(produced - solar_to_home, charge)
-    solar_to_grid = min(produced - solar_to_home - solar_to_battery, exported)
+    solar_to_battery = min(produced, charge)
+    solar_to_home = min(produced - solar_to_battery, need)
+    solar_to_grid = min(produced - solar_to_battery - solar_to_home, exported)
     need -= solar_to_home
 
     battery_to_home = min(discharge, need)

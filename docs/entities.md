@@ -103,7 +103,7 @@ They're meant for cards and automations. For the Energy dashboard, use the lifet
 
 ### Energy flows
 
-Where the energy went, in kWh (`total_increasing`). The gateway meters four things (solar, battery, grid, home), not the flows between them, so these are **attributed** from the power readings: solar feeds the home first, then the battery, then the grid; the battery feeds what the home still needs, then the grid; the grid feeds the rest. They count from when you install this version, need no cloud, and miss the time the gateway couldn't be read (a gap of more than 5 minutes isn't counted, or of more than 2½ polls with a longer polling interval).
+Where the energy went, in kWh (`total_increasing`). The gateway meters four things (solar, battery, grid, home), not the flows between them, so these are **attributed** from the power readings: solar charges the battery first (as Tesla's own counters do), then feeds the home, then the grid; the battery feeds what the home still needs, then the grid; the grid feeds the rest. So while the battery charges from the grid with the sun up, solar counts as going into the battery and the grid as running the home. They count from when you install this version, need no cloud, and miss the time the gateway couldn't be read (a gap of more than 5 minutes isn't counted, or of more than 2½ polls with a longer polling interval).
 
 | Entity | Entity ID |
 |---|---|
