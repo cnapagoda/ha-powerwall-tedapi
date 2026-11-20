@@ -2,6 +2,8 @@
 
 ## 2.8.2
 
+- **A battery dispatch stops when the battery level can't be read.** Its limits (`min_soc`, `max_soc`, the `charge_to` / `discharge_to` target and the backup reserve floor) are checked against the battery level, and the Powerwall ignores its own reserve during a dispatch. Before, a dispatch kept being renewed while the gateway gave no battery level. Now it isn't renewed once the level is 2 minutes old (or 2½ polling intervals, if longer), and ends with reason `battery_level_unknown` when its last command has run out. A short gap doesn't end it.
+
 ## 2.8.1
 
 - **`BMS_a023_SW_Assertion` is a notice again, not a warning:** a healthy Powerwall 3 and its Expansion Pack reported it for days after a firmware update, so it turned **Problem** on and raised a repair that never cleared. It's still listed under the alerts (thanks [@shaggyblue](https://github.com/shaggyblue), #29).

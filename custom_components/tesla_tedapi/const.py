@@ -206,6 +206,12 @@ DISPATCH_MAX_SECONDS = 86400
 DISPATCH_CHUNK_SECONDS = 300
 DISPATCH_RENEW_SECONDS = 60
 DISPATCH_MAX_FAILURES = 3
+# A dispatch is only renewed while the battery level is fresher than this (s),
+# or than 2.5 polling intervals if that's longer: its limits are checked
+# against it. Once the last command has run out (DISPATCH_CHUNK_SECONDS
+# later), the session ends.
+DISPATCH_STALE_SECONDS = 120
+DISPATCH_STALE_POLLS = 2.5
 
 EVENT_DISPATCH_ENDED = f"{DOMAIN}_dispatch_ended"
 

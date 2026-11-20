@@ -1364,6 +1364,7 @@
         "max_soc": "bovengrens bereikt",
         "stopped": "gestopt",
         "connection_lost": "verbinding verloren",
+        "battery_level_unknown": "batterijniveau onbekend",
         "unloaded": "integratie ontladen"
       }
     },

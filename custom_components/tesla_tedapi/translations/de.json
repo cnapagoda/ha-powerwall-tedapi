@@ -1364,6 +1364,7 @@
         "max_soc": "obere Grenze erreicht",
         "stopped": "gestoppt",
         "connection_lost": "Verbindung verloren",
+        "battery_level_unknown": "Batteriestand unbekannt",
         "unloaded": "Integration entladen"
       }
     },

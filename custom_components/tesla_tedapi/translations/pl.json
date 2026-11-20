@@ -1364,6 +1364,7 @@
         "max_soc": "osiągnięto górny limit",
         "stopped": "zatrzymano",
         "connection_lost": "utracono połączenie",
+        "battery_level_unknown": "nieznany poziom baterii",
         "unloaded": "integracja wyłączona"
       }
     },
