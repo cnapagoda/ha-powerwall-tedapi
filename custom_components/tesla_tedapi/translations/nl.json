@@ -22,12 +22,14 @@
         "data": {
           "host": "Gateway-adres",
           "gw_pwd": "Gateway-wachtwoord",
-          "wifi_host": "Wifi-terugvaladres"
+          "wifi_host": "Wifi-terugvaladres",
+          "customer_password": "Klantwachtwoord (optioneel)"
         },
         "data_description": {
           "host": "Het adres van de gateway op je thuisnetwerk, bijvoorbeeld `192.168.1.50`. Je router toont het als `teslapw_…`.",
           "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig.",
-          "wifi_host": "De wifi-hotspot van de Powerwall, gebruikt via dezelfde ondertekende verbinding als het thuisnetwerkadres niet meer antwoordt. Leeg laten als Home Assistant de hotspot niet kan bereiken. Ook gebruikt om volg-Powerwall 3's te lezen, die de ondertekende verbinding niet via het thuisnetwerk bereikt."
+          "wifi_host": "De wifi-hotspot van de Powerwall, gebruikt via dezelfde ondertekende verbinding als het thuisnetwerkadres niet meer antwoordt. Leeg laten als Home Assistant de hotspot niet kan bereiken. Ook gebruikt om volg-Powerwall 3's te lezen, die de ondertekende verbinding niet via het thuisnetwerk bereikt.",
+          "customer_password": "Alleen als het klant-inlogwachtwoord van de gateway is gewijzigd en niet meer overeenkomt met de sticker (bijvoorbeeld door een installateur, of op de webpagina van oudere firmware). Wordt zo gebruikt voor die aanmelding; laat leeg om het af te leiden van het gateway-wachtwoord."
         }
       },
       "access": {
@@ -106,10 +108,12 @@
       "reauth_password": {
         "title": "Gateway-wachtwoord",
         "data": {
-          "gw_pwd": "Gateway-wachtwoord"
+          "gw_pwd": "Gateway-wachtwoord",
+          "customer_password": "Klantwachtwoord (optioneel)"
         },
         "data_description": {
-          "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig."
+          "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig.",
+          "customer_password": "Alleen als het klant-inlogwachtwoord van de gateway is gewijzigd en niet meer overeenkomt met de sticker (bijvoorbeeld door een installateur, of op de webpagina van oudere firmware). Wordt zo gebruikt voor die aanmelding; laat leeg om het af te leiden van het gateway-wachtwoord."
         }
       },
       "reconfigure": {
@@ -119,13 +123,15 @@
           "host": "Gateway-adres",
           "gw_pwd": "Gateway-wachtwoord",
           "rsa_key_path": "Bestand met private RSA-sleutel",
-          "wifi_host": "Wifi-terugvaladres (alleen ondertekend)"
+          "wifi_host": "Wifi-terugvaladres (alleen ondertekend)",
+          "customer_password": "Klantwachtwoord (optioneel)"
         },
         "data_description": {
           "host": "Het adres van de gateway op je thuisnetwerk, bijvoorbeeld `192.168.1.50`. Je router toont het als `teslapw_…`.",
           "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig.",
           "rsa_key_path": "Volledig pad naar het bestand met de private sleutel op de Home Assistant-host, bijvoorbeeld `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laat leeg om de verbinding met wifi-wachtwoord te gebruiken (alleen lezen).",
-          "wifi_host": "Het adres van de wifi-hotspot van de Powerwall (meestal `192.168.91.1`), gebruikt als het thuisnetwerkadres niet meer antwoordt. Laat leeg als Home Assistant de hotspot niet kan bereiken. Ook gebruikt om volg-Powerwall 3's te lezen, die de ondertekende verbinding niet via het thuisnetwerk bereikt."
+          "wifi_host": "Het adres van de wifi-hotspot van de Powerwall (meestal `192.168.91.1`), gebruikt als het thuisnetwerkadres niet meer antwoordt. Laat leeg als Home Assistant de hotspot niet kan bereiken. Ook gebruikt om volg-Powerwall 3's te lezen, die de ondertekende verbinding niet via het thuisnetwerk bereikt.",
+          "customer_password": "Alleen als het klant-inlogwachtwoord van de gateway is gewijzigd en niet meer overeenkomt met de sticker (bijvoorbeeld door een installateur, of op de webpagina van oudere firmware). Wordt zo gebruikt voor die aanmelding; laat leeg om het af te leiden van het gateway-wachtwoord."
         }
       },
       "new_key": {

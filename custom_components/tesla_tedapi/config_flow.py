@@ -63,6 +63,7 @@ from .const import (
     CONF_CLOUD_BACKENDS,
     CONF_CLOUD_READINGS,
     CONF_CONNECTION_MODE,
+    CONF_CUSTOMER_PASSWORD,
     CONF_DIAGNOSTICS_GATEWAY,
     CONF_DISPATCH_FLOOR_RESERVE,
     CONF_DISPATCH_MAX_WATTS,
@@ -176,7 +177,7 @@ class PasswordRequired(Exception):
 
 
 def _probe(mode: str, host: str, gw_pwd: str, rsa_key_path: str, timezone: str, *,
-           full_login: bool = False) -> str:
+           full_login: bool = False, customer_pwd: str = "") -> str:
     """Connect like the integration does and return the gateway DIN."""
     import pypowerwall  # noqa: PLC0415
 
@@ -190,7 +191,7 @@ def _probe(mode: str, host: str, gw_pwd: str, rsa_key_path: str, timezone: str, 
     # The same arguments as polling uses, without the Wi-Fi fallback: this
     # check is about the gateway address itself.
     kwargs = client.local_kwargs(mode, host, gw_pwd, rsa_key_path, timezone, full_login=full_login,
-                                 fallback=False)
+                                 fallback=False, customer_pwd=customer_pwd)
     try:
         pw = pypowerwall.Powerwall(**kwargs)
         if mode == MODE_V1R and getattr(pw, "tedapi_mode", None) != "v1r":
@@ -215,10 +216,18 @@ def _raise_if_refused(mode: str, host: str) -> None:
         raise WifiPasswordRefused
 
 
-def _check_gateway(host: str, gw_pwd: str) -> tuple[str | None, bool]:
+def _check_gateway(host: str, gw_pwd: str, customer_pwd: str = "") -> tuple[str | None, bool]:
     """Password check (customer login): the DIN, if the firmware gives it, and
     whether this gateway takes the full password (a Backup Gateway 1, or one
-    that refuses the last 5 characters and takes the full password)."""
+    that refuses the last 5 characters and takes the full password). A
+    customer password the owner set is tried as it is, and only that."""
+    if customer_pwd:
+        try:
+            return gateway.din(host, customer_pwd, True), False
+        except gateway.GatewayPasswordRejected as err:
+            _LOGGER.debug("The gateway at %s refused the customer password (%s): part number %s",
+                          host, str(err) or "refused", gateway.part_number(host) or "not reported")
+            raise
     full = gateway.full_password_login(host)
     try:
         return gateway.din_any(host, gw_pwd, full)
@@ -561,8 +570,10 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         if user_input is not None:
             host = user_input[CONF_HOST].strip()
             gw_pwd = user_input[CONF_GW_PWD].strip()
+            customer_pwd = (user_input.get(CONF_CUSTOMER_PASSWORD) or "").strip()
             try:
-                self._din, full = await self.hass.async_add_executor_job(_check_gateway, host, gw_pwd)
+                self._din, full = await self.hass.async_add_executor_job(_check_gateway, host, gw_pwd,
+                                                                         customer_pwd)
             except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected) as err:
                 _LOGGER.debug("Gateway check at %s failed: %s", host, err)
                 errors = _gateway_errors(err)
@@ -575,6 +586,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                     CONF_HOST: host,
                     CONF_GW_PWD: gw_pwd,
                     CONF_FULL_PASSWORD_LOGIN: full,
+                    CONF_CUSTOMER_PASSWORD: customer_pwd,
                     CONF_WIFI_HOST: wifi_host if wifi_host != host else "",
                 })
                 return await self.async_step_access()
@@ -588,6 +600,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             # field is cleared (the frontend leaves an empty field out).
             vol.Optional(CONF_WIFI_HOST, description={"suggested_value": self._data.get(
                 CONF_WIFI_HOST, "" if host == DEFAULT_HOST_WIFI else DEFAULT_HOST_WIFI)}): str,
+            vol.Optional(CONF_CUSTOMER_PASSWORD, description={"suggested_value": self._data.get(
+                CONF_CUSTOMER_PASSWORD, "")}): PASSWORD,
         })
         return self.async_show_form(step_id="gateway", data_schema=schema, errors=errors)
 
@@ -837,7 +851,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             din = await self.hass.async_add_executor_job(partial(
                 _probe, self._mode, data[CONF_HOST], data.get(CONF_GW_PWD, ""),
                 data.get(CONF_RSA_KEY_PATH, ""), str(self.hass.config.time_zone),
-                full_login=bool(data.get(CONF_FULL_PASSWORD_LOGIN))))
+                full_login=bool(data.get(CONF_FULL_PASSWORD_LOGIN)),
+                customer_pwd=data.get(CONF_CUSTOMER_PASSWORD, "")))
         except client.ClientTooOld as err:
             return self._abort_client_too_old(err)
         except (CannotConnect, KeyNotAccepted, InvalidRsaKey, PasswordRequired) as err:
@@ -989,17 +1004,21 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         errors: dict[str, str] = {}
         if user_input is not None:
             gw_pwd = user_input[CONF_GW_PWD].strip()
+            customer_pwd = (user_input.get(CONF_CUSTOMER_PASSWORD) or "").strip()
             try:
-                _, full = await self.hass.async_add_executor_job(_check_gateway, self._data[CONF_HOST], gw_pwd)
+                _, full = await self.hass.async_add_executor_job(_check_gateway, self._data[CONF_HOST], gw_pwd,
+                                                                 customer_pwd)
             except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected) as err:
                 errors = _gateway_errors(err)
             else:
                 entry = self._get_reauth_entry()
                 return self._update_and_reload(
-                    entry, data={**entry.data, CONF_GW_PWD: gw_pwd, CONF_FULL_PASSWORD_LOGIN: full})
+                    entry, data={**entry.data, CONF_GW_PWD: gw_pwd, CONF_FULL_PASSWORD_LOGIN: full,
+                                 CONF_CUSTOMER_PASSWORD: customer_pwd})
         return self.async_show_form(
             step_id="reauth_password",
-            data_schema=vol.Schema({vol.Required(CONF_GW_PWD): PASSWORD}),
+            data_schema=vol.Schema({vol.Required(CONF_GW_PWD): PASSWORD,
+                                    vol.Optional(CONF_CUSTOMER_PASSWORD): PASSWORD}),
             errors=errors,
         )
 
@@ -1019,10 +1038,12 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             mode = MODE_V1R if key_path else MODE_WIFI
             host = user_input[CONF_HOST].strip()
             gw_pwd = user_input.get(CONF_GW_PWD, "").strip()
-            full = await self.hass.async_add_executor_job(_login_mode, host, gw_pwd)
+            customer_pwd = (user_input.get(CONF_CUSTOMER_PASSWORD) or "").strip()
+            full = False if customer_pwd else await self.hass.async_add_executor_job(_login_mode, host, gw_pwd)
             try:
                 din = await self.hass.async_add_executor_job(partial(
-                    _probe, mode, host, gw_pwd, key_path, str(self.hass.config.time_zone), full_login=full))
+                    _probe, mode, host, gw_pwd, key_path, str(self.hass.config.time_zone), full_login=full,
+                    customer_pwd=customer_pwd))
             except client.ClientTooOld as err:
                 return self._abort_client_too_old(err)
             except (CannotConnect, KeyNotAccepted, InvalidRsaKey, PasswordRequired) as err:
@@ -1048,6 +1069,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                         CONF_HOST: host,
                         CONF_GW_PWD: gw_pwd,
                         CONF_FULL_PASSWORD_LOGIN: full,
+                        CONF_CUSTOMER_PASSWORD: customer_pwd,
                         CONF_RSA_KEY_PATH: key_path,
                         CONF_WIFI_HOST: wifi_host if mode == MODE_V1R and wifi_host != host else "",
                     },
@@ -1062,6 +1084,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                          description={"suggested_value": current.get(CONF_RSA_KEY_PATH, "") or ""}): str,
             vol.Optional(CONF_WIFI_HOST,
                          description={"suggested_value": current.get(CONF_WIFI_HOST, "") or ""}): str,
+            vol.Optional(CONF_CUSTOMER_PASSWORD,
+                         description={"suggested_value": current.get(CONF_CUSTOMER_PASSWORD, "") or ""}): PASSWORD,
         })
         return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)
 

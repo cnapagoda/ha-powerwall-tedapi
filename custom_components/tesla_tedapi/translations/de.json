@@ -22,12 +22,14 @@
         "data": {
           "host": "Gateway-Adresse",
           "gw_pwd": "Gateway-Passwort",
-          "wifi_host": "WLAN-Ausweichadresse"
+          "wifi_host": "WLAN-Ausweichadresse",
+          "customer_password": "Kundenpasswort (optional)"
         },
         "data_description": {
           "host": "Die Adresse des Gateways in deinem Heimnetz, zum Beispiel `192.168.1.50`. Dein Router zeigt es als `teslapw_…` an.",
           "gw_pwd": "Das ganze Passwort vom QR-Aufkleber in der Abdeckung der Powerwall (Powerwall 3: hinter dem Frontglas, unten links). Buchstaben sind Großbuchstaben. Die meisten Gateways nehmen auch nur die letzten 5 Zeichen; ein Backup Gateway 1 braucht das ganze Passwort.",
-          "wifi_host": "Der WLAN-Hotspot der Powerwall, über dieselbe signierte Verbindung genutzt, wenn die Heimnetz-Adresse nicht mehr antwortet. Leer lassen, wenn Home Assistant den Hotspot nicht erreicht. Wird auch genutzt, um Folge-Powerwall-3 zu lesen, die die signierte Verbindung im Heimnetz nicht erreicht."
+          "wifi_host": "Der WLAN-Hotspot der Powerwall, über dieselbe signierte Verbindung genutzt, wenn die Heimnetz-Adresse nicht mehr antwortet. Leer lassen, wenn Home Assistant den Hotspot nicht erreicht. Wird auch genutzt, um Folge-Powerwall-3 zu lesen, die die signierte Verbindung im Heimnetz nicht erreicht.",
+          "customer_password": "Nur wenn das Kunden-Login-Passwort des Gateways geändert wurde und nicht mehr zum Aufkleber passt (etwa vom Installateur oder auf der Webseite einer älteren Firmware). Wird für diese Anmeldung unverändert verwendet; leer lassen, um es aus dem Gateway-Passwort abzuleiten."
         }
       },
       "access": {
@@ -106,10 +108,12 @@
       "reauth_password": {
         "title": "Gateway-Passwort",
         "data": {
-          "gw_pwd": "Gateway-Passwort"
+          "gw_pwd": "Gateway-Passwort",
+          "customer_password": "Kundenpasswort (optional)"
         },
         "data_description": {
-          "gw_pwd": "Das ganze Passwort vom QR-Aufkleber in der Abdeckung der Powerwall (Powerwall 3: hinter dem Frontglas, unten links). Buchstaben sind Großbuchstaben. Die meisten Gateways nehmen auch nur die letzten 5 Zeichen; ein Backup Gateway 1 braucht das ganze Passwort."
+          "gw_pwd": "Das ganze Passwort vom QR-Aufkleber in der Abdeckung der Powerwall (Powerwall 3: hinter dem Frontglas, unten links). Buchstaben sind Großbuchstaben. Die meisten Gateways nehmen auch nur die letzten 5 Zeichen; ein Backup Gateway 1 braucht das ganze Passwort.",
+          "customer_password": "Nur wenn das Kunden-Login-Passwort des Gateways geändert wurde und nicht mehr zum Aufkleber passt (etwa vom Installateur oder auf der Webseite einer älteren Firmware). Wird für diese Anmeldung unverändert verwendet; leer lassen, um es aus dem Gateway-Passwort abzuleiten."
         }
       },
       "reconfigure": {
@@ -119,13 +123,15 @@
           "host": "Gateway-Adresse",
           "gw_pwd": "Gateway-Passwort",
           "rsa_key_path": "Datei mit privatem RSA-Schlüssel",
-          "wifi_host": "WLAN-Ausweichadresse (nur signiert)"
+          "wifi_host": "WLAN-Ausweichadresse (nur signiert)",
+          "customer_password": "Kundenpasswort (optional)"
         },
         "data_description": {
           "host": "Die Adresse des Gateways in deinem Heimnetz, zum Beispiel `192.168.1.50`. Dein Router zeigt es als `teslapw_…` an.",
           "gw_pwd": "Das ganze Passwort vom QR-Aufkleber in der Abdeckung der Powerwall (Powerwall 3: hinter dem Frontglas, unten links). Buchstaben sind Großbuchstaben. Die meisten Gateways nehmen auch nur die letzten 5 Zeichen; ein Backup Gateway 1 braucht das ganze Passwort.",
           "rsa_key_path": "Vollständiger Pfad zur Datei mit dem privaten Schlüssel auf dem Home-Assistant-Host, zum Beispiel `/config/tesla_tedapi/tedapi_rsa_private.pem`. Leer lassen für die Verbindung mit WLAN-Passwort (nur lesen).",
-          "wifi_host": "Die Adresse des WLAN-Hotspots der Powerwall (meist `192.168.91.1`), genutzt, wenn die Heimnetz-Adresse nicht mehr antwortet. Leer lassen, wenn Home Assistant den Hotspot nicht erreicht. Wird auch genutzt, um Folge-Powerwall-3 zu lesen, die die signierte Verbindung im Heimnetz nicht erreicht."
+          "wifi_host": "Die Adresse des WLAN-Hotspots der Powerwall (meist `192.168.91.1`), genutzt, wenn die Heimnetz-Adresse nicht mehr antwortet. Leer lassen, wenn Home Assistant den Hotspot nicht erreicht. Wird auch genutzt, um Folge-Powerwall-3 zu lesen, die die signierte Verbindung im Heimnetz nicht erreicht.",
+          "customer_password": "Nur wenn das Kunden-Login-Passwort des Gateways geändert wurde und nicht mehr zum Aufkleber passt (etwa vom Installateur oder auf der Webseite einer älteren Firmware). Wird für diese Anmeldung unverändert verwendet; leer lassen, um es aus dem Gateway-Passwort abzuleiten."
         }
       },
       "new_key": {

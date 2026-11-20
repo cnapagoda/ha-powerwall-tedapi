@@ -46,6 +46,7 @@ from .const import (
     CLOUD_VERIFY_TIMEOUT_SECONDS,
     CONF_CLOUD_READINGS,
     CONF_CONNECTION_MODE,
+    CONF_CUSTOMER_PASSWORD,
     CONF_FLEET_PROVIDER,
     CONF_FLEET_SITE_ID,
     CONF_FULL_PASSWORD_LOGIN,
@@ -490,6 +491,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._gw_pwd: str = data.get(CONF_GW_PWD, "")
         # Backup Gateway 1: the customer login takes the full password.
         self._full_login: bool = bool(data.get(CONF_FULL_PASSWORD_LOGIN))
+        # A customer password that differs from the sticker (used as is).
+        self._customer_pwd: str = data.get(CONF_CUSTOMER_PASSWORD, "")
         self._rsa_key_path: str = data.get(CONF_RSA_KEY_PATH, "")
         self._host: str = data.get(CONF_HOST, DEFAULT_HOST_WIFI)
         self._wifi_host: str = data.get(CONF_WIFI_HOST, "") or ""
@@ -577,7 +580,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # (aiopytedapi, async).
         self.extras = GatewayExtras(
             hass, mode=self._conn_mode, host=self._host, gw_pwd=self._gw_pwd, rsa_key_path=self._rsa_key_path,
-            full_login=self._full_login, wifi_host=self._wifi_host, din=self.din)
+            full_login=self._full_login, wifi_host=self._wifi_host, din=self.din,
+            customer_pwd=self._customer_pwd)
 
         super().__init__(
             hass,
@@ -678,7 +682,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         kwargs = local_kwargs(
             self._conn_mode, self._host, self._gw_pwd, self._rsa_key_path, str(self.hass.config.time_zone),
-            full_login=self._full_login, wifi_host=self._wifi_host,
+            full_login=self._full_login, wifi_host=self._wifi_host, customer_pwd=self._customer_pwd,
             # pypowerwall's own cache: shorter than a fast poll, so each one
             # reads the gateway.
             cache_seconds=min(5, max(1, int(self._scan_interval(self.config_entry).total_seconds()) - 1)))
@@ -1946,7 +1950,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self._gw_pwd:
             return "password"
         try:
-            gateway.login(self._host, self._gw_pwd, self._full_login)
+            if self._customer_pwd:
+                gateway.login(self._host, self._customer_pwd, True)
+            else:
+                gateway.login(self._host, self._gw_pwd, self._full_login)
         except gateway.GatewayPasswordRejected:
             return "password"
         except gateway.GatewayUnreachable:

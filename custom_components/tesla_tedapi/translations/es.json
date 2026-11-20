@@ -22,12 +22,14 @@
         "data": {
           "host": "Dirección de la pasarela",
           "gw_pwd": "Contraseña de la pasarela",
-          "wifi_host": "Dirección Wi-Fi de respaldo"
+          "wifi_host": "Dirección Wi-Fi de respaldo",
+          "customer_password": "Contraseña de cliente (opcional)"
         },
         "data_description": {
           "host": "La dirección de la pasarela en tu red doméstica, por ejemplo `192.168.1.50`. Tu router la muestra como `teslapw_…`.",
           "gw_pwd": "La contraseña completa de la pegatina QR dentro de la tapa de la Powerwall (Powerwall 3: detrás del cristal frontal, abajo a la izquierda). Las letras van en mayúsculas. La mayoría de los gateways también aceptan solo sus últimos 5 caracteres; un Backup Gateway 1 necesita la contraseña completa.",
-          "wifi_host": "El punto de acceso Wi-Fi de la Powerwall, usado con la misma conexión firmada cuando la dirección de la red doméstica deja de responder. Déjalo vacío si Home Assistant no puede llegar al punto de acceso. También se usa para leer los Powerwall 3 seguidores, que la conexión firmada no alcanza por la red de casa."
+          "wifi_host": "El punto de acceso Wi-Fi de la Powerwall, usado con la misma conexión firmada cuando la dirección de la red doméstica deja de responder. Déjalo vacío si Home Assistant no puede llegar al punto de acceso. También se usa para leer los Powerwall 3 seguidores, que la conexión firmada no alcanza por la red de casa.",
+          "customer_password": "Solo si la contraseña de inicio de sesión de cliente de la pasarela se cambió y ya no coincide con la etiqueta (por ejemplo, el instalador o en la página web de un firmware antiguo). Se usa tal cual para ese inicio de sesión; déjala vacía para obtenerla de la contraseña de la pasarela."
         }
       },
       "access": {
@@ -106,10 +108,12 @@
       "reauth_password": {
         "title": "Contraseña de la pasarela",
         "data": {
-          "gw_pwd": "Contraseña de la pasarela"
+          "gw_pwd": "Contraseña de la pasarela",
+          "customer_password": "Contraseña de cliente (opcional)"
         },
         "data_description": {
-          "gw_pwd": "La contraseña completa de la pegatina QR dentro de la tapa de la Powerwall (Powerwall 3: detrás del cristal frontal, abajo a la izquierda). Las letras van en mayúsculas. La mayoría de los gateways también aceptan solo sus últimos 5 caracteres; un Backup Gateway 1 necesita la contraseña completa."
+          "gw_pwd": "La contraseña completa de la pegatina QR dentro de la tapa de la Powerwall (Powerwall 3: detrás del cristal frontal, abajo a la izquierda). Las letras van en mayúsculas. La mayoría de los gateways también aceptan solo sus últimos 5 caracteres; un Backup Gateway 1 necesita la contraseña completa.",
+          "customer_password": "Solo si la contraseña de inicio de sesión de cliente de la pasarela se cambió y ya no coincide con la etiqueta (por ejemplo, el instalador o en la página web de un firmware antiguo). Se usa tal cual para ese inicio de sesión; déjala vacía para obtenerla de la contraseña de la pasarela."
         }
       },
       "reconfigure": {
@@ -119,13 +123,15 @@
           "host": "Dirección de la pasarela",
           "gw_pwd": "Contraseña de la pasarela",
           "rsa_key_path": "Archivo de clave privada RSA",
-          "wifi_host": "Dirección Wi-Fi de respaldo (solo firmada)"
+          "wifi_host": "Dirección Wi-Fi de respaldo (solo firmada)",
+          "customer_password": "Contraseña de cliente (opcional)"
         },
         "data_description": {
           "host": "La dirección de la pasarela en tu red doméstica, por ejemplo `192.168.1.50`. Tu router la muestra como `teslapw_…`.",
           "gw_pwd": "La contraseña completa de la pegatina QR dentro de la tapa de la Powerwall (Powerwall 3: detrás del cristal frontal, abajo a la izquierda). Las letras van en mayúsculas. La mayoría de los gateways también aceptan solo sus últimos 5 caracteres; un Backup Gateway 1 necesita la contraseña completa.",
           "rsa_key_path": "Ruta completa al archivo de clave privada en el equipo de Home Assistant, por ejemplo `/config/tesla_tedapi/tedapi_rsa_private.pem`. Déjalo vacío para usar la conexión con contraseña Wi-Fi (solo lectura).",
-          "wifi_host": "La dirección del punto de acceso Wi-Fi de la Powerwall (normalmente `192.168.91.1`), usada cuando la dirección de la red doméstica deja de responder. Déjalo vacío si Home Assistant no puede llegar al punto de acceso. También se usa para leer los Powerwall 3 seguidores, que la conexión firmada no alcanza por la red de casa."
+          "wifi_host": "La dirección del punto de acceso Wi-Fi de la Powerwall (normalmente `192.168.91.1`), usada cuando la dirección de la red doméstica deja de responder. Déjalo vacío si Home Assistant no puede llegar al punto de acceso. También se usa para leer los Powerwall 3 seguidores, que la conexión firmada no alcanza por la red de casa.",
+          "customer_password": "Solo si la contraseña de inicio de sesión de cliente de la pasarela se cambió y ya no coincide con la etiqueta (por ejemplo, el instalador o en la página web de un firmware antiguo). Se usa tal cual para ese inicio de sesión; déjala vacía para obtenerla de la contraseña de la pasarela."
         }
       },
       "new_key": {

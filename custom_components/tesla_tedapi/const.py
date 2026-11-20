@@ -50,6 +50,10 @@ CONF_MACS = "macs"
 # Backup Gateway 1: the customer login takes the full gateway password, not its
 # last 5 characters (found from the gateway's DIN at setup).
 CONF_FULL_PASSWORD_LOGIN = "full_password_login"
+# The gateway's local customer login password, when it differs from the
+# sticker password (an owner or installer changed it). Empty: derived from the
+# sticker password (its last 5 characters, or all of it).
+CONF_CUSTOMER_PASSWORD = "customer_password"
 # The oldest pypowerwall this version works with: the same as the lower
 # bound in manifest.json (a test keeps them in step).
 MIN_PYPOWERWALL = (0, 25, 0)

@@ -487,7 +487,7 @@ async def test_dhcp_knows_a_hotspot_entry(hass: HomeAssistant, data: dict) -> No
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], {"host": "192.168.1.70", "gw_pwd": PWD, "wifi_host": ""})
     assert result["reason"] == "already_configured"
-    check.assert_called_once_with("192.168.1.70", PWD)  # typed by the user
+    check.assert_called_once_with("192.168.1.70", PWD, "")  # typed by the user (no customer password)
     assert entry.data["macs"] == ["aabbccddee10"]
     with patch.object(config_flow, "_check_gateway") as check:
         result = await discover("aabbccddee10")

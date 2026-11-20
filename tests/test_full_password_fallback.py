@@ -191,3 +191,96 @@ async def test_reconfigure_without_a_password(hass: HomeAssistant, fake_gateway)
     assert config_flow._login_mode("h", "") is False
     fake_gateway.reachable = False
     assert config_flow._login_mode("h", PWD) is False
+
+
+# ---- 2.8.2 (#23): a customer password that differs from the sticker ----
+
+CUSTOMER = "MyOwnPw42"
+
+
+async def test_setup_with_a_customer_password(hass: HomeAssistant, fake_gateway, fake_powerwall,
+                                              tmp_path) -> None:
+    from custom_components.tesla_tedapi import config_flow  # noqa: PLC0415
+
+    fake_gateway.customer = CUSTOMER
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "gateway"})
+    # The sticker password alone is refused (both forms)...
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.168.1.92", "gw_pwd": PWD, "wifi_host": ""})
+    assert result["errors"] == {"gw_pwd": "invalid_gw_pwd"}
+    # ...the customer password logs in, as it is and only it.
+    fake_gateway.logins.clear()
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.168.1.92", "gw_pwd": PWD, "wifi_host": "", "customer_password": CUSTOMER})
+    assert result["step_id"] == "access"
+    assert fake_gateway.logins == [CUSTOMER]
+    key = tmp_path / "k.pem"
+    key.write_text("x")
+    with patch.object(config_flow, "_store_key", return_value=str(key)), patch(SETUP, return_value=True):
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "key_upload"})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"key_file": "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0", "cloud_backup": False})
+    data = result["data"]
+    assert data["customer_password"] == CUSTOMER and data["gw_pwd"] == PWD
+    assert data["full_password_login"] is False
+    # The signed connection logs in with it; the sticker password stays for Wi-Fi.
+    assert local(fake_powerwall).kwargs["password"] == CUSTOMER
+    assert local(fake_powerwall).kwargs["gw_pwd"] == PWD
+
+
+async def test_wrong_customer_password_is_refused(hass: HomeAssistant, fake_gateway, caplog) -> None:
+    fake_gateway.customer = CUSTOMER
+    caplog.set_level(logging.DEBUG, logger="custom_components.tesla_tedapi.config_flow")
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "gateway"})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.168.1.92", "gw_pwd": PWD, "wifi_host": "", "customer_password": "wrong"})
+    assert result["errors"] == {"gw_pwd": "invalid_gw_pwd"}
+    assert fake_gateway.logins == ["wrong"]  # no sticker fallback once one is given
+    assert "refused the customer password" in caplog.text and "wrong" not in caplog.text
+
+
+async def test_customer_password_in_polling_reauth_reconfigure_and_diagnostics(
+        hass: HomeAssistant, fake_gateway, fake_powerwall, tmp_path) -> None:
+    from custom_components.tesla_tedapi.diagnostics import async_get_config_entry_diagnostics  # noqa: PLC0415
+
+    from .test_init import V1R, _setup  # noqa: PLC0415
+
+    fake_gateway.customer = CUSTOMER
+    entry = await _setup(hass, {**V1R, "gw_pwd": PWD, "customer_password": CUSTOMER})
+    coordinator = entry.runtime_data.coordinator
+    assert local(fake_powerwall).kwargs["password"] == CUSTOMER
+    assert coordinator.extras._customer_pwd == CUSTOMER
+    # Telling a refused key from a refused password logs in with it too.
+    assert await hass.async_add_executor_job(coordinator._classify_failure) == "key"
+    assert fake_gateway.logins[-1] == CUSTOMER
+    diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+    assert CUSTOMER not in str(diagnostics)
+
+    with patch(SETUP, return_value=True):
+        result = await entry.start_reauth_flow(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "reauth_password"})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"gw_pwd": PWD, "customer_password": CUSTOMER})
+    assert result["reason"] == "reauth_successful"
+    assert entry.data["customer_password"] == CUSTOMER
+
+    key = tmp_path / "key.pem"
+    key.write_text("x")
+    with patch(SETUP, return_value=True):
+        result = await entry.start_reconfigure_flow(hass)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "192.168.1.92", "rsa_key_path": str(key), "gw_pwd": PWD,
+                                "customer_password": CUSTOMER})
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.data["customer_password"] == CUSTOMER and entry.data["full_password_login"] is False
+
+
+def test_extras_signed_client_uses_the_customer_password() -> None:
+    from custom_components.tesla_tedapi import client  # noqa: PLC0415
+
+    kwargs = client.local_kwargs("v1r", "h", PWD, "/k", "UTC", customer_pwd=CUSTOMER)
+    assert kwargs["password"] == CUSTOMER and kwargs["gw_pwd"] == PWD
+    assert client.local_kwargs("wifi", "h", PWD, "", "UTC", customer_pwd=CUSTOMER)["password"] == ""
+    assert client.local_kwargs("v1r", "h", PWD, "/k", "UTC")["password"] == ""

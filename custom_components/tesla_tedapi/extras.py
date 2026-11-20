@@ -95,13 +95,15 @@ class GatewayExtras:
     """aiopytedapi clients for one gateway, and the last values read."""
 
     def __init__(self, hass: HomeAssistant, *, mode: str, host: str, gw_pwd: str, rsa_key_path: str,
-                 full_login: bool = False, wifi_host: str = "", din: str | None = None) -> None:
+                 full_login: bool = False, wifi_host: str = "", din: str | None = None,
+                 customer_pwd: str = "") -> None:
         self.hass = hass
         self.signed_supported = mode == MODE_V1R
         self._host = host
         self._gw_pwd = gw_pwd
         self._rsa_key_path = rsa_key_path
         self._full_login = full_login
+        self._customer_pwd = customer_pwd
         self._din = din
         # The Gateway Wi-Fi (password) connection: the gateway itself in
         # Wi-Fi mode, else the Wi-Fi fallback or a gateway reached on its
@@ -148,7 +150,8 @@ class GatewayExtras:
                 _LOGGER.warning("The signing key can't be read (%s): network status, registered keys "
                                 "and site limits can't use the signed connection", err)
                 return None
-            password = gateway.customer_password(self._gw_pwd, self._full_login) if self._gw_pwd else None
+            password = self._customer_pwd or (
+                gateway.customer_password(self._gw_pwd, self._full_login) if self._gw_pwd else None)
             self._signed = TedapiClient.signed(async_get_clientsession(self.hass), self._host, key,
                                                password=password, din=self._din)
         return self._signed

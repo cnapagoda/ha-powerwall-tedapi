@@ -384,6 +384,8 @@ def fake_gateway():
     # Whether the gateway takes only the full password, without being a
     # Backup Gateway 1 (some Powerwall 2 gateways).
     FakeGateway.full_only = False
+    # A customer password the owner changed: only it logs in (2.8.2, #23).
+    FakeGateway.customer = ""
     FakeGateway.part_number = None
     FakeGateway.locked = False
     FakeGateway.logins: list[str] = []
@@ -395,8 +397,9 @@ def fake_gateway():
             raise gateway.GatewayLocked("too many login attempts")
         sent = gateway.customer_password(gw_pwd, full)
         FakeGateway.logins.append(sent)
-        if sent != gateway.customer_password(FakeGateway.password,
-                                             FakeGateway.gateway1 or FakeGateway.full_only):
+        expected = FakeGateway.customer or gateway.customer_password(
+            FakeGateway.password, FakeGateway.gateway1 or FakeGateway.full_only)
+        if sent != expected:
             raise gateway.GatewayPasswordRejected
         return "token"
 

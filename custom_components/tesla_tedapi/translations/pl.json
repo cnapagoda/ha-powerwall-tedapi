@@ -22,12 +22,14 @@
         "data": {
           "host": "Adres bramy",
           "gw_pwd": "Hasło bramy",
-          "wifi_host": "Zapasowy adres Wi-Fi"
+          "wifi_host": "Zapasowy adres Wi-Fi",
+          "customer_password": "Hasło klienta (opcjonalne)"
         },
         "data_description": {
           "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
           "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
-          "wifi_host": "Hotspot Wi-Fi Powerwall, używany przez to samo podpisane połączenie, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu. Służy też do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową."
+          "wifi_host": "Hotspot Wi-Fi Powerwall, używany przez to samo podpisane połączenie, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu. Służy też do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową.",
+          "customer_password": "Tylko jeśli hasło logowania klienta bramy zostało zmienione i nie pasuje już do naklejki (na przykład przez instalatora lub na stronie internetowej starszego oprogramowania). Używane bez zmian do tego logowania; pozostaw puste, aby wyliczyć je z hasła bramy."
         }
       },
       "access": {
@@ -106,10 +108,12 @@
       "reauth_password": {
         "title": "Hasło bramy",
         "data": {
-          "gw_pwd": "Hasło bramy"
+          "gw_pwd": "Hasło bramy",
+          "customer_password": "Hasło klienta (opcjonalne)"
         },
         "data_description": {
-          "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła."
+          "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
+          "customer_password": "Tylko jeśli hasło logowania klienta bramy zostało zmienione i nie pasuje już do naklejki (na przykład przez instalatora lub na stronie internetowej starszego oprogramowania). Używane bez zmian do tego logowania; pozostaw puste, aby wyliczyć je z hasła bramy."
         }
       },
       "reconfigure": {
@@ -119,13 +123,15 @@
           "host": "Adres bramy",
           "gw_pwd": "Hasło bramy",
           "rsa_key_path": "Plik klucza prywatnego RSA",
-          "wifi_host": "Zapasowy adres Wi-Fi (tylko podpisane)"
+          "wifi_host": "Zapasowy adres Wi-Fi (tylko podpisane)",
+          "customer_password": "Hasło klienta (opcjonalne)"
         },
         "data_description": {
           "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
           "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
           "rsa_key_path": "Pełna ścieżka do pliku klucza prywatnego na hoście Home Assistant, na przykład `/config/tesla_tedapi/tedapi_rsa_private.pem`. Zostaw puste, aby użyć połączenia hasłem Wi-Fi (tylko odczyt).",
-          "wifi_host": "Adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`), używany, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu. Służy też do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową."
+          "wifi_host": "Adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`), używany, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu. Służy też do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową.",
+          "customer_password": "Tylko jeśli hasło logowania klienta bramy zostało zmienione i nie pasuje już do naklejki (na przykład przez instalatora lub na stronie internetowej starszego oprogramowania). Używane bez zmian do tego logowania; pozostaw puste, aby wyliczyć je z hasła bramy."
         }
       },
       "new_key": {

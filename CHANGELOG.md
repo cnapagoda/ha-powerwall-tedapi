@@ -2,6 +2,7 @@
 
 ## 2.8.2
 
+- **Customer password (optional) in setup, reauthentication and Reconfigure,** for gateways whose customer login password was changed and no longer matches the sticker (for example by an installer). When set, it's used as it is for that login (polling, the signed connection and the new gateway status reads); the sticker password is still used for the Powerwall's Wi-Fi. It's redacted in diagnostics (#23, thanks [@MattJBeard](https://github.com/MattJBeard)).
 - **A battery dispatch stops when the battery level can't be read.** Its limits (`min_soc`, `max_soc`, the `charge_to` / `discharge_to` target and the backup reserve floor) are checked against the battery level, and the Powerwall ignores its own reserve during a dispatch. Before, a dispatch kept being renewed while the gateway gave no battery level. Now it isn't renewed once the level is 2 minutes old (or 2½ polling intervals, if longer), and ends with reason `battery_level_unknown` when its last command has run out. A short gap doesn't end it.
 
 ## 2.8.1

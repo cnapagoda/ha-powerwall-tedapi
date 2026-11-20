@@ -22,12 +22,14 @@
         "data": {
           "host": "Adresse de la passerelle",
           "gw_pwd": "Mot de passe de la passerelle",
-          "wifi_host": "Adresse Wi-Fi de secours"
+          "wifi_host": "Adresse Wi-Fi de secours",
+          "customer_password": "Mot de passe client (facultatif)"
         },
         "data_description": {
           "host": "L'adresse de la passerelle sur votre réseau domestique, par exemple `192.168.1.50`. Votre routeur l'affiche comme `teslapw_…`.",
           "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet.",
-          "wifi_host": "Le point d'accès Wi-Fi de la Powerwall, utilisé avec la même connexion signée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès. Sert aussi à lire les Powerwall 3 suiveurs, que la connexion signée ne joint pas par le réseau domestique."
+          "wifi_host": "Le point d'accès Wi-Fi de la Powerwall, utilisé avec la même connexion signée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès. Sert aussi à lire les Powerwall 3 suiveurs, que la connexion signée ne joint pas par le réseau domestique.",
+          "customer_password": "Seulement si le mot de passe de connexion client de la passerelle a été modifié et ne correspond plus à l'étiquette (par exemple par l'installateur, ou sur la page web d'un ancien firmware). Utilisé tel quel pour cette connexion ; laissez vide pour le déduire du mot de passe de la passerelle."
         }
       },
       "access": {
@@ -106,10 +108,12 @@
       "reauth_password": {
         "title": "Mot de passe de la passerelle",
         "data": {
-          "gw_pwd": "Mot de passe de la passerelle"
+          "gw_pwd": "Mot de passe de la passerelle",
+          "customer_password": "Mot de passe client (facultatif)"
         },
         "data_description": {
-          "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet."
+          "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet.",
+          "customer_password": "Seulement si le mot de passe de connexion client de la passerelle a été modifié et ne correspond plus à l'étiquette (par exemple par l'installateur, ou sur la page web d'un ancien firmware). Utilisé tel quel pour cette connexion ; laissez vide pour le déduire du mot de passe de la passerelle."
         }
       },
       "reconfigure": {
@@ -119,13 +123,15 @@
           "host": "Adresse de la passerelle",
           "gw_pwd": "Mot de passe de la passerelle",
           "rsa_key_path": "Fichier de clé privée RSA",
-          "wifi_host": "Adresse Wi-Fi de secours (signé uniquement)"
+          "wifi_host": "Adresse Wi-Fi de secours (signé uniquement)",
+          "customer_password": "Mot de passe client (facultatif)"
         },
         "data_description": {
           "host": "L'adresse de la passerelle sur votre réseau domestique, par exemple `192.168.1.50`. Votre routeur l'affiche comme `teslapw_…`.",
           "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet.",
           "rsa_key_path": "Chemin complet du fichier de clé privée sur l'hôte Home Assistant, par exemple `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laissez vide pour utiliser la connexion par mot de passe Wi-Fi (lecture seule).",
-          "wifi_host": "L'adresse du point d'accès Wi-Fi de la Powerwall (généralement `192.168.91.1`), utilisée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès. Sert aussi à lire les Powerwall 3 suiveurs, que la connexion signée ne joint pas par le réseau domestique."
+          "wifi_host": "L'adresse du point d'accès Wi-Fi de la Powerwall (généralement `192.168.91.1`), utilisée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès. Sert aussi à lire les Powerwall 3 suiveurs, que la connexion signée ne joint pas par le réseau domestique.",
+          "customer_password": "Seulement si le mot de passe de connexion client de la passerelle a été modifié et ne correspond plus à l'étiquette (par exemple par l'installateur, ou sur la page web d'un ancien firmware). Utilisé tel quel pour cette connexion ; laissez vide pour le déduire du mot de passe de la passerelle."
         }
       },
       "new_key": {
