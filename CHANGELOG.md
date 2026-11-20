@@ -1,5 +1,7 @@
 # Changelog
 
+## 2.8.2
+
 ## 2.8.1
 
 - **`BMS_a023_SW_Assertion` is a notice again, not a warning:** a healthy Powerwall 3 and its Expansion Pack reported it for days after a firmware update, so it turned **Problem** on and raised a repair that never cleared. It's still listed under the alerts (thanks [@shaggyblue](https://github.com/shaggyblue), #29).
