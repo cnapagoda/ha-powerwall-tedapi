@@ -3,7 +3,7 @@ the option, the sensor and the get/set actions."""
 from __future__ import annotations
 
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 from zoneinfo import ZoneInfo
 
@@ -613,3 +613,77 @@ def test_sell_tariff_without_seasons_follows_the_buy_side() -> None:
     assert norm["sell_seasons"] == {}
     got = tariff.current(norm, datetime(2026, 11, 19, 18))
     assert (got["sell_season"], got["sell_period"], got["sell_rate"]) == ("Winter", "ON_PEAK", 0.10)
+
+
+# 2.8.2 (#31): the largest shape seen, a PG&E NEM 3.0 tariff. The buy side has
+# Summer (Jun-Sep) and Winter (Oct-May); the sell side has one season per month,
+# each with an hourly export price for weekdays and for weekends (48 periods).
+# Generated here; the prices follow a formula so every hour is different.
+_MONTHS = ("January", "February", "March", "April", "May", "June", "July", "August",
+           "September", "October", "November", "December")
+_MONTH_DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+
+
+def nem3_price(month: int, hour: int, weekend: bool) -> float:
+    return round(0.02 + month * 0.01 + hour * 0.001 + (0.0005 if weekend else 0), 4)
+
+
+def _nem3() -> dict:
+    def buy_season(from_month: int, to_month: int, to_day: int) -> dict:
+        return {"fromMonth": from_month, "toMonth": to_month, "fromDay": 1, "toDay": to_day, "tou_periods": {
+            "OFF_PEAK": [{**_HOURS, "fromHour": 0, "toHour": 15}],
+            "PARTIAL_PEAK": [{**_HOURS, "fromHour": 15, "toHour": 16}, {**_HOURS, "fromHour": 21, "toHour": 0}],
+            "ON_PEAK": [{**_HOURS, "fromHour": 16, "toHour": 21}]}}
+
+    sell_seasons, sell_charges = {}, {"ALL": {"ALL": 0}}
+    for month, (name, days) in enumerate(zip(_MONTHS, _MONTH_DAYS, strict=True), start=1):
+        periods, rates = {}, {}
+        for hour in range(24):
+            for weekend, (first, last) in ((False, (0, 4)), (True, (5, 6))):
+                key = f"hour_{hour}_{'weekend' if weekend else 'weekday'}"
+                periods[key] = [{"fromDayOfWeek": first, "toDayOfWeek": last,
+                                 "fromHour": hour, "toHour": (hour + 1) % 24}]
+                rates[key] = nem3_price(month, hour, weekend)
+        sell_seasons[name] = {"fromMonth": month, "toMonth": month, "fromDay": 1, "toDay": days,
+                              "tou_periods": periods}
+        sell_charges[name] = rates
+    return {
+        "name": "Residential Time-Of-Use - NEM 3.0", "currency": "USD",
+        "demand_charges": {"ALL": {"ALL": 0}, "Summer": {}, "Winter": {}},
+        "energy_charges": {"Summer": {"OFF_PEAK": 0.36, "PARTIAL_PEAK": 0.42, "ON_PEAK": 0.58},
+                           "Winter": {"OFF_PEAK": 0.31, "PARTIAL_PEAK": 0.33, "ON_PEAK": 0.35}},
+        "seasons": {"Summer": buy_season(6, 9, 30), "Winter": buy_season(10, 5, 31)},
+        "sell_tariff": {"demand_charges": {"ALL": {"ALL": 0}}, "energy_charges": sell_charges,
+                        "seasons": sell_seasons},
+    }
+
+
+NEM3_TARIFF = _nem3()
+
+
+@pytest.mark.parametrize(("when", "sell_season", "sell_period", "rate"), [
+    (datetime(2026, 11, 19, 9, 30), "November", "hour_9_weekday", nem3_price(11, 9, False)),    # Thursday
+    (datetime(2026, 11, 21, 12, 0), "November", "hour_12_weekend", nem3_price(11, 12, True)),   # Saturday
+    (datetime(2026, 11, 30, 23, 30), "November", "hour_23_weekday", nem3_price(11, 23, False)),  # Monday
+    (datetime(2026, 12, 1, 0, 30), "December", "hour_0_weekday", nem3_price(12, 0, False)),     # into December
+    (datetime(2026, 7, 15, 17, 0), "July", "hour_17_weekday", nem3_price(7, 17, False)),
+])
+def test_nem3_hourly_export_prices(when, sell_season, sell_period, rate) -> None:
+    got = tariff.current(tariff.normalize(NEM3_TARIFF), when)
+    assert (got["sell_season"], got["sell_period"], got["sell_rate"]) == (sell_season, sell_period, rate)
+    assert got["season"] == ("Summer" if when.month in (6, 7, 8, 9) else "Winter")
+    assert got["buy_rate"] is not None and got["buy_rate"] > 0.3
+
+
+def test_nem3_schedule_has_an_hourly_export_price() -> None:
+    tz = ZoneInfo("America/Los_Angeles")
+    norm = tariff.normalize(NEM3_TARIFF)
+    day = datetime(2026, 11, 19, tzinfo=tz)  # a Thursday
+    items = tariff.schedule(norm, day, day + timedelta(days=1))
+    assert [(item["start"].hour, item["sell_rate"]) for item in items] == [
+        (hour, nem3_price(11, hour, False)) for hour in range(24)]
+    # Friday into Saturday: the export price switches to the weekend one at midnight.
+    friday = datetime(2026, 11, 20, 23, tzinfo=tz)
+    over = tariff.schedule(norm, friday, friday + timedelta(hours=2))
+    assert [(item["start"].hour, item["sell_period"], item["sell_rate"]) for item in over] == [
+        (23, "hour_23_weekday", nem3_price(11, 23, False)), (0, "hour_0_weekend", nem3_price(11, 0, True))]
