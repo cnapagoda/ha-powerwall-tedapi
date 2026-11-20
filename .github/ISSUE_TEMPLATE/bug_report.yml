@@ -87,5 +87,5 @@ body:
     id: logs
     attributes:
       label: Debug log
-      description: "Turn on **Enable debug logging** on the integration's page (or set `custom_components.tesla_tedapi: debug` `pypowerwall: debug` and `aiopytedapi: debug` under `logger:`), reproduce, and paste the relevant lines."
+      description: "Attach **Download diagnostics** first (it's redacted). For a log, turn on **Enable debug logging** on the integration's page (or set `custom_components.tesla_tedapi: debug` and `aiopytedapi: debug` under `logger:`), reproduce, and paste the relevant lines. Don't add `pypowerwall: debug` unless asked: it logs the gateway's data unredacted (customer details, serial numbers)."
       render: text

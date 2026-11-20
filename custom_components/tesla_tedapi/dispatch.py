@@ -34,6 +34,7 @@ from .const import (
     EVENT_DISPATCH_ENDED,
 )
 from .coordinator import TedapiCoordinator
+from .privacy import scrub
 
 _LOGGER = logging.getLogger(__name__)
 # pypowerwall (0.22.2+) logs a warning for every accepted dispatch command.
@@ -247,7 +248,7 @@ class DispatchSession:
             async with self._send_lock:
                 await self.coordinator.async_send_resume()
         except HomeAssistantError as err:
-            _LOGGER.warning("Could not resume the battery while unloading: %s", err)
+            _LOGGER.warning("Could not resume the battery while unloading: %s", scrub(err))
 
     async def async_move_to(self, target_soc: float, power_watts: float, minutes: int,
                             charge: bool) -> dict[str, Any]:
@@ -295,7 +296,7 @@ class DispatchSession:
                 await self.coordinator.async_send_resume()
         except HomeAssistantError as err:
             # The last command expires on its own within DISPATCH_CHUNK_SECONDS.
-            _LOGGER.warning("Resume after %s failed: %s", reason, err)
+            _LOGGER.warning("Resume after %s failed: %s", reason, scrub(err))
         await self.coordinator.async_request_refresh()
 
     async def _async_at_end(self, _now: datetime) -> None:
@@ -379,6 +380,6 @@ class DispatchSession:
         except HomeAssistantError as err:
             self._failures += 1
             _LOGGER.warning("Battery dispatch renewal failed (%s/%s): %s",
-                            self._failures, DISPATCH_MAX_FAILURES, err)
+                            self._failures, DISPATCH_MAX_FAILURES, scrub(err))
             if self._failures >= DISPATCH_MAX_FAILURES and self.state is state:
                 self._end("connection_lost")

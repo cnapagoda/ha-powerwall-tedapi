@@ -29,6 +29,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from . import gateway
 from .const import MODE_V1R
+from .privacy import scrub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -148,7 +149,7 @@ class GatewayExtras:
             except (OSError, ValueError) as err:
                 self._key_failed = True
                 _LOGGER.warning("The signing key can't be read (%s): network status, registered keys "
-                                "and site limits can't use the signed connection", err)
+                                "and site limits can't use the signed connection", scrub(err))
                 return None
             password = self._customer_pwd or (
                 gateway.customer_password(self._gw_pwd, self._full_login) if self._gw_pwd else None)

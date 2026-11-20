@@ -91,6 +91,7 @@ from .firmware import FirmwareTracker, split_version
 from .fleet import FleetBackup, FleetTimeout, entry_api, provider_label
 from .flows import EnergyFlows
 from .outages import OutageTracker
+from .privacy import scrub
 from .texts import texts as shared_texts
 from .wear import CapacityTrend
 
@@ -1140,7 +1141,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         return None
                     _LOGGER.warning("%s: local write failed", what)
                 except Exception as err:  # noqa: BLE001
-                    _LOGGER.warning("%s: local write error (%s)", what, err)
+                    _LOGGER.warning("%s: local write error (%s)", what, scrub(err))
             else:
                 _LOGGER.warning("%s: gateway not connected", what)
         if not self.cloud_enabled:
@@ -1164,7 +1165,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.info("%s: sent through %s, checking that the Powerwall applies it", what, backend.label)
                 return backend.label
             errors.append(f"{backend.label} did not accept it")
-        _LOGGER.warning("%s: local and cloud writes failed (%s)", what, "; ".join(errors))
+        _LOGGER.warning("%s: local and cloud writes failed (%s)", what, scrub("; ".join(errors)))
         raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_failed")
 
     def _write_setting(self, key: str, what: str, value: Any, write) -> None:
@@ -1205,7 +1206,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             ok = bool(pw.client.tedapi._write_config({f"site_info.{SOLAR_CURTAILMENT_KEY}": bool(enabled)}))  # noqa: SLF001
         except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Solar curtailment write error: %s", err)
+            _LOGGER.warning("Solar curtailment write error: %s", scrub(err))
             ok = False
         if not ok:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_failed")
@@ -1404,7 +1405,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         caller reports it like a refusal (None), so everything that sends
         commands sees a HomeAssistantError and nothing else."""
         _LOGGER.warning("%s: the command failed before the Powerwall answered (%s: %s)",
-                        what, type(err).__name__, err)
+                        what, type(err).__name__, scrub(err))
 
     def _max_backup(self, minutes: int | None) -> None:
         """Start (minutes) or cancel (None) a manual backup event over signed
@@ -1584,7 +1585,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if not self._gateway_down:
                     self._gateway_down = True
                     _LOGGER.warning("The Powerwall gateway at %s can't be reached (%s); readings are "
-                                    "unavailable and settings use the cloud backup", self._host, err)
+                                    "unavailable and settings use the cloud backup", self._host, scrub(err))
             else:
                 self._password_refused = self._key_refused = 0
                 if self._gateway_down:
@@ -1864,8 +1865,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._follower_missing < FOLLOWER_MISSING_POLLS or issue_id in self._write_issues:
             return
         signed = self._conn_mode == MODE_V1R
-        _LOGGER.warning("%d Powerwall 3(s) missing from the readings (%s)%s", len(missing),
-                        ", ".join(missing),
+        # A count, not the serials: logs end up in public issues.
+        _LOGGER.warning("%d Powerwall 3(s) missing from the readings%s", len(missing),
                         "; on the signed connection followers are read over the Wi-Fi fallback only"
                         if signed else "")
         self._write_issues.add(issue_id)
@@ -2005,7 +2006,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._client_error_logged = True
             _LOGGER.error(
                 "The Powerwall client failed before reaching the gateway (%s: %s). If another integration "
-                "installs a different pypowerwall, remove it and restart Home Assistant", type(err).__name__, err)
+                "installs a different pypowerwall, remove it and restart Home Assistant",
+                type(err).__name__, scrub(err))
 
     def _classify_failure(self, key_refused: bool | None = None) -> str:
         """Why the signed connection failed: password, key, network, or a

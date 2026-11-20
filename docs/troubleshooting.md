@@ -106,17 +106,17 @@ The integration's card can also show **Reauthenticate**: the gateway keeps refus
 ## Collecting information for a bug report
 
 1. **Diagnostics:** **Settings → Devices & services → Tesla Powerwall TEDAPI → ⋮ → Download diagnostics.** Passwords, email, site ID and serial numbers are hidden; check it anyway before sharing. For connection problems, the `tedapi_mode` field shows the connection actually in use. Turn on **Gateway configuration in diagnostics** in the options if you're asked for it.
-2. **Debug log:** add this to `configuration.yaml` and restart, or use **Enable debug logging** on the integration's page:
+2. **Debug log:** use **Enable debug logging** on the integration's page, or add this to `configuration.yaml` and restart:
 
    ```yaml
    logger:
      logs:
        custom_components.tesla_tedapi: debug
-       pypowerwall: debug
        aiopytedapi: debug
    ```
 
+   Only if you're asked for it, add `pypowerwall: debug` too. It logs everything the gateway sends, unredacted: the gateway configuration (with the customer and installer details, site name and utility) and every serial number. Remove those before you share it, or send it privately.
 3. Reproduce the problem, then **Disable debug logging** (the log downloads automatically) or copy the relevant lines.
 4. [Open an issue](https://github.com/cnapagoda/ha-powerwall-tedapi/issues/new/choose) with the versions (integration, Home Assistant, Powerwall model and firmware), your connection type, the diagnostics and the log.
 
-**Never post** the key (`tedapi_rsa_private.pem`), Tesla tokens (`.pypowerwall.auth`) or the gateway password.
+**Never post** the key (`tedapi_rsa_private.pem`), Tesla tokens (`.pypowerwall.auth`) or the gateway password. Diagnostics are redacted; logs aren't fully, so check them for serial numbers and addresses first.

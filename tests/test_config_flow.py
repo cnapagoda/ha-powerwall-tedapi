@@ -215,9 +215,9 @@ async def test_scan(hass: HomeAssistant) -> None:
     assert result["step_id"] == "gateway" and result["errors"] == {"base": "none_found"}
 
 
-async def test_dhcp_follows_new_address(hass: HomeAssistant) -> None:
+async def test_dhcp_follows_new_address(hass: HomeAssistant, caplog) -> None:
     """A known gateway (by its MAC) is followed to its new address, without
-    sending it the password."""
+    sending it the password. The log names the entry, not its DIN (2.8.2)."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={
         "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/k",
         "macs": ["aabbccddeeff"]})
@@ -229,6 +229,8 @@ async def test_dhcp_follows_new_address(hass: HomeAssistant) -> None:
     assert result["reason"] == "already_configured"
     assert entry.data["host"] == "192.168.1.60"
     check.assert_not_called()
+    assert "moved from 192.168.1.50 to 192.168.1.60" in caplog.text
+    assert DIN not in caplog.text and DIN.split("--")[-1] not in caplog.text
 
 
 async def test_dhcp_never_sends_a_stored_password(hass: HomeAssistant) -> None:

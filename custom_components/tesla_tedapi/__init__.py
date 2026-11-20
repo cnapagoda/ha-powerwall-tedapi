@@ -65,6 +65,7 @@ from .const import (
 from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
 from .dispatch import DispatchSession, quiet_dispatch_repeats
 from .off_grid import OffGridSession, off_grid_store
+from .privacy import scrub
 from .texts import async_setup_texts
 
 _LOGGER = logging.getLogger(__name__)
@@ -330,7 +331,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
     except client.ClientTooOld as err:
         # Not ConfigEntryNotReady: retrying can't help, only a restart
         # without the integration that loaded the older pypowerwall.
-        _LOGGER.error("%s. Another integration loaded it; remove that one and restart Home Assistant", err)
+        _LOGGER.error("%s. Another integration loaded it; remove that one and restart Home Assistant", scrub(err))
         raise ConfigEntryError(
             translation_domain=DOMAIN, translation_key="pypowerwall_too_old",
             translation_placeholders={"found": err.found, "required": client.required()}) from err
@@ -373,7 +374,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
     # already fired (unload after the stop) logs an error.
     entry.async_on_unload(hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, _async_stop))
     _LOGGER.debug("Powerwall %s loaded (firmware %s, %s, settings %s)",
-                  coordinator.din, coordinator.firmware_version, coordinator.connection_mode,
+                  entry.title, coordinator.firmware_version, coordinator.connection_mode,
                   "enabled" if coordinator.control_enabled else "read-only")
     return True
 

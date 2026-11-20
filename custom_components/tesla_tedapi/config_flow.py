@@ -104,6 +104,7 @@ from .const import (
     STORAGE_FOLDER,
     cloud_choice,
 )
+from .privacy import scrub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -386,7 +387,7 @@ class TeslaLoginMixin:
                 self._sites = await self.hass.async_add_executor_job(
                     tesla_cloud.energy_sites, self._token["access_token"])
             except tesla_cloud.TeslaRefused as err:
-                _LOGGER.warning("Tesla sign-in worked but the Owner API refused the token: %s", err)
+                _LOGGER.warning("Tesla sign-in worked but the Owner API refused the token: %s", scrub(err))
                 errors["base"] = "owner_api_refused"
                 if code_sent:
                     self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
@@ -398,7 +399,7 @@ class TeslaLoginMixin:
                 else:
                     errors["base"] = "invalid_token"
             except tesla_cloud.TeslaCloudError as err:
-                _LOGGER.warning("Tesla account error: %s", err)
+                _LOGGER.warning("Tesla account error: %s", scrub(err))
                 errors["base"] = "cloud_error"
                 if code_sent:
                     self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
@@ -495,7 +496,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
 
     def _abort_client_too_old(self, err: client.ClientTooOld) -> ConfigFlowResult:
         _LOGGER.error("Setup stopped: %s. Another integration loaded it; remove that one and restart "
-                      "Home Assistant", err)
+                      "Home Assistant", scrub(err))
         return self.async_abort(reason="pypowerwall_too_old", description_placeholders={
             "found": err.found, "required": client.required()})
 
@@ -550,7 +551,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                     # Same address, or set up over the gateway's Wi-Fi
                     # hotspot (keep the hotspot address it connects to).
                     return self.async_abort(reason="already_configured")
-                _LOGGER.info("Powerwall %s moved from %s to %s", entry.unique_id, host, ip)
+                # The entry's title, not its DIN (which holds the serial).
+                _LOGGER.info("Powerwall %s moved from %s to %s", entry.title, host, ip)
                 self.hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_HOST: ip})
                 self.hass.config_entries.async_schedule_reload(entry.entry_id)
                 return self.async_abort(reason="already_configured")
@@ -646,13 +648,13 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         try:
             return await self._async_fleet_sites(api)
         except fleet.FleetNotRegistered as err:
-            _LOGGER.warning("Tesla Fleet: the developer app isn't registered in this region: %s", err)
+            _LOGGER.warning("Tesla Fleet: the developer app isn't registered in this region: %s", scrub(err))
             return self.async_abort(reason="fleet_not_registered", description_placeholders=LINKS)
         except fleet.FleetAuthError as err:
-            _LOGGER.warning("Tesla Fleet refused the new sign-in: %s", err)
+            _LOGGER.warning("Tesla Fleet refused the new sign-in: %s", scrub(err))
             return self.async_abort(reason="fleet_refused")
         except (fleet.FleetError, fleet.FleetTimeout) as err:
-            _LOGGER.warning("Tesla Fleet error: %s", err)
+            _LOGGER.warning("Tesla Fleet error: %s", scrub(err))
             return self.async_abort(reason="fleet_error")
 
     async def async_step_teslemetry(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -670,7 +672,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 _LOGGER.debug("Teslemetry refused the token: %s", err)
                 errors["base"] = "invalid_token"
             except (fleet.FleetError, fleet.FleetTimeout) as err:
-                _LOGGER.warning("Teslemetry error: %s", err)
+                _LOGGER.warning("Teslemetry error: %s", scrub(err))
                 errors["base"] = "cloud_error"
             self._fleet = None
         return self.async_show_form(
@@ -783,7 +785,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 self._made_key = key_path
             self._key_state = await self._async_register()
         except _REGISTER_ERRORS as err:
-            _LOGGER.warning("Key registration failed: %s", err)
+            _LOGGER.warning("Key registration failed: %s", scrub(err))
             return self.async_abort(reason=_register_failure(err), description_placeholders=LINKS)
         self._data[CONF_RSA_KEY_PATH] = key_path
         if self._key_state == tesla_cloud.KEY_VERIFIED:
@@ -825,7 +827,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         try:
             self._key_state = self._verify_task.result()
         except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Key confirmation failed: %s", err)
+            _LOGGER.warning("Key confirmation failed: %s", scrub(err))
             self._key_state = None
         self._verify_task = None
         if self._key_state == tesla_cloud.KEY_VERIFIED:
