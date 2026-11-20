@@ -32,6 +32,10 @@ MAX_SAMPLES = 1500  # about four years of daily samples
 MAX_PROJECTION_DAYS = 365 * 50
 
 
+# What round_trip_efficiency() is based on, for the sensor's attributes.
+EFFICIENCY_BASIS = "battery_side_lifetime"
+
+
 def _number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
@@ -46,6 +50,24 @@ def round_trip_efficiency(charged_kwh: Any, discharged_kwh: Any) -> float | None
     # Over 100 % the counters don't cover the same energy (solar charging the
     # battery on the DC side without counting as charge, say): unknown.
     return round(efficiency, 1) if efficiency <= 100 else None
+
+
+def efficiency_basis(charged_kwh: Any, discharged_kwh: Any) -> dict[str, Any]:
+    """What round_trip_efficiency() is based on, and why it is unknown when it
+    is: the lifetime counters it divides, measured at the battery (so the
+    Powerwall's conversion losses aren't in it)."""
+    charged = round(float(charged_kwh), 1) if _number(charged_kwh) else None
+    discharged = round(float(discharged_kwh), 1) if _number(discharged_kwh) else None
+    if charged is None or discharged is None:
+        reason = "no_counters"
+    elif charged_kwh < MIN_EFFICIENCY_KWH:
+        reason = "not_enough_history"
+    elif discharged_kwh > charged_kwh:
+        reason = "counters_disagree"
+    else:
+        reason = None
+    return {"basis": EFFICIENCY_BASIS, "charged_kwh": charged, "discharged_kwh": discharged,
+            "min_charged_kwh": MIN_EFFICIENCY_KWH, "unknown_reason": reason}
 
 
 class CapacityTrend:

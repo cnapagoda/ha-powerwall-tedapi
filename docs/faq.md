@@ -38,7 +38,7 @@ Every 30 seconds by default (10–300 s in the options). Power, battery level an
 Yes: the [energy flow](entities.md#energy-flows) sensors split solar, battery and grid energy into seven flows (solar to home, battery to grid, and so on), in kWh.
 
 **Why don't the energy flows add up to Home energy consumed?**
-The flows are the energy delivered at the gateway. The gateway's **Home energy consumed** also counts the Powerwall's own conversion and standby use, typically 80–220 W. For the same reason, **Battery round-trip efficiency** is measured at the battery and reads higher than the round trip seen from the grid.
+The flows are the energy delivered at the gateway. The gateway's **Home energy consumed** also counts the Powerwall's own conversion and standby use, typically 80–220 W. For the same reason, **Battery round-trip efficiency** is measured at the battery and reads higher than the round trip seen from the grid: a figure in the high 90s is normal. Its attributes show the two lifetime counters it divides (`charged_kwh`, `discharged_kwh`) and `basis: battery_side_lifetime`.
 
 **What happens during a power cut?**
 **Grid connected** turns off within one poll, the outage is counted, and `tesla_tedapi_grid_outage` fires, as long as Home Assistant and your network have power (a UPS helps).

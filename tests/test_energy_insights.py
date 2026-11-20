@@ -117,6 +117,23 @@ def test_round_trip_efficiency() -> None:
     assert wear.round_trip_efficiency(1000, 1050) is None
 
 
+def test_efficiency_basis() -> None:
+    """2.8.2: what the figure is based on, and why it's unknown when it is."""
+    assert wear.efficiency_basis(1000.04, 900) == {
+        "basis": "battery_side_lifetime", "charged_kwh": 1000.0, "discharged_kwh": 900.0,
+        "min_charged_kwh": wear.MIN_EFFICIENCY_KWH, "unknown_reason": None}
+    assert wear.efficiency_basis(10, 9)["unknown_reason"] == "not_enough_history"
+    assert wear.efficiency_basis(1000, 1050)["unknown_reason"] == "counters_disagree"
+    assert wear.efficiency_basis(None, 5) == {
+        "basis": "battery_side_lifetime", "charged_kwh": None, "discharged_kwh": 5.0,
+        "min_charged_kwh": wear.MIN_EFFICIENCY_KWH, "unknown_reason": "no_counters"}
+    assert wear.efficiency_basis(500, True)["unknown_reason"] == "no_counters"
+    # Wherever the figure is unknown, the basis says why; where it shows, it doesn't.
+    for charged, discharged in ((1000, 900), (10, 9), (1000, 1050), (None, 5), (1000, 1000)):
+        unknown = wear.round_trip_efficiency(charged, discharged) is None
+        assert (wear.efficiency_basis(charged, discharged)["unknown_reason"] is not None) == unknown
+
+
 def _trend(days: int, start_kwh: float, per_day: float, packs: int = 1) -> wear.CapacityTrend:
     trend = wear.CapacityTrend()
     for day in range(days):
@@ -168,6 +185,9 @@ async def test_battery_economics_sensors(hass: HomeAssistant, fake_powerwall, fr
     # The fake gateway's counters: 500 kWh into the battery, 450 kWh out.
     efficiency = hass.states.get(_eid(hass, "sensor", "battery_round_trip_efficiency"))
     assert efficiency.state == "90.0"
+    assert efficiency.attributes["basis"] == "battery_side_lifetime"
+    assert (efficiency.attributes["charged_kwh"], efficiency.attributes["discharged_kwh"]) == (500.0, 450.0)
+    assert efficiency.attributes["unknown_reason"] is None
     fade = hass.states.get(_eid(hass, "sensor", "battery_capacity_fade"))
     assert fade.state == "unknown"  # one sample: no trend yet
     assert fade.attributes["samples"] == 1 and fade.attributes["days"] == 0

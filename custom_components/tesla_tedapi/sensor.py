@@ -41,7 +41,7 @@ from .firmware import split_version
 from .flows import FLOWS
 from .outages import month_start
 from .tariff import current as tariff_now, normalize as tariff_normalize
-from .wear import round_trip_efficiency
+from .wear import efficiency_basis, round_trip_efficiency
 
 # Coordinator-based: no limit on parallel updates.
 PARALLEL_UPDATES = 0
@@ -218,6 +218,11 @@ def _efficiency(d: dict[str, Any]) -> float | None:
     return round_trip_efficiency(energy.get("battery_energy_charged"), energy.get("battery_energy_discharged"))
 
 
+def _efficiency_attrs(d: dict[str, Any]) -> dict[str, Any]:
+    energy = d.get("energy") or {}
+    return efficiency_basis(energy.get("battery_energy_charged"), energy.get("battery_energy_discharged"))
+
+
 # Sensors the cloud backup's live status can stand in for while the gateway
 # can't be reached (the cloud readings option): the readings themselves and
 # the ones split from them.
@@ -350,6 +355,7 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         # Lifetime energy out of the battery over lifetime energy in.
         value_fn=_efficiency,
+        attrs_fn=_efficiency_attrs,
     ),
     TedapiSensorEntityDescription(
         key="battery_capacity_fade",
@@ -995,6 +1001,9 @@ class TedapiSensor(TedapiEntity, SensorEntity):
         "import_difference_pct", "export_difference_pct", "covered_minutes", "gaps",
         # setup health
         "checks", "cloud_backends", "cloud_token_expires", "cloud_last_ok", "wifi_fallback", "cloud_linked",
+        "wifi_fallback_reachable",
+        # round-trip efficiency: the counters behind it change on every poll
+        "charged_kwh", "discharged_kwh", "min_charged_kwh",
         # fans (drive duty, target speed)
         "duty", "target_rpm",
         # alert details (the alert codes themselves stay recorded)
