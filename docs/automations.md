@@ -215,6 +215,12 @@ Needs a signed connection. It doesn't need Tesla's Storm Watch. Grid charging du
 
 It doesn't change the Powerwall. A stop condition also turns off a load you switched on yourself; turn the automation off to run the load by hand.
 
+**Running a heat pump on surplus solar** (space heating or cooling, or a heat-pump water heater):
+
+- **What to choose as the Load:** the heat pump's `climate` or `water_heater` entity works if it can be switched on and off (the blueprint sends `homeassistant.turn_on` / `turn_off`). Gentler for the compressor: a "boost" or SG Ready switch, if your heat pump has one, or a template switch helper (**Settings → Helpers → Template → Switch**) whose on and off actions raise and lower the setpoint instead of switching the heat pump off.
+- **Settings:** set **And the house exports more than** to at least what the heat pump draws, so starting it doesn't tip the house into importing at once. Raise **For at least** to 15 minutes or more, and leave a wide gap between **Start when the battery is above** and **Or the battery falls below** (for example 95 % and 70 %).
+- **Short cycling:** a compressor needs minimum run and off times, and the blueprint doesn't enforce them: the battery level stops it straight away. Follow the manufacturer's guidance, and prefer the boost or setpoint approach above over switching the heat pump off.
+
 </details>
 
 <details>
