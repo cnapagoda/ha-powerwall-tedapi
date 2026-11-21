@@ -389,6 +389,10 @@ def fake_gateway():
     FakeGateway.part_number = None
     FakeGateway.locked = False
     FakeGateway.logins: list[str] = []
+    # The Powerwall's own Wi-Fi (gateway.check_wifi_password): None = no
+    # answer there (Home Assistant isn't on it), else the password it takes.
+    FakeGateway.wifi = None
+    FakeGateway.wifi_checks: list[str] = []
 
     def login(host, gw_pwd, full=False):
         if not FakeGateway.reachable:
@@ -413,7 +417,15 @@ def fake_gateway():
     def din_any(host, gw_pwd, full=False):
         return gateway._with_full_password(din, host, gw_pwd, full)
 
+    def check_wifi_password(host, gw_pwd):
+        FakeGateway.wifi_checks.append(host)
+        if FakeGateway.wifi is None:
+            raise gateway.GatewayUnreachable("no route")
+        if gw_pwd != FakeGateway.wifi:
+            raise gateway.GatewayPasswordRejected("HTTP 403, Wi-Fi password")
+
     with patch.object(gateway, "login", login), patch.object(gateway, "din", din), \
+            patch.object(gateway, "check_wifi_password", check_wifi_password), \
             patch.object(gateway, "login_any", login_any), patch.object(gateway, "din_any", din_any), \
             patch.object(gateway, "answers", lambda host: FakeGateway.answers), \
             patch.object(gateway, "full_password_login", lambda host: FakeGateway.gateway1), \

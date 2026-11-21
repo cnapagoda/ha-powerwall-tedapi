@@ -19,6 +19,8 @@ from .conftest import DIN, local
 from .test_config_flow import SETUP
 
 PWD = "ABCDE12345"
+# The real check, before the fake_gateway fixture replaces it.
+_REAL_CHECK = gateway.check_wifi_password
 # The real functions (the autouse fake_gateway fixture replaces them).
 REAL_LOGIN_ANY = gateway.login_any
 REAL_DIN_ANY = gateway.din_any
@@ -300,3 +302,113 @@ async def test_reauth_keeps_and_diagnostics_flag_the_customer_password(hass: Hom
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "reauth_password"})
         field = next(k for k in result["data_schema"].schema if k == "customer_password")
         assert field.description == {"suggested_value": CUSTOMER}  # shown again, so it's kept
+
+
+# ---- 2.8.2: with a customer password, the sticker password is checked over
+# the Powerwall's own Wi-Fi (the fallback address), when that answers ----
+
+async def _customer_gateway_step(hass: HomeAssistant, **fields):
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "gateway"})
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.168.1.92", "gw_pwd": PWD, "customer_password": CUSTOMER, **fields})
+
+
+async def test_sticker_password_checked_at_the_wifi_fallback(hass: HomeAssistant, fake_gateway) -> None:
+    fake_gateway.customer = CUSTOMER
+    # Refused there: the form says so.
+    fake_gateway.wifi = "OTHER12345"
+    result = await _customer_gateway_step(hass, wifi_host="192.168.91.1")
+    assert result["step_id"] == "gateway"
+    assert result["errors"] == {"gw_pwd": "wifi_fallback_password_refused"}
+    assert fake_gateway.wifi_checks == ["192.168.91.1"]
+    # Taken there: on to the next step.
+    fake_gateway.wifi = PWD
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"host": "192.168.1.92", "gw_pwd": PWD, "customer_password": CUSTOMER,
+                            "wifi_host": "192.168.91.1"})
+    assert result["step_id"] == "access"
+
+
+@pytest.mark.parametrize("case", [
+    (CUSTOMER, "192.168.91.1", None, True),   # no answer there now: can't be checked
+    (CUSTOMER, "", "OTHER12345", False),      # no fallback address: nothing to check
+    ("", "192.168.91.1", "OTHER12345", False),  # the customer login checked it
+])
+async def test_sticker_password_not_blocked_when_unchecked(hass: HomeAssistant, fake_gateway, case) -> None:
+    customer, wifi_host, wifi, checked = case
+    fake_gateway.customer, fake_gateway.wifi = customer, wifi
+    result = await _customer_gateway_step(hass, wifi_host=wifi_host, customer_password=customer)
+    assert result["step_id"] == "access"
+    assert bool(fake_gateway.wifi_checks) is checked
+
+
+async def test_sticker_password_checked_in_reauth_and_reconfigure(hass: HomeAssistant, fake_gateway,
+                                                                  fake_powerwall, tmp_path) -> None:
+    from .test_init import V1R, _setup  # noqa: PLC0415
+
+    fake_gateway.customer = CUSTOMER
+    entry = await _setup(hass, {**V1R, "gw_pwd": PWD, "customer_password": CUSTOMER, "wifi_host": "192.168.91.1"})
+    fake_gateway.wifi = PWD
+    with patch(SETUP, return_value=True):
+        result = await entry.start_reauth_flow(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "reauth_password"})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"gw_pwd": "WRONG67890", "customer_password": CUSTOMER})
+        assert result["errors"] == {"gw_pwd": "wifi_fallback_password_refused"}
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"gw_pwd": PWD, "customer_password": CUSTOMER})
+    assert result["reason"] == "reauth_successful"
+
+    key = tmp_path / "key.pem"
+    key.write_text("x")
+    fields = {"host": "192.168.1.92", "rsa_key_path": str(key), "customer_password": CUSTOMER,
+              "wifi_host": "192.168.91.1"}
+    with patch(SETUP, return_value=True):
+        result = await entry.start_reconfigure_flow(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {**fields, "gw_pwd": "WRONG67890"})
+        assert result["step_id"] == "reconfigure"
+        assert result["errors"] == {"gw_pwd": "wifi_fallback_password_refused"}
+        assert entry.data["gw_pwd"] == PWD
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {**fields, "gw_pwd": PWD})
+    assert result["reason"] == "reconfigure_successful"
+
+
+@pytest.mark.parametrize(("status", "raised"), [
+    (200, None), (403, gateway.GatewayPasswordRejected), (401, gateway.GatewayPasswordRejected),
+    (503, gateway.GatewayUnreachable),
+])
+def test_check_wifi_password(status, raised) -> None:
+    with patch.object(gateway, "_request", return_value=(status, b"")) as request:
+        if raised:
+            with pytest.raises(raised):
+                _REAL_CHECK("192.168.91.1", f" {PWD} ")
+        else:
+            _REAL_CHECK("192.168.91.1", f" {PWD} ")
+    assert request.call_args.args[:2] == ("192.168.91.1", "/tedapi/din")
+    assert request.call_args.kwargs["basic"] == ("Tesla_Energy_Device", PWD)
+
+
+def test_basic_auth_header() -> None:
+    """HTTP Basic, as pypowerwall's Wi-Fi connection sends it."""
+    seen = {}
+
+    class _Resp:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b"din"
+
+    def urlopen(req, **kwargs):
+        seen["auth"] = req.get_header("Authorization")
+        return _Resp()
+
+    with patch("urllib.request.urlopen", urlopen):
+        assert gateway._request("192.168.91.1", "/tedapi/din", basic=("Tesla_Energy_Device", "AB")) == (200, b"din")
+    assert seen["auth"] == "Basic VGVzbGFfRW5lcmd5X0RldmljZTpBQg=="

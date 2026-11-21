@@ -5,6 +5,7 @@ the coordinator to tell a wrong password from an unreachable gateway. All
 blocking; run in the executor."""
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import ssl
@@ -51,10 +52,12 @@ def _context() -> ssl.SSLContext:
 
 
 def _request(host: str, path: str, body: dict[str, Any] | None = None,
-             token: str | None = None) -> tuple[int, bytes]:
+             token: str | None = None, basic: tuple[str, str] | None = None) -> tuple[int, bytes]:
     headers = {"Content-Type": "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
+    elif basic:
+        headers["Authorization"] = "Basic " + base64.b64encode(f"{basic[0]}:{basic[1]}".encode()).decode()
     req = urllib.request.Request(
         f"https://{host}{path}", data=json.dumps(body).encode() if body is not None else None,
         headers=headers)
@@ -122,6 +125,18 @@ def answers(host: str) -> bool:
     except GatewayUnreachable:
         return False
     return True
+
+
+def check_wifi_password(host: str, gw_pwd: str) -> None:
+    """The gateway password as the Powerwall's own Wi-Fi (TEDAPI) takes it:
+    the whole sticker password, as pypowerwall's Wi-Fi connection sends it.
+    Raises GatewayPasswordRejected when refused, GatewayUnreachable on no
+    answer or any other answer (a busy gateway, or not a TEDAPI address)."""
+    status, _ = _request(host, "/tedapi/din", basic=("Tesla_Energy_Device", gw_pwd.strip()))
+    if status in (401, 403):
+        raise GatewayPasswordRejected(f"HTTP {status}, Wi-Fi password")
+    if status != 200:
+        raise GatewayUnreachable(f"Wi-Fi HTTP {status}")
 
 
 def din(host: str, gw_pwd: str, full: bool = False) -> str | None:

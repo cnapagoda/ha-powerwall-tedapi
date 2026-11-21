@@ -240,6 +240,25 @@ def _check_gateway(host: str, gw_pwd: str, customer_pwd: str = "") -> tuple[str 
         raise
 
 
+def _wifi_password_refused(wifi_host: str, host: str, gw_pwd: str, customer_pwd: str) -> bool:
+    """With a customer password set, the gateway (sticker) password is used
+    only over the Powerwall's own Wi-Fi, so the customer login no longer
+    checks it. Check it at the Wi-Fi fallback address when one is entered
+    and answers; one that doesn't answer now can't be checked (its repair
+    covers that later)."""
+    if not (customer_pwd and wifi_host and wifi_host != host):
+        return False
+    try:
+        gateway.check_wifi_password(wifi_host, gw_pwd)
+    except gateway.GatewayPasswordRejected:
+        _LOGGER.debug("The Wi-Fi fallback address %s refused the gateway password", wifi_host)
+        return True
+    except gateway.GatewayUnreachable as err:
+        _LOGGER.debug("The gateway password can't be checked at the Wi-Fi fallback address %s: %s",
+                      wifi_host, err)
+    return False
+
+
 def _login_mode(host: str, gw_pwd: str) -> bool:
     """Whether the customer login takes the full password, for Reconfigure. A
     refused password or no answer is left to the connection check that
@@ -584,14 +603,18 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                     await self.async_set_unique_id(self._din, raise_on_progress=False)
                     self._abort_if_known_gateway()
                 wifi_host = (user_input.get(CONF_WIFI_HOST) or "").strip()
-                self._data.update({
-                    CONF_HOST: host,
-                    CONF_GW_PWD: gw_pwd,
-                    CONF_FULL_PASSWORD_LOGIN: full,
-                    CONF_CUSTOMER_PASSWORD: customer_pwd,
-                    CONF_WIFI_HOST: wifi_host if wifi_host != host else "",
-                })
-                return await self.async_step_access()
+                if await self.hass.async_add_executor_job(_wifi_password_refused, wifi_host, host, gw_pwd,
+                                                          customer_pwd):
+                    errors = {CONF_GW_PWD: "wifi_fallback_password_refused"}
+                else:
+                    self._data.update({
+                        CONF_HOST: host,
+                        CONF_GW_PWD: gw_pwd,
+                        CONF_FULL_PASSWORD_LOGIN: full,
+                        CONF_CUSTOMER_PASSWORD: customer_pwd,
+                        CONF_WIFI_HOST: wifi_host if wifi_host != host else "",
+                    })
+                    return await self.async_step_access()
             self._data.update(user_input)
 
         host = self._data.get(CONF_HOST, "")
@@ -1016,9 +1039,14 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 errors = _gateway_errors(err)
             else:
                 entry = self._get_reauth_entry()
-                return self._update_and_reload(
-                    entry, data={**entry.data, CONF_GW_PWD: gw_pwd, CONF_FULL_PASSWORD_LOGIN: full,
-                                 CONF_CUSTOMER_PASSWORD: customer_pwd})
+                if await self.hass.async_add_executor_job(
+                        _wifi_password_refused, entry.data.get(CONF_WIFI_HOST) or "", self._data[CONF_HOST],
+                        gw_pwd, customer_pwd):
+                    errors = {CONF_GW_PWD: "wifi_fallback_password_refused"}
+                else:
+                    return self._update_and_reload(
+                        entry, data={**entry.data, CONF_GW_PWD: gw_pwd, CONF_FULL_PASSWORD_LOGIN: full,
+                                     CONF_CUSTOMER_PASSWORD: customer_pwd})
         return self.async_show_form(
             step_id="reauth_password",
             data_schema=vol.Schema({
@@ -1063,26 +1091,30 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 await self.async_set_unique_id(din)
                 self._abort_if_unique_id_mismatch()
                 wifi_host = user_input.get(CONF_WIFI_HOST, "").strip()
-                data = dict(entry.data)
-                if host != entry.data.get(CONF_HOST):
-                    # A new address: forget the MACs learnt so far (a replaced
-                    # gateway, or a device that once held the old address,
-                    # must not be able to pull the entry to itself). The MAC
-                    # is learnt again at the new address.
-                    data.pop(CONF_MACS, None)
-                return self._update_and_reload(
-                    entry,
-                    data={
-                        **data,
-                        CONF_CONNECTION_MODE: mode,
-                        CONF_HOST: host,
-                        CONF_GW_PWD: gw_pwd,
-                        CONF_FULL_PASSWORD_LOGIN: full,
-                        CONF_CUSTOMER_PASSWORD: customer_pwd,
-                        CONF_RSA_KEY_PATH: key_path,
-                        CONF_WIFI_HOST: wifi_host if mode == MODE_V1R and wifi_host != host else "",
-                    },
-                )
+                if mode == MODE_V1R and await self.hass.async_add_executor_job(
+                        _wifi_password_refused, wifi_host, host, gw_pwd, customer_pwd):
+                    errors = {CONF_GW_PWD: "wifi_fallback_password_refused"}
+                else:
+                    data = dict(entry.data)
+                    if host != entry.data.get(CONF_HOST):
+                        # A new address: forget the MACs learnt so far (a replaced
+                        # gateway, or a device that once held the old address,
+                        # must not be able to pull the entry to itself). The MAC
+                        # is learnt again at the new address.
+                        data.pop(CONF_MACS, None)
+                    return self._update_and_reload(
+                        entry,
+                        data={
+                            **data,
+                            CONF_CONNECTION_MODE: mode,
+                            CONF_HOST: host,
+                            CONF_GW_PWD: gw_pwd,
+                            CONF_FULL_PASSWORD_LOGIN: full,
+                            CONF_CUSTOMER_PASSWORD: customer_pwd,
+                            CONF_RSA_KEY_PATH: key_path,
+                            CONF_WIFI_HOST: wifi_host if mode == MODE_V1R and wifi_host != host else "",
+                        },
+                    )
             current.update(user_input)
 
         schema = vol.Schema({
