@@ -1601,7 +1601,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._pw = None
             self._full_at = None
             self._sync_cloud_issue()
-            raise UpdateFailed(f"Powerwall update failed: {err}") from err
+            raise UpdateFailed(f"Powerwall update failed: {scrub(err)}") from err
 
         if data.get("din"):
             self.din = data["din"]

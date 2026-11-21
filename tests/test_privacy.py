@@ -66,3 +66,27 @@ def test_debug_toggle_leaves_pypowerwall_payload_logging_off() -> None:
     with open("custom_components/tesla_tedapi/manifest.json", encoding="utf-8") as file:
         manifest = json.load(file)
     assert manifest["loggers"] == ["aiopytedapi"]
+
+
+async def test_poll_failure_masks_the_address(hass: HomeAssistant, fake_powerwall, caplog) -> None:
+    """A failed poll's error, which Home Assistant logs at error level, has
+    the gateway's address and serials masked."""
+    from .conftest import local  # noqa: PLC0415
+    from .test_storm import _refresh  # noqa: PLC0415
+
+    entry = await _setup(hass, V1R)
+
+    def _down(*args, **kwargs):
+        raise ConnectionError("HTTPSConnectionPool(host='192.168.1.50', port=443): Read timed out")
+
+    fake_powerwall.fail_local = True
+    local(fake_powerwall).power = _down
+    caplog.clear()
+    await _refresh(hass, entry)
+    coordinator = entry.runtime_data.coordinator
+    assert not coordinator.last_update_success
+    assert "host='<ip>'" in str(coordinator.last_exception)
+    assert "192.168.1.50" not in str(coordinator.last_exception)
+    errors = [r.getMessage() for r in caplog.records if r.levelno >= logging.ERROR]
+    assert any("Powerwall update failed" in m for m in errors)
+    assert not any("192.168.1.50" in m for m in errors)
