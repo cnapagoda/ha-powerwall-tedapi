@@ -600,8 +600,10 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             vol.Required(CONF_GW_PWD, default=self._data.get(CONF_GW_PWD, "")): PASSWORD,
             # Suggested, not a default: a default would come back when the
             # field is cleared (the frontend leaves an empty field out).
+            # Empty unless entered: only some setups have Home Assistant on
+            # the Powerwall's own Wi-Fi too (an unreachable one raises a repair).
             vol.Optional(CONF_WIFI_HOST, description={"suggested_value": self._data.get(
-                CONF_WIFI_HOST, "" if host == DEFAULT_HOST_WIFI else DEFAULT_HOST_WIFI)}): str,
+                CONF_WIFI_HOST, "")}): str,
             vol.Optional(CONF_CUSTOMER_PASSWORD, description={"suggested_value": self._data.get(
                 CONF_CUSTOMER_PASSWORD, "")}): PASSWORD,
         })

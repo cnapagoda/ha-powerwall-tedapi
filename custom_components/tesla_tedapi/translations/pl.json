@@ -28,7 +28,7 @@
         "data_description": {
           "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
           "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
-          "wifi_host": "Hotspot Wi-Fi Powerwall, używany przez to samo podpisane połączenie, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu. Służy też do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową.",
+          "wifi_host": "Opcjonalne. Wpisz adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`) tylko wtedy, gdy Home Assistant jest też połączony z własną siecią `TeslaPW_…` Powerwall; w przeciwnym razie zostaw puste. Jest używany przez to samo podpisane połączenie, gdy adres w sieci domowej przestaje odpowiadać, oraz do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową.",
           "customer_password": "Tylko jeśli hasło logowania klienta bramy zostało zmienione i nie pasuje już do naklejki (na przykład przez instalatora lub na stronie internetowej starszego oprogramowania). Używane bez zmian do tego logowania; pozostaw puste, aby wyliczyć je z hasła bramy."
         }
       },

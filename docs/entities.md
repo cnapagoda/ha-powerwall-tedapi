@@ -307,7 +307,7 @@ Read from the gateway every 5 minutes (the site limits with each full read where
 | `checks` | Each check and whether it passes: `password_set`, `signed_connection` (signed setups), `gateway_reachable`, `energy_counters`, `cloud_backup` (when a cloud backup is set up). |
 | `problems` | The checks that fail. |
 | `wifi_fallback` | Whether a Wi-Fi fallback address is set (signed setups). |
-| `wifi_fallback_reachable` | Whether the Wi-Fi fallback address answered at the last check (every 30 minutes); empty until checked or without one. It doesn't make **Setup health** degraded; a repair appears after an hour without an answer. |
+| `wifi_fallback_reachable` | Whether the Wi-Fi fallback address answered at the last check (every 30 minutes); empty until checked or without one. It doesn't make **Setup health** degraded; a repair appears after an hour without an answer, if the address has answered before. |
 | `cloud_linked` | Whether a cloud backup is set up. |
 | `cloud_backends` | Per backup: `ok`, `starting`, `can_change_settings`, `failures`, `last_ok`. |
 | `cloud_token_expires` | When the Owner API access token expires (it's renewed automatically). |

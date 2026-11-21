@@ -28,7 +28,7 @@
         "data_description": {
           "host": "L'adresse de la passerelle sur votre réseau domestique, par exemple `192.168.1.50`. Votre routeur l'affiche comme `teslapw_…`.",
           "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet.",
-          "wifi_host": "Le point d'accès Wi-Fi de la Powerwall, utilisé avec la même connexion signée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès. Sert aussi à lire les Powerwall 3 suiveurs, que la connexion signée ne joint pas par le réseau domestique.",
+          "wifi_host": "Facultatif. Saisissez l'adresse du point d'accès Wi-Fi de la Powerwall (en général `192.168.91.1`) seulement si Home Assistant est aussi connecté au Wi-Fi `TeslaPW_…` de la Powerwall ; sinon laissez vide. Elle sert avec la même connexion signée quand l'adresse du réseau domestique ne répond plus, et pour lire les Powerwall 3 suiveurs, que la connexion signée ne joint pas par le réseau domestique.",
           "customer_password": "Seulement si le mot de passe de connexion client de la passerelle a été modifié et ne correspond plus à l'étiquette (par exemple par l'installateur, ou sur la page web d'un ancien firmware). Utilisé tel quel pour cette connexion ; laissez vide pour le déduire du mot de passe de la passerelle."
         }
       },

@@ -575,6 +575,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # it answered (None until checked), and since when it hasn't.
         self._fallback_checked_at: float | None = None
         self._fallback_ok: bool | None = None
+        # The fallback address that has answered at least once (kept across
+        # restarts): only one that has worked raises a repair when it stops.
+        self._fallback_answered: str | None = None
         self._fallback_down_since: float | None = None
         self._fallback_checking = False
         self._follower_missing = 0
@@ -1546,6 +1549,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.grid_check.restore(stored.get("grid_check") or {})
         self.flows.restore(stored.get("flows") or {})
         self.capacity_trend.restore(stored.get("capacity_trend") or {})
+        answered = stored.get("wifi_fallback_answered")
+        self._fallback_answered = answered if isinstance(answered, str) else None
         names = stored.get("pack_names")
         self._pack_names = {str(k): str(v) for k, v in names.items()} if isinstance(names, dict) else {}
 
@@ -1559,7 +1564,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "grid_check": self.grid_check.as_dict(),
                 "flows": self.flows.as_dict(),
                 "capacity_trend": self.capacity_trend.as_dict(),
-                "pack_names": dict(self._pack_names)}
+                "pack_names": dict(self._pack_names),
+                "wifi_fallback_answered": self._fallback_answered}
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -1904,11 +1910,18 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _sync_fallback_issue(self, ok: bool, now: float) -> None:
         """A repair once the Wi-Fi fallback address hasn't answered for
         WIFI_FALLBACK_DOWN_SECONDS; removed when it answers again (or the
-        address is cleared: the entry reloads and its repairs are cleared)."""
+        address is cleared: the entry reloads and its repairs are cleared).
+
+        Only for an address that has answered before: one that never has was
+        most likely kept from setup without Home Assistant ever joining the
+        Powerwall's Wi-Fi (2.8.1 and earlier filled it in), and isn't news."""
         issue_id = f"wifi_fallback_unreachable_{self.config_entry.entry_id}"
         self._fallback_ok = ok
         if ok:
             self._fallback_down_since = None
+            if self._fallback_answered != self._wifi_host:
+                self._fallback_answered = self._wifi_host
+                self._store.async_delay_save(self._state_to_save, 10)
             if issue_id in self._write_issues:
                 _LOGGER.info("The Wi-Fi fallback address %s answers again", self._wifi_host)
                 self._write_issues.discard(issue_id)
@@ -1916,7 +1929,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return
         if self._fallback_down_since is None:
             self._fallback_down_since = now
-        if now - self._fallback_down_since < WIFI_FALLBACK_DOWN_SECONDS or issue_id in self._write_issues:
+        if (now - self._fallback_down_since < WIFI_FALLBACK_DOWN_SECONDS or issue_id in self._write_issues
+                or self._fallback_answered != self._wifi_host):
             return
         _LOGGER.warning("The Wi-Fi fallback address %s hasn't answered for over an hour", self._wifi_host)
         self._write_issues.add(issue_id)

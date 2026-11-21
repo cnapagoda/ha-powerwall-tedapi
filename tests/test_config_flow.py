@@ -42,12 +42,13 @@ async def test_gateway_password_checked_first(hass: HomeAssistant, fake_gateway)
 
 
 async def test_cleared_wifi_fallback_stays_cleared(hass: HomeAssistant) -> None:
-    """The fallback address is suggested, not a default: the frontend leaves a
-    cleared field out, and it must not come back as 192.168.91.1."""
+    """The fallback address is empty unless entered (not every setup has Home
+    Assistant on the Powerwall's Wi-Fi), and never a default: the frontend
+    leaves a cleared field out, and it must not come back as 192.168.91.1."""
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "gateway"})
     field = next(k for k in result["data_schema"].schema if k == "wifi_host")
-    assert field.description == {"suggested_value": "192.168.91.1"}
+    assert field.description == {"suggested_value": ""}
     assert field.default is vol.UNDEFINED
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"host": "192.168.1.50", "gw_pwd": PWD})

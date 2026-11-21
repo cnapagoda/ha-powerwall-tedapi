@@ -64,7 +64,7 @@ Go to **Settings → Devices & services → Add integration → Tesla Powerwall 
 
 Then enter the **gateway password**. You need it for every way of connecting: it's printed on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Home Assistant logs in to the gateway with its last 5 characters, or with the whole password on a Backup Gateway 1 (part number `1118431-…`), which it recognises by itself. If the gateway refuses the last 5 characters, it tries the whole password. Enter the whole password and it works either way. If the gateway's customer login password was changed (for example by an installer, or on an older firmware's web page), enter that one under **Customer password**: it's then used as it is for that login, and the sticker password only for the Powerwall's Wi-Fi. It is checked straight away, so a wrong password or address is reported here, not after the Tesla sign-in.
 
-**Wi-Fi fallback address** (optional, signed connection only): `192.168.91.1` if Home Assistant can also reach the Powerwall's own Wi-Fi network. Readings then switch to it when the home-network address stops answering. Leave it empty otherwise.
+**Wi-Fi fallback address** (optional, signed connection only): `192.168.91.1` if Home Assistant can also reach the Powerwall's own Wi-Fi network. Readings then switch to it when the home-network address stops answering. Leave it empty otherwise (it's empty unless you enter it).
 
 <details>
 <summary>Screenshots: finding the gateway</summary>

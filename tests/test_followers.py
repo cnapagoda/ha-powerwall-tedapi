@@ -204,6 +204,8 @@ async def test_unreachable_wifi_fallback_raises_a_repair_then_clears(hass: HomeA
     coordinator = entry.runtime_data.coordinator
     # Checked once in the background at setup: not answering, no repair yet.
     assert coordinator._fallback_ok is False and _fallback_issue(hass, entry) is None
+    # It has answered before (an address in use, now unreachable).
+    coordinator._fallback_answered = "192.168.91.1"
     health = coordinator.data["health"]
     assert health["state"] == "ok"  # not a health problem
     await _refresh(hass, entry)
@@ -226,6 +228,44 @@ async def test_unreachable_wifi_fallback_raises_a_repair_then_clears(hass: HomeA
     assert _fallback_issue(hass, entry) is not None
     await hass.config_entries.async_unload(entry.entry_id)
     assert _fallback_issue(hass, entry) is None
+
+
+async def test_fallback_that_never_answered_raises_no_repair(hass: HomeAssistant, fake_powerwall,
+                                                            fake_gateway, hass_storage) -> None:
+    """2.8.1 and earlier filled in 192.168.91.1 at setup: an address that has
+    never answered isn't news, so no repair however long it stays silent."""
+    from custom_components.tesla_tedapi.coordinator import WIFI_FALLBACK_DOWN_SECONDS  # noqa: PLC0415
+
+    fake_gateway.answers = False
+    entry = await _setup(hass, {**V1R, "wifi_host": "192.168.91.1"})
+    await hass.async_block_till_done(wait_background_tasks=True)
+    coordinator = entry.runtime_data.coordinator
+    down = coordinator._fallback_down_since
+    coordinator._sync_fallback_issue(False, down + 10 * WIFI_FALLBACK_DOWN_SECONDS)
+    assert _fallback_issue(hass, entry) is None
+    assert coordinator._state_to_save()["wifi_fallback_answered"] is None
+    # Once it answers, that's remembered and saved...
+    coordinator._sync_fallback_issue(True, down + 11 * WIFI_FALLBACK_DOWN_SECONDS)
+    assert coordinator._state_to_save()["wifi_fallback_answered"] == "192.168.91.1"
+    # ...so after a restart, going silent for an hour raises the repair.
+    await hass.config_entries.async_unload(entry.entry_id)
+    hass_storage[f"{DOMAIN}.{entry.entry_id}"] = {
+        "version": 1, "minor_version": 1, "key": f"{DOMAIN}.{entry.entry_id}",
+        "data": {"wifi_fallback_answered": "192.168.91.1"}}
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+    coordinator = entry.runtime_data.coordinator
+    assert coordinator._fallback_answered == "192.168.91.1"
+    down = coordinator._fallback_down_since
+    coordinator._sync_fallback_issue(False, down + WIFI_FALLBACK_DOWN_SECONDS)
+    assert _fallback_issue(hass, entry) is not None
+    # A different address that answered before doesn't count for this one.
+    coordinator._fallback_answered = "192.168.91.2"
+    coordinator._write_issues.discard(f"wifi_fallback_unreachable_{entry.entry_id}")
+    ir.async_delete_issue(hass, DOMAIN, f"wifi_fallback_unreachable_{entry.entry_id}")
+    coordinator._sync_fallback_issue(False, down + 2 * WIFI_FALLBACK_DOWN_SECONDS)
+    assert _fallback_issue(hass, entry) is None
+    await hass.config_entries.async_unload(entry.entry_id)
 
 
 async def test_fallback_checked_rarely_and_only_when_set(hass: HomeAssistant, fake_powerwall, fake_gateway) -> None:
