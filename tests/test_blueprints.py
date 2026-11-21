@@ -627,6 +627,35 @@ async def test_connection_alert(hass: HomeAssistant, blueprint_dir, freezer) -> 
     assert all(c.data["title"] == "Powerwall" for c in calls["my_phone"])
 
 
+async def test_connection_alert_sensor_unavailable(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    """Without a cloud backup a failed poll makes Setup health unavailable:
+    that counts as unreachable, with the same delay, until it reports ok."""
+    calls = _calls(hass, "notify", "notify")
+    hass.states.async_set(HEALTH, "ok", {"problems": []})
+    await _automation(hass, "connection_alert.yaml", {"setup_health": HEALTH})
+    messages = lambda: [c.data["message"] for c in calls["notify"]]  # noqa: E731
+
+    # A short gap: nothing.
+    await _cset(hass, HEALTH, "unavailable")
+    await _advance(hass, freezer, 5)
+    await _cset(hass, HEALTH, "ok", {"problems": []})
+    await _advance(hass, freezer, 20)
+    assert messages() == []
+    # Unavailable for the delay: an alert.
+    await _cset(hass, HEALTH, "unavailable")
+    await _advance(hass, freezer, 11)
+    assert messages() == ["Home Assistant hasn't reached the Powerwall gateway for 10 minutes. Its readings are "
+                          "unavailable, and settings changes go through the cloud backup if you have one."]
+    # Still not back while it's unknown or reports the gateway unreachable.
+    await _cset(hass, HEALTH, "unknown")
+    await _cset(hass, HEALTH, "degraded", {"problems": ["gateway_reachable"]})
+    await _advance(hass, freezer, 5)
+    assert len(messages()) == 1
+    await _cset(hass, HEALTH, "ok", {"problems": []})
+    # 15, not 16: the test clock jumped 11 minutes, so the alert ran a minute late.
+    assert messages()[1] == "The Powerwall gateway answers again, after about 15 minutes."
+
+
 async def test_connection_alert_without_network_or_all_clear(hass: HomeAssistant, blueprint_dir, freezer) -> None:
     calls = _calls(hass, "notify", "notify")
     hass.states.async_set(HEALTH, "ok", {"problems": []})

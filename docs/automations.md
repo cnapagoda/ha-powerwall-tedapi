@@ -242,7 +242,7 @@ It doesn't change the Powerwall. A stop condition also turns off a load you swit
 
 | Input | Default | |
 |---|---|---|
-| Powerwall Setup health | | `sensor.powerwall_tedapi_setup_health`. It stays available while the gateway can't be reached. |
+| Powerwall Setup health | | `sensor.powerwall_tedapi_setup_health`. It reports the gateway as unreachable with a cloud backup, and turns unavailable without one; both count. |
 | Unreachable for | 10 min | |
 | Powerwall Network connection (optional) | | `sensor.powerwall_tedapi_network_connection`, to also be told when the gateway runs on cellular. Leave empty without one. |
 | On cellular for | 15 min | |
