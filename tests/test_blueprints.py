@@ -566,3 +566,79 @@ async def test_follow_energy_plan_too_old(hass: HomeAssistant, blueprint_dir, fr
         await _settle(hass, freezer)
     assert _powers(calls) == [-3000] * 7
     assert len(calls["resume_battery_operation"]) == 1
+
+
+HEALTH, NETWORK = "sensor.powerwall_setup_health", "sensor.powerwall_network_connection"
+
+
+async def _spin() -> None:
+    """The alert waits for the connection to return, so async_block_till_done
+    would wait for that too: the loop is run by hand."""
+    for _ in range(20):
+        await asyncio.sleep(0)
+
+
+async def _cset(hass: HomeAssistant, entity_id: str, state: str, attributes: dict | None = None) -> None:
+    hass.states.async_set(entity_id, state, attributes)
+    await _spin()
+
+
+async def _advance(hass: HomeAssistant, freezer, minutes: float) -> None:
+    freezer.tick(timedelta(minutes=minutes))
+    async_fire_time_changed(hass)
+    await _spin()
+
+
+async def test_connection_alert(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    calls = _calls(hass, "notify", "my_phone")
+    hass.states.async_set(HEALTH, "ok", {"problems": []})
+    hass.states.async_set(NETWORK, "wifi")
+    await _automation(hass, "connection_alert.yaml", {
+        "setup_health": HEALTH, "network_connection": NETWORK, "notify_action": "notify.my_phone"})
+    messages = lambda: [c.data["message"] for c in calls["my_phone"]]  # noqa: E731
+
+    # A short gap: nothing.
+    await _cset(hass, HEALTH, "degraded", {"problems": ["gateway_reachable"]})
+    await _advance(hass, freezer, 5)
+    await _cset(hass, HEALTH, "ok", {"problems": []})
+    await _advance(hass, freezer, 20)
+    assert messages() == []
+    # Unreachable for the delay: an alert, then one when it answers again.
+    await _cset(hass, HEALTH, "degraded", {"problems": ["gateway_reachable"]})
+    await _advance(hass, freezer, 11)
+    assert messages() == ["Home Assistant hasn't reached the Powerwall gateway for 10 minutes. Its readings are "
+                          "unavailable, and settings changes go through the cloud backup if you have one."]
+    await _cset(hass, HEALTH, "degraded", {"problems": ["cloud_backup"]})  # another problem: it answers
+    # 10, not 11: the test clock jumped 11 minutes, so the alert ran a minute late.
+    assert messages()[1] == "The Powerwall gateway answers again, after about 10 minutes."
+    # Another problem alone isn't an unreachable gateway.
+    await _advance(hass, freezer, 30)
+    assert len(messages()) == 2
+
+    # On cellular for 15 minutes, then back on Ethernet.
+    await _cset(hass, NETWORK, "cellular")
+    await _advance(hass, freezer, 16)
+    assert messages()[2] == ("The Powerwall gateway has been on its cellular connection for 15 minutes: "
+                             "its Wi-Fi or Ethernet internet is down.")
+    await _cset(hass, NETWORK, "unavailable")
+    assert len(messages()) == 3
+    await _cset(hass, NETWORK, "ethernet")
+    assert messages()[3] == "The Powerwall gateway is back on Ethernet, after about 15 minutes on cellular."
+    assert all(c.data["title"] == "Powerwall" for c in calls["my_phone"])
+
+
+async def test_connection_alert_without_network_or_all_clear(hass: HomeAssistant, blueprint_dir, freezer) -> None:
+    calls = _calls(hass, "notify", "notify")
+    hass.states.async_set(HEALTH, "ok", {"problems": []})
+    hass.states.async_set(NETWORK, "wifi")
+    await _automation(hass, "connection_alert.yaml", {
+        "setup_health": HEALTH, "minutes": 3, "notify_restored": False})
+    await _cset(hass, NETWORK, "cellular")  # no network sensor chosen
+    await _advance(hass, freezer, 30)
+    assert calls["notify"] == []
+    await _cset(hass, HEALTH, "degraded", {"problems": ["gateway_reachable"]})
+    await _advance(hass, freezer, 4)
+    await _cset(hass, HEALTH, "ok", {"problems": []})
+    assert [c.data["message"] for c in calls["notify"]] == [
+        "Home Assistant hasn't reached the Powerwall gateway for 3 minutes. Its readings are unavailable, "
+        "and settings changes go through the cloud backup if you have one."]

@@ -42,6 +42,7 @@
 | Symptom | Try |
 |---|---|
 | All sensors *unavailable* | The gateway can't be reached. Check the network; settings keep working through the cloud backup if you have one. **Setup health** shows `gateway_reachable: false`. |
+| Readings drop to *unknown* or *unavailable* every few minutes, or for hours | The gateway answers slowly or not at all, usually because its own link to the home network is weak (the log shows *Read timed out*). **Network connection** switching to *Cellular* points the same way. Restart the Wi-Fi access point nearest the gateway, or connect the gateway by Ethernet. Energy flows can't count across the gaps. The [Connection alert](automations.md) blueprint tells you when it happens. |
 | Power sensors *unknown* for a moment | The gateway's meters didn't answer that poll. The next reading fills it in; a missed reading is no longer recorded as 0 W. |
 | Readings stop now and then | Add the Powerwall's Wi-Fi as **Wi-Fi fallback address** if Home Assistant can reach it, or improve the network path (Ethernet for the gateway, a better access point). Try a longer **Polling interval** if another app also polls the gateway. |
 | **Battery level** differs from the Tesla app by a point | Normal rounding and timing: the app updates less often. **Battery state of energy** is the raw value and reads 2–4 points higher. |
