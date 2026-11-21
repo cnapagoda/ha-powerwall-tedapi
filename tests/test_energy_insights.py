@@ -21,7 +21,7 @@ from .test_storm import V1R, _eid, _refresh, _setup
 @pytest.mark.parametrize(("readings", "expected"), [
     # Solar charges the battery and covers most of the home; the grid the rest.
     ((3000, -500, 100, 2600), {"solar_to_home": 2500, "solar_to_battery": 500, "grid_to_home": 100}),
-    # Grid charging with the sun up (#33): solar goes into the battery and the
+    # The grid runs the home while the battery charges (#33): solar goes into the battery and the
     # grid runs the home, as Tesla's counters and the Energy dashboard count it.
     ((2000, -5000, 3500, 500), {"solar_to_battery": 2000, "grid_to_home": 500, "grid_to_battery": 3000}),
     # Solar beyond the charge covers the home, the grid tops the charge up.

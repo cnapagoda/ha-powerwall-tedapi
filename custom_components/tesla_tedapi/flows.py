@@ -8,8 +8,10 @@ split into seven flows in this order:
 - the grid feeds the rest of the home, then the battery.
 
 Solar into the battery before the home only matters while the grid is
-imported and the battery charges at the same time (grid charging with the sun
-up): solar is then counted into the battery and the grid into the home. That's
+imported and the battery charges at the same time: the home runs from the grid
+while solar charges the battery (time-based control off-peak, for example), or
+grid charging with the sun up. Solar is then counted into the battery and the
+grid into the home. That's
 how Tesla's own counters (the Tesla app, tesla_fleet, Teslemetry) and Home
 Assistant's Energy dashboard count it (#33). Solar on a Powerwall 3's own
 inputs does reach the battery first; for a separate solar inverter it's a
