@@ -21,7 +21,7 @@ To see events as they happen: **Developer tools → Events → Listen to events*
 | `config_entry_id` | The Powerwall. |
 | `phase` | `started` or `ended`. |
 | `start` | When the outage started (ISO 8601). |
-| `duration_seconds` | How long it lasted (`ended` only). |
+| `duration_seconds` | How long it lasted (`ended`; `null` when `started`). |
 
 Only real outages count: an off-grid run started here, or a gateway that can't be reached, doesn't fire it. Home Assistant and your network need power during the outage to see it.
 
@@ -58,7 +58,7 @@ The **[Grid outage alert](automations.md#blueprints)** blueprint does this for y
 | `target_reached` | `charge_to` / `discharge_to` reached the target level. |
 | `min_soc` | A discharge reached `min_soc` (or the backup reserve). |
 | `max_soc` | A charge reached `max_soc`. |
-| `stopped` | `resume_battery_operation` was called. (A new dispatch that replaces a running one doesn't fire this event.) |
+| `stopped` | `resume_battery_operation` was called, or **Stop battery dispatch** was pressed. (A new dispatch that replaces a running one doesn't fire this event.) |
 | `connection_lost` | Three renewals in a row failed. The Powerwall returns to normal by itself within 5 minutes. |
 | `battery_level_unknown` | The gateway stopped giving a battery level, so the limits couldn't be checked. A charge or discharge isn't renewed once the level is 2 minutes old (or 2½ polling intervals, if longer), and ends when its last command has run out, 5 minutes later. A 0 W hold doesn't end this way. |
 | `unloaded` | The integration was unloaded or reloaded, for example after changing the Tesla tariff option, the cloud backup or the connection, or Home Assistant stopped or restarted. |
@@ -70,7 +70,7 @@ The **[Grid outage alert](automations.md#blueprints)** blueprint does this for y
 | Field | |
 |---|---|
 | `config_entry_id` | The Powerwall. |
-| `reason` | `completed` (the duration ran out), `min_soc` (the battery fell to the reconnect level), `requested` (`reconnect_grid` was called), or `reconnected_elsewhere` (for example in the Tesla app). |
+| `reason` | `completed` (the duration ran out), `min_soc` (the battery fell to the reconnect level), `requested` (`reconnect_grid` was called, or **Reconnect to the grid** was pressed), or `reconnected_elsewhere` (for example in the Tesla app). |
 | `battery_level` | **Battery level** when it ended. |
 
 ---

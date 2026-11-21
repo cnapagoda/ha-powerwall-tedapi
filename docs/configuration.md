@@ -47,7 +47,7 @@ The form is in four sections: **General** (polling, fast polling, restore), **Al
 | **Gateway configuration in diagnostics** | Off | | Adds the gateway's own configuration to diagnostics downloads, with serial numbers, MAC addresses, location (the country, grid code and time zone stay), names, the tariff's plan and retailer, and credentials removed. Useful for bug reports. |
 
 > [!NOTE]
-> The settings above apply straight away, except **Tesla tariff (cloud)**. Changing that option, the cloud backup, a linked account or the connection (**Reconfigure**) reloads the integration: **a battery dispatch that is running ends** (reason `unloaded`) and the battery goes back to normal. An off-grid run continues: it's saved and picked up again.
+> The settings above apply straight away, except **Fast polling interval for power** and **Tesla tariff (cloud)**. Changing either of those, the cloud backup, a linked account or the connection (**Reconfigure**) reloads the integration: **a battery dispatch that is running ends** (reason `unloaded`) and the battery goes back to normal. An off-grid run continues: it's saved and picked up again.
 
 ## Reconfigure
 
@@ -65,13 +65,15 @@ The gateway must still be the same Powerwall (same DIN); to add a different one,
 
 ## When the Powerwall stops accepting Home Assistant
 
-If the gateway keeps refusing the password (3 polls in a row) or the key (10 polls), Home Assistant shows **Reauthenticate** on the integration's card. Choose:
+On a signed connection, if the gateway keeps refusing the password (3 polls in a row) or the key (10 polls), Home Assistant shows **Reauthenticate** on the integration's card. Choose:
 
 - **Enter the gateway password again**,
 - **Register the key again** (Tesla account, Tesla Fleet or Teslemetry sign-in), or
 - **Upload a different key**.
 
 Meanwhile the settings keep working through the cloud backup, if you have one.
+
+On the Wi-Fi password connection there's no such prompt: the readings go *unavailable* (or come from the cloud backup, with **Cloud readings while the gateway is unreachable**). Enter the password again under [**Reconfigure**](#reconfigure).
 
 Common causes: the key was removed in the Tesla app, the Powerwall was reset, or a firmware update changed signed access (a separate repair says so after an update).
 
