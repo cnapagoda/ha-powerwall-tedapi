@@ -95,6 +95,13 @@
         "title": "Não foi possível conectar",
         "description": "A última verificação de conexão falhou (veja a mensagem abaixo). Selecione **Enviar** para voltar e conferir o endereço e a senha do gateway."
       },
+      "reauth_connect_failed": {
+        "title": "Não foi possível conectar",
+        "description": "A última verificação de conexão falhou (veja a mensagem abaixo). Se o gateway ficou fora só por um momento ou ainda está aplicando a chave, tente de novo. Caso contrário, recomece para digitar a senha ou usar outra chave.",
+        "data": {
+          "next": "Próximo"
+        }
+      },
       "reauth_confirm": {
         "title": "A Powerwall não aceita mais o Home Assistant",
         "description": "O gateway continua recusando a senha ou a chave. As leituras param até que isso seja corrigido; as configurações ainda funcionam pela nuvem da Tesla se houver uma conta vinculada.",
@@ -1394,6 +1401,12 @@
       "options": {
         "import": "Importação",
         "export": "Exportação"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Tentar de novo",
+        "start_over": "Recomeçar"
       }
     }
   }

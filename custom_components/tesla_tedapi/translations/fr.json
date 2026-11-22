@@ -95,6 +95,13 @@
         "title": "Connexion impossible",
         "description": "La dernière vérification de connexion a échoué (voir le message ci-dessous). Sélectionnez **Valider** pour revenir en arrière et vérifier l'adresse et le mot de passe de la passerelle."
       },
+      "reauth_connect_failed": {
+        "title": "Connexion impossible",
+        "description": "La dernière vérification de connexion a échoué (voir le message ci-dessous). Si la passerelle n'a été absente qu'un instant ou applique encore la clé, réessayez. Sinon, recommencez pour saisir le mot de passe ou utiliser une autre clé.",
+        "data": {
+          "next": "Ensuite"
+        }
+      },
       "reauth_confirm": {
         "title": "La Powerwall n'accepte plus Home Assistant",
         "description": "La passerelle refuse sans cesse le mot de passe ou la clé. Les mesures s'arrêtent jusqu'à la correction ; les paramètres fonctionnent encore via le cloud Tesla si un compte est lié.",
@@ -1394,6 +1401,12 @@
       "options": {
         "import": "Import",
         "export": "Export"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Réessayer",
+        "start_over": "Recommencer"
       }
     }
   }

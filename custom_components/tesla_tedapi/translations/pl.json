@@ -95,6 +95,13 @@
         "title": "Nie można połączyć",
         "description": "Ostatnie sprawdzenie połączenia nie powiodło się (zobacz komunikat poniżej). Wybierz **Zatwierdź**, aby wrócić i sprawdzić adres i hasło bramy."
       },
+      "reauth_connect_failed": {
+        "title": "Nie można połączyć",
+        "description": "Ostatnie sprawdzenie połączenia nie powiodło się (zobacz komunikat poniżej). Jeśli brama była niedostępna tylko przez chwilę lub wciąż wprowadza klucz, spróbuj ponownie. W przeciwnym razie zacznij od nowa, aby wpisać hasło lub użyć innego klucza.",
+        "data": {
+          "next": "Dalej"
+        }
+      },
       "reauth_confirm": {
         "title": "Powerwall nie akceptuje już Home Assistant",
         "description": "Brama ciągle odrzuca hasło lub klucz. Odczyty są wstrzymane do czasu naprawy; ustawienia nadal działają przez chmurę Tesla, jeśli połączono konto.",
@@ -1394,6 +1401,12 @@
       "options": {
         "import": "Pobór",
         "export": "Oddawanie"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Spróbuj ponownie",
+        "start_over": "Zacznij od nowa"
       }
     }
   }

@@ -95,6 +95,13 @@
         "title": "No se pudo conectar",
         "description": "La última comprobación de conexión falló (mira el mensaje de abajo). Selecciona **Enviar** para volver y revisar la dirección y la contraseña de la pasarela."
       },
+      "reauth_connect_failed": {
+        "title": "No se pudo conectar",
+        "description": "La última comprobación de conexión falló (mira el mensaje de abajo). Si la pasarela solo se ausentó un momento o aún está aplicando la clave, inténtalo de nuevo. Si no, empieza de nuevo para introducir la contraseña o usar otra clave.",
+        "data": {
+          "next": "Siguiente"
+        }
+      },
       "reauth_confirm": {
         "title": "La Powerwall ya no acepta a Home Assistant",
         "description": "La pasarela sigue rechazando la contraseña o la clave. Las lecturas se detienen hasta que se corrija; los ajustes siguen funcionando a través de la nube de Tesla si hay una cuenta vinculada.",
@@ -1394,6 +1401,12 @@
       "options": {
         "import": "Importación",
         "export": "Exportación"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Intentar de nuevo",
+        "start_over": "Empezar de nuevo"
       }
     }
   }

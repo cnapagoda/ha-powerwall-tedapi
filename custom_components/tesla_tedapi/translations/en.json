@@ -95,6 +95,13 @@
         "title": "Could not connect",
         "description": "The last connection check failed (see the message below). Select **Submit** to go back and check the gateway address and password."
       },
+      "reauth_connect_failed": {
+        "title": "Could not connect",
+        "description": "The last connection check failed (see the message below). If the gateway was only away for a moment, or is still applying the key, try again. Otherwise start over to enter the password or use another key.",
+        "data": {
+          "next": "Next"
+        }
+      },
       "reauth_confirm": {
         "title": "The Powerwall no longer accepts Home Assistant",
         "description": "The gateway keeps refusing the password or the key. Readings stop until this is fixed; settings still work through the Tesla cloud if an account is linked.",
@@ -1394,6 +1401,12 @@
       "options": {
         "import": "Import",
         "export": "Export"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Try again",
+        "start_over": "Start over"
       }
     }
   }

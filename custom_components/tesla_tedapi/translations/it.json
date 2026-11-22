@@ -95,6 +95,13 @@
         "title": "Impossibile connettersi",
         "description": "L'ultimo controllo della connessione non è riuscito (vedi il messaggio qui sotto). Seleziona **Invia** per tornare indietro e controllare indirizzo e password del gateway."
       },
+      "reauth_connect_failed": {
+        "title": "Impossibile connettersi",
+        "description": "L'ultimo controllo della connessione non è riuscito (vedi il messaggio qui sotto). Se il gateway è stato assente solo un momento o sta ancora applicando la chiave, riprova. Altrimenti ricomincia per inserire la password o usare un'altra chiave.",
+        "data": {
+          "next": "Avanti"
+        }
+      },
       "reauth_confirm": {
         "title": "La Powerwall non accetta più Home Assistant",
         "description": "Il gateway continua a rifiutare la password o la chiave. Le letture si fermano finché non si risolve; le impostazioni funzionano ancora tramite il cloud Tesla se è collegato un account.",
@@ -1394,6 +1401,12 @@
       "options": {
         "import": "Prelievo",
         "export": "Immissione"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Riprova",
+        "start_over": "Ricomincia"
       }
     }
   }

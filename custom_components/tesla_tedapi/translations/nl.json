@@ -95,6 +95,13 @@
         "title": "Kan geen verbinding maken",
         "description": "De laatste verbindingscontrole is mislukt (zie de melding hieronder). Kies **Verzenden** om terug te gaan en het gateway-adres en wachtwoord te controleren."
       },
+      "reauth_connect_failed": {
+        "title": "Kan geen verbinding maken",
+        "description": "De laatste verbindingscontrole is mislukt (zie de melding hieronder). Was de gateway maar even weg, of past hij de sleutel nog toe, probeer het dan opnieuw. Begin anders opnieuw om het wachtwoord in te voeren of een andere sleutel te gebruiken.",
+        "data": {
+          "next": "Volgende"
+        }
+      },
       "reauth_confirm": {
         "title": "De Powerwall accepteert Home Assistant niet meer",
         "description": "De gateway blijft het wachtwoord of de sleutel weigeren. Metingen stoppen tot dit is opgelost; instellingen werken nog via de Tesla-cloud als een account is gekoppeld.",
@@ -1394,6 +1401,12 @@
       "options": {
         "import": "Afname",
         "export": "Teruglevering"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Opnieuw proberen",
+        "start_over": "Opnieuw beginnen"
       }
     }
   }

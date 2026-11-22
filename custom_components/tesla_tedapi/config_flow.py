@@ -126,6 +126,10 @@ KEY_FILE = FileSelector(FileSelectorConfig(accept=".pem,.key,.txt"))
 VERIFY_POLL_SECONDS = 10
 # Reauth data flag: a new key was asked for in the options, nothing failed.
 NEW_KEY = "new_key"
+# The reauth connection check failed: what next.
+CONF_NEXT = "next"
+RETRY = "retry"
+START_OVER = "start_over"
 # Placeholders for links (translations can't hold URLs themselves).
 LINKS = {
     "docs_url": "https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md"
@@ -884,6 +888,10 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             return self._abort_client_too_old(err)
         except (CannotConnect, KeyNotAccepted, InvalidRsaKey, PasswordRequired) as err:
             _LOGGER.debug("Connection check failed: %r", err)
+            if self.source == SOURCE_REAUTH:
+                # The entry exists: going back to the gateway step would end
+                # in "already configured" (and drop a key just confirmed).
+                return self._show_reauth_connect_failed(_gateway_errors(err))
             return self.async_show_form(
                 step_id="connect_failed", data_schema=vol.Schema({}),
                 errors=_gateway_errors(err))
@@ -904,6 +912,26 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         """Shown when the final connection check fails; submitting goes back to
         the gateway step (address, password) to correct it."""
         return await self.async_step_gateway()
+
+    def _show_reauth_connect_failed(self, errors: dict[str, str]) -> ConfigFlowResult:
+        return self.async_show_form(
+            step_id="reauth_connect_failed",
+            data_schema=vol.Schema({vol.Required(CONF_NEXT, default=RETRY): SelectSelector(SelectSelectorConfig(
+                options=[RETRY, START_OVER], translation_key="reauth_connect_failed", mode=SelectSelectorMode.LIST))}),
+            errors=errors)
+
+    async def async_step_reauth_connect_failed(self, user_input: dict[str, Any] | None = None
+                                               ) -> ConfigFlowResult:
+        """The final check failed in a reauth: try again with the same key and
+        passwords (the gateway was briefly away, or still applying the key),
+        or go back to the menu the reauth started from."""
+        if user_input is None:
+            return self._show_reauth_connect_failed({})
+        if user_input[CONF_NEXT] == RETRY:
+            return await self._async_connect()
+        if self._new_key:
+            return await self.async_step_new_key()
+        return await self.async_step_reauth_confirm()
 
     async def _async_finish(self) -> ConfigFlowResult:
         if not self.unique_id or not self._din:
@@ -959,7 +987,10 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         accepted: remove the key it used, unless another entry uses that file
         (keys outside the integration folder are never removed). The
         Powerwall itself keeps trusting the old key."""
-        self._made_key = None  # in use now: not removed with the flow
+        made, self._made_key = self._made_key, None  # in use now: not removed with the flow
+        if made and new_path and os.path.abspath(made) != os.path.abspath(new_path):
+            # Made here, then another key was used instead (Start over).
+            self.hass.async_add_executor_job(tesla_cloud.remove_key_files, self._folder, made)
         old_path = entry.data.get(CONF_RSA_KEY_PATH)
         if not old_path or not new_path or os.path.abspath(old_path) == os.path.abspath(new_path):
             return

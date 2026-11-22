@@ -95,6 +95,13 @@
         "title": "Verbindung fehlgeschlagen",
         "description": "Die letzte Verbindungsprüfung ist fehlgeschlagen (siehe Meldung unten). Wähle **Absenden**, um zurückzugehen und Gateway-Adresse und Passwort zu prüfen."
       },
+      "reauth_connect_failed": {
+        "title": "Verbindung fehlgeschlagen",
+        "description": "Die letzte Verbindungsprüfung ist fehlgeschlagen (siehe Meldung unten). War das Gateway nur kurz weg oder übernimmt es den Schlüssel noch, versuche es erneut. Sonst fang von vorn an, um das Passwort einzugeben oder einen anderen Schlüssel zu verwenden.",
+        "data": {
+          "next": "Weiter"
+        }
+      },
       "reauth_confirm": {
         "title": "Die Powerwall akzeptiert Home Assistant nicht mehr",
         "description": "Das Gateway lehnt das Passwort oder den Schlüssel wiederholt ab. Messwerte stoppen, bis das behoben ist; Einstellungen funktionieren weiter über die Tesla-Cloud, wenn ein Konto verknüpft ist.",
@@ -1394,6 +1401,12 @@
       "options": {
         "import": "Bezug",
         "export": "Einspeisung"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Erneut versuchen",
+        "start_over": "Von vorn beginnen"
       }
     }
   }

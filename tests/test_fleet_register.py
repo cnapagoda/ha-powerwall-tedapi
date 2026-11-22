@@ -9,13 +9,15 @@ from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+import homeassistant.helpers.config_validation as cv
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+import voluptuous_serialize
 
 from custom_components.tesla_tedapi import config_flow, fleet as fleet_mod, tesla_cloud
 from custom_components.tesla_tedapi.const import DOMAIN
 
-from .conftest import DIN, TESLEMETRY
+from .conftest import DIN, TESLEMETRY, FakePowerwall
 from .test_config_flow import CLOUD, SETUP, _gateway
 
 PUB = b"our public key"
@@ -488,6 +490,113 @@ async def test_a_new_key_that_is_not_confirmed_is_removed(hass: HomeAssistant, t
         await hass.async_block_till_done(wait_background_tasks=True)
     assert result["reason"] == "reauth_successful" and entry.data["rsa_key_path"] == str(new)
     assert old.read_bytes() == b"the key in use"
+
+
+# ---------------------------------------------------------------------------
+# A reauth whose final connection check fails
+# ---------------------------------------------------------------------------
+
+UPLOAD = {"key_file": "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0"}
+
+
+def _connect_failed(result: dict, error: str = "cannot_connect") -> None:
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "reauth_connect_failed"
+    assert result["errors"] == {"base": error}
+    voluptuous_serialize.convert(result["data_schema"], custom_serializer=cv.custom_serializer)
+
+
+async def test_reauth_connect_failed_try_again(hass: HomeAssistant, tmp_path) -> None:
+    """A gateway briefly away at the last check: Try again finishes the reauth
+    with the same key (it used to go to the gateway step and end in "already
+    configured")."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={**V1R})
+    entry.add_to_hass(hass)
+    key = tmp_path / "new.pem"
+    key.write_text("x")
+    with patch.object(config_flow, "_store_key", return_value=str(key)) as store, patch(SETUP, return_value=True):
+        result = await entry.start_reauth_flow(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "key_upload"})
+        FakePowerwall.fail_local = True
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], UPLOAD)
+        _connect_failed(result)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next": "retry"})
+        _connect_failed(result)  # still away: asked again
+        FakePowerwall.fail_local = False
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next": "retry"})
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "reauth_successful"
+    assert entry.data["rsa_key_path"] == str(key) and store.call_count == 1
+
+
+async def test_reauth_connect_failed_start_over(hass: HomeAssistant, tmp_path) -> None:
+    """Start over goes back to the reauth's own menu, where another method
+    can be picked."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={**V1R})
+    entry.add_to_hass(hass)
+    key = tmp_path / "new.pem"
+    key.write_text("x")
+    with patch.object(config_flow, "_store_key", return_value=str(key)), patch(SETUP, return_value=True):
+        result = await entry.start_reauth_flow(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "key_upload"})
+        FakePowerwall.fail_local = True
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], UPLOAD)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next": "start_over"})
+        assert result["type"] is FlowResultType.MENU and result["step_id"] == "reauth_confirm"
+        FakePowerwall.fail_local = False
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "key_upload"})
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], UPLOAD)
+    assert result["reason"] == "reauth_successful" and entry.data["rsa_key_path"] == str(key)
+
+
+async def test_new_key_kept_through_try_again(hass: HomeAssistant, tmp_path, fleet) -> None:
+    """A new key the Powerwall has confirmed survives a failed last check:
+    Try again switches the entry to it, registered only once."""
+    folder, old, new, new_public = _key_folder(tmp_path)
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={**V1R, "rsa_key_path": str(old)})
+    entry.add_to_hass(hass)
+    keys = KeyServer(fleet, [1, 3])
+    with (keys.patch, patch.object(config_flow.TeslaLoginMixin, "_folder", str(folder)),
+          patch(f"{CLOUD}.public_der_of", return_value=PUB),
+          patch.object(config_flow, "VERIFY_POLL_SECONDS", 0), patch(SETUP, return_value=True)):
+        flow_id, result = await _start_new_key(hass, entry)
+        await hass.async_block_till_done(wait_background_tasks=True)
+        FakePowerwall.fail_local = True
+        result = await hass.config_entries.flow.async_configure(flow_id)
+        _connect_failed(result)
+        await hass.async_block_till_done(wait_background_tasks=True)
+        assert new.is_file() and entry.data["rsa_key_path"] == str(old)
+        FakePowerwall.fail_local = False
+        result = await hass.config_entries.flow.async_configure(flow_id, {"next": "retry"})
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert result["reason"] == "reauth_successful" and entry.data["rsa_key_path"] == str(new)
+    assert len(keys.added) == 1
+    assert sorted(p.name for p in folder.iterdir()) == sorted([new.name, new_public.name])
+
+
+async def test_new_key_start_over_then_upload(hass: HomeAssistant, tmp_path, fleet) -> None:
+    """Start over from a new key goes back to the new-key menu. Switching to an
+    uploaded key instead removes the key made here, as well as the old one."""
+    folder, old, new, new_public = _key_folder(tmp_path)
+    uploaded = folder / "uploaded.pem"
+    uploaded.write_bytes(b"an uploaded key")
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={**V1R, "rsa_key_path": str(old)})
+    entry.add_to_hass(hass)
+    keys = KeyServer(fleet, [1, 3])
+    with (keys.patch, patch.object(config_flow.TeslaLoginMixin, "_folder", str(folder)),
+          patch(f"{CLOUD}.public_der_of", return_value=PUB),
+          patch.object(config_flow, "_store_key", return_value=str(uploaded)),
+          patch.object(config_flow, "VERIFY_POLL_SECONDS", 0), patch(SETUP, return_value=True)):
+        flow_id, result = await _start_new_key(hass, entry)
+        await hass.async_block_till_done(wait_background_tasks=True)
+        FakePowerwall.fail_local = True
+        result = await hass.config_entries.flow.async_configure(flow_id)
+        result = await hass.config_entries.flow.async_configure(flow_id, {"next": "start_over"})
+        assert result["type"] is FlowResultType.MENU and result["step_id"] == "new_key"
+        FakePowerwall.fail_local = False
+        result = await hass.config_entries.flow.async_configure(flow_id, {"next_step_id": "key_upload"})
+        result = await hass.config_entries.flow.async_configure(flow_id, UPLOAD)
+        await hass.async_block_till_done(wait_background_tasks=True)
+    assert result["reason"] == "reauth_successful" and entry.data["rsa_key_path"] == str(uploaded)
+    assert [p.name for p in folder.iterdir()] == [uploaded.name]
 
 
 async def test_new_key_not_offered_on_wifi_entries(hass: HomeAssistant) -> None:
