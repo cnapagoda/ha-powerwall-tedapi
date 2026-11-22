@@ -1563,6 +1563,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         names = stored.get("pack_names")
         self._pack_names = {str(k): str(v) for k, v in names.items()} if isinstance(names, dict) else {}
 
+    async def async_save_state(self) -> None:
+        """Save now, when the entry unloads or Home Assistant stops. The
+        delayed save only follows full reads, so without this the energy flows
+        counted on fast polls since the last one would be lost, and the flow
+        counters would go back a little after every reload or restart."""
+        await self._store.async_save(self._state_to_save())
+
     def _state_to_save(self) -> dict[str, Any]:
         return {"export_wanted": self.wanted["grid_export"],
                 "grid_charging_wanted": self.wanted["grid_charging"],

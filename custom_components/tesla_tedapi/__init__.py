@@ -368,8 +368,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         # Home Assistant doesn't unload entries when it stops or restarts:
         # end a running dispatch here, so the battery is handed back now (not
         # when the last command expires) and the ended event still fires.
+        # Save the state too: the flows counted on fast polls since the last
+        # full read aren't saved yet.
         if (dispatch := entry.runtime_data.dispatch) is not None:
             await dispatch.async_shutdown()
+        await coordinator.async_save_state()
 
     # async_listen, not async_listen_once: removing a once-listener that has
     # already fired (unload after the stop) logs an error.
@@ -425,6 +428,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> b
     if entry.runtime_data.off_grid is not None:
         entry.runtime_data.off_grid.async_shutdown()
     entry.runtime_data.coordinator.async_clear_issues()
+    await entry.runtime_data.coordinator.async_save_state()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 

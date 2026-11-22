@@ -473,3 +473,20 @@ async def test_session_without_any_reading_counts_from_its_start(hass: HomeAssis
     assert session._stale_for(session.state) is None  # just started
     freezer.tick(timedelta(seconds=200))
     assert session._stale_for(session.state) == pytest.approx(200, abs=1)
+
+
+@pytest.mark.parametrize("how", ["unload", "stop"])
+async def test_flows_saved_on_unload_and_stop(hass: HomeAssistant, fake_powerwall, hass_storage, how) -> None:
+    """The delayed save only follows full reads: flows counted on fast polls
+    since then are saved when the entry unloads or Home Assistant stops, so
+    the counters don't go back after a reload or restart."""
+    entry = await _setup(hass, V1R)
+    coordinator = entry.runtime_data.coordinator
+    coordinator.flows.totals["solar_to_home"] = 91.003
+    key = f"{DOMAIN}.{entry.entry_id}"
+    if how == "unload":
+        assert await hass.config_entries.async_unload(entry.entry_id)
+    else:
+        hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
+    await hass.async_block_till_done()
+    assert hass_storage[key]["data"]["flows"]["totals"]["solar_to_home"] == 91.003
