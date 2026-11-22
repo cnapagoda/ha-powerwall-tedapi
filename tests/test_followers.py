@@ -211,7 +211,10 @@ async def test_unreachable_wifi_fallback_raises_a_repair_then_clears(hass: HomeA
     await _refresh(hass, entry)
     assert coordinator.data["health"]["wifi_fallback_reachable"] is False
     # Still not answering an hour later: a repair.
-    down = coordinator._fallback_down_since
+    assert coordinator._fallback_down_since is not None
+    # A whole number: down + an hour - down is exactly an hour (with a small
+    # monotonic clock, as on a fresh CI runner, float rounding can make it less).
+    down = coordinator._fallback_down_since = 10_000.0
     coordinator._sync_fallback_issue(False, down + WIFI_FALLBACK_DOWN_SECONDS - 1)
     assert _fallback_issue(hass, entry) is None
     coordinator._sync_fallback_issue(False, down + WIFI_FALLBACK_DOWN_SECONDS)
@@ -240,7 +243,10 @@ async def test_fallback_that_never_answered_raises_no_repair(hass: HomeAssistant
     entry = await _setup(hass, {**V1R, "wifi_host": "192.168.91.1"})
     await hass.async_block_till_done(wait_background_tasks=True)
     coordinator = entry.runtime_data.coordinator
-    down = coordinator._fallback_down_since
+    assert coordinator._fallback_down_since is not None
+    # A whole number: down + an hour - down is exactly an hour (with a small
+    # monotonic clock, as on a fresh CI runner, float rounding can make it less).
+    down = coordinator._fallback_down_since = 10_000.0
     coordinator._sync_fallback_issue(False, down + 10 * WIFI_FALLBACK_DOWN_SECONDS)
     assert _fallback_issue(hass, entry) is None
     assert coordinator._state_to_save()["wifi_fallback_answered"] is None
@@ -256,7 +262,10 @@ async def test_fallback_that_never_answered_raises_no_repair(hass: HomeAssistant
     await hass.async_block_till_done(wait_background_tasks=True)
     coordinator = entry.runtime_data.coordinator
     assert coordinator._fallback_answered == "192.168.91.1"
-    down = coordinator._fallback_down_since
+    assert coordinator._fallback_down_since is not None
+    # A whole number: down + an hour - down is exactly an hour (with a small
+    # monotonic clock, as on a fresh CI runner, float rounding can make it less).
+    down = coordinator._fallback_down_since = 10_000.0
     coordinator._sync_fallback_issue(False, down + WIFI_FALLBACK_DOWN_SECONDS)
     assert _fallback_issue(hass, entry) is not None
     # A different address that answered before doesn't count for this one.
