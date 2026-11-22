@@ -331,3 +331,32 @@ async def test_powerwall_3_keeps_inverter_temperatures(hass: HomeAssistant, fake
     await _setup(hass, V1R)
     assert hass.states.get(_eid(hass, "sensor", "inverter_ambient_temperature")).state == "25.0"
     assert hass.states.get(_eid(hass, "sensor", "inverter_heatsink_temperature")).state == "30.0"
+
+
+@pytest.mark.parametrize(
+    ("status", "backup", "usable"),
+    [
+        # 5 % of 13.9 kWh is hidden: 6.305 of the 7 kWh can be used.
+        ({"nominal_full_pack_energy": 13900, "nominal_energy_remaining": 7000}, 12.5 * 6305 / 7000, 6.305),
+        # At or below the app's 0 %: nothing left to run on.
+        ({"nominal_full_pack_energy": 13900, "nominal_energy_remaining": 600}, 0.0, 0.0),
+        # Without the full capacity the hidden part isn't known.
+        ({"nominal_energy_remaining": 7000}, None, None),
+    ],
+)
+async def test_backup_time_and_usable_energy_leave_out_the_hidden_bottom(
+        hass: HomeAssistant, fake_powerwall, status, backup, usable) -> None:
+    """The Powerwall stops at the app's 0 % (5 % on the gateway's scale), in
+    an outage too: backup time and usable energy count only what's above it,
+    while Battery energy remaining stays the gateway's figure."""
+    with patch.object(FakePowerwall, "system_status", lambda self: status):
+        await _setup(hass, V1R)
+    hours = hass.states.get(_eid(hass, "sensor", "backup_time_remaining")).state
+    remaining = hass.states.get(_eid(hass, "sensor", "battery_energy_remaining"))
+    assert float(remaining.state) == status["nominal_energy_remaining"] / 1000
+    if backup is None:
+        assert hours == "unknown"
+        assert remaining.attributes["usable_kwh"] is None
+    else:
+        assert float(hours) == pytest.approx(backup, abs=0.01)
+        assert remaining.attributes["usable_kwh"] == pytest.approx(usable, abs=0.01)

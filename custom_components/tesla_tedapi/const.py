@@ -271,6 +271,12 @@ ATTR_TARGET_SOC = "target_soc"
 ATTR_MAX_MINUTES = "max_minutes"
 
 
+# The bottom of the battery (% of full) that the Tesla app hides: the
+# Powerwall keeps it to stay awake and restart solar, so it can't be used,
+# even in an outage.
+APP_HIDDEN_PCT = 5
+
+
 def app_soc(raw: float | None) -> float | None:
     """Convert the gateway's state of energy to the Tesla app scale.
 
@@ -278,4 +284,4 @@ def app_soc(raw: float | None) -> float | None:
     """
     if raw is None:
         return None
-    return round(max(0.0, min(100.0, (raw - 5) / 0.95)), 1)
+    return round(max(0.0, min(100.0, (raw - APP_HIDDEN_PCT) / (1 - APP_HIDDEN_PCT / 100))), 1)

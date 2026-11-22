@@ -30,6 +30,7 @@ from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, 
 from .client import local_kwargs
 from .cloud import CloudBackend, OwnerSettings, live_readings, live_time, wall_connectors
 from .const import (
+    APP_HIDDEN_PCT,
     AUTH_FILE,
     BACKEND_FLEET,
     BACKEND_OWNER,
@@ -1101,6 +1102,17 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         def num(v, minimum=0):
             return isinstance(v, (int, float)) and not isinstance(v, bool) and v >= minimum
 
+        # The energy above the app's 0 %: the bottom APP_HIDDEN_PCT can't be
+        # used, even in an outage. pypowerwall's backup time divides all of
+        # the remaining energy by the load, so it's scaled to this part.
+        usable_wh = None
+        if num(full_wh) and full_wh > 0 and num(remaining_wh):
+            usable_wh = max(0.0, remaining_wh - full_wh * APP_HIDDEN_PCT / 100)
+        if num(backup_hours) and usable_wh is not None and remaining_wh > 0:
+            backup_hours = backup_hours * usable_wh / remaining_wh
+        else:
+            backup_hours = None
+
         config = None
         try:
             config = pw.client.tedapi.get_config()
@@ -1113,6 +1125,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "pack_count": _pack_count(config),
             "battery_full_kwh": round(full_wh / 1000, 2) if num(full_wh) and full_wh > 0 else None,
             "battery_remaining_kwh": round(remaining_wh / 1000, 2) if num(remaining_wh) else None,
+            "battery_usable_kwh": round(usable_wh / 1000, 2) if usable_wh is not None else None,
             "packs": name_packs(_extract_packs(vitals), self._pack_names, self.din, _pack_count(config)),
             "inverter_ambient_temp": _extract_pinv_value(vitals, "PCH_AmbientTemp", din=self.din),
             "inverter_heatsink_temp": _extract_pinv_value(vitals, "PCH_heatsinkTemp", din=self.din),

@@ -335,7 +335,10 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY_STORAGE,
         state_class=SensorStateClass.MEASUREMENT,
+        # Includes the bottom 5 % the Tesla app hides, like Battery full
+        # capacity (Predbat pairs the two); usable_kwh is the part above it.
         value_fn=lambda d: d.get("battery_remaining_kwh"),
+        attrs_fn=lambda d: {"usable_kwh": d.get("battery_usable_kwh")},
     ),
     TedapiSensorEntityDescription(
         key="battery_health",
@@ -1004,6 +1007,8 @@ class TedapiSensor(TedapiEntity, SensorEntity):
         "wifi_fallback_reachable",
         # round-trip efficiency: the counters behind it change on every poll
         "charged_kwh", "discharged_kwh", "min_charged_kwh",
+        # battery energy remaining: changes with every reading
+        "usable_kwh",
         # fans (drive duty, target speed)
         "duty", "target_rpm",
         # alert details (the alert codes themselves stay recorded)
