@@ -18,6 +18,7 @@
 - Docs: Configuration says that changing **Fast polling interval for power** also reloads the integration (ending a running dispatch), and that only the signed connection asks to reauthenticate; Events lists the **Stop battery dispatch** and **Reconnect to the grid** buttons as the source of `stopped` and `requested`.
 - Docs: running a heat pump with the **Run a load on surplus solar** blueprint (what to use as the load, settings, and avoiding compressor short cycling).
 - Docs: the hardware report form asks for the gateway type and what nobody has confirmed yet (Powerwall+ fans and solar inputs, Powerwall 2 with a Backup Gateway 2, follower inverter temperatures, Powerwall 3 three-phase, and the 2.8 gateway status sensors), and takes an optional diagnostics file.
+- Releases attach `tesla_tedapi.zip`, which HACS now installs (`zip_release`), so the download count shows on the release page and in the README. Once 2.8.2 is out, HACS can't install an older version, because those releases have no zip.
 
 ## 2.8.1
 
