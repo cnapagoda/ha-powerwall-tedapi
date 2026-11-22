@@ -1000,7 +1000,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         entry = self._get_reauth_entry()
         self._title_host(entry)
         self._data = {k: entry.data[k] for k in (CONF_HOST, CONF_GW_PWD, CONF_FULL_PASSWORD_LOGIN,
-                                                   CONF_WIFI_HOST, CONF_RSA_KEY_PATH)
+                                                   CONF_CUSTOMER_PASSWORD, CONF_WIFI_HOST, CONF_RSA_KEY_PATH)
                       if k in entry.data}
         self._din = entry.unique_id
         self._mode = entry.data.get(CONF_CONNECTION_MODE, MODE_V1R)

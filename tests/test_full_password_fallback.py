@@ -279,6 +279,28 @@ async def test_customer_password_in_polling_reauth_reconfigure_and_diagnostics(
     assert entry.data["customer_password"] == CUSTOMER and entry.data["full_password_login"] is False
 
 
+async def test_new_key_is_checked_with_the_customer_password(
+        hass: HomeAssistant, fake_gateway, fake_powerwall, tmp_path) -> None:
+    """Reauth with a new key (here uploaded): the connection check logs in
+    with the customer password, not the sticker password's last 5 characters."""
+    from custom_components.tesla_tedapi import config_flow  # noqa: PLC0415
+
+    from .test_init import V1R, _setup  # noqa: PLC0415
+
+    fake_gateway.customer = CUSTOMER
+    entry = await _setup(hass, {**V1R, "gw_pwd": PWD, "customer_password": CUSTOMER})
+    new_key = tmp_path / "new.pem"
+    new_key.write_text("x")
+    with patch.object(config_flow, "_store_key", return_value=str(new_key)), patch(SETUP, return_value=True):
+        result = await entry.start_reauth_flow(hass)
+        result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "key_upload"})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"key_file": "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0"})
+    assert result["reason"] == "reauth_successful"
+    assert local(fake_powerwall).kwargs["password"] == CUSTOMER
+    assert entry.data["customer_password"] == CUSTOMER and entry.data["rsa_key_path"] == str(new_key)
+
+
 def test_extras_signed_client_uses_the_customer_password() -> None:
     from custom_components.tesla_tedapi import client  # noqa: PLC0415
 
