@@ -2159,7 +2159,18 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         now = dt_util.utcnow()
         self.alert_changes = []
         if data.get("local_ok") and data.get("alerts") is not None:
-            packs = {p["name"]: p["alerts"] for p in (data.get("packs") or {}).values() if p.get("alerts")}
+            read = (data.get("packs") or {}).values()
+            packs = {p["name"]: list(p["alerts"]) for p in read if p.get("alerts")}
+            # A pack missing from this reading (the vitals read failed, or a
+            # follower Powerwall 3 is away) says nothing about its alerts:
+            # keep them, so they aren't cleared and raised again with a new
+            # start time. Only for packs still known (see name_packs).
+            names_read = {p["name"] for p in read}
+            known = set(self._pack_names.values())
+            for alert, sources in self.alerts.sources.items():
+                for source in sources:
+                    if source != "gateway" and source not in names_read and source in known:
+                        packs.setdefault(source, []).append(alert)
             self.alert_changes = self.alerts.update(data["alerts"], packs, now)
             for change in self.alert_changes:
                 _LOGGER.info("Powerwall alert %s: %s (%s)", change.kind, change.name, change.description)
