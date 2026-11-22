@@ -5,6 +5,7 @@
 [![Tests](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/tests.yml/badge.svg)](https://github.com/cnapagoda/ha-powerwall-tedapi/actions/workflows/tests.yml)
 ![GitHub all releases][download-all]
 ![GitHub release (latest by SemVer)][download-latest]
+<br><sub>Download counts are from the 2.8.2 release.</sub>
 
 Local monitoring and control of a Tesla Powerwall from Home Assistant, through the gateway's own interface (TEDAPI). Built on [pypowerwall](https://github.com/jasonacox/pypowerwall) and [aiopytedapi](https://pypi.org/project/aiopytedapi/). Works with the **Powerwall 3**, and with Powerwall 2 / Powerwall+ where the firmware supports it.
 
