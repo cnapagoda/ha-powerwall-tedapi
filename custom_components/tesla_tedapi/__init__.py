@@ -65,7 +65,7 @@ from .const import (
 from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
 from .dispatch import DispatchSession, quiet_dispatch_repeats
 from .off_grid import OffGridSession, off_grid_store
-from .privacy import scrub
+from .privacy import mask_library_logs, scrub
 from .texts import async_setup_texts
 
 _LOGGER = logging.getLogger(__name__)
@@ -335,6 +335,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         raise ConfigEntryError(
             translation_domain=DOMAIN, translation_key="pypowerwall_too_old",
             translation_placeholders={"found": err.found, "required": client.required()}) from err
+    await hass.async_add_executor_job(mask_library_logs)
     coordinator = TedapiCoordinator(hass, entry)
     await coordinator.async_load_state()
     try:
@@ -374,7 +375,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
     # already fired (unload after the stop) logs an error.
     entry.async_on_unload(hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, _async_stop))
     _LOGGER.debug("Powerwall %s loaded (firmware %s, %s, settings %s)",
-                  entry.title, coordinator.firmware_version, coordinator.connection_mode,
+                  scrub(entry.title), coordinator.firmware_version, coordinator.connection_mode,
                   "enabled" if coordinator.control_enabled else "read-only")
     return True
 

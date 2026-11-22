@@ -230,7 +230,8 @@ async def test_dhcp_follows_new_address(hass: HomeAssistant, caplog) -> None:
     assert result["reason"] == "already_configured"
     assert entry.data["host"] == "192.168.1.60"
     check.assert_not_called()
-    assert "moved from 192.168.1.50 to 192.168.1.60" in caplog.text
+    assert "the gateway's address changed" in caplog.text
+    assert "192.168.1.50" not in caplog.text and "192.168.1.60" not in caplog.text
     assert DIN not in caplog.text and DIN.split("--")[-1] not in caplog.text
 
 

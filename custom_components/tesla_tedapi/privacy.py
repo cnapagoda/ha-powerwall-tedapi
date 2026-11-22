@@ -4,10 +4,15 @@ Error messages from libraries and Tesla's servers can carry the gateway's
 DIN (which holds its serial number), battery serials, MAC and IP addresses,
 energy site IDs, email addresses or tokens in a URL. Diagnostics are redacted
 separately (diagnostics.py); logs are often pasted into public issues, so
-warning and error texts go through scrub() before they're logged.
+warning and error texts go through scrub() before they're logged, and the
+libraries' own log messages (pypowerwall's include the gateway's address)
+pass through a filter that does the same.
 """
 from __future__ import annotations
 
+import importlib
+import logging
+import os
 import re
 from typing import Any
 
@@ -33,3 +38,49 @@ def scrub(value: Any) -> str:
     for pattern, replacement in _PATTERNS:
         text = pattern.sub(replacement, text)
     return text
+
+
+# The libraries whose own log messages are masked.
+_LIBRARIES = ("pypowerwall", "aiopytedapi")
+
+
+class _MaskFilter(logging.Filter):
+    """Masks identifiers in a library's log message (and its traceback)."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        masked = scrub(message)
+        if masked != message:
+            record.msg, record.args = masked, None
+        if record.exc_info and not record.exc_text:
+            record.exc_text = scrub(logging.Formatter().formatException(record.exc_info))
+        return True
+
+
+_FILTER = _MaskFilter()
+
+
+def mask_library_logs() -> None:
+    """Add the filter to every logger of the libraries, also those of modules
+    imported later (pypowerwall imports its signed client only when it
+    connects): a filter on a logger doesn't cover its children, so each
+    module's logger is made now. Reads the packages' folders: call it in the
+    executor."""
+    for library in _LIBRARIES:
+        try:
+            package = importlib.import_module(library)
+        except ImportError:
+            continue
+        names = {library} | {name for name in logging.root.manager.loggerDict if name.startswith(f"{library}.")}
+        for folder in package.__path__:
+            for root, dirs, files in os.walk(folder):
+                dirs[:] = [d for d in dirs if not d.startswith(("_", "."))]
+                relative = os.path.relpath(root, folder)
+                prefix = library if relative == "." else f"{library}.{relative.replace(os.sep, '.')}"
+                names.add(prefix)
+                names.update(f"{prefix}.{file[:-3]}" for file in files
+                             if file.endswith(".py") and file != "__init__.py")
+        for name in names:
+            logger = logging.getLogger(name)
+            if _FILTER not in logger.filters:
+                logger.addFilter(_FILTER)

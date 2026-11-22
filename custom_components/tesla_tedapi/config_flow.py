@@ -574,8 +574,9 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                     # Same address, or set up over the gateway's Wi-Fi
                     # hotspot (keep the hotspot address it connects to).
                     return self.async_abort(reason="already_configured")
-                # The entry's title, not its DIN (which holds the serial).
-                _LOGGER.info("Powerwall %s moved from %s to %s", entry.title, host, ip)
+                # The entry's title, masked (a default title holds the DIN),
+                # and no addresses.
+                _LOGGER.info("%s: the gateway's address changed", scrub(entry.title))
                 self.hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_HOST: ip})
                 self.hass.config_entries.async_schedule_reload(entry.entry_id)
                 return self.async_abort(reason="already_configured")

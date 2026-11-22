@@ -117,7 +117,7 @@ The integration's card can also show **Reauthenticate**: the gateway keeps refus
        aiopytedapi: debug
    ```
 
-   Only if you're asked for it, add `pypowerwall: debug` too. It logs everything the gateway sends, unredacted: the gateway configuration (with the customer and installer details, site name and utility) and every serial number. Remove those before you share it, or send it privately.
+   Only if you're asked for it, add `pypowerwall: debug` too. It logs everything the gateway sends. Serial numbers and addresses in it are masked where they're recognised, but the gateway configuration's customer and installer details, site name and utility aren't. Remove those before you share it, or send it privately.
 3. Reproduce the problem, then **Disable debug logging** (the log downloads automatically) or copy the relevant lines.
 4. [Open an issue](https://github.com/cnapagoda/ha-powerwall-tedapi/issues/new/choose) with the versions (integration, Home Assistant, Powerwall model and firmware), your connection type, the diagnostics and the log.
 

@@ -684,6 +684,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return self._conn_mode
 
     @property
+    def _log_name(self) -> str:
+        """The entry as the log names it: its title, masked (a default title
+        holds the DIN); never the gateway's address."""
+        return scrub(self.config_entry.title)
+
+    @property
     def follower_host(self) -> str:
         """The address follower Powerwall 3s are read over on the signed
         connection: the Wi-Fi fallback, or the gateway's own address when that
@@ -1593,13 +1599,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     raise
                 if not self._gateway_down:
                     self._gateway_down = True
-                    _LOGGER.warning("The Powerwall gateway at %s can't be reached (%s); readings are "
-                                    "unavailable and settings use the cloud backup", self._host, scrub(err))
+                    _LOGGER.warning("%s: the gateway can't be reached (%s); readings are unavailable "
+                                    "and settings use the cloud backup", self._log_name, scrub(err))
             else:
                 self._password_refused = self._key_refused = 0
                 if self._gateway_down:
                     self._gateway_down = False
-                    _LOGGER.info("The Powerwall gateway at %s answers again", self._host)
+                    _LOGGER.info("%s: the gateway answers again", self._log_name)
         except Exception as err:
             self._pw = None
             self._full_at = None
@@ -1926,7 +1932,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 self._fallback_answered = self._wifi_host
                 self._store.async_delay_save(self._state_to_save, 10)
             if issue_id in self._write_issues:
-                _LOGGER.info("The Wi-Fi fallback address %s answers again", self._wifi_host)
+                _LOGGER.info("%s: the Wi-Fi fallback address answers again", self._log_name)
                 self._write_issues.discard(issue_id)
                 ir.async_delete_issue(self.hass, DOMAIN, issue_id)
             return
@@ -1935,7 +1941,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if (now - self._fallback_down_since < WIFI_FALLBACK_DOWN_SECONDS or issue_id in self._write_issues
                 or self._fallback_answered != self._wifi_host):
             return
-        _LOGGER.warning("The Wi-Fi fallback address %s hasn't answered for over an hour", self._wifi_host)
+        _LOGGER.warning("%s: the Wi-Fi fallback address hasn't answered for over an hour", self._log_name)
         self._write_issues.add(issue_id)
         ir.async_create_issue(
             self.hass, DOMAIN, issue_id,
