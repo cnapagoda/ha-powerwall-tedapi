@@ -648,6 +648,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         option on every reading."""
         self._apply_live_options(self.config_entry.options)
         self.update_interval = self._scan_interval(self.config_entry)
+        # A longer polling interval needs a longer gap allowance, or the
+        # energy flows stop counting.
+        self.flows.set_poll_seconds(self.update_interval.total_seconds())
         self.async_update_listeners()
 
     def _make_backends(self, hass: HomeAssistant, entry: TedapiConfigEntry) -> list[CloudBackend]:

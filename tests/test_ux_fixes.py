@@ -287,6 +287,7 @@ async def test_live_options_keep_a_dispatch_running(hass: HomeAssistant, fake_po
     assert entry.runtime_data.coordinator is coordinator
     assert coordinator.problem_after == timedelta(minutes=25)
     assert coordinator.update_interval == timedelta(seconds=45)
+    assert coordinator.flows.max_gap == 300
     assert coordinator.restore_settings is False
     problem = hass.states.get(_eid(hass, "binary_sensor", "alert_problem"))
     assert problem.attributes["minutes_before_problem"] == 25
@@ -295,6 +296,18 @@ async def test_live_options_keep_a_dispatch_running(hass: HomeAssistant, fake_po
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(DOMAIN, "dispatch_battery_power",
                                        {"power_watts": 5000, "duration_seconds": 60}, blocking=True)
+
+
+async def test_longer_polling_interval_applies_to_the_energy_flows(hass: HomeAssistant, fake_powerwall) -> None:
+    """Raised to 300 s without a reload: readings a little over 300 s apart
+    still count toward the energy flows."""
+    entry = await _setup(hass, V1R)
+    coordinator = entry.runtime_data.coordinator
+    assert coordinator.flows.max_gap == 300
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        await _set_options(hass, entry, scan_interval=300)
+    reload.assert_not_called()
+    assert coordinator.flows.max_gap == 750
 
 
 async def test_status_event_option_applies_live(hass: HomeAssistant, fake_powerwall) -> None:

@@ -88,10 +88,15 @@ class EnergyFlows:
     """Lifetime energy per flow (kWh), integrated from the power readings."""
 
     def __init__(self, poll_seconds: float = 0) -> None:
-        self.max_gap = max(MAX_GAP_SECONDS, GAP_POLLS * poll_seconds)
+        self.set_poll_seconds(poll_seconds)
         self.totals: dict[str, float] = dict.fromkeys(FLOWS, 0.0)
         # The last reading: when, and each flow's power (W).
         self.last: tuple[datetime, dict[str, float]] | None = None
+
+    def set_poll_seconds(self, poll_seconds: float) -> None:
+        """The polling interval (s), which sets the longest time between two
+        readings that still counts; also when it changes without a reload."""
+        self.max_gap = max(MAX_GAP_SECONDS, GAP_POLLS * poll_seconds)
 
     def update(self, now: datetime, solar: Any, battery: Any, grid: Any, home: Any) -> None:
         """One set of readings (W). A missing reading breaks the chain: the
