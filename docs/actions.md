@@ -232,6 +232,7 @@ A one-off copy of the battery charged and discharged history of two energy senso
 | `dry_run` | `true` | Only show what would be imported. |
 | `source_charged` | (required) | The energy sensor to copy charged energy from. |
 | `source_discharged` | (required) | The energy sensor to copy discharged energy from. |
+| `net` | `false` | Copy into **Battery energy charged (net)** and **Battery energy discharged (net)** instead, for example after switching the Energy dashboard to them. |
 | `config_entry_id` | | Only with several Powerwalls. |
 
 The response's `summary` lists, per sensor, the `source`, the number of `hours`, the `kwh`, the period (`from`, `to`) and where it joins (`join`).

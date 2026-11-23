@@ -468,8 +468,14 @@
       "battery_energy_charged": {
         "name": "Energia carregada na bateria"
       },
+      "battery_energy_charged_net": {
+        "name": "Energia carregada na bateria (líquida)"
+      },
       "battery_energy_discharged": {
         "name": "Energia descarregada da bateria"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Energia descarregada da bateria (líquida)"
       },
       "solar_energy_produced": {
         "name": "Energia solar produzida"
@@ -1082,6 +1088,10 @@
         "source_discharged": {
           "name": "Origem de descarga",
           "description": "O sensor de energia com a energia descarregada da bateria, por exemplo *Battery discharged* do Tesla Fleet ou Teslemetry."
+        },
+        "net": {
+          "name": "Nos sensores líquidos",
+          "description": "Copiar para \"Energia carregada na bateria (líquida)\" e \"Energia descarregada da bateria (líquida)\" em vez dos contadores do gateway, por exemplo depois de mudar o painel de Energia para eles."
         }
       }
     },

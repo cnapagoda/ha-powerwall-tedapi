@@ -468,8 +468,14 @@
       "battery_energy_charged": {
         "name": "Batterie geladen"
       },
+      "battery_energy_charged_net": {
+        "name": "Batterie geladen (netto)"
+      },
       "battery_energy_discharged": {
         "name": "Batterie entladen"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Batterie entladen (netto)"
       },
       "solar_energy_produced": {
         "name": "Solarertrag"
@@ -1082,6 +1088,10 @@
         "source_discharged": {
           "name": "Quelle entladen",
           "description": "Der Energiesensor mit der entladenen Energie der Batterie, zum Beispiel *Battery discharged* von Tesla Fleet oder Teslemetry."
+        },
+        "net": {
+          "name": "In die Netto-Sensoren",
+          "description": "In „Batterie geladen (netto)“ und „Batterie entladen (netto)“ statt in die Zähler des Gateways kopieren, zum Beispiel nachdem das Energie-Dashboard auf sie umgestellt wurde."
         }
       }
     },

@@ -468,8 +468,14 @@
       "battery_energy_charged": {
         "name": "Batterij geladen"
       },
+      "battery_energy_charged_net": {
+        "name": "Batterij geladen (netto)"
+      },
       "battery_energy_discharged": {
         "name": "Batterij ontladen"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Batterij ontladen (netto)"
       },
       "solar_energy_produced": {
         "name": "Zonne-energie opgewekt"
@@ -1082,6 +1088,10 @@
         "source_discharged": {
           "name": "Bron ontladen",
           "description": "De energiesensor met de ontladen energie van de batterij, bijvoorbeeld *Battery discharged* van Tesla Fleet of Teslemetry."
+        },
+        "net": {
+          "name": "Naar de nettosensoren",
+          "description": "Kopieer naar 'Batterij geladen (netto)' en 'Batterij ontladen (netto)' in plaats van naar de tellers van de gateway, bijvoorbeeld nadat het Energiedashboard daarop is overgezet."
         }
       }
     },

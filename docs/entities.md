@@ -86,8 +86,12 @@ One set per Powerwall and expansion pack, named after the pack (*Powerwall 3*, *
 | Grid energy exported | `sensor.powerwall_tedapi_grid_energy_exported` |
 | Battery energy charged | `sensor.powerwall_tedapi_battery_energy_charged` |
 | Battery energy discharged | `sensor.powerwall_tedapi_battery_energy_discharged` |
+| Battery energy charged (net) | `sensor.powerwall_tedapi_battery_energy_charged_net` |
+| Battery energy discharged (net) | `sensor.powerwall_tedapi_battery_energy_discharged_net` |
 | Solar energy produced | `sensor.powerwall_tedapi_solar_energy_produced` |
 | Home energy consumed | `sensor.powerwall_tedapi_home_energy_consumed` |
+
+The **(net)** pair is the battery counters as the Tesla app counts them: charged and discharged are netted in 5-minute windows, so energy the gateway counts both ways at once is left out. They start from the gateway's counters and are kept across restarts. The Energy dashboard guide recommends them for the battery.
 
 A reading that is missing or zero is ignored, and so is a reading lower than the last one, so a glitch never looks like a meter reset in your statistics. Only a lower reading that stays for 10 readings in a row is taken as a real counter reset (for example a replaced gateway).
 

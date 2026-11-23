@@ -291,6 +291,17 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
     _energy("grid_energy_exported"),
     _energy("battery_energy_charged"),
     _energy("battery_energy_discharged"),
+    # The battery counters netted in 5-minute windows, as Tesla's app counts
+    # them (see battery_net.py).
+    *(TedapiSensorEntityDescription(
+        key=f"{key}_net",
+        translation_key=f"{key}_net",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=1,
+        value_fn=lambda d, k=key: (d.get("battery_net") or {}).get(k),
+    ) for key in ("battery_energy_charged", "battery_energy_discharged")),
     _energy("solar_energy_produced"),
     _energy("home_energy_consumed"),
     # Today's grid counters against the grid power readings

@@ -468,8 +468,14 @@
       "battery_energy_charged": {
         "name": "Battery energy charged"
       },
+      "battery_energy_charged_net": {
+        "name": "Battery energy charged (net)"
+      },
       "battery_energy_discharged": {
         "name": "Battery energy discharged"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Battery energy discharged (net)"
       },
       "solar_energy_produced": {
         "name": "Solar energy produced"
@@ -1082,6 +1088,10 @@
         "source_discharged": {
           "name": "Discharged source",
           "description": "The energy sensor with the battery's discharged energy to copy, for example Tesla Fleet's or Teslemetry's *Battery discharged*."
+        },
+        "net": {
+          "name": "Into the net sensors",
+          "description": "Copy into Battery energy charged (net) and Battery energy discharged (net) instead of the gateway's counters, for example after switching the Energy dashboard to them."
         }
       }
     },

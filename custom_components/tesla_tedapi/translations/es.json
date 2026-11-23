@@ -468,8 +468,14 @@
       "battery_energy_charged": {
         "name": "Energía cargada en la batería"
       },
+      "battery_energy_charged_net": {
+        "name": "Energía cargada en la batería (neta)"
+      },
       "battery_energy_discharged": {
         "name": "Energía descargada de la batería"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Energía descargada de la batería (neta)"
       },
       "solar_energy_produced": {
         "name": "Energía solar producida"
@@ -1082,6 +1088,10 @@
         "source_discharged": {
           "name": "Fuente de descarga",
           "description": "El sensor de energía con la energía descargada de la batería, por ejemplo *Battery discharged* de Tesla Fleet o Teslemetry."
+        },
+        "net": {
+          "name": "En los sensores netos",
+          "description": "Copiar en «Energía cargada en la batería (neta)» y «Energía descargada de la batería (neta)» en lugar de los contadores de la pasarela, por ejemplo después de cambiar el panel de Energía a ellos."
         }
       }
     },

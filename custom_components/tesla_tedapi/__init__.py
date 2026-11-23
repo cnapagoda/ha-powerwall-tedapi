@@ -29,6 +29,7 @@ from .const import (
     ATTR_MAX_MINUTES,
     ATTR_MAX_SOC,
     ATTR_MIN_SOC,
+    ATTR_NET,
     ATTR_ONLY_IF_CHANGED,
     ATTR_POWER_WATTS,
     ATTR_READ_BACK,
@@ -99,6 +100,7 @@ IMPORT_HISTORY_SCHEMA = vol.Schema({
     vol.Optional(ATTR_DRY_RUN, default=True): cv.boolean,
     vol.Required(ATTR_SOURCE_CHARGED): cv.entity_id,
     vol.Required(ATTR_SOURCE_DISCHARGED): cv.entity_id,
+    vol.Optional(ATTR_NET, default=False): cv.boolean,
 })
 SET_TARIFF_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
@@ -263,7 +265,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         return await async_import(hass, coordinator.din, {
             "battery_energy_charged": call.data[ATTR_SOURCE_CHARGED],
             "battery_energy_discharged": call.data[ATTR_SOURCE_DISCHARGED],
-        }, call.data[ATTR_DRY_RUN])
+        }, call.data[ATTR_DRY_RUN], net=call.data[ATTR_NET])
 
     async def set_tariff(call: ServiceCall) -> ServiceResponse:
         return await _tariff_coordinator(hass, call).async_set_tariff(

@@ -468,8 +468,14 @@
       "battery_energy_charged": {
         "name": "Energia caricata nella batteria"
       },
+      "battery_energy_charged_net": {
+        "name": "Energia caricata nella batteria (netta)"
+      },
       "battery_energy_discharged": {
         "name": "Energia scaricata dalla batteria"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Energia scaricata dalla batteria (netta)"
       },
       "solar_energy_produced": {
         "name": "Energia solare prodotta"
@@ -1082,6 +1088,10 @@
         "source_discharged": {
           "name": "Origine scarica",
           "description": "Il sensore di energia con l'energia scaricata dalla batteria, per esempio *Battery discharged* di Tesla Fleet o Teslemetry."
+        },
+        "net": {
+          "name": "Nei sensori netti",
+          "description": "Copia in «Energia caricata nella batteria (netta)» e «Energia scaricata dalla batteria (netta)» invece che nei contatori del gateway, ad esempio dopo aver passato la dashboard Energia a questi."
         }
       }
     },

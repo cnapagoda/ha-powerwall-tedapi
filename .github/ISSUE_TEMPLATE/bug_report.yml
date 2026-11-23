@@ -58,7 +58,7 @@ body:
     attributes:
       label: Cloud backup
       options:
-        - None
+        - No cloud backup
         - Owner API (Tesla account linked here)
         - Tesla Fleet or Teslemetry
         - Both

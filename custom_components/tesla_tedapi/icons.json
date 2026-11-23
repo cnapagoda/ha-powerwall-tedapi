@@ -103,7 +103,13 @@
       "battery_energy_charged": {
         "default": "mdi:battery-arrow-up"
       },
+      "battery_energy_charged_net": {
+        "default": "mdi:battery-arrow-up"
+      },
       "battery_energy_discharged": {
+        "default": "mdi:battery-arrow-down"
+      },
+      "battery_energy_discharged_net": {
         "default": "mdi:battery-arrow-down"
       },
       "solar_energy_produced": {

@@ -27,6 +27,7 @@ from homeassistant.util import dt as dt_util
 
 from . import gateway, phases as phases_mod, tariff as tariff_mod, tesla_cloud
 from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, problem_after, summary
+from .battery_net import NetBatteryEnergy
 from .client import local_kwargs
 from .cloud import CloudBackend, OwnerSettings, live_readings, live_time, wall_connectors
 from .const import (
@@ -560,6 +561,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.cloud_writes: dict[str, CloudWrite] = {}
         self.outages = OutageTracker()
         self.daily = DailyEnergy()
+        self.battery_net = NetBatteryEnergy()
+        self._din_issues_cleared = False
         self.grid_check = GridCheck()
         self.flows = EnergyFlows(self._scan_interval(entry).total_seconds())
         self.capacity_trend = CapacityTrend()
@@ -1568,6 +1571,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.outages.restore(stored.get("outages") or {})
         self.firmware.restore(stored.get("firmware") or {})
         self.daily.restore(stored.get("daily") or {})
+        self.battery_net.restore(stored.get("battery_net") or {})
         self.grid_check.restore(stored.get("grid_check") or {})
         self.flows.restore(stored.get("flows") or {})
         self.capacity_trend.restore(stored.get("capacity_trend") or {})
@@ -1590,6 +1594,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "outages": self.outages.as_dict(),
                 "firmware": self.firmware.as_dict(),
                 "daily": self.daily.as_dict(),
+                "battery_net": self.battery_net.as_dict(),
                 "grid_check": self.grid_check.as_dict(),
                 "flows": self.flows.as_dict(),
                 "capacity_trend": self.capacity_trend.as_dict(),
@@ -1859,11 +1864,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         now = dt_util.utcnow()
         if data.get("local_ok") and energy:
             data["energy_today"] = self.daily.update(energy, now)
+            if data.get("full_read", True):  # fast polls carry the last counters
+                self.battery_net.update(now, energy.get("battery_energy_charged"),
+                                        energy.get("battery_energy_discharged"))
             self.grid_check.update(self.daily.day, data.get("grid_power"), energy.get("grid_energy_imported"),
                                    energy.get("grid_energy_exported"), now)
         else:
             data["energy_today"] = {}
         data["energy_day"] = self.daily.day
+        data["battery_net"] = self.battery_net.summary()
         data["grid_check"] = self.grid_check.summary()
 
     def _track_firmware(self, data: dict[str, Any]) -> None:
@@ -2213,6 +2222,16 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # lists repair ids in every diagnostics download, unredacted, and the
         # DIN contains the gateway's serial number (#29).
         entry_id = self.config_entry.entry_id
+        if self.din and not self._din_issues_cleared:
+            # Up to 2.8.0 they were named after the DIN. Home Assistant keeps
+            # such a repair, inactive, after a restart, so it stayed in every
+            # diagnostics download (#35): remove those of this gateway.
+            registry = ir.async_get(self.hass)
+            prefix = f"alert_{self.din}_"
+            for domain, issue_id in list(registry.issues):
+                if domain == DOMAIN and issue_id.startswith(prefix):
+                    ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            self._din_issues_cleared = True
         wanted = {f"alert_{entry_id}_{name}": name for name in problems}
         for issue_id, name in wanted.items():
             if issue_id in self._issues:
