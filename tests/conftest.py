@@ -417,15 +417,20 @@ def fake_gateway():
     def din_any(host, gw_pwd, full=False):
         return gateway._with_full_password(din, host, gw_pwd, full)
 
-    def check_wifi_password(host, gw_pwd):
+    def wifi_din(host, gw_pwd):
         FakeGateway.wifi_checks.append(host)
         if FakeGateway.wifi is None:
             raise gateway.GatewayUnreachable("no route")
         if gw_pwd != FakeGateway.wifi:
             raise gateway.GatewayPasswordRejected("HTTP 403, Wi-Fi password")
+        return FakeGateway.din
+
+    def check_wifi_password(host, gw_pwd):
+        wifi_din(host, gw_pwd)
 
     with patch.object(gateway, "login", login), patch.object(gateway, "din", din), \
             patch.object(gateway, "check_wifi_password", check_wifi_password), \
+            patch.object(gateway, "wifi_din", wifi_din), \
             patch.object(gateway, "login_any", login_any), patch.object(gateway, "din_any", din_any), \
             patch.object(gateway, "answers", lambda host: FakeGateway.answers), \
             patch.object(gateway, "full_password_login", lambda host: FakeGateway.gateway1), \

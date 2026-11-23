@@ -53,6 +53,14 @@
           "cloud_backup": "Zusätzlich bei einem Tesla-Konto anmelden, damit Einstellungen über die Tesla-Cloud geändert werden können, wenn die lokale Verbindung ausfällt."
         }
       },
+      "wifi_only": {
+        "title": "Ohne Kundenpasswort fortfahren",
+        "description": "Das Gateway hat die Kundenanmeldung abgelehnt, das Kundenpasswort wurde also vermutlich geändert (zum Beispiel vom Installateur). Das eigene WLAN der Powerwall hat das Gateway-Passwort angenommen, das keine Kundenanmeldung braucht, daher kann die Einrichtung mit der Verbindung **Nur WLAN-Passwort** fortfahren. Sie kann alles lesen, aber keine Einstellungen ändern und die Batterie nicht steuern; verknüpfe ein Tesla-Konto, um Einstellungen über die Cloud zu ändern. Home Assistant muss im WLAN `TeslaPW_…` der Powerwall bleiben.\n\nFür eine signierte Verbindung (lokale Steuerung) gib stattdessen das **Kundenpasswort** ein.",
+        "menu_options": {
+          "wifi": "Mit der Verbindung nur mit WLAN-Passwort fortfahren",
+          "gateway": "Kundenpasswort eingeben"
+        }
+      },
       "wifi": {
         "title": "Über das WLAN der Powerwall verbinden",
         "description": "Home Assistant muss mit dem eigenen WLAN der Powerwall (TeslaPW_…) verbunden sein. Diese Verbindung kann alles lesen, aber keine Einstellungen ändern und die Batterie nicht steuern; verknüpfe ein Tesla-Konto, um Einstellungen über die Cloud zu ändern.",
@@ -183,7 +191,7 @@
     "error": {
       "cannot_connect": "Die Powerwall ist unter dieser Adresse nicht erreichbar. Prüfe die Adresse (dein Router zeigt das Gateway als `teslapw_…` an), ob die Powerwall eingeschaltet und im selben Netzwerk wie Home Assistant ist, und versuche es erneut.",
       "wifi_password_refused": "Die Powerwall hat geantwortet, aber das Passwort abgelehnt. Prüfe es auf dem QR-Aufkleber (Großbuchstaben). Das Passwort allein funktioniert nur über das eigene WLAN der Powerwall (`192.168.91.1`), nicht über ihre Adresse im Heimnetz: Verwende dort eine signierte Verbindung.",
-      "invalid_gw_pwd": "Das Gateway hat dieses Passwort abgelehnt. Prüfe den QR-Aufkleber (Buchstaben sind Großbuchstaben).",
+      "invalid_gw_pwd": "Das Gateway hat dieses Passwort abgelehnt. Prüfe den QR-Aufkleber (Buchstaben sind Großbuchstaben). Wurde das Kundenpasswort geändert und kennt es niemand, verbinde Home Assistant mit dem eigenen WLAN `TeslaPW_…` der Powerwall und gib `192.168.91.1` ein: Dort kann die Einrichtung ohne es fortfahren, als Verbindung nur mit WLAN-Passwort.",
       "wifi_fallback_password_refused": "Das eigene WLAN der Powerwall (die WLAN-Ausweichadresse) hat geantwortet, aber das Gateway-Passwort abgelehnt. Prüfe es auf dem QR-Aufkleber (Buchstaben sind Großbuchstaben). Mit einem Kundenpasswort wird das Gateway-Passwort hier geprüft.",
       "password_required": "Signierter Zugriff braucht das Gateway-Passwort.",
       "invalid_rsa_key": "Das ist kein privater RSA-Schlüssel im PEM-Format. Lade die Datei mit dem privaten Schlüssel hoch (sie beginnt mit `-----BEGIN`), nicht den öffentlichen Schlüssel.",

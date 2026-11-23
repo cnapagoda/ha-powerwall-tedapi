@@ -53,6 +53,14 @@
           "cloud_backup": "Also sign in to a Tesla account, so settings can still be changed through the Tesla cloud when the local connection is down."
         }
       },
+      "wifi_only": {
+        "title": "Continue without the customer password",
+        "description": "The gateway refused its customer login, so its customer password was probably changed (for example by an installer). The Powerwall's own Wi-Fi accepted the gateway password, which needs no customer login, so setup can continue with the **Wi-Fi password** connection. It can read everything but can't change settings or dispatch the battery; link a Tesla account to change settings through the cloud. Home Assistant has to stay on the Powerwall's `TeslaPW_…` Wi-Fi.\n\nTo use a signed connection (local control) instead, enter the **Customer password**.",
+        "menu_options": {
+          "wifi": "Continue with the Wi-Fi password connection",
+          "gateway": "Enter the customer password"
+        }
+      },
       "wifi": {
         "title": "Connect over the Powerwall's Wi-Fi",
         "description": "Home Assistant must be connected to the Powerwall's own Wi-Fi network (TeslaPW_…). This connection can read everything but cannot change settings or dispatch the battery; link a Tesla account to change settings through the cloud.",
@@ -183,7 +191,7 @@
     "error": {
       "cannot_connect": "Could not reach the Powerwall at that address. Check the address (your router lists the gateway as `teslapw_…`), that the Powerwall is on and on the same network as Home Assistant, and try again.",
       "wifi_password_refused": "The Powerwall answered but refused the password. Check it on the QR sticker (letters are upper case). The password alone works only over the Powerwall's own Wi-Fi (`192.168.91.1`), not on its home-network address: there, use a signed connection.",
-      "invalid_gw_pwd": "The gateway refused this password. Check the QR sticker (letters are upper case).",
+      "invalid_gw_pwd": "The gateway refused this password. Check the QR sticker (letters are upper case). If the customer password was changed and nobody knows it, connect Home Assistant to the Powerwall's own `TeslaPW_…` Wi-Fi and enter `192.168.91.1`: setup can continue there without it, as a Wi-Fi password connection.",
       "wifi_fallback_password_refused": "The Powerwall's own Wi-Fi (the Wi-Fi fallback address) answered but refused the gateway password. Check it on the QR sticker (letters are upper case). With a customer password set, this is where the gateway password is checked.",
       "password_required": "Signed access needs the gateway password.",
       "invalid_rsa_key": "That is not an RSA private key in PEM format. Upload the private key file (it starts with `-----BEGIN`), not the public key.",

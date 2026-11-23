@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.3
+
+- **Setup without the customer password, over the Powerwall's own Wi-Fi.** When the gateway refuses its customer login (its customer password was changed, for example by an installer, and nobody knows it) but the gateway address is the Powerwall's own Wi-Fi (`192.168.91.1`), which takes the sticker password with no customer login, setup now offers the **Wi-Fi password** connection instead of stopping at "The gateway refused this password". It reads everything; settings go through a Tesla account. Entering the customer password instead is still offered, for a signed connection. The refused-password message says how to get there (#23, thanks [@MattJBeard](https://github.com/MattJBeard)).
+
 ## 2.8.2
 
 - **A battery dispatch stops when the battery level can't be read.** Its limits (`min_soc`, `max_soc`, the `charge_to` / `discharge_to` target and the backup reserve floor) are checked against the battery level, and the Powerwall ignores its own reserve during a dispatch. Before, a dispatch kept being renewed while the gateway gave no battery level. Now a charge or discharge isn't started or renewed once the level is 2 minutes old (or 2½ polling intervals, if longer): a new one, or a planner's re-send, is refused with an error, and a running one ends with reason `battery_level_unknown` when its last command has run out. A short gap doesn't end it, and a 0 W hold is still allowed.

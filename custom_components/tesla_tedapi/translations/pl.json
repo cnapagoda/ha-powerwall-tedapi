@@ -53,6 +53,14 @@
           "cloud_backup": "Zaloguj się także do konta Tesla, aby ustawienia można było zmieniać przez chmurę Tesla, gdy połączenie lokalne nie działa."
         }
       },
+      "wifi_only": {
+        "title": "Kontynuuj bez hasła klienta",
+        "description": "Brama odrzuciła logowanie klienta, więc jej hasło klienta zostało prawdopodobnie zmienione (na przykład przez instalatora). Własna sieć Wi-Fi Powerwalla przyjęła hasło bramy, które nie wymaga logowania klienta, więc konfiguracja może kontynuować z połączeniem **tylko hasło Wi-Fi**. Odczytuje ono wszystko, ale nie może zmieniać ustawień ani sterować baterią; połącz konto Tesla, aby zmieniać ustawienia przez chmurę. Home Assistant musi pozostać w sieci Wi-Fi `TeslaPW_…` Powerwalla.\n\nAby zamiast tego użyć połączenia podpisanego (sterowanie lokalne), wpisz **hasło klienta**.",
+        "menu_options": {
+          "wifi": "Kontynuuj z połączeniem tylko z hasłem Wi-Fi",
+          "gateway": "Wpisz hasło klienta"
+        }
+      },
       "wifi": {
         "title": "Połącz przez Wi-Fi Powerwall",
         "description": "Home Assistant musi być połączony z własną siecią Wi-Fi Powerwall (TeslaPW_…). To połączenie może wszystko odczytać, ale nie może zmieniać ustawień ani sterować baterią; połącz konto Tesla, aby zmieniać ustawienia przez chmurę.",
@@ -183,7 +191,7 @@
     "error": {
       "cannot_connect": "Nie można połączyć się z Powerwall pod tym adresem. Sprawdź adres (router pokazuje bramę jako `teslapw_…`), czy Powerwall jest włączona i w tej samej sieci co Home Assistant, i spróbuj ponownie.",
       "wifi_password_refused": "Powerwall odpowiedział, ale odrzucił hasło. Sprawdź je na naklejce z kodem QR (wielkie litery). Samo hasło działa tylko przez własne Wi-Fi Powerwalla (`192.168.91.1`), a nie pod jego adresem w sieci domowej: tam użyj połączenia podpisanego.",
-      "invalid_gw_pwd": "Brama odrzuciła to hasło. Sprawdź naklejkę z kodem QR (litery są wielkie).",
+      "invalid_gw_pwd": "Brama odrzuciła to hasło. Sprawdź naklejkę z kodem QR (litery są wielkie). Jeśli hasło klienta zostało zmienione i nikt go nie zna, połącz Home Assistant z siecią Wi-Fi `TeslaPW_…` Powerwalla i wpisz `192.168.91.1`: tam konfiguracja może kontynuować bez niego, jako połączenie z hasłem Wi-Fi.",
       "wifi_fallback_password_refused": "Własna sieć Wi-Fi Powerwalla (zapasowy adres Wi-Fi) odpowiedziała, ale odrzuciła hasło bramy. Sprawdź je na naklejce z kodem QR (wielkie litery). Przy ustawionym haśle klienta hasło bramy jest sprawdzane tutaj.",
       "password_required": "Dostęp podpisany wymaga hasła bramy.",
       "invalid_rsa_key": "To nie jest prywatny klucz RSA w formacie PEM. Prześlij plik klucza prywatnego (zaczyna się od `-----BEGIN`), a nie klucz publiczny.",

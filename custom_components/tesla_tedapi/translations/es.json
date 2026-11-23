@@ -53,6 +53,14 @@
           "cloud_backup": "Iniciar sesión también en una cuenta de Tesla, para que los ajustes se puedan cambiar a través de la nube de Tesla cuando la conexión local falle."
         }
       },
+      "wifi_only": {
+        "title": "Continuar sin la contraseña de cliente",
+        "description": "La pasarela rechazó el inicio de sesión de cliente, así que probablemente se cambió su contraseña de cliente (por ejemplo, el instalador). La Wi-Fi propia del Powerwall aceptó la contraseña de la pasarela, que no necesita inicio de sesión de cliente, así que la configuración puede continuar con la conexión **solo contraseña Wi-Fi**. Puede leerlo todo, pero no cambiar ajustes ni gestionar la batería; vincula una cuenta de Tesla para cambiar ajustes a través de la nube. Home Assistant tiene que seguir en la Wi-Fi `TeslaPW_…` del Powerwall.\n\nPara una conexión firmada (control local), introduce en su lugar la **contraseña de cliente**.",
+        "menu_options": {
+          "wifi": "Continuar con la conexión solo con contraseña Wi-Fi",
+          "gateway": "Introducir la contraseña de cliente"
+        }
+      },
       "wifi": {
         "title": "Conectar por la Wi-Fi de la Powerwall",
         "description": "Home Assistant debe estar conectado a la propia red Wi-Fi de la Powerwall (TeslaPW_…). Esta conexión puede leerlo todo, pero no puede cambiar ajustes ni despachar la batería; vincula una cuenta de Tesla para cambiar ajustes a través de la nube.",
@@ -183,7 +191,7 @@
     "error": {
       "cannot_connect": "No se pudo llegar a la Powerwall en esa dirección. Revisa la dirección (tu router muestra la pasarela como `teslapw_…`), que la Powerwall esté encendida y en la misma red que Home Assistant, y vuelve a intentarlo.",
       "wifi_password_refused": "El Powerwall respondió pero rechazó la contraseña. Compruébala en la etiqueta QR (las letras van en mayúsculas). La contraseña sola solo funciona a través de la Wi-Fi propia del Powerwall (`192.168.91.1`), no en su dirección de la red doméstica: allí, usa una conexión firmada.",
-      "invalid_gw_pwd": "La pasarela rechazó esta contraseña. Revisa la etiqueta QR (las letras son mayúsculas).",
+      "invalid_gw_pwd": "La pasarela rechazó esta contraseña. Revisa la etiqueta QR (las letras son mayúsculas). Si se cambió la contraseña de cliente y nadie la conoce, conecta Home Assistant a la Wi-Fi `TeslaPW_…` del Powerwall e introduce `192.168.91.1`: allí la configuración puede continuar sin ella, como conexión con contraseña Wi-Fi.",
       "wifi_fallback_password_refused": "La Wi-Fi propia del Powerwall (la dirección Wi-Fi de respaldo) respondió pero rechazó la contraseña del gateway. Compruébala en la etiqueta QR (las letras van en mayúsculas). Con una contraseña de cliente configurada, la contraseña del gateway se comprueba aquí.",
       "password_required": "El acceso firmado necesita la contraseña de la pasarela.",
       "invalid_rsa_key": "Eso no es una clave privada RSA en formato PEM. Sube el archivo de clave privada (empieza por `-----BEGIN`), no la clave pública.",

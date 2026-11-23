@@ -53,6 +53,14 @@
           "cloud_backup": "Ook inloggen bij een Tesla-account, zodat instellingen nog via de Tesla-cloud kunnen worden gewijzigd als de lokale verbinding wegvalt."
         }
       },
+      "wifi_only": {
+        "title": "Doorgaan zonder het klantwachtwoord",
+        "description": "De gateway weigerde de klantaanmelding, dus het klantwachtwoord is waarschijnlijk gewijzigd (bijvoorbeeld door een installateur). Het eigen wifi-netwerk van de Powerwall accepteerde het gatewaywachtwoord, dat geen klantaanmelding nodig heeft, dus de installatie kan doorgaan met de verbinding **alleen wifi-wachtwoord**. Die kan alles lezen, maar geen instellingen wijzigen of de batterij aansturen; koppel een Tesla-account om instellingen via de cloud te wijzigen. Home Assistant moet op de wifi `TeslaPW_…` van de Powerwall blijven.\n\nVoor een ondertekende verbinding (lokale bediening) vul je in plaats daarvan het **klantwachtwoord** in.",
+        "menu_options": {
+          "wifi": "Doorgaan met de verbinding met alleen wifi-wachtwoord",
+          "gateway": "Klantwachtwoord invullen"
+        }
+      },
       "wifi": {
         "title": "Verbinden via de wifi van de Powerwall",
         "description": "Home Assistant moet verbonden zijn met het eigen wifi-netwerk van de Powerwall (TeslaPW_…). Deze verbinding kan alles lezen, maar kan geen instellingen wijzigen of de batterij sturen; koppel een Tesla-account om instellingen via de cloud te wijzigen.",
@@ -183,7 +191,7 @@
     "error": {
       "cannot_connect": "Kan de Powerwall op dat adres niet bereiken. Controleer het adres (je router toont de gateway als `teslapw_…`), of de Powerwall aan staat en op hetzelfde netwerk als Home Assistant zit, en probeer het opnieuw.",
       "wifi_password_refused": "De Powerwall antwoordde maar weigerde het wachtwoord. Controleer het op de QR-sticker (hoofdletters). Het wachtwoord alleen werkt alleen via de eigen wifi van de Powerwall (`192.168.91.1`), niet op zijn adres in het thuisnetwerk: gebruik daar een ondertekende verbinding.",
-      "invalid_gw_pwd": "De gateway heeft dit wachtwoord geweigerd. Controleer de QR-sticker (letters zijn hoofdletters).",
+      "invalid_gw_pwd": "De gateway heeft dit wachtwoord geweigerd. Controleer de QR-sticker (letters zijn hoofdletters). Is het klantwachtwoord gewijzigd en kent niemand het, verbind Home Assistant dan met de wifi `TeslaPW_…` van de Powerwall en vul `192.168.91.1` in: daar kan de installatie zonder doorgaan, als verbinding met wifi-wachtwoord.",
       "wifi_fallback_password_refused": "De eigen wifi van de Powerwall (het wifi-terugvaladres) antwoordde maar weigerde het gatewaywachtwoord. Controleer het op de QR-sticker (letters zijn hoofdletters). Met een klantwachtwoord wordt het gatewaywachtwoord hier gecontroleerd.",
       "password_required": "Ondertekende toegang heeft het gateway-wachtwoord nodig.",
       "invalid_rsa_key": "Dat is geen private RSA-sleutel in PEM-formaat. Upload het bestand met de private sleutel (het begint met `-----BEGIN`), niet de publieke sleutel.",

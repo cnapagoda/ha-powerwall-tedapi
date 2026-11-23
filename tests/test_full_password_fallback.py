@@ -21,6 +21,7 @@ from .test_config_flow import SETUP
 PWD = "ABCDE12345"
 # The real check, before the fake_gateway fixture replaces it.
 _REAL_CHECK = gateway.check_wifi_password
+_REAL_WIFI_DIN = gateway.wifi_din
 # The real functions (the autouse fake_gateway fixture replaces them).
 REAL_LOGIN_ANY = gateway.login_any
 REAL_DIN_ANY = gateway.din_any
@@ -401,7 +402,8 @@ async def test_sticker_password_checked_in_reauth_and_reconfigure(hass: HomeAssi
     (503, gateway.GatewayUnreachable),
 ])
 def test_check_wifi_password(status, raised) -> None:
-    with patch.object(gateway, "_request", return_value=(status, b"")) as request:
+    with patch.object(gateway, "_request", return_value=(status, b"")) as request, \
+            patch.object(gateway, "wifi_din", _REAL_WIFI_DIN):
         if raised:
             with pytest.raises(raised):
                 _REAL_CHECK("192.168.91.1", f" {PWD} ")

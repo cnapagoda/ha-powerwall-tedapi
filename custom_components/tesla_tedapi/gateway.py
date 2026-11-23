@@ -127,16 +127,24 @@ def answers(host: str) -> bool:
     return True
 
 
-def check_wifi_password(host: str, gw_pwd: str) -> None:
+def wifi_din(host: str, gw_pwd: str) -> str | None:
     """The gateway password as the Powerwall's own Wi-Fi (TEDAPI) takes it:
-    the whole sticker password, as pypowerwall's Wi-Fi connection sends it.
+    the whole sticker password, as pypowerwall's Wi-Fi connection sends it,
+    with no customer login. Returns the DIN (None if the answer has none).
     Raises GatewayPasswordRejected when refused, GatewayUnreachable on no
     answer or any other answer (a busy gateway, or not a TEDAPI address)."""
-    status, _ = _request(host, "/tedapi/din", basic=("Tesla_Energy_Device", gw_pwd.strip()))
+    status, body = _request(host, "/tedapi/din", basic=("Tesla_Energy_Device", gw_pwd.strip()))
     if status in (401, 403):
         raise GatewayPasswordRejected(f"HTTP {status}, Wi-Fi password")
     if status != 200:
         raise GatewayUnreachable(f"Wi-Fi HTTP {status}")
+    text = body.decode(errors="replace").strip()
+    return text if "--" in text else None
+
+
+def check_wifi_password(host: str, gw_pwd: str) -> None:
+    """wifi_din, for when only the answer matters."""
+    wifi_din(host, gw_pwd)
 
 
 def din(host: str, gw_pwd: str, full: bool = False) -> str | None:

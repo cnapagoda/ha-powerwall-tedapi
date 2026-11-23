@@ -53,6 +53,14 @@
           "cloud_backup": "Entrar também em uma conta Tesla, para que as configurações ainda possam ser alteradas pela nuvem da Tesla quando a conexão local cair."
         }
       },
+      "wifi_only": {
+        "title": "Continuar sem a senha de cliente",
+        "description": "O gateway recusou o login de cliente, então a senha de cliente provavelmente foi alterada (por exemplo, pelo instalador). A Wi-Fi do próprio Powerwall aceitou a senha do gateway, que não precisa de login de cliente, então a configuração pode continuar com a conexão **somente senha Wi-Fi**. Ela lê tudo, mas não pode alterar configurações nem controlar a bateria; vincule uma conta Tesla para alterar configurações pela nuvem. O Home Assistant precisa continuar na Wi-Fi `TeslaPW_…` do Powerwall.\n\nPara uma conexão assinada (controle local), informe a **senha de cliente**.",
+        "menu_options": {
+          "wifi": "Continuar com a conexão somente senha Wi-Fi",
+          "gateway": "Informar a senha de cliente"
+        }
+      },
       "wifi": {
         "title": "Conectar pelo Wi-Fi da Powerwall",
         "description": "O Home Assistant precisa estar conectado à própria rede Wi-Fi da Powerwall (TeslaPW_…). Esta conexão pode ler tudo, mas não pode alterar configurações nem despachar a bateria; vincule uma conta Tesla para alterar configurações pela nuvem.",
@@ -183,7 +191,7 @@
     "error": {
       "cannot_connect": "Não foi possível alcançar a Powerwall nesse endereço. Confira o endereço (seu roteador mostra o gateway como `teslapw_…`), se a Powerwall está ligada e na mesma rede do Home Assistant, e tente de novo.",
       "wifi_password_refused": "O Powerwall respondeu, mas recusou a senha. Confira na etiqueta QR (letras maiúsculas). A senha sozinha só funciona pelo Wi-Fi próprio do Powerwall (`192.168.91.1`), não no endereço da rede doméstica: lá, use uma conexão assinada.",
-      "invalid_gw_pwd": "O gateway recusou esta senha. Confira a etiqueta QR (as letras são maiúsculas).",
+      "invalid_gw_pwd": "O gateway recusou esta senha. Confira a etiqueta QR (as letras são maiúsculas). Se a senha de cliente foi alterada e ninguém a sabe, conecte o Home Assistant à Wi-Fi `TeslaPW_…` do Powerwall e informe `192.168.91.1`: ali a configuração pode continuar sem ela, como conexão por senha Wi-Fi.",
       "wifi_fallback_password_refused": "O Wi-Fi próprio do Powerwall (o endereço Wi-Fi de reserva) respondeu, mas recusou a senha do gateway. Confira-a na etiqueta QR (letras maiúsculas). Com uma senha de cliente definida, a senha do gateway é verificada aqui.",
       "password_required": "O acesso assinado precisa da senha do gateway.",
       "invalid_rsa_key": "Isso não é uma chave privada RSA no formato PEM. Envie o arquivo da chave privada (ele começa com `-----BEGIN`), não a chave pública.",

@@ -244,6 +244,17 @@ def _check_gateway(host: str, gw_pwd: str, customer_pwd: str = "") -> tuple[str 
         raise
 
 
+def _wifi_only_din(host: str, gw_pwd: str) -> str | None:
+    """After the customer login was refused: whether this address is the
+    Powerwall's own Wi-Fi and takes the gateway password there, which needs
+    no customer login (#23: a customer password changed by an installer and
+    not known). Returns the DIN; raises like gateway.wifi_din."""
+    din = gateway.wifi_din(host, gw_pwd)
+    _LOGGER.debug("The customer login was refused, but %s takes the gateway password over the "
+                  "Powerwall's Wi-Fi: offering the Wi-Fi password connection", host)
+    return din
+
+
 def _wifi_password_refused(wifi_host: str, host: str, gw_pwd: str, customer_pwd: str) -> bool:
     """With a customer password set, the gateway (sticker) password is used
     only over the Powerwall's own Wi-Fi, so the customer login no longer
@@ -603,6 +614,18 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected) as err:
                 _LOGGER.debug("Gateway check at %s failed: %s", host, err)
                 errors = _gateway_errors(err)
+                if isinstance(err, gateway.GatewayPasswordRejected) and not customer_pwd:
+                    try:
+                        din = await self.hass.async_add_executor_job(_wifi_only_din, host, gw_pwd)
+                    except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected):
+                        pass
+                    else:
+                        if din:
+                            await self.async_set_unique_id(din, raise_on_progress=False)
+                            self._abort_if_known_gateway()
+                        self._data.update({CONF_HOST: host, CONF_GW_PWD: gw_pwd, CONF_FULL_PASSWORD_LOGIN: False,
+                                           CONF_CUSTOMER_PASSWORD: "", CONF_WIFI_HOST: ""})
+                        return await self.async_step_wifi_only()
             else:
                 if self._din:
                     await self.async_set_unique_id(self._din, raise_on_progress=False)
@@ -759,6 +782,12 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         if self.source != SOURCE_REAUTH:
             fields[vol.Optional(CONF_CLOUD, default=False)] = bool
         return self.async_show_form(step_id="key_upload", data_schema=vol.Schema(fields), errors=errors)
+
+    async def async_step_wifi_only(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The customer login was refused, but the Powerwall's own Wi-Fi took
+        the gateway password: only the Wi-Fi password connection can work
+        without the customer password (#23). Or go back and enter it."""
+        return self.async_show_menu(step_id="wifi_only", menu_options=["wifi", "gateway"])
 
     async def async_step_wifi(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         self._mode, self._register = MODE_WIFI, False
