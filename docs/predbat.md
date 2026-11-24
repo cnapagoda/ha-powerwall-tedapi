@@ -18,6 +18,7 @@ Use the Powerwall in **Self-Powered** mode, so its own Time-Based Control doesn'
 ## Notes
 
 - **State of charge** comes from **Battery energy remaining** and **Battery full capacity**, which already add up every pack. They include the bottom 5 % the Tesla app hides, hence `battery_min_soc: 5`.
+- **Freeze modes use a 0 W dispatch,** which holds the battery in both directions. For Predbat's *freeze charging* that's close: the battery doesn't discharge, but surplus solar is exported instead of charging it. For *freeze exporting* it isn't: Predbat expects the battery to keep powering the home (without charging), but a 0 W hold leaves the home on the grid. If you'd rather Predbat didn't plan export freezes, set `support_discharge_freeze: False`.
 - **While the gateway can't be reached** the readings are *unavailable* and dispatches fail; Predbat retries every cycle. The running dispatch ends on its own within 10 minutes.
 - **Dispatch active** and [`tesla_tedapi_dispatch_ended`](events.md#tesla_tedapi_dispatch_ended) show what Predbat is doing. A dispatch Predbat re-sends at the same power is logged once, not every 5 minutes.
 - **More than one Powerwall set up:** add `config_entry_id` to each hook in `apps.yaml`.
