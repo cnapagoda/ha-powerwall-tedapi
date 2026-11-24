@@ -274,6 +274,18 @@ def _wifi_password_refused(wifi_host: str, host: str, gw_pwd: str, customer_pwd:
     return False
 
 
+def _login_refused(host: str, gw_pwd: str, customer_pwd: str) -> dict[str, str] | None:
+    """After a failed signed check in Reconfigure: the error for a customer
+    login the gateway refuses or has locked, or None (another cause)."""
+    try:
+        _check_gateway(host, gw_pwd, customer_pwd)
+    except (gateway.GatewayPasswordRejected, gateway.GatewayLocked) as err:
+        return _password_errors(err, customer_pwd)
+    except gateway.GatewayUnreachable:
+        return None
+    return None
+
+
 def _login_mode(host: str, gw_pwd: str) -> bool:
     """Whether the customer login takes the full password, for Reconfigure. A
     refused password or no answer is left to the connection check that
@@ -342,6 +354,13 @@ def _gateway_errors(err: Exception) -> dict[str, str]:
     if isinstance(err, WifiPasswordRefused):
         return {"base": "wifi_password_refused"}
     return {"base": "cannot_connect"}
+
+
+def _password_errors(err: Exception, customer_pwd: str) -> dict[str, str]:
+    """A refused customer password is shown at its own field."""
+    if customer_pwd and isinstance(err, gateway.GatewayPasswordRejected):
+        return {CONF_CUSTOMER_PASSWORD: "invalid_customer_pwd"}
+    return _gateway_errors(err)
 
 
 _REGISTER_ERRORS = (tesla_cloud.TeslaCloudError, fleet.FleetUnavailable, fleet.FleetError, fleet.FleetTimeout)
@@ -613,7 +632,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                                                                          customer_pwd)
             except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected) as err:
                 _LOGGER.debug("Gateway check at %s failed: %s", host, err)
-                errors = _gateway_errors(err)
+                errors = _password_errors(err, customer_pwd)
                 if isinstance(err, gateway.GatewayPasswordRejected) and not customer_pwd:
                     try:
                         din = await self.hass.async_add_executor_job(_wifi_only_din, host, gw_pwd)
@@ -1097,7 +1116,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 _, full = await self.hass.async_add_executor_job(_check_gateway, self._data[CONF_HOST], gw_pwd,
                                                                  customer_pwd)
             except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected) as err:
-                errors = _gateway_errors(err)
+                errors = _password_errors(err, customer_pwd)
             else:
                 entry = self._get_reauth_entry()
                 if await self.hass.async_add_executor_job(
@@ -1148,6 +1167,13 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 errors = _gateway_errors(err)
                 if isinstance(err, InvalidRsaKey):
                     errors = {CONF_RSA_KEY_PATH: "invalid_rsa_key"}
+                elif mode == MODE_V1R and isinstance(err, (CannotConnect, KeyNotAccepted)):
+                    # The signed check logs in first: a refused password
+                    # looks like a key that isn't accepted. Say which.
+                    refused = await self.hass.async_add_executor_job(
+                        _login_refused, host, gw_pwd, customer_pwd)
+                    if refused:
+                        errors = refused
             else:
                 await self.async_set_unique_id(din)
                 self._abort_if_unique_id_mismatch()

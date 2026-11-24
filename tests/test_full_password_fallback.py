@@ -239,7 +239,7 @@ async def test_wrong_customer_password_is_refused(hass: HomeAssistant, fake_gate
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "gateway"})
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"host": "192.168.1.92", "gw_pwd": PWD, "wifi_host": "", "customer_password": "wrong"})
-    assert result["errors"] == {"gw_pwd": "invalid_gw_pwd"}
+    assert result["errors"] == {"customer_password": "invalid_customer_pwd"}
     assert fake_gateway.logins == ["wrong"]  # no sticker fallback once one is given
     assert "refused the customer password" in caplog.text and "wrong" not in caplog.text
 
@@ -436,3 +436,50 @@ def test_basic_auth_header() -> None:
     with patch("urllib.request.urlopen", urlopen):
         assert gateway._request("192.168.91.1", "/tedapi/din", basic=("Tesla_Energy_Device", "AB")) == (200, b"din")
     assert seen["auth"] == "Basic VGVzbGFfRW5lcmd5X0RldmljZTpBQg=="
+
+
+@pytest.mark.parametrize("case", [
+    ("wrong", False, True, {"customer_password": "invalid_customer_pwd"}),
+    ("", False, True, {"gw_pwd": "invalid_gw_pwd"}),  # the sticker password, refused
+    ("", True, True, {"base": "gateway_locked"}),
+    ("", False, False, {"base": "key_not_accepted"}),  # no login answer: as before
+])
+async def test_reconfigure_tells_a_refused_password_from_the_key(
+        hass: HomeAssistant, fake_gateway, fake_powerwall, tmp_path, case) -> None:
+    """The signed check logs in first, so a refused password used to show as
+    "key not accepted" in Reconfigure (found live on 2.8.3)."""
+    from custom_components.tesla_tedapi import config_flow  # noqa: PLC0415
+
+    customer, locked, reachable, expected = case
+    fake_gateway.customer = CUSTOMER
+    key = tmp_path / "key.pem"
+    key.write_text("x")
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN,
+                            data={"connection_mode": "v1r", "host": "192.168.1.92", "gw_pwd": PWD,
+                                  "rsa_key_path": str(key), "customer_password": CUSTOMER})
+    entry.add_to_hass(hass)
+    result = await entry.start_reconfigure_flow(hass)
+    fake_gateway.locked, fake_gateway.reachable = locked, reachable
+    with patch.object(config_flow, "_probe", side_effect=config_flow.KeyNotAccepted):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "192.168.1.92", "rsa_key_path": str(key), "gw_pwd": PWD,
+                                "customer_password": customer})
+    assert result["errors"] == expected
+    assert entry.data["customer_password"] == CUSTOMER  # unchanged
+
+
+async def test_reconfigure_key_problem_with_a_good_password(
+        hass: HomeAssistant, fake_gateway, fake_powerwall, tmp_path) -> None:
+    from custom_components.tesla_tedapi import config_flow  # noqa: PLC0415
+
+    key = tmp_path / "key.pem"
+    key.write_text("x")
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN,
+                            data={"connection_mode": "v1r", "host": "192.168.1.92", "gw_pwd": PWD,
+                                  "rsa_key_path": str(key)})
+    entry.add_to_hass(hass)
+    result = await entry.start_reconfigure_flow(hass)
+    with patch.object(config_flow, "_probe", side_effect=config_flow.KeyNotAccepted):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {"host": "192.168.1.92", "rsa_key_path": str(key), "gw_pwd": PWD})
+    assert result["errors"] == {"base": "key_not_accepted"}

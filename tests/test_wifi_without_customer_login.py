@@ -76,7 +76,7 @@ async def test_no_wifi_attempt_with_a_customer_password(hass: HomeAssistant, fak
     """A customer password that's wrong is reported as such."""
     fake_gateway.customer, fake_gateway.wifi = "Known42", PWD
     result = await _gateway_step(hass, customer_password="wrong")
-    assert result["errors"] == {"gw_pwd": "invalid_gw_pwd"}
+    assert result["errors"] == {"customer_password": "invalid_customer_pwd"}
     assert fake_gateway.wifi_checks == []
 
 

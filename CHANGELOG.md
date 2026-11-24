@@ -3,6 +3,7 @@
 ## 2.8.3
 
 - **Setup without the customer password, over the Powerwall's own Wi-Fi.** When the gateway refuses its customer login (its customer password was changed, for example by an installer, and nobody knows it) but the gateway address is the Powerwall's own Wi-Fi (`192.168.91.1`), which takes the sticker password with no customer login, setup now offers the **Wi-Fi password** connection instead of stopping at "The gateway refused this password". It reads everything; settings go through a Tesla account. Entering the customer password instead is still offered, for a signed connection. The refused-password message says how to get there (#23, thanks [@MattJBeard](https://github.com/MattJBeard)).
+- Fix: **Reconfigure** reported a refused password as "key not accepted", because the signed connection check logs in first. It now says the password was refused (or that the gateway locked its login after too many attempts). A refused **customer password** is shown at its own field, with its own message, in setup, reauthentication and Reconfigure.
 
 ## 2.8.2
 
