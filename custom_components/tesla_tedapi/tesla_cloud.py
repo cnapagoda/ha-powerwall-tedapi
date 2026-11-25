@@ -186,7 +186,11 @@ def _call(method: str, path: str, token: str, data: dict | None = None) -> dict[
     if code == 401:
         raise TeslaAuthError(f"Owner API rejected the token (HTTP {code})", code)
     if code != 200 or not isinstance(resp, dict):
-        raise TeslaCloudError(f"Owner API HTTP {code}: {str(resp)[:200]}", code)
+        # The status and Tesla's own error field only: the body can name the
+        # site, the energy site or the account.
+        detail = " ".join(str(resp[key]) for key in ("error", "error_description")
+                          if isinstance(resp, dict) and resp.get(key))
+        raise TeslaCloudError(f"Owner API HTTP {code}" + (f": {detail[:100]}" if detail else ""), code)
     return resp
 
 

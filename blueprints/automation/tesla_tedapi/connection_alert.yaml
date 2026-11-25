@@ -1,0 +1,129 @@
+blueprint:
+  name: Powerwall - connection alert
+  description: >-
+    Send a notification when Home Assistant hasn't reached the Powerwall
+    gateway for a while (its readings are unavailable, and settings go
+    through the cloud backup if you have one), and when it answers again.
+    Without a cloud backup the Setup health sensor itself turns unavailable
+    then, which counts as unreachable too.
+    Optionally also when the gateway has been on its cellular connection for a
+    while, which means its own Wi-Fi or Ethernet internet is down. A
+    notification that the connection is back is sent only after an alert, and
+    not if Home Assistant restarted in between.
+  domain: automation
+  source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/connection_alert.yaml
+  input:
+    setup_health:
+      name: Powerwall Setup health
+      description: >-
+        It reports the gateway as unreachable with a cloud backup, and turns
+        unavailable without one; both count as unreachable.
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: sensor
+    minutes:
+      name: Unreachable for
+      description: Minutes without an answer before the alert.
+      default: 10
+      selector:
+        number:
+          min: 1
+          max: 240
+          unit_of_measurement: min
+    network_connection:
+      name: Powerwall Network connection (optional)
+      description: >-
+        Also alert when the gateway uses its cellular connection. Leave empty
+        if your gateway has no home-network connection or no such sensor.
+      default: ""
+      selector:
+        entity:
+          integration: tesla_tedapi
+          domain: sensor
+    cellular_minutes:
+      name: On cellular for
+      description: Minutes on cellular before the alert.
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 240
+          unit_of_measurement: min
+    notify_action:
+      name: Notify action
+      description: For example `notify.mobile_app_my_phone`, or `notify.notify` for all.
+      default: notify.notify
+      selector:
+        text:
+    notify_restored:
+      name: Also when the connection is back
+      default: true
+      selector:
+        boolean:
+
+mode: parallel
+max: 4
+
+trigger_variables:
+  health: !input setup_health
+  network: !input network_connection
+
+variables:
+  minutes: !input minutes
+  cellular_minutes: !input cellular_minutes
+  notify_action: !input notify_action
+  notify_restored: !input notify_restored
+
+triggers:
+  - trigger: template
+    id: unreachable
+    value_template: >-
+      {{ states(health) == 'unavailable'
+         or 'gateway_reachable' in (state_attr(health, 'problems') or []) }}
+    for:
+      minutes: !input minutes
+  - trigger: template
+    id: cellular
+    value_template: "{{ network != '' and is_state(network, 'cellular') }}"
+    for:
+      minutes: !input cellular_minutes
+
+actions:
+  - variables:
+      started: "{{ (now() - timedelta(minutes=(minutes if trigger.id == 'unreachable' else cellular_minutes) | int)).isoformat() }}"
+  - action: "{{ notify_action }}"
+    data:
+      title: Powerwall
+      message: >-
+        {% if trigger.id == 'unreachable' %}
+          Home Assistant hasn't reached the Powerwall gateway for {{ minutes | int }} minutes. Its readings are unavailable, and settings changes go through the cloud backup if you have one.
+        {% else %}
+          The Powerwall gateway has been on its cellular connection for {{ cellular_minutes | int }} minutes: its Wi-Fi or Ethernet internet is down.
+        {% endif %}
+  - condition: template
+    value_template: "{{ notify_restored }}"
+  - if:
+      - condition: trigger
+        id: unreachable
+    then:
+      - wait_for_trigger:
+          - trigger: template
+            value_template: >-
+              {{ states(health) not in ('unknown', 'unavailable')
+                 and 'gateway_reachable' not in (state_attr(health, 'problems') or []) }}
+    else:
+      - wait_for_trigger:
+          - trigger: template
+            value_template: "{{ states(network) in ('wifi', 'ethernet') }}"
+  - variables:
+      lasted: "{{ ((now() - as_datetime(started)).total_seconds() / 60) | round(0) | int }}"
+  - action: "{{ notify_action }}"
+    data:
+      title: Powerwall
+      message: >-
+        {% if trigger.id == 'unreachable' %}
+          The Powerwall gateway answers again, after about {{ lasted }} minutes.
+        {% else %}
+          The Powerwall gateway is back on {{ 'Ethernet' if is_state(network, 'ethernet') else 'Wi-Fi' }}, after about {{ lasted }} minutes on cellular.
+        {% endif %}

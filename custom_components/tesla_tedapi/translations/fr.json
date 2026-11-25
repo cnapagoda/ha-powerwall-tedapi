@@ -22,12 +22,14 @@
         "data": {
           "host": "Adresse de la passerelle",
           "gw_pwd": "Mot de passe de la passerelle",
-          "wifi_host": "Adresse Wi-Fi de secours"
+          "wifi_host": "Adresse Wi-Fi de secours",
+          "customer_password": "Mot de passe client (facultatif)"
         },
         "data_description": {
           "host": "L'adresse de la passerelle sur votre réseau domestique, par exemple `192.168.1.50`. Votre routeur l'affiche comme `teslapw_…`.",
           "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet.",
-          "wifi_host": "Le point d'accès Wi-Fi de la Powerwall, utilisé avec la même connexion signée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès. Sert aussi à lire les Powerwall 3 suiveurs, que la connexion signée ne joint pas par le réseau domestique."
+          "wifi_host": "Facultatif. Saisissez l'adresse du point d'accès Wi-Fi de la Powerwall (en général `192.168.91.1`) seulement si Home Assistant est aussi connecté au Wi-Fi `TeslaPW_…` de la Powerwall ; sinon laissez vide. Elle sert avec la même connexion signée quand l'adresse du réseau domestique ne répond plus, et pour lire les Powerwall 3 suiveurs, que la connexion signée ne joint pas par le réseau domestique.",
+          "customer_password": "Seulement si le mot de passe de connexion client de la passerelle a été modifié et ne correspond plus à l'étiquette (par exemple par l'installateur, ou sur la page web d'un ancien firmware). Utilisé tel quel pour cette connexion ; laissez vide pour le déduire du mot de passe de la passerelle."
         }
       },
       "access": {
@@ -49,6 +51,14 @@
         "data_description": {
           "key_file": "Le fichier de clé privée (`.pem`, commençant par `-----BEGIN PRIVATE KEY-----` ou `-----BEGIN RSA PRIVATE KEY-----`) dont la clé publique est enregistrée et VERIFIED sur cette Powerwall. Pas la clé publique.",
           "cloud_backup": "Se connecter aussi à un compte Tesla, pour que les paramètres puissent encore être modifiés via le cloud Tesla quand la connexion locale est coupée."
+        }
+      },
+      "wifi_only": {
+        "title": "Continuer sans le mot de passe client",
+        "description": "La passerelle a refusé la connexion client : son mot de passe client a sans doute été changé (par exemple par un installateur). Le Wi-Fi propre du Powerwall a accepté le mot de passe de la passerelle, qui ne demande aucune connexion client : la configuration peut donc continuer avec la connexion **mot de passe Wi-Fi**. Elle lit tout, mais ne peut ni modifier les réglages ni piloter la batterie ; associez un compte Tesla pour modifier les réglages via le cloud. Home Assistant doit rester sur le Wi-Fi `TeslaPW_…` du Powerwall.\n\nPour une connexion signée (contrôle local), saisissez plutôt le **mot de passe client**.",
+        "menu_options": {
+          "wifi": "Continuer avec la connexion par mot de passe Wi-Fi",
+          "gateway": "Saisir le mot de passe client"
         }
       },
       "wifi": {
@@ -93,6 +103,13 @@
         "title": "Connexion impossible",
         "description": "La dernière vérification de connexion a échoué (voir le message ci-dessous). Sélectionnez **Valider** pour revenir en arrière et vérifier l'adresse et le mot de passe de la passerelle."
       },
+      "reauth_connect_failed": {
+        "title": "Connexion impossible",
+        "description": "La dernière vérification de connexion a échoué (voir le message ci-dessous). Si la passerelle n'a été absente qu'un instant ou applique encore la clé, réessayez. Sinon, recommencez pour saisir le mot de passe ou utiliser une autre clé.",
+        "data": {
+          "next": "Ensuite"
+        }
+      },
       "reauth_confirm": {
         "title": "La Powerwall n'accepte plus Home Assistant",
         "description": "La passerelle refuse sans cesse le mot de passe ou la clé. Les mesures s'arrêtent jusqu'à la correction ; les paramètres fonctionnent encore via le cloud Tesla si un compte est lié.",
@@ -106,10 +123,12 @@
       "reauth_password": {
         "title": "Mot de passe de la passerelle",
         "data": {
-          "gw_pwd": "Mot de passe de la passerelle"
+          "gw_pwd": "Mot de passe de la passerelle",
+          "customer_password": "Mot de passe client (facultatif)"
         },
         "data_description": {
-          "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet."
+          "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet.",
+          "customer_password": "Seulement si le mot de passe de connexion client de la passerelle a été modifié et ne correspond plus à l'étiquette (par exemple par l'installateur, ou sur la page web d'un ancien firmware). Utilisé tel quel pour cette connexion ; laissez vide pour le déduire du mot de passe de la passerelle."
         }
       },
       "reconfigure": {
@@ -119,13 +138,15 @@
           "host": "Adresse de la passerelle",
           "gw_pwd": "Mot de passe de la passerelle",
           "rsa_key_path": "Fichier de clé privée RSA",
-          "wifi_host": "Adresse Wi-Fi de secours (signé uniquement)"
+          "wifi_host": "Adresse Wi-Fi de secours (signé uniquement)",
+          "customer_password": "Mot de passe client (facultatif)"
         },
         "data_description": {
           "host": "L'adresse de la passerelle sur votre réseau domestique, par exemple `192.168.1.50`. Votre routeur l'affiche comme `teslapw_…`.",
           "gw_pwd": "Le mot de passe complet de l'étiquette QR sous le capot de la Powerwall (Powerwall 3 : derrière la vitre avant, en bas à gauche). Les lettres sont en majuscules. La plupart des passerelles acceptent aussi ses 5 derniers caractères ; une Backup Gateway 1 a besoin du mot de passe complet.",
           "rsa_key_path": "Chemin complet du fichier de clé privée sur l'hôte Home Assistant, par exemple `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laissez vide pour utiliser la connexion par mot de passe Wi-Fi (lecture seule).",
-          "wifi_host": "L'adresse du point d'accès Wi-Fi de la Powerwall (généralement `192.168.91.1`), utilisée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès. Sert aussi à lire les Powerwall 3 suiveurs, que la connexion signée ne joint pas par le réseau domestique."
+          "wifi_host": "L'adresse du point d'accès Wi-Fi de la Powerwall (généralement `192.168.91.1`), utilisée quand l'adresse du réseau domestique ne répond plus. Laissez vide si Home Assistant ne peut pas joindre le point d'accès. Sert aussi à lire les Powerwall 3 suiveurs, que la connexion signée ne joint pas par le réseau domestique.",
+          "customer_password": "Seulement si le mot de passe de connexion client de la passerelle a été modifié et ne correspond plus à l'étiquette (par exemple par l'installateur, ou sur la page web d'un ancien firmware). Utilisé tel quel pour cette connexion ; laissez vide pour le déduire du mot de passe de la passerelle."
         }
       },
       "new_key": {
@@ -170,7 +191,9 @@
     "error": {
       "cannot_connect": "Impossible de joindre la Powerwall à cette adresse. Vérifiez l'adresse (votre routeur affiche la passerelle comme `teslapw_…`), que la Powerwall est allumée et sur le même réseau que Home Assistant, puis réessayez.",
       "wifi_password_refused": "Le Powerwall a répondu mais a refusé le mot de passe. Vérifiez-le sur l'étiquette QR (lettres en majuscules). Le mot de passe seul ne fonctionne que via le Wi-Fi propre du Powerwall (`192.168.91.1`), pas sur son adresse du réseau domestique : là, utilisez une connexion signée.",
-      "invalid_gw_pwd": "La passerelle a refusé ce mot de passe. Vérifiez l'autocollant QR (les lettres sont en majuscules).",
+      "invalid_gw_pwd": "La passerelle a refusé ce mot de passe. Vérifiez l'autocollant QR (les lettres sont en majuscules). Si le mot de passe client a été changé et que personne ne le connaît, connectez Home Assistant au Wi-Fi `TeslaPW_…` du Powerwall et saisissez `192.168.91.1` : la configuration peut y continuer sans lui, en connexion par mot de passe Wi-Fi.",
+      "invalid_customer_pwd": "La passerelle a refusé ce mot de passe client. Laissez le champ vide pour utiliser le mot de passe de l'autocollant.",
+      "wifi_fallback_password_refused": "Le Wi-Fi propre du Powerwall (l'adresse Wi-Fi de secours) a répondu mais a refusé le mot de passe de la passerelle. Vérifiez-le sur l'autocollant QR (lettres en majuscules). Avec un mot de passe client défini, c'est ici que le mot de passe de la passerelle est vérifié.",
       "password_required": "L'accès signé nécessite le mot de passe de la passerelle.",
       "invalid_rsa_key": "Ce n'est pas une clé privée RSA au format PEM. Téléversez le fichier de clé privée (il commence par `-----BEGIN`), pas la clé publique.",
       "key_not_accepted": "La Powerwall n'a pas accepté la clé. Vérifiez qu'il s'agit de la clé privée (pas de la publique), qu'elle a été enregistrée pour cette Powerwall et que l'enregistrement est VERIFIED (l'étape de l'interrupteur Marche/Arrêt a été faite). Ou choisissez **Enregistrer une nouvelle clé**.",
@@ -454,8 +477,14 @@
       "battery_energy_charged": {
         "name": "Énergie chargée dans la batterie"
       },
+      "battery_energy_charged_net": {
+        "name": "Énergie chargée dans la batterie (nette)"
+      },
       "battery_energy_discharged": {
         "name": "Énergie déchargée de la batterie"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Énergie déchargée de la batterie (nette)"
       },
       "solar_energy_produced": {
         "name": "Énergie solaire produite"
@@ -770,6 +799,9 @@
     "dispatch_soc_limit": {
       "message": "Le niveau de la batterie ({soc}%) a déjà dépassé la limite {limit}."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "Le niveau de batterie n'a pas été lu récemment depuis la passerelle, les limites de la commande ne peuvent donc pas être vérifiées. Réessayez quand la passerelle répond (un maintien à 0 W fonctionne toujours)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W dépasse la limite de {cap} W définie dans les options de l'intégration."
     },
@@ -1065,6 +1097,10 @@
         "source_discharged": {
           "name": "Source décharge",
           "description": "Le capteur d'énergie de l'énergie déchargée par la batterie, par exemple *Battery discharged* de Tesla Fleet ou Teslemetry."
+        },
+        "net": {
+          "name": "Vers les capteurs nets",
+          "description": "Copier vers « Énergie chargée dans la batterie (nette) » et « Énergie déchargée de la batterie (nette) » au lieu des compteurs de la passerelle, par exemple après avoir basculé le tableau de bord Énergie sur ceux-ci."
         }
       }
     },
@@ -1236,6 +1272,10 @@
       "title": "Un Powerwall 3 manque dans les mesures",
       "description": "{count} Powerwall 3 de cette passerelle n'apparaissent pas dans les mesures, bien que le Wi-Fi de secours (`{wifi_host}`) soit configuré. Avec la connexion signée, les Powerwall suiveurs ne sont lus que par ce Wi-Fi : vérifiez que Home Assistant peut encore le joindre.\n\nLes totaux de puissance, d'énergie et de capacité incluent déjà tous les Powerwall ; seuls les packs de batterie, températures et ventilateurs des unités manquantes sont absents. Ce message disparaît de lui-même dès qu'elles apparaissent."
     },
+    "wifi_fallback_unreachable": {
+      "title": "L'adresse Wi-Fi de secours est injoignable",
+      "description": "L'adresse Wi-Fi de secours (`{wifi_host}`) ne répond plus depuis plus d'une heure : elle ne peut donc pas prendre le relais si l'adresse de la passerelle sur le réseau domestique ne répond plus, et les Powerwall 3 secondaires ne peuvent pas être lus par elle. Vérifiez que Home Assistant est connecté au Wi-Fi propre du Powerwall, ou effacez l'adresse sous **Reconfigurer** si vous ne l'utilisez pas. Cette réparation disparaît d'elle-même dès que l'adresse répond à nouveau."
+    },
     "powerwall_follower_hotspot": {
       "title": "Un Powerwall 3 manque dans les mesures",
       "description": "{count} Powerwall 3 de cette passerelle n'apparaissent pas dans les mesures. La connexion signée utilise le Wi-Fi du Powerwall (`{wifi_host}`), et les Powerwall suiveurs sont lus par ce Wi-Fi : vérifiez que Home Assistant le joint de façon fiable.\n\nLes totaux de puissance, d'énergie et de capacité incluent déjà tous les Powerwall ; seuls les packs de batterie, températures et ventilateurs des unités manquantes sont absents. Ce message disparaît de lui-même dès qu'elles apparaissent."
@@ -1364,6 +1404,7 @@
         "max_soc": "limite haute atteinte",
         "stopped": "arrêté",
         "connection_lost": "connexion perdue",
+        "battery_level_unknown": "niveau de batterie inconnu",
         "unloaded": "intégration déchargée"
       }
     },
@@ -1379,6 +1420,12 @@
       "options": {
         "import": "Import",
         "export": "Export"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Réessayer",
+        "start_over": "Recommencer"
       }
     }
   }

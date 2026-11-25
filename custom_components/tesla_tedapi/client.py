@@ -39,7 +39,7 @@ def release(version: Any) -> tuple[int, ...]:
 
 def local_kwargs(mode: str, host: str, gw_pwd: str, rsa_key_path: str, timezone: str, *,
                  full_login: bool = False, wifi_host: str = "", cache_seconds: int | None = None,
-                 fallback: bool = True) -> dict[str, Any]:
+                 fallback: bool = True, customer_pwd: str = "") -> dict[str, Any]:
     """Arguments for the local pypowerwall client, for setup's connection
     check and for polling alike.
 
@@ -48,9 +48,10 @@ def local_kwargs(mode: str, host: str, gw_pwd: str, rsa_key_path: str, timezone:
     would fail over to."""
     kwargs: dict[str, Any] = {
         "host": host,
-        # A Backup Gateway 1 logs in with the full password; otherwise
-        # pypowerwall uses the last 5 characters of gw_pwd.
-        "password": gw_pwd if full_login and mode == MODE_V1R else "",
+        # A customer password the owner set is used as it is; a Backup
+        # Gateway 1 logs in with the full password; otherwise pypowerwall
+        # uses the last 5 characters of gw_pwd.
+        "password": (customer_pwd or (gw_pwd if full_login else "")) if mode == MODE_V1R else "",
         "email": "",
         "timezone": timezone,
         "auto_select": True,

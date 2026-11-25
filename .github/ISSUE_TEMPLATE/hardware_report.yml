@@ -15,6 +15,7 @@ body:
       options:
         - Powerwall 3
         - Powerwall 3 with Expansion Pack(s)
+        - Powerwall 3, three-phase
         - Powerwall 2
         - Powerwall+
         - Several Powerwalls
@@ -25,16 +26,26 @@ body:
     id: firmware
     attributes:
       label: Powerwall firmware
-      placeholder: "26.34.1"
+      placeholder: "26.34.3"
     validations:
       required: true
   - type: input
     id: version
     attributes:
       label: Integration version
-      placeholder: "2.5.0"
+      placeholder: "2.8.2"
     validations:
       required: true
+  - type: dropdown
+    id: gateway
+    attributes:
+      label: Gateway
+      description: The part number starts the gateway's DIN (Tesla app, or the device page in Home Assistant).
+      options:
+        - Backup Gateway 1 (part number 1118431-…)
+        - Backup Gateway 2 (1152100-… or 1232100-…)
+        - Backup Gateway 3 or Backup Switch (Powerwall 3)
+        - Don't know
   - type: input
     id: region
     attributes:
@@ -75,8 +86,27 @@ body:
         - label: Max backup
         - label: Go off-grid and reconnect
         - label: Dropped settings restored (restored_count goes up)
+        - label: Network connection, site limits and registered keys sensors
+  - type: checkboxes
+    id: unconfirmed
+    attributes:
+      label: Not confirmed yet
+      description: Nobody has reported these yet. Tick any you saw working, and describe it below.
+      options:
+        - label: "Powerwall+: fan speed and solar input sensors"
+        - label: "Powerwall 2 with a Backup Gateway 2: setup and the signed connection"
+        - label: "Several Powerwall 3s: inverter temperatures of the followers (Inverter 2 …)"
+        - label: "Powerwall 3 three-phase: per-phase readings and battery dispatch"
   - type: textarea
     id: notes
     attributes:
       label: What didn't work, or anything unusual
       description: Missing sensors, odd values, error messages, alert codes the integration doesn't know.
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics (optional)
+      description: >-
+        Drag the diagnostics file here (Settings → Devices & services → Tesla Powerwall TEDAPI → ⋮ →
+        Download diagnostics). Passwords, keys, addresses and serial numbers are redacted, but please
+        check the file before attaching it.

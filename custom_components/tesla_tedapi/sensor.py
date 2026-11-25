@@ -41,7 +41,7 @@ from .firmware import split_version
 from .flows import FLOWS
 from .outages import month_start
 from .tariff import current as tariff_now, normalize as tariff_normalize
-from .wear import round_trip_efficiency
+from .wear import efficiency_basis, round_trip_efficiency
 
 # Coordinator-based: no limit on parallel updates.
 PARALLEL_UPDATES = 0
@@ -218,6 +218,11 @@ def _efficiency(d: dict[str, Any]) -> float | None:
     return round_trip_efficiency(energy.get("battery_energy_charged"), energy.get("battery_energy_discharged"))
 
 
+def _efficiency_attrs(d: dict[str, Any]) -> dict[str, Any]:
+    energy = d.get("energy") or {}
+    return efficiency_basis(energy.get("battery_energy_charged"), energy.get("battery_energy_discharged"))
+
+
 # Sensors the cloud backup's live status can stand in for while the gateway
 # can't be reached (the cloud readings option): the readings themselves and
 # the ones split from them.
@@ -286,6 +291,17 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
     _energy("grid_energy_exported"),
     _energy("battery_energy_charged"),
     _energy("battery_energy_discharged"),
+    # The battery counters netted in 5-minute windows, as Tesla's app counts
+    # them (see battery_net.py).
+    *(TedapiSensorEntityDescription(
+        key=f"{key}_net",
+        translation_key=f"{key}_net",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        suggested_display_precision=1,
+        value_fn=lambda d, k=key: (d.get("battery_net") or {}).get(k),
+    ) for key in ("battery_energy_charged", "battery_energy_discharged")),
     _energy("solar_energy_produced"),
     _energy("home_energy_consumed"),
     # Today's grid counters against the grid power readings
@@ -330,7 +346,10 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY_STORAGE,
         state_class=SensorStateClass.MEASUREMENT,
+        # Includes the bottom 5 % the Tesla app hides, like Battery full
+        # capacity (Predbat pairs the two); usable_kwh is the part above it.
         value_fn=lambda d: d.get("battery_remaining_kwh"),
+        attrs_fn=lambda d: {"usable_kwh": d.get("battery_usable_kwh")},
     ),
     TedapiSensorEntityDescription(
         key="battery_health",
@@ -350,6 +369,7 @@ SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         # Lifetime energy out of the battery over lifetime energy in.
         value_fn=_efficiency,
+        attrs_fn=_efficiency_attrs,
     ),
     TedapiSensorEntityDescription(
         key="battery_capacity_fade",
@@ -995,6 +1015,11 @@ class TedapiSensor(TedapiEntity, SensorEntity):
         "import_difference_pct", "export_difference_pct", "covered_minutes", "gaps",
         # setup health
         "checks", "cloud_backends", "cloud_token_expires", "cloud_last_ok", "wifi_fallback", "cloud_linked",
+        "wifi_fallback_reachable",
+        # round-trip efficiency: the counters behind it change on every poll
+        "charged_kwh", "discharged_kwh", "min_charged_kwh",
+        # battery energy remaining: changes with every reading
+        "usable_kwh",
         # fans (drive duty, target speed)
         "duty", "target_rpm",
         # alert details (the alert codes themselves stay recorded)

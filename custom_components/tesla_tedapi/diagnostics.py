@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from . import tesla_cloud
 from .const import (
     AUTH_FILE,
+    CONF_CUSTOMER_PASSWORD,
     CONF_DIAGNOSTICS_GATEWAY,
     CONF_FLEET_SITE_ID,
     CONF_FLEET_TOKEN,
@@ -27,7 +28,7 @@ from .const import (
 )
 from .coordinator import TedapiConfigEntry
 
-TO_REDACT = {CONF_GW_PWD, CONF_OWNERS_EMAIL, CONF_SITE_ID, CONF_FLEET_SITE_ID, CONF_FLEET_TOKEN,
+TO_REDACT = {CONF_GW_PWD, CONF_CUSTOMER_PASSWORD, CONF_OWNERS_EMAIL, CONF_SITE_ID, CONF_FLEET_SITE_ID, CONF_FLEET_TOKEN,
              CONF_OAUTH_TOKEN, CONF_OAUTH_IMPLEMENTATION, CONF_MACS, CONF_HOST, CONF_WIFI_HOST,
              CONF_RSA_KEY_PATH, "din", "serial", "unique_id", "title", "fingerprint"}
 REDACTED = "**REDACTED**"
@@ -164,6 +165,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: TedapiC
     result: dict[str, Any] = {
         "entry": redact_values(async_redact_data(entry.as_dict(), TO_REDACT), secrets),
         "connection_mode": coordinator.connection_mode,
+        # The password itself is redacted, also when empty: say whether one is set.
+        "customer_password_set": bool(entry.data.get(CONF_CUSTOMER_PASSWORD)),
         "control_enabled": coordinator.control_enabled,
         "cloud_enabled": coordinator.cloud_enabled,
         "cloud_backends": [backend.name for backend in coordinator.backends],

@@ -22,12 +22,14 @@
         "data": {
           "host": "Indirizzo del gateway",
           "gw_pwd": "Password del gateway",
-          "wifi_host": "Indirizzo Wi-Fi di riserva"
+          "wifi_host": "Indirizzo Wi-Fi di riserva",
+          "customer_password": "Password cliente (facoltativa)"
         },
         "data_description": {
           "host": "L'indirizzo del gateway nella rete di casa, per esempio `192.168.1.50`. Il router lo mostra come `teslapw_…`.",
           "gw_pwd": "La password completa sull'etichetta QR sotto il coperchio della Powerwall (Powerwall 3: dietro il vetro frontale, in basso a sinistra). Le lettere sono maiuscole. La maggior parte dei gateway accetta anche solo gli ultimi 5 caratteri; un Backup Gateway 1 richiede la password completa.",
-          "wifi_host": "L'hotspot Wi-Fi della Powerwall, usato con la stessa connessione firmata quando l'indirizzo della rete di casa smette di rispondere. Lascia vuoto se Home Assistant non raggiunge l'hotspot. Serve anche a leggere i Powerwall 3 follower, che la connessione firmata non raggiunge dalla rete di casa."
+          "wifi_host": "Facoltativo. Inserisci l'indirizzo dell'hotspot Wi-Fi della Powerwall (di solito `192.168.91.1`) solo se Home Assistant è collegato anche al Wi-Fi `TeslaPW_…` della Powerwall; altrimenti lascia vuoto. Si usa con la stessa connessione firmata quando l'indirizzo della rete di casa smette di rispondere, e per leggere i Powerwall 3 follower, che la connessione firmata non raggiunge dalla rete di casa.",
+          "customer_password": "Solo se la password di accesso cliente del gateway è stata cambiata e non corrisponde più all'etichetta (per esempio dall'installatore o sulla pagina web di un firmware precedente). Usata così com'è per quell'accesso; lascia vuoto per ricavarla dalla password del gateway."
         }
       },
       "access": {
@@ -49,6 +51,14 @@
         "data_description": {
           "key_file": "Il file della chiave privata (`.pem`, inizia con `-----BEGIN PRIVATE KEY-----` o `-----BEGIN RSA PRIVATE KEY-----`) la cui chiave pubblica è registrata e VERIFIED su questa Powerwall. Non la chiave pubblica.",
           "cloud_backup": "Accedi anche a un account Tesla, così le impostazioni si possono ancora cambiare tramite il cloud Tesla quando la connessione locale non funziona."
+        }
+      },
+      "wifi_only": {
+        "title": "Continua senza la password cliente",
+        "description": "Il gateway ha rifiutato l'accesso cliente, quindi la sua password cliente è stata probabilmente cambiata (ad esempio dall'installatore). Il Wi-Fi del Powerwall ha accettato la password del gateway, che non richiede l'accesso cliente, quindi la configurazione può continuare con la connessione **solo password Wi-Fi**. Legge tutto, ma non può cambiare le impostazioni né gestire la batteria; collega un account Tesla per cambiare le impostazioni tramite il cloud. Home Assistant deve restare sul Wi-Fi `TeslaPW_…` del Powerwall.\n\nPer una connessione firmata (controllo locale), inserisci invece la **password cliente**.",
+        "menu_options": {
+          "wifi": "Continua con la connessione solo password Wi-Fi",
+          "gateway": "Inserisci la password cliente"
         }
       },
       "wifi": {
@@ -93,6 +103,13 @@
         "title": "Impossibile connettersi",
         "description": "L'ultimo controllo della connessione non è riuscito (vedi il messaggio qui sotto). Seleziona **Invia** per tornare indietro e controllare indirizzo e password del gateway."
       },
+      "reauth_connect_failed": {
+        "title": "Impossibile connettersi",
+        "description": "L'ultimo controllo della connessione non è riuscito (vedi il messaggio qui sotto). Se il gateway è stato assente solo un momento o sta ancora applicando la chiave, riprova. Altrimenti ricomincia per inserire la password o usare un'altra chiave.",
+        "data": {
+          "next": "Avanti"
+        }
+      },
       "reauth_confirm": {
         "title": "La Powerwall non accetta più Home Assistant",
         "description": "Il gateway continua a rifiutare la password o la chiave. Le letture si fermano finché non si risolve; le impostazioni funzionano ancora tramite il cloud Tesla se è collegato un account.",
@@ -106,10 +123,12 @@
       "reauth_password": {
         "title": "Password del gateway",
         "data": {
-          "gw_pwd": "Password del gateway"
+          "gw_pwd": "Password del gateway",
+          "customer_password": "Password cliente (facoltativa)"
         },
         "data_description": {
-          "gw_pwd": "La password completa sull'etichetta QR sotto il coperchio della Powerwall (Powerwall 3: dietro il vetro frontale, in basso a sinistra). Le lettere sono maiuscole. La maggior parte dei gateway accetta anche solo gli ultimi 5 caratteri; un Backup Gateway 1 richiede la password completa."
+          "gw_pwd": "La password completa sull'etichetta QR sotto il coperchio della Powerwall (Powerwall 3: dietro il vetro frontale, in basso a sinistra). Le lettere sono maiuscole. La maggior parte dei gateway accetta anche solo gli ultimi 5 caratteri; un Backup Gateway 1 richiede la password completa.",
+          "customer_password": "Solo se la password di accesso cliente del gateway è stata cambiata e non corrisponde più all'etichetta (per esempio dall'installatore o sulla pagina web di un firmware precedente). Usata così com'è per quell'accesso; lascia vuoto per ricavarla dalla password del gateway."
         }
       },
       "reconfigure": {
@@ -119,13 +138,15 @@
           "host": "Indirizzo del gateway",
           "gw_pwd": "Password del gateway",
           "rsa_key_path": "File della chiave privata RSA",
-          "wifi_host": "Indirizzo Wi-Fi di riserva (solo firmata)"
+          "wifi_host": "Indirizzo Wi-Fi di riserva (solo firmata)",
+          "customer_password": "Password cliente (facoltativa)"
         },
         "data_description": {
           "host": "L'indirizzo del gateway nella rete di casa, per esempio `192.168.1.50`. Il router lo mostra come `teslapw_…`.",
           "gw_pwd": "La password completa sull'etichetta QR sotto il coperchio della Powerwall (Powerwall 3: dietro il vetro frontale, in basso a sinistra). Le lettere sono maiuscole. La maggior parte dei gateway accetta anche solo gli ultimi 5 caratteri; un Backup Gateway 1 richiede la password completa.",
           "rsa_key_path": "Percorso completo del file della chiave privata sull'host di Home Assistant, per esempio `/config/tesla_tedapi/tedapi_rsa_private.pem`. Lascia vuoto per usare la connessione con password Wi-Fi (sola lettura).",
-          "wifi_host": "L'indirizzo dell'hotspot Wi-Fi della Powerwall (di solito `192.168.91.1`), usato quando l'indirizzo della rete di casa smette di rispondere. Lascia vuoto se Home Assistant non raggiunge l'hotspot. Serve anche a leggere i Powerwall 3 follower, che la connessione firmata non raggiunge dalla rete di casa."
+          "wifi_host": "L'indirizzo dell'hotspot Wi-Fi della Powerwall (di solito `192.168.91.1`), usato quando l'indirizzo della rete di casa smette di rispondere. Lascia vuoto se Home Assistant non raggiunge l'hotspot. Serve anche a leggere i Powerwall 3 follower, che la connessione firmata non raggiunge dalla rete di casa.",
+          "customer_password": "Solo se la password di accesso cliente del gateway è stata cambiata e non corrisponde più all'etichetta (per esempio dall'installatore o sulla pagina web di un firmware precedente). Usata così com'è per quell'accesso; lascia vuoto per ricavarla dalla password del gateway."
         }
       },
       "new_key": {
@@ -170,7 +191,9 @@
     "error": {
       "cannot_connect": "Impossibile raggiungere la Powerwall a quell'indirizzo. Controlla l'indirizzo (il router mostra il gateway come `teslapw_…`), che la Powerwall sia accesa e sulla stessa rete di Home Assistant, e riprova.",
       "wifi_password_refused": "Il Powerwall ha risposto ma ha rifiutato la password. Controllala sull'etichetta QR (lettere maiuscole). La sola password funziona solo tramite il Wi-Fi del Powerwall (`192.168.91.1`), non sul suo indirizzo della rete domestica: lì usa una connessione firmata.",
-      "invalid_gw_pwd": "Il gateway ha rifiutato questa password. Controlla l'adesivo QR (le lettere sono maiuscole).",
+      "invalid_gw_pwd": "Il gateway ha rifiutato questa password. Controlla l'adesivo QR (le lettere sono maiuscole). Se la password cliente è stata cambiata e nessuno la conosce, collega Home Assistant al Wi-Fi `TeslaPW_…` del Powerwall e inserisci `192.168.91.1`: lì la configurazione può continuare senza, come connessione con password Wi-Fi.",
+      "invalid_customer_pwd": "Il gateway ha rifiutato questa password cliente. Lascia il campo vuoto per usare la password dell'adesivo.",
+      "wifi_fallback_password_refused": "Il Wi-Fi del Powerwall (l'indirizzo Wi-Fi di riserva) ha risposto ma ha rifiutato la password del gateway. Controllala sull'adesivo QR (lettere maiuscole). Con una password cliente impostata, la password del gateway viene verificata qui.",
       "password_required": "L'accesso firmato richiede la password del gateway.",
       "invalid_rsa_key": "Non è una chiave privata RSA in formato PEM. Carica il file della chiave privata (inizia con `-----BEGIN`), non la chiave pubblica.",
       "key_not_accepted": "La Powerwall non ha accettato la chiave. Controlla che sia la chiave privata (non quella pubblica), che sia stata registrata per questa Powerwall e che la registrazione sia VERIFIED (il passaggio dell'interruttore On/Off è stato fatto). Oppure scegli **Registra una nuova chiave**.",
@@ -454,8 +477,14 @@
       "battery_energy_charged": {
         "name": "Energia caricata nella batteria"
       },
+      "battery_energy_charged_net": {
+        "name": "Energia caricata nella batteria (netta)"
+      },
       "battery_energy_discharged": {
         "name": "Energia scaricata dalla batteria"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Energia scaricata dalla batteria (netta)"
       },
       "solar_energy_produced": {
         "name": "Energia solare prodotta"
@@ -770,6 +799,9 @@
     "dispatch_soc_limit": {
       "message": "Il livello della batteria ({soc}%) ha già superato il limite {limit}."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "Il livello della batteria non è stato letto di recente dal gateway, quindi i limiti del comando non possono essere verificati. Riprova quando il gateway risponde (un mantenimento a 0 W funziona comunque)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W supera il limite di {cap} W impostato nelle opzioni dell'integrazione."
     },
@@ -1065,6 +1097,10 @@
         "source_discharged": {
           "name": "Origine scarica",
           "description": "Il sensore di energia con l'energia scaricata dalla batteria, per esempio *Battery discharged* di Tesla Fleet o Teslemetry."
+        },
+        "net": {
+          "name": "Nei sensori netti",
+          "description": "Copia in «Energia caricata nella batteria (netta)» e «Energia scaricata dalla batteria (netta)» invece che nei contatori del gateway, ad esempio dopo aver passato la dashboard Energia a questi."
         }
       }
     },
@@ -1236,6 +1272,10 @@
       "title": "Un Powerwall 3 manca dalle letture",
       "description": "{count} Powerwall 3 di questo gateway non compaiono nelle letture, anche se il Wi-Fi di riserva (`{wifi_host}`) è impostato. Con la connessione firmata i Powerwall follower vengono letti solo tramite quel Wi-Fi: verifica che Home Assistant lo raggiunga ancora.\n\nI totali di potenza, energia e capacità includono già tutti i Powerwall; mancano solo pacchi batteria, temperature e ventole delle unità mancanti. Si risolve da solo quando compaiono."
     },
+    "wifi_fallback_unreachable": {
+      "title": "L'indirizzo Wi-Fi di riserva non è raggiungibile",
+      "description": "L'indirizzo Wi-Fi di riserva (`{wifi_host}`) non risponde da oltre un'ora, quindi non può subentrare se l'indirizzo del gateway sulla rete di casa smette di rispondere, e i Powerwall 3 secondari non possono essere letti tramite esso. Assicurati che Home Assistant sia connesso al Wi-Fi del Powerwall, oppure cancella l'indirizzo in **Riconfigura** se non lo usi. Questa riparazione si chiude da sola quando l'indirizzo risponde di nuovo."
+    },
     "powerwall_follower_hotspot": {
       "title": "Un Powerwall 3 manca dalle letture",
       "description": "{count} Powerwall 3 di questo gateway non compaiono nelle letture. La connessione firmata usa il Wi-Fi del Powerwall (`{wifi_host}`) e i Powerwall follower vengono letti tramite quel Wi-Fi: verifica che Home Assistant lo raggiunga in modo affidabile.\n\nI totali di potenza, energia e capacità includono già tutti i Powerwall; mancano solo pacchi batteria, temperature e ventole delle unità mancanti. Si risolve da solo quando compaiono."
@@ -1364,6 +1404,7 @@
         "max_soc": "limite superiore raggiunto",
         "stopped": "interrotto",
         "connection_lost": "connessione persa",
+        "battery_level_unknown": "livello della batteria sconosciuto",
         "unloaded": "integrazione scaricata"
       }
     },
@@ -1379,6 +1420,12 @@
       "options": {
         "import": "Prelievo",
         "export": "Immissione"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Riprova",
+        "start_over": "Ricomincia"
       }
     }
   }

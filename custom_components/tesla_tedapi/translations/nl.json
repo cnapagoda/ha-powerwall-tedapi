@@ -22,12 +22,14 @@
         "data": {
           "host": "Gateway-adres",
           "gw_pwd": "Gateway-wachtwoord",
-          "wifi_host": "Wifi-terugvaladres"
+          "wifi_host": "Wifi-terugvaladres",
+          "customer_password": "Klantwachtwoord (optioneel)"
         },
         "data_description": {
           "host": "Het adres van de gateway op je thuisnetwerk, bijvoorbeeld `192.168.1.50`. Je router toont het als `teslapw_…`.",
           "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig.",
-          "wifi_host": "De wifi-hotspot van de Powerwall, gebruikt via dezelfde ondertekende verbinding als het thuisnetwerkadres niet meer antwoordt. Leeg laten als Home Assistant de hotspot niet kan bereiken. Ook gebruikt om volg-Powerwall 3's te lezen, die de ondertekende verbinding niet via het thuisnetwerk bereikt."
+          "wifi_host": "Optioneel. Vul het adres van de wifi-hotspot van de Powerwall in (meestal `192.168.91.1`) alleen als Home Assistant ook met de eigen `TeslaPW_…`-wifi van de Powerwall verbonden is; laat het anders leeg. Het wordt via dezelfde ondertekende verbinding gebruikt als het thuisnetwerkadres niet meer antwoordt, en om volg-Powerwall 3's te lezen, die de ondertekende verbinding niet via het thuisnetwerk bereikt.",
+          "customer_password": "Alleen als het klant-inlogwachtwoord van de gateway is gewijzigd en niet meer overeenkomt met de sticker (bijvoorbeeld door een installateur, of op de webpagina van oudere firmware). Wordt zo gebruikt voor die aanmelding; laat leeg om het af te leiden van het gateway-wachtwoord."
         }
       },
       "access": {
@@ -49,6 +51,14 @@
         "data_description": {
           "key_file": "Het bestand met de private sleutel (`.pem`, begint met `-----BEGIN PRIVATE KEY-----` of `-----BEGIN RSA PRIVATE KEY-----`) waarvan de publieke sleutel op deze Powerwall geregistreerd en VERIFIED is. Niet de publieke sleutel.",
           "cloud_backup": "Ook inloggen bij een Tesla-account, zodat instellingen nog via de Tesla-cloud kunnen worden gewijzigd als de lokale verbinding wegvalt."
+        }
+      },
+      "wifi_only": {
+        "title": "Doorgaan zonder het klantwachtwoord",
+        "description": "De gateway weigerde de klantaanmelding, dus het klantwachtwoord is waarschijnlijk gewijzigd (bijvoorbeeld door een installateur). Het eigen wifi-netwerk van de Powerwall accepteerde het gatewaywachtwoord, dat geen klantaanmelding nodig heeft, dus de installatie kan doorgaan met de verbinding **alleen wifi-wachtwoord**. Die kan alles lezen, maar geen instellingen wijzigen of de batterij aansturen; koppel een Tesla-account om instellingen via de cloud te wijzigen. Home Assistant moet op de wifi `TeslaPW_…` van de Powerwall blijven.\n\nVoor een ondertekende verbinding (lokale bediening) vul je in plaats daarvan het **klantwachtwoord** in.",
+        "menu_options": {
+          "wifi": "Doorgaan met de verbinding met alleen wifi-wachtwoord",
+          "gateway": "Klantwachtwoord invullen"
         }
       },
       "wifi": {
@@ -93,6 +103,13 @@
         "title": "Kan geen verbinding maken",
         "description": "De laatste verbindingscontrole is mislukt (zie de melding hieronder). Kies **Verzenden** om terug te gaan en het gateway-adres en wachtwoord te controleren."
       },
+      "reauth_connect_failed": {
+        "title": "Kan geen verbinding maken",
+        "description": "De laatste verbindingscontrole is mislukt (zie de melding hieronder). Was de gateway maar even weg, of past hij de sleutel nog toe, probeer het dan opnieuw. Begin anders opnieuw om het wachtwoord in te voeren of een andere sleutel te gebruiken.",
+        "data": {
+          "next": "Volgende"
+        }
+      },
       "reauth_confirm": {
         "title": "De Powerwall accepteert Home Assistant niet meer",
         "description": "De gateway blijft het wachtwoord of de sleutel weigeren. Metingen stoppen tot dit is opgelost; instellingen werken nog via de Tesla-cloud als een account is gekoppeld.",
@@ -106,10 +123,12 @@
       "reauth_password": {
         "title": "Gateway-wachtwoord",
         "data": {
-          "gw_pwd": "Gateway-wachtwoord"
+          "gw_pwd": "Gateway-wachtwoord",
+          "customer_password": "Klantwachtwoord (optioneel)"
         },
         "data_description": {
-          "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig."
+          "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig.",
+          "customer_password": "Alleen als het klant-inlogwachtwoord van de gateway is gewijzigd en niet meer overeenkomt met de sticker (bijvoorbeeld door een installateur, of op de webpagina van oudere firmware). Wordt zo gebruikt voor die aanmelding; laat leeg om het af te leiden van het gateway-wachtwoord."
         }
       },
       "reconfigure": {
@@ -119,13 +138,15 @@
           "host": "Gateway-adres",
           "gw_pwd": "Gateway-wachtwoord",
           "rsa_key_path": "Bestand met private RSA-sleutel",
-          "wifi_host": "Wifi-terugvaladres (alleen ondertekend)"
+          "wifi_host": "Wifi-terugvaladres (alleen ondertekend)",
+          "customer_password": "Klantwachtwoord (optioneel)"
         },
         "data_description": {
           "host": "Het adres van de gateway op je thuisnetwerk, bijvoorbeeld `192.168.1.50`. Je router toont het als `teslapw_…`.",
           "gw_pwd": "Het volledige wachtwoord op de QR-sticker onder de kap van de Powerwall (Powerwall 3: achter het voorglas, linksonder). Letters zijn hoofdletters. De meeste gateways accepteren ook alleen de laatste 5 tekens; een Backup Gateway 1 heeft het volledige wachtwoord nodig.",
           "rsa_key_path": "Volledig pad naar het bestand met de private sleutel op de Home Assistant-host, bijvoorbeeld `/config/tesla_tedapi/tedapi_rsa_private.pem`. Laat leeg om de verbinding met wifi-wachtwoord te gebruiken (alleen lezen).",
-          "wifi_host": "Het adres van de wifi-hotspot van de Powerwall (meestal `192.168.91.1`), gebruikt als het thuisnetwerkadres niet meer antwoordt. Laat leeg als Home Assistant de hotspot niet kan bereiken. Ook gebruikt om volg-Powerwall 3's te lezen, die de ondertekende verbinding niet via het thuisnetwerk bereikt."
+          "wifi_host": "Het adres van de wifi-hotspot van de Powerwall (meestal `192.168.91.1`), gebruikt als het thuisnetwerkadres niet meer antwoordt. Laat leeg als Home Assistant de hotspot niet kan bereiken. Ook gebruikt om volg-Powerwall 3's te lezen, die de ondertekende verbinding niet via het thuisnetwerk bereikt.",
+          "customer_password": "Alleen als het klant-inlogwachtwoord van de gateway is gewijzigd en niet meer overeenkomt met de sticker (bijvoorbeeld door een installateur, of op de webpagina van oudere firmware). Wordt zo gebruikt voor die aanmelding; laat leeg om het af te leiden van het gateway-wachtwoord."
         }
       },
       "new_key": {
@@ -170,7 +191,9 @@
     "error": {
       "cannot_connect": "Kan de Powerwall op dat adres niet bereiken. Controleer het adres (je router toont de gateway als `teslapw_…`), of de Powerwall aan staat en op hetzelfde netwerk als Home Assistant zit, en probeer het opnieuw.",
       "wifi_password_refused": "De Powerwall antwoordde maar weigerde het wachtwoord. Controleer het op de QR-sticker (hoofdletters). Het wachtwoord alleen werkt alleen via de eigen wifi van de Powerwall (`192.168.91.1`), niet op zijn adres in het thuisnetwerk: gebruik daar een ondertekende verbinding.",
-      "invalid_gw_pwd": "De gateway heeft dit wachtwoord geweigerd. Controleer de QR-sticker (letters zijn hoofdletters).",
+      "invalid_gw_pwd": "De gateway heeft dit wachtwoord geweigerd. Controleer de QR-sticker (letters zijn hoofdletters). Is het klantwachtwoord gewijzigd en kent niemand het, verbind Home Assistant dan met de wifi `TeslaPW_…` van de Powerwall en vul `192.168.91.1` in: daar kan de installatie zonder doorgaan, als verbinding met wifi-wachtwoord.",
+      "invalid_customer_pwd": "De gateway heeft dit klantwachtwoord geweigerd. Laat het veld leeg om het wachtwoord van de sticker te gebruiken.",
+      "wifi_fallback_password_refused": "De eigen wifi van de Powerwall (het wifi-terugvaladres) antwoordde maar weigerde het gatewaywachtwoord. Controleer het op de QR-sticker (letters zijn hoofdletters). Met een klantwachtwoord wordt het gatewaywachtwoord hier gecontroleerd.",
       "password_required": "Ondertekende toegang heeft het gateway-wachtwoord nodig.",
       "invalid_rsa_key": "Dat is geen private RSA-sleutel in PEM-formaat. Upload het bestand met de private sleutel (het begint met `-----BEGIN`), niet de publieke sleutel.",
       "key_not_accepted": "De Powerwall heeft de sleutel niet geaccepteerd. Controleer of het de private sleutel is (niet de publieke), of hij voor deze Powerwall is geregistreerd en of de registratie VERIFIED is (de stap met de aan/uit-schakelaar is gedaan). Of kies **Een nieuwe sleutel registreren**.",
@@ -454,8 +477,14 @@
       "battery_energy_charged": {
         "name": "Batterij geladen"
       },
+      "battery_energy_charged_net": {
+        "name": "Batterij geladen (netto)"
+      },
       "battery_energy_discharged": {
         "name": "Batterij ontladen"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Batterij ontladen (netto)"
       },
       "solar_energy_produced": {
         "name": "Zonne-energie opgewekt"
@@ -770,6 +799,9 @@
     "dispatch_soc_limit": {
       "message": "Het batterijniveau ({soc}%) is al voorbij de grens {limit}."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "Het batterijniveau is de laatste tijd niet van de gateway gelezen, dus de grenzen van de dispatch kunnen niet worden gecontroleerd. Probeer het opnieuw zodra de gateway reageert (vasthouden op 0 W werkt nog wel)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W is hoger dan de grens van {cap} W in de opties van de integratie."
     },
@@ -1065,6 +1097,10 @@
         "source_discharged": {
           "name": "Bron ontladen",
           "description": "De energiesensor met de ontladen energie van de batterij, bijvoorbeeld *Battery discharged* van Tesla Fleet of Teslemetry."
+        },
+        "net": {
+          "name": "Naar de nettosensoren",
+          "description": "Kopieer naar 'Batterij geladen (netto)' en 'Batterij ontladen (netto)' in plaats van naar de tellers van de gateway, bijvoorbeeld nadat het Energiedashboard daarop is overgezet."
         }
       }
     },
@@ -1236,6 +1272,10 @@
       "title": "Er ontbreekt een Powerwall 3 in de metingen",
       "description": "{count} Powerwall 3 van deze gateway staan niet in de metingen, hoewel het wifi-terugvaladres (`{wifi_host}`) is ingesteld. Via de ondertekende verbinding worden volg-Powerwalls alleen via die wifi gelezen: controleer of Home Assistant die nog bereikt.\n\nTotalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken. Dit verdwijnt vanzelf zodra ze verschijnen."
     },
+    "wifi_fallback_unreachable": {
+      "title": "Het wifi-terugvaladres is niet bereikbaar",
+      "description": "Het wifi-terugvaladres (`{wifi_host}`) reageert al meer dan een uur niet. Het kan dus niet overnemen als het thuisnetwerkadres van de gateway niet meer reageert, en volgende Powerwall 3's kunnen er niet via worden uitgelezen. Zorg dat Home Assistant verbonden is met de eigen wifi van de Powerwall, of wis het adres onder **Opnieuw configureren** als je het niet gebruikt. Deze reparatie verdwijnt vanzelf zodra het adres weer reageert."
+    },
     "powerwall_follower_hotspot": {
       "title": "Er ontbreekt een Powerwall 3 in de metingen",
       "description": "{count} Powerwall 3 van deze gateway staan niet in de metingen. De ondertekende verbinding gebruikt de eigen wifi van de Powerwall (`{wifi_host}`) en volg-Powerwalls worden via die wifi gelezen: controleer of Home Assistant die betrouwbaar bereikt.\n\nTotalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken. Dit verdwijnt vanzelf zodra ze verschijnen."
@@ -1364,6 +1404,7 @@
         "max_soc": "bovengrens bereikt",
         "stopped": "gestopt",
         "connection_lost": "verbinding verloren",
+        "battery_level_unknown": "batterijniveau onbekend",
         "unloaded": "integratie ontladen"
       }
     },
@@ -1379,6 +1420,12 @@
       "options": {
         "import": "Afname",
         "export": "Teruglevering"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Opnieuw proberen",
+        "start_over": "Opnieuw beginnen"
       }
     }
   }

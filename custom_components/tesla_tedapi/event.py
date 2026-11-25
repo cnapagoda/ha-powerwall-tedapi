@@ -32,6 +32,10 @@ class AlertEvent(TedapiEntity, EventEntity):
 
     def __init__(self, coordinator: TedapiCoordinator) -> None:
         super().__init__(coordinator, "alert_event")
+        # The changes already fired: the coordinator also updates its
+        # entities without a new reading (an option, a command's result),
+        # and those must not fire the last reading's changes again.
+        self._fired: list | None = None
 
     @property
     def _include_status(self) -> bool:
@@ -41,7 +45,11 @@ class AlertEvent(TedapiEntity, EventEntity):
     @callback
     def _handle_coordinator_update(self) -> None:
         include_status = self._include_status
-        for change in self.coordinator.alert_changes:
+        changes = self.coordinator.alert_changes
+        if changes is self._fired:
+            changes = []
+        self._fired = self.coordinator.alert_changes
+        for change in changes:
             if change.severity == SEVERITY_STATUS and not include_status:
                 continue
             self._trigger_event(change.kind, {

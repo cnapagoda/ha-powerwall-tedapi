@@ -63,6 +63,7 @@ from .const import (
     CONF_CLOUD_BACKENDS,
     CONF_CLOUD_READINGS,
     CONF_CONNECTION_MODE,
+    CONF_CUSTOMER_PASSWORD,
     CONF_DIAGNOSTICS_GATEWAY,
     CONF_DISPATCH_FLOOR_RESERVE,
     CONF_DISPATCH_MAX_WATTS,
@@ -103,6 +104,7 @@ from .const import (
     STORAGE_FOLDER,
     cloud_choice,
 )
+from .privacy import scrub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -124,6 +126,10 @@ KEY_FILE = FileSelector(FileSelectorConfig(accept=".pem,.key,.txt"))
 VERIFY_POLL_SECONDS = 10
 # Reauth data flag: a new key was asked for in the options, nothing failed.
 NEW_KEY = "new_key"
+# The reauth connection check failed: what next.
+CONF_NEXT = "next"
+RETRY = "retry"
+START_OVER = "start_over"
 # Placeholders for links (translations can't hold URLs themselves).
 LINKS = {
     "docs_url": "https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/setup.md"
@@ -176,7 +182,7 @@ class PasswordRequired(Exception):
 
 
 def _probe(mode: str, host: str, gw_pwd: str, rsa_key_path: str, timezone: str, *,
-           full_login: bool = False) -> str:
+           full_login: bool = False, customer_pwd: str = "") -> str:
     """Connect like the integration does and return the gateway DIN."""
     import pypowerwall  # noqa: PLC0415
 
@@ -190,7 +196,7 @@ def _probe(mode: str, host: str, gw_pwd: str, rsa_key_path: str, timezone: str, 
     # The same arguments as polling uses, without the Wi-Fi fallback: this
     # check is about the gateway address itself.
     kwargs = client.local_kwargs(mode, host, gw_pwd, rsa_key_path, timezone, full_login=full_login,
-                                 fallback=False)
+                                 fallback=False, customer_pwd=customer_pwd)
     try:
         pw = pypowerwall.Powerwall(**kwargs)
         if mode == MODE_V1R and getattr(pw, "tedapi_mode", None) != "v1r":
@@ -215,10 +221,18 @@ def _raise_if_refused(mode: str, host: str) -> None:
         raise WifiPasswordRefused
 
 
-def _check_gateway(host: str, gw_pwd: str) -> tuple[str | None, bool]:
+def _check_gateway(host: str, gw_pwd: str, customer_pwd: str = "") -> tuple[str | None, bool]:
     """Password check (customer login): the DIN, if the firmware gives it, and
     whether this gateway takes the full password (a Backup Gateway 1, or one
-    that refuses the last 5 characters and takes the full password)."""
+    that refuses the last 5 characters and takes the full password). A
+    customer password the owner set is tried as it is, and only that."""
+    if customer_pwd:
+        try:
+            return gateway.din(host, customer_pwd, True), False
+        except gateway.GatewayPasswordRejected as err:
+            _LOGGER.debug("The gateway at %s refused the customer password (%s): part number %s",
+                          host, str(err) or "refused", gateway.part_number(host) or "not reported")
+            raise
     full = gateway.full_password_login(host)
     try:
         return gateway.din_any(host, gw_pwd, full)
@@ -228,6 +242,48 @@ def _check_gateway(host: str, gw_pwd: str) -> tuple[str | None, bool]:
         _LOGGER.debug("The gateway at %s refused the password (%s): part number %s, %d characters given",
                       host, str(err) or "refused", gateway.part_number(host) or "not reported", len(gw_pwd.strip()))
         raise
+
+
+def _wifi_only_din(host: str, gw_pwd: str) -> str | None:
+    """After the customer login was refused: whether this address is the
+    Powerwall's own Wi-Fi and takes the gateway password there, which needs
+    no customer login (#23: a customer password changed by an installer and
+    not known). Returns the DIN; raises like gateway.wifi_din."""
+    din = gateway.wifi_din(host, gw_pwd)
+    _LOGGER.debug("The customer login was refused, but %s takes the gateway password over the "
+                  "Powerwall's Wi-Fi: offering the Wi-Fi password connection", host)
+    return din
+
+
+def _wifi_password_refused(wifi_host: str, host: str, gw_pwd: str, customer_pwd: str) -> bool:
+    """With a customer password set, the gateway (sticker) password is used
+    only over the Powerwall's own Wi-Fi, so the customer login no longer
+    checks it. Check it at the Wi-Fi fallback address when one is entered
+    and answers; one that doesn't answer now can't be checked (its repair
+    covers that later)."""
+    if not (customer_pwd and wifi_host and wifi_host != host):
+        return False
+    try:
+        gateway.check_wifi_password(wifi_host, gw_pwd)
+    except gateway.GatewayPasswordRejected:
+        _LOGGER.debug("The Wi-Fi fallback address %s refused the gateway password", wifi_host)
+        return True
+    except gateway.GatewayUnreachable as err:
+        _LOGGER.debug("The gateway password can't be checked at the Wi-Fi fallback address %s: %s",
+                      wifi_host, err)
+    return False
+
+
+def _login_refused(host: str, gw_pwd: str, customer_pwd: str) -> dict[str, str] | None:
+    """After a failed signed check in Reconfigure: the error for a customer
+    login the gateway refuses or has locked, or None (another cause)."""
+    try:
+        _check_gateway(host, gw_pwd, customer_pwd)
+    except (gateway.GatewayPasswordRejected, gateway.GatewayLocked) as err:
+        return _password_errors(err, customer_pwd)
+    except gateway.GatewayUnreachable:
+        return None
+    return None
 
 
 def _login_mode(host: str, gw_pwd: str) -> bool:
@@ -298,6 +354,13 @@ def _gateway_errors(err: Exception) -> dict[str, str]:
     if isinstance(err, WifiPasswordRefused):
         return {"base": "wifi_password_refused"}
     return {"base": "cannot_connect"}
+
+
+def _password_errors(err: Exception, customer_pwd: str) -> dict[str, str]:
+    """A refused customer password is shown at its own field."""
+    if customer_pwd and isinstance(err, gateway.GatewayPasswordRejected):
+        return {CONF_CUSTOMER_PASSWORD: "invalid_customer_pwd"}
+    return _gateway_errors(err)
 
 
 _REGISTER_ERRORS = (tesla_cloud.TeslaCloudError, fleet.FleetUnavailable, fleet.FleetError, fleet.FleetTimeout)
@@ -377,7 +440,7 @@ class TeslaLoginMixin:
                 self._sites = await self.hass.async_add_executor_job(
                     tesla_cloud.energy_sites, self._token["access_token"])
             except tesla_cloud.TeslaRefused as err:
-                _LOGGER.warning("Tesla sign-in worked but the Owner API refused the token: %s", err)
+                _LOGGER.warning("Tesla sign-in worked but the Owner API refused the token: %s", scrub(err))
                 errors["base"] = "owner_api_refused"
                 if code_sent:
                     self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
@@ -389,7 +452,7 @@ class TeslaLoginMixin:
                 else:
                     errors["base"] = "invalid_token"
             except tesla_cloud.TeslaCloudError as err:
-                _LOGGER.warning("Tesla account error: %s", err)
+                _LOGGER.warning("Tesla account error: %s", scrub(err))
                 errors["base"] = "cloud_error"
                 if code_sent:
                     self._login = await self.hass.async_add_executor_job(tesla_cloud.start_login)
@@ -486,7 +549,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
 
     def _abort_client_too_old(self, err: client.ClientTooOld) -> ConfigFlowResult:
         _LOGGER.error("Setup stopped: %s. Another integration loaded it; remove that one and restart "
-                      "Home Assistant", err)
+                      "Home Assistant", scrub(err))
         return self.async_abort(reason="pypowerwall_too_old", description_placeholders={
             "found": err.found, "required": client.required()})
 
@@ -541,7 +604,9 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                     # Same address, or set up over the gateway's Wi-Fi
                     # hotspot (keep the hotspot address it connects to).
                     return self.async_abort(reason="already_configured")
-                _LOGGER.info("Powerwall %s moved from %s to %s", entry.unique_id, host, ip)
+                # The entry's title, masked (a default title holds the DIN),
+                # and no addresses.
+                _LOGGER.info("%s: the gateway's address changed", scrub(entry.title))
                 self.hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_HOST: ip})
                 self.hass.config_entries.async_schedule_reload(entry.entry_id)
                 return self.async_abort(reason="already_configured")
@@ -561,23 +626,42 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         if user_input is not None:
             host = user_input[CONF_HOST].strip()
             gw_pwd = user_input[CONF_GW_PWD].strip()
+            customer_pwd = (user_input.get(CONF_CUSTOMER_PASSWORD) or "").strip()
             try:
-                self._din, full = await self.hass.async_add_executor_job(_check_gateway, host, gw_pwd)
+                self._din, full = await self.hass.async_add_executor_job(_check_gateway, host, gw_pwd,
+                                                                         customer_pwd)
             except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected) as err:
                 _LOGGER.debug("Gateway check at %s failed: %s", host, err)
-                errors = _gateway_errors(err)
+                errors = _password_errors(err, customer_pwd)
+                if isinstance(err, gateway.GatewayPasswordRejected) and not customer_pwd:
+                    try:
+                        din = await self.hass.async_add_executor_job(_wifi_only_din, host, gw_pwd)
+                    except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected):
+                        pass
+                    else:
+                        if din:
+                            await self.async_set_unique_id(din, raise_on_progress=False)
+                            self._abort_if_known_gateway()
+                        self._data.update({CONF_HOST: host, CONF_GW_PWD: gw_pwd, CONF_FULL_PASSWORD_LOGIN: False,
+                                           CONF_CUSTOMER_PASSWORD: "", CONF_WIFI_HOST: ""})
+                        return await self.async_step_wifi_only()
             else:
                 if self._din:
                     await self.async_set_unique_id(self._din, raise_on_progress=False)
                     self._abort_if_known_gateway()
                 wifi_host = (user_input.get(CONF_WIFI_HOST) or "").strip()
-                self._data.update({
-                    CONF_HOST: host,
-                    CONF_GW_PWD: gw_pwd,
-                    CONF_FULL_PASSWORD_LOGIN: full,
-                    CONF_WIFI_HOST: wifi_host if wifi_host != host else "",
-                })
-                return await self.async_step_access()
+                if await self.hass.async_add_executor_job(_wifi_password_refused, wifi_host, host, gw_pwd,
+                                                          customer_pwd):
+                    errors = {CONF_GW_PWD: "wifi_fallback_password_refused"}
+                else:
+                    self._data.update({
+                        CONF_HOST: host,
+                        CONF_GW_PWD: gw_pwd,
+                        CONF_FULL_PASSWORD_LOGIN: full,
+                        CONF_CUSTOMER_PASSWORD: customer_pwd,
+                        CONF_WIFI_HOST: wifi_host if wifi_host != host else "",
+                    })
+                    return await self.async_step_access()
             self._data.update(user_input)
 
         host = self._data.get(CONF_HOST, "")
@@ -586,8 +670,12 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             vol.Required(CONF_GW_PWD, default=self._data.get(CONF_GW_PWD, "")): PASSWORD,
             # Suggested, not a default: a default would come back when the
             # field is cleared (the frontend leaves an empty field out).
+            # Empty unless entered: only some setups have Home Assistant on
+            # the Powerwall's own Wi-Fi too (an unreachable one raises a repair).
             vol.Optional(CONF_WIFI_HOST, description={"suggested_value": self._data.get(
-                CONF_WIFI_HOST, "" if host == DEFAULT_HOST_WIFI else DEFAULT_HOST_WIFI)}): str,
+                CONF_WIFI_HOST, "")}): str,
+            vol.Optional(CONF_CUSTOMER_PASSWORD, description={"suggested_value": self._data.get(
+                CONF_CUSTOMER_PASSWORD, "")}): PASSWORD,
         })
         return self.async_show_form(step_id="gateway", data_schema=schema, errors=errors)
 
@@ -632,13 +720,13 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         try:
             return await self._async_fleet_sites(api)
         except fleet.FleetNotRegistered as err:
-            _LOGGER.warning("Tesla Fleet: the developer app isn't registered in this region: %s", err)
+            _LOGGER.warning("Tesla Fleet: the developer app isn't registered in this region: %s", scrub(err))
             return self.async_abort(reason="fleet_not_registered", description_placeholders=LINKS)
         except fleet.FleetAuthError as err:
-            _LOGGER.warning("Tesla Fleet refused the new sign-in: %s", err)
+            _LOGGER.warning("Tesla Fleet refused the new sign-in: %s", scrub(err))
             return self.async_abort(reason="fleet_refused")
         except (fleet.FleetError, fleet.FleetTimeout) as err:
-            _LOGGER.warning("Tesla Fleet error: %s", err)
+            _LOGGER.warning("Tesla Fleet error: %s", scrub(err))
             return self.async_abort(reason="fleet_error")
 
     async def async_step_teslemetry(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -656,7 +744,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 _LOGGER.debug("Teslemetry refused the token: %s", err)
                 errors["base"] = "invalid_token"
             except (fleet.FleetError, fleet.FleetTimeout) as err:
-                _LOGGER.warning("Teslemetry error: %s", err)
+                _LOGGER.warning("Teslemetry error: %s", scrub(err))
                 errors["base"] = "cloud_error"
             self._fleet = None
         return self.async_show_form(
@@ -714,6 +802,12 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             fields[vol.Optional(CONF_CLOUD, default=False)] = bool
         return self.async_show_form(step_id="key_upload", data_schema=vol.Schema(fields), errors=errors)
 
+    async def async_step_wifi_only(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The customer login was refused, but the Powerwall's own Wi-Fi took
+        the gateway password: only the Wi-Fi password connection can work
+        without the customer password (#23). Or go back and enter it."""
+        return self.async_show_menu(step_id="wifi_only", menu_options=["wifi", "gateway"])
+
     async def async_step_wifi(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         self._mode, self._register = MODE_WIFI, False
         if user_input is not None:
@@ -769,7 +863,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 self._made_key = key_path
             self._key_state = await self._async_register()
         except _REGISTER_ERRORS as err:
-            _LOGGER.warning("Key registration failed: %s", err)
+            _LOGGER.warning("Key registration failed: %s", scrub(err))
             return self.async_abort(reason=_register_failure(err), description_placeholders=LINKS)
         self._data[CONF_RSA_KEY_PATH] = key_path
         if self._key_state == tesla_cloud.KEY_VERIFIED:
@@ -811,7 +905,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         try:
             self._key_state = self._verify_task.result()
         except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Key confirmation failed: %s", err)
+            _LOGGER.warning("Key confirmation failed: %s", scrub(err))
             self._key_state = None
         self._verify_task = None
         if self._key_state == tesla_cloud.KEY_VERIFIED:
@@ -837,11 +931,16 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             din = await self.hass.async_add_executor_job(partial(
                 _probe, self._mode, data[CONF_HOST], data.get(CONF_GW_PWD, ""),
                 data.get(CONF_RSA_KEY_PATH, ""), str(self.hass.config.time_zone),
-                full_login=bool(data.get(CONF_FULL_PASSWORD_LOGIN))))
+                full_login=bool(data.get(CONF_FULL_PASSWORD_LOGIN)),
+                customer_pwd=data.get(CONF_CUSTOMER_PASSWORD, "")))
         except client.ClientTooOld as err:
             return self._abort_client_too_old(err)
         except (CannotConnect, KeyNotAccepted, InvalidRsaKey, PasswordRequired) as err:
             _LOGGER.debug("Connection check failed: %r", err)
+            if self.source == SOURCE_REAUTH:
+                # The entry exists: going back to the gateway step would end
+                # in "already configured" (and drop a key just confirmed).
+                return self._show_reauth_connect_failed(_gateway_errors(err))
             return self.async_show_form(
                 step_id="connect_failed", data_schema=vol.Schema({}),
                 errors=_gateway_errors(err))
@@ -862,6 +961,26 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         """Shown when the final connection check fails; submitting goes back to
         the gateway step (address, password) to correct it."""
         return await self.async_step_gateway()
+
+    def _show_reauth_connect_failed(self, errors: dict[str, str]) -> ConfigFlowResult:
+        return self.async_show_form(
+            step_id="reauth_connect_failed",
+            data_schema=vol.Schema({vol.Required(CONF_NEXT, default=RETRY): SelectSelector(SelectSelectorConfig(
+                options=[RETRY, START_OVER], translation_key="reauth_connect_failed", mode=SelectSelectorMode.LIST))}),
+            errors=errors)
+
+    async def async_step_reauth_connect_failed(self, user_input: dict[str, Any] | None = None
+                                               ) -> ConfigFlowResult:
+        """The final check failed in a reauth: try again with the same key and
+        passwords (the gateway was briefly away, or still applying the key),
+        or go back to the menu the reauth started from."""
+        if user_input is None:
+            return self._show_reauth_connect_failed({})
+        if user_input[CONF_NEXT] == RETRY:
+            return await self._async_connect()
+        if self._new_key:
+            return await self.async_step_new_key()
+        return await self.async_step_reauth_confirm()
 
     async def _async_finish(self) -> ConfigFlowResult:
         if not self.unique_id or not self._din:
@@ -917,7 +1036,10 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         accepted: remove the key it used, unless another entry uses that file
         (keys outside the integration folder are never removed). The
         Powerwall itself keeps trusting the old key."""
-        self._made_key = None  # in use now: not removed with the flow
+        made, self._made_key = self._made_key, None  # in use now: not removed with the flow
+        if made and new_path and os.path.abspath(made) != os.path.abspath(new_path):
+            # Made here, then another key was used instead (Start over).
+            self.hass.async_add_executor_job(tesla_cloud.remove_key_files, self._folder, made)
         old_path = entry.data.get(CONF_RSA_KEY_PATH)
         if not old_path or not new_path or os.path.abspath(old_path) == os.path.abspath(new_path):
             return
@@ -958,7 +1080,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         entry = self._get_reauth_entry()
         self._title_host(entry)
         self._data = {k: entry.data[k] for k in (CONF_HOST, CONF_GW_PWD, CONF_FULL_PASSWORD_LOGIN,
-                                                   CONF_WIFI_HOST, CONF_RSA_KEY_PATH)
+                                                   CONF_CUSTOMER_PASSWORD, CONF_WIFI_HOST, CONF_RSA_KEY_PATH)
                       if k in entry.data}
         self._din = entry.unique_id
         self._mode = entry.data.get(CONF_CONNECTION_MODE, MODE_V1R)
@@ -989,17 +1111,31 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         errors: dict[str, str] = {}
         if user_input is not None:
             gw_pwd = user_input[CONF_GW_PWD].strip()
+            customer_pwd = (user_input.get(CONF_CUSTOMER_PASSWORD) or "").strip()
             try:
-                _, full = await self.hass.async_add_executor_job(_check_gateway, self._data[CONF_HOST], gw_pwd)
+                _, full = await self.hass.async_add_executor_job(_check_gateway, self._data[CONF_HOST], gw_pwd,
+                                                                 customer_pwd)
             except (gateway.GatewayUnreachable, gateway.GatewayPasswordRejected) as err:
-                errors = _gateway_errors(err)
+                errors = _password_errors(err, customer_pwd)
             else:
                 entry = self._get_reauth_entry()
-                return self._update_and_reload(
-                    entry, data={**entry.data, CONF_GW_PWD: gw_pwd, CONF_FULL_PASSWORD_LOGIN: full})
+                if await self.hass.async_add_executor_job(
+                        _wifi_password_refused, entry.data.get(CONF_WIFI_HOST) or "", self._data[CONF_HOST],
+                        gw_pwd, customer_pwd):
+                    errors = {CONF_GW_PWD: "wifi_fallback_password_refused"}
+                else:
+                    return self._update_and_reload(
+                        entry, data={**entry.data, CONF_GW_PWD: gw_pwd, CONF_FULL_PASSWORD_LOGIN: full,
+                                     CONF_CUSTOMER_PASSWORD: customer_pwd})
         return self.async_show_form(
             step_id="reauth_password",
-            data_schema=vol.Schema({vol.Required(CONF_GW_PWD): PASSWORD}),
+            data_schema=vol.Schema({
+                vol.Required(CONF_GW_PWD): PASSWORD,
+                # Suggested, so re-entering only the sticker password keeps a
+                # customer password set earlier; clearing the field removes it.
+                vol.Optional(CONF_CUSTOMER_PASSWORD, description={"suggested_value": (
+                    self._get_reauth_entry().data.get(CONF_CUSTOMER_PASSWORD) or "")}): PASSWORD,
+            }),
             errors=errors,
         )
 
@@ -1019,39 +1155,53 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             mode = MODE_V1R if key_path else MODE_WIFI
             host = user_input[CONF_HOST].strip()
             gw_pwd = user_input.get(CONF_GW_PWD, "").strip()
-            full = await self.hass.async_add_executor_job(_login_mode, host, gw_pwd)
+            customer_pwd = (user_input.get(CONF_CUSTOMER_PASSWORD) or "").strip()
+            full = False if customer_pwd else await self.hass.async_add_executor_job(_login_mode, host, gw_pwd)
             try:
                 din = await self.hass.async_add_executor_job(partial(
-                    _probe, mode, host, gw_pwd, key_path, str(self.hass.config.time_zone), full_login=full))
+                    _probe, mode, host, gw_pwd, key_path, str(self.hass.config.time_zone), full_login=full,
+                    customer_pwd=customer_pwd))
             except client.ClientTooOld as err:
                 return self._abort_client_too_old(err)
             except (CannotConnect, KeyNotAccepted, InvalidRsaKey, PasswordRequired) as err:
                 errors = _gateway_errors(err)
                 if isinstance(err, InvalidRsaKey):
                     errors = {CONF_RSA_KEY_PATH: "invalid_rsa_key"}
+                elif mode == MODE_V1R and isinstance(err, (CannotConnect, KeyNotAccepted)):
+                    # The signed check logs in first: a refused password
+                    # looks like a key that isn't accepted. Say which.
+                    refused = await self.hass.async_add_executor_job(
+                        _login_refused, host, gw_pwd, customer_pwd)
+                    if refused:
+                        errors = refused
             else:
                 await self.async_set_unique_id(din)
                 self._abort_if_unique_id_mismatch()
                 wifi_host = user_input.get(CONF_WIFI_HOST, "").strip()
-                data = dict(entry.data)
-                if host != entry.data.get(CONF_HOST):
-                    # A new address: forget the MACs learnt so far (a replaced
-                    # gateway, or a device that once held the old address,
-                    # must not be able to pull the entry to itself). The MAC
-                    # is learnt again at the new address.
-                    data.pop(CONF_MACS, None)
-                return self._update_and_reload(
-                    entry,
-                    data={
-                        **data,
-                        CONF_CONNECTION_MODE: mode,
-                        CONF_HOST: host,
-                        CONF_GW_PWD: gw_pwd,
-                        CONF_FULL_PASSWORD_LOGIN: full,
-                        CONF_RSA_KEY_PATH: key_path,
-                        CONF_WIFI_HOST: wifi_host if mode == MODE_V1R and wifi_host != host else "",
-                    },
-                )
+                if mode == MODE_V1R and await self.hass.async_add_executor_job(
+                        _wifi_password_refused, wifi_host, host, gw_pwd, customer_pwd):
+                    errors = {CONF_GW_PWD: "wifi_fallback_password_refused"}
+                else:
+                    data = dict(entry.data)
+                    if host != entry.data.get(CONF_HOST):
+                        # A new address: forget the MACs learnt so far (a replaced
+                        # gateway, or a device that once held the old address,
+                        # must not be able to pull the entry to itself). The MAC
+                        # is learnt again at the new address.
+                        data.pop(CONF_MACS, None)
+                    return self._update_and_reload(
+                        entry,
+                        data={
+                            **data,
+                            CONF_CONNECTION_MODE: mode,
+                            CONF_HOST: host,
+                            CONF_GW_PWD: gw_pwd,
+                            CONF_FULL_PASSWORD_LOGIN: full,
+                            CONF_CUSTOMER_PASSWORD: customer_pwd,
+                            CONF_RSA_KEY_PATH: key_path,
+                            CONF_WIFI_HOST: wifi_host if mode == MODE_V1R and wifi_host != host else "",
+                        },
+                    )
             current.update(user_input)
 
         schema = vol.Schema({
@@ -1062,6 +1212,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                          description={"suggested_value": current.get(CONF_RSA_KEY_PATH, "") or ""}): str,
             vol.Optional(CONF_WIFI_HOST,
                          description={"suggested_value": current.get(CONF_WIFI_HOST, "") or ""}): str,
+            vol.Optional(CONF_CUSTOMER_PASSWORD,
+                         description={"suggested_value": current.get(CONF_CUSTOMER_PASSWORD, "") or ""}): PASSWORD,
         })
         return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)
 

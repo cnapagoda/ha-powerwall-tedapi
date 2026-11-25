@@ -42,12 +42,13 @@ async def test_gateway_password_checked_first(hass: HomeAssistant, fake_gateway)
 
 
 async def test_cleared_wifi_fallback_stays_cleared(hass: HomeAssistant) -> None:
-    """The fallback address is suggested, not a default: the frontend leaves a
-    cleared field out, and it must not come back as 192.168.91.1."""
+    """The fallback address is empty unless entered (not every setup has Home
+    Assistant on the Powerwall's Wi-Fi), and never a default: the frontend
+    leaves a cleared field out, and it must not come back as 192.168.91.1."""
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "gateway"})
     field = next(k for k in result["data_schema"].schema if k == "wifi_host")
-    assert field.description == {"suggested_value": "192.168.91.1"}
+    assert field.description == {"suggested_value": ""}
     assert field.default is vol.UNDEFINED
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"host": "192.168.1.50", "gw_pwd": PWD})
@@ -215,9 +216,9 @@ async def test_scan(hass: HomeAssistant) -> None:
     assert result["step_id"] == "gateway" and result["errors"] == {"base": "none_found"}
 
 
-async def test_dhcp_follows_new_address(hass: HomeAssistant) -> None:
+async def test_dhcp_follows_new_address(hass: HomeAssistant, caplog) -> None:
     """A known gateway (by its MAC) is followed to its new address, without
-    sending it the password."""
+    sending it the password. The log names the entry, not its DIN (2.8.2)."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={
         "connection_mode": "v1r", "host": "192.168.1.50", "gw_pwd": PWD, "rsa_key_path": "/k",
         "macs": ["aabbccddeeff"]})
@@ -229,6 +230,9 @@ async def test_dhcp_follows_new_address(hass: HomeAssistant) -> None:
     assert result["reason"] == "already_configured"
     assert entry.data["host"] == "192.168.1.60"
     check.assert_not_called()
+    assert "the gateway's address changed" in caplog.text
+    assert "192.168.1.50" not in caplog.text and "192.168.1.60" not in caplog.text
+    assert DIN not in caplog.text and DIN.split("--")[-1] not in caplog.text
 
 
 async def test_dhcp_never_sends_a_stored_password(hass: HomeAssistant) -> None:

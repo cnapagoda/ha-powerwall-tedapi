@@ -31,6 +31,7 @@ DISPATCH_REASONS = {
     "max_soc": "upper limit reached",
     "stopped": "stopped",
     "connection_lost": "connection lost",
+    "battery_level_unknown": "battery level unknown",
     "unloaded": "integration unloaded",
 }
 OFF_GRID_REASONS = {

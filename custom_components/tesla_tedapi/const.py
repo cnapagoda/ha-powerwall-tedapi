@@ -50,6 +50,10 @@ CONF_MACS = "macs"
 # Backup Gateway 1: the customer login takes the full gateway password, not its
 # last 5 characters (found from the gateway's DIN at setup).
 CONF_FULL_PASSWORD_LOGIN = "full_password_login"
+# The gateway's local customer login password, when it differs from the
+# sticker password (an owner or installer changed it). Empty: derived from the
+# sticker password (its last 5 characters, or all of it).
+CONF_CUSTOMER_PASSWORD = "customer_password"
 # The oldest pypowerwall this version works with: the same as the lower
 # bound in manifest.json (a test keeps them in step).
 MIN_PYPOWERWALL = (0, 25, 0)
@@ -206,6 +210,12 @@ DISPATCH_MAX_SECONDS = 86400
 DISPATCH_CHUNK_SECONDS = 300
 DISPATCH_RENEW_SECONDS = 60
 DISPATCH_MAX_FAILURES = 3
+# A dispatch is only renewed while the battery level is fresher than this (s),
+# or than 2.5 polling intervals if that's longer: its limits are checked
+# against it. Once the last command has run out (DISPATCH_CHUNK_SECONDS
+# later), the session ends.
+DISPATCH_STALE_SECONDS = 120
+DISPATCH_STALE_POLLS = 2.5
 
 EVENT_DISPATCH_ENDED = f"{DOMAIN}_dispatch_ended"
 
@@ -231,6 +241,7 @@ ATTR_SOURCE_CHARGED = "source_charged"
 ATTR_SOURCE_DISCHARGED = "source_discharged"
 ATTR_TOU_SETTINGS = "tou_settings"
 ATTR_DRY_RUN = "dry_run"
+ATTR_NET = "net"
 ATTR_READ_BACK = "read_back"
 ATTR_ONLY_IF_CHANGED = "only_if_changed"
 SERVICE_CHARGE_TO = "charge_to"
@@ -261,6 +272,12 @@ ATTR_TARGET_SOC = "target_soc"
 ATTR_MAX_MINUTES = "max_minutes"
 
 
+# The bottom of the battery (% of full) that the Tesla app hides: the
+# Powerwall keeps it to stay awake and restart solar, so it can't be used,
+# even in an outage.
+APP_HIDDEN_PCT = 5
+
+
 def app_soc(raw: float | None) -> float | None:
     """Convert the gateway's state of energy to the Tesla app scale.
 
@@ -268,4 +285,4 @@ def app_soc(raw: float | None) -> float | None:
     """
     if raw is None:
         return None
-    return round(max(0.0, min(100.0, (raw - 5) / 0.95)), 1)
+    return round(max(0.0, min(100.0, (raw - APP_HIDDEN_PCT) / (1 - APP_HIDDEN_PCT / 100))), 1)

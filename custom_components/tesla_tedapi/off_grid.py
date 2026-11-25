@@ -30,6 +30,7 @@ from .const import (
     RECONNECT_RETRY_SECONDS,
 )
 from .coordinator import TedapiCoordinator
+from .privacy import scrub
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ class OffGridSession:
             try:
                 await self.coordinator.async_send_island(False)
             except HomeAssistantError as err:
-                _LOGGER.warning("Could not take back the off-grid request: %s", err)
+                _LOGGER.warning("Could not take back the off-grid request: %s", scrub(err))
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="off_grid_not_confirmed")
 
         now = dt_util.utcnow()
@@ -247,7 +248,7 @@ class OffGridSession:
         except HomeAssistantError as err:
             self._retry_at = time.monotonic() + RECONNECT_RETRY_SECONDS
             _LOGGER.error("Automatic grid reconnect (%s) failed, trying again in %s s: %s",
-                          reason, RECONNECT_RETRY_SECONDS, err)
+                          reason, RECONNECT_RETRY_SECONDS, scrub(err))
             if not self._issue:
                 self._issue = True
                 ir.async_create_issue(

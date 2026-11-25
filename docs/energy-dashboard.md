@@ -13,8 +13,10 @@ Open **Settings → Dashboards → Energy** (or select the ⚙️ on the Energy 
 | **Electricity grid** | Grid consumption | **Grid energy imported** (`sensor.powerwall_tedapi_grid_energy_imported`) |
 | | Return to grid | **Grid energy exported** (`sensor.powerwall_tedapi_grid_energy_exported`) |
 | **Solar panels** | Solar production | **Solar energy produced** (`sensor.powerwall_tedapi_solar_energy_produced`) |
-| **Home battery storage** | Energy going in to the battery | **Battery energy charged** (`sensor.powerwall_tedapi_battery_energy_charged`) |
-| | Energy coming out of the battery | **Battery energy discharged** (`sensor.powerwall_tedapi_battery_energy_discharged`) |
+| **Home battery storage** | Energy going in to the battery | **Battery energy charged (net)** (`sensor.powerwall_tedapi_battery_energy_charged_net`) |
+| | Energy coming out of the battery | **Battery energy discharged (net)** (`sensor.powerwall_tedapi_battery_energy_discharged_net`) |
+
+The **(net)** battery sensors count the battery the way the Tesla app does. The gateway's own **Battery energy charged** and **Battery energy discharged** count some energy both ways at once (a few tenths of a kWh a day each way on some systems), so they read a little higher in both directions than the app. If your Energy dashboard already uses them, they still work: the net figure (in minus out) is the same. To switch, pick the (net) sensors; the dashboard then shows battery figures from the day you switch, unless you copy the earlier history into them with [`import_battery_history`](actions.md#tesla_tedapiimport_battery_history) and `net: true` (for example from the gateway's counters, or from Tesla Fleet's or Teslemetry's battery sensors).
 
 You don't need **Home energy consumed** here: the Energy dashboard works out your home's use from the others. Keep it for your own cards, or for comparison.
 

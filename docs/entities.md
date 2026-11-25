@@ -54,10 +54,10 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 |---|---|---|---|
 | **Battery level** | `sensor.powerwall_tedapi_battery_level` | % | **Same scale as the Tesla app.** Use this one in automations; dispatch limits use it too. |
 | Battery state of energy 🩺 | `sensor.powerwall_tedapi_battery_state_of_energy` | % | The gateway's raw value, about 2–4 points higher than the app (the app hides the bottom 5 %: app = (raw − 5) ÷ 0.95). |
-| Battery energy remaining | `sensor.powerwall_tedapi_battery_energy_remaining` | kWh | |
+| Battery energy remaining | `sensor.powerwall_tedapi_battery_energy_remaining` | kWh | Includes the bottom 5 % of the battery that the Tesla app hides, as **Battery full capacity** does. Attribute: `usable_kwh`, the energy above the app's 0 %. |
 | Battery full capacity 🩺 | `sensor.powerwall_tedapi_battery_full_capacity` | kWh | Attributes: each pack's `serial` and `full_kwh`. |
-| Backup time remaining | `sensor.powerwall_tedapi_backup_time_remaining` | h | The gateway's estimate at the current load. |
-| Battery round-trip efficiency 🩺 | `sensor.powerwall_tedapi_battery_round_trip_efficiency` | % | Lifetime energy out of the battery ÷ lifetime energy in (the gateway's counters). Measured at the battery, so conversion losses aren't included: the round trip seen from the grid is lower. Unknown below 50 kWh charged, and above 100 % (the counters then don't cover the same energy). |
+| Backup time remaining | `sensor.powerwall_tedapi_backup_time_remaining` | h | How long the usable energy (above the app's 0 %) lasts at the current home load. The Powerwall stops there in an outage too; the backup reserve doesn't apply then. |
+| Battery round-trip efficiency 🩺 | `sensor.powerwall_tedapi_battery_round_trip_efficiency` | % | Lifetime energy out of the battery ÷ lifetime energy in (the gateway's counters). Measured at the battery, so conversion losses aren't included: the round trip seen from the grid is lower. Unknown below 50 kWh charged, and above 100 % (the counters then don't cover the same energy). Attributes: `charged_kwh` and `discharged_kwh` (the lifetime counters it divides), `basis` (`battery_side_lifetime`), `min_charged_kwh` and `unknown_reason` (`not_enough_history`, `counters_disagree` or `no_counters` when it's unknown). |
 | Battery capacity trend 🩺 | `sensor.powerwall_tedapi_battery_capacity_trend` | %/y | How fast the full capacity changes, in % of the rated 13.5 kWh per year (negative while it falls): a straight line through one sample a day of the full capacity per pack. *Unknown* until there are 30 samples over 90 days. Starts over when a pack is added or removed (a new pack count that lasts into the next day). The gateway's capacity estimate moves with the seasons, so read it over a year or more. Attributes: `kwh_per_year`, `fit_kwh`, `samples`, `days`. |
 | Battery warranty level date (estimate) 🩺 | `sensor.powerwall_tedapi_battery_warranty_level_date_estimate` | | When that line reaches the warranty level (70 % of 13.5 kWh). *Unknown* while the trend is flat or rising. An extrapolation, not a prediction. |
 | Battery health 🩺 | `sensor.powerwall_tedapi_battery_health` | % | The packs' full capacity ÷ (13.5 kWh × packs). While a follower Powerwall 3 is missing from the readings: the system's full capacity ÷ (13.5 kWh × every pack in the gateway's configuration), so it still covers the whole system. A new battery reads above 100 %. Attributes: `nominal_kwh_per_pack`, `packs` (in the system), `packs_read` (in the readings), `warranty_kwh` (70 % of 13.5 kWh per pack), `lifetime_discharged_kwh` (of the packs read). |
@@ -86,8 +86,12 @@ One set per Powerwall and expansion pack, named after the pack (*Powerwall 3*, *
 | Grid energy exported | `sensor.powerwall_tedapi_grid_energy_exported` |
 | Battery energy charged | `sensor.powerwall_tedapi_battery_energy_charged` |
 | Battery energy discharged | `sensor.powerwall_tedapi_battery_energy_discharged` |
+| Battery energy charged (net) | `sensor.powerwall_tedapi_battery_energy_charged_net` |
+| Battery energy discharged (net) | `sensor.powerwall_tedapi_battery_energy_discharged_net` |
 | Solar energy produced | `sensor.powerwall_tedapi_solar_energy_produced` |
 | Home energy consumed | `sensor.powerwall_tedapi_home_energy_consumed` |
+
+The **(net)** pair is the battery counters as the Tesla app counts them: charged and discharged are netted in 5-minute windows, so energy the gateway counts both ways at once is left out. They start from the gateway's counters and are kept across restarts. The Energy dashboard guide recommends them for the battery.
 
 A reading that is missing or zero is ignored, and so is a reading lower than the last one, so a glitch never looks like a meter reset in your statistics. Only a lower reading that stays for 10 readings in a row is taken as a real counter reset (for example a replaced gateway).
 
@@ -103,7 +107,7 @@ They're meant for cards and automations. For the Energy dashboard, use the lifet
 
 ### Energy flows
 
-Where the energy went, in kWh (`total_increasing`). The gateway meters four things (solar, battery, grid, home), not the flows between them, so these are **attributed** from the power readings: solar feeds the home first, then the battery, then the grid; the battery feeds what the home still needs, then the grid; the grid feeds the rest. They count from when you install this version, need no cloud, and miss the time the gateway couldn't be read (a gap of more than 5 minutes isn't counted, or of more than 2½ polls with a longer polling interval).
+Where the energy went, in kWh (`total_increasing`). The gateway meters four things (solar, battery, grid, home), not the flows between them, so these are **attributed** from the power readings: solar charges the battery first (as Tesla's own counters do), then feeds the home, then the grid; the battery feeds what the home still needs, then the grid; the grid feeds the rest. So while the home draws from the grid and the battery charges at the same time (for example time-based control storing solar off-peak, or grid charging with the sun up), solar counts as going into the battery and the grid as running the home. They count from when you install this version, need no cloud, and miss the time the gateway couldn't be read (a gap of more than 5 minutes isn't counted, or of more than 2½ polls with a longer polling interval).
 
 | Entity | Entity ID |
 |---|---|
@@ -307,6 +311,7 @@ Read from the gateway every 5 minutes (the site limits with each full read where
 | `checks` | Each check and whether it passes: `password_set`, `signed_connection` (signed setups), `gateway_reachable`, `energy_counters`, `cloud_backup` (when a cloud backup is set up). |
 | `problems` | The checks that fail. |
 | `wifi_fallback` | Whether a Wi-Fi fallback address is set (signed setups). |
+| `wifi_fallback_reachable` | Whether the Wi-Fi fallback address answered at the last check (every 30 minutes); empty until checked or without one. It doesn't make **Setup health** degraded; a repair appears after an hour without an answer, if the address has answered before. |
 | `cloud_linked` | Whether a cloud backup is set up. |
 | `cloud_backends` | Per backup: `ok`, `starting`, `can_change_settings`, `failures`, `last_ok`. |
 | `cloud_token_expires` | When the Owner API access token expires (it's renewed automatically). |

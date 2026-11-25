@@ -93,13 +93,15 @@ def plan(hass: HomeAssistant, target: str, source: str) -> dict[str, Any]:
 
 
 async def async_import(hass: HomeAssistant, din: str | None, sources: dict[str, str],
-                       dry_run: bool) -> dict[str, Any]:
-    """Plan (and unless dry_run, run) the import for both battery sensors."""
+                       dry_run: bool, net: bool = False) -> dict[str, Any]:
+    """Plan (and unless dry_run, run) the import for both battery sensors:
+    the gateway's counters, or with `net` the netted pair (battery_net.py)."""
     from homeassistant.components.recorder import get_instance  # noqa: PLC0415
     from homeassistant.components.recorder.statistics import async_import_statistics  # noqa: PLC0415
 
     registry = er.async_get(hass)
-    targets = {key: registry.async_get_entity_id("sensor", DOMAIN, f"{din}_{key}") for key in KEYS}
+    suffix = "_net" if net else ""
+    targets = {key: registry.async_get_entity_id("sensor", DOMAIN, f"{din}_{key}{suffix}") for key in KEYS}
     if not all(targets.values()):
         raise _refuse("history_no_target", sensor=", ".join(k for k, v in targets.items() if not v))
     instance = get_instance(hass)

@@ -4,7 +4,8 @@ A dispatch tells the Powerwall to run the battery at a fixed power, overriding
 its backup reserve and export setting. Instead of sending the full duration at
 once, a session sends short commands (DISPATCH_CHUNK_SECONDS) and renews them,
 so the Powerwall goes back to normal within minutes if Home Assistant stops. It
-also stops on state-of-charge limits, which the Powerwall itself ignores."""
+also stops on state-of-charge limits, which the Powerwall itself ignores, and
+is only renewed while the battery level it checks them against is fresh."""
 from __future__ import annotations
 
 import asyncio
@@ -27,10 +28,13 @@ from .const import (
     DISPATCH_DEFAULT_WATTS,
     DISPATCH_MAX_FAILURES,
     DISPATCH_RENEW_SECONDS,
+    DISPATCH_STALE_POLLS,
+    DISPATCH_STALE_SECONDS,
     DOMAIN,
     EVENT_DISPATCH_ENDED,
 )
 from .coordinator import TedapiCoordinator
+from .privacy import scrub
 
 _LOGGER = logging.getLogger(__name__)
 # pypowerwall (0.22.2+) logs a warning for every accepted dispatch command.
@@ -72,6 +76,8 @@ class DispatchSession:
         self.last_end_reason: str | None = None
         self._unsubs: list[CALLBACK_TYPE] = []
         self._failures = 0
+        # Whether a missing battery level has been logged for this stretch.
+        self._stale_logged = False
         self._listeners: list[Callable[[], None]] = []
         # Every command to the gateway (start, renewal, resume) is sent under
         # this lock, so they reach it in order: a resume can't overtake a
@@ -165,6 +171,16 @@ class DispatchSession:
         now = dt_util.utcnow()
         state = DispatchState(power_watts, now, now + timedelta(seconds=duration_seconds),
                               min_soc, max_soc, target)
+        # A charge or discharge needs a fresh battery level to check its
+        # limits against. Refusing here also covers a planner re-sending its
+        # dispatch every few minutes: a re-send can't keep a blind session
+        # going (a 0 W hold moves no energy, so it may).
+        age = self._level_age()
+        if power_watts != 0 and (age is None or age > self._stale_limit()):
+            raise ServiceValidationError(
+                "The battery level hasn't been read recently, so the dispatch limits can't be checked",
+                translation_domain=DOMAIN, translation_key="dispatch_battery_level_unknown",
+            )
         reason = self._limit_hit(state)
         if reason:
             raise ServiceValidationError(
@@ -187,6 +203,7 @@ class DispatchSession:
         self._cancel_timers()
         self.state = state
         self._failures = 0
+        self._stale_logged = False
         self._unsubs = [
             async_track_time_interval(self.hass, self._async_tick,
                                       timedelta(seconds=DISPATCH_RENEW_SECONDS)),
@@ -231,7 +248,7 @@ class DispatchSession:
             async with self._send_lock:
                 await self.coordinator.async_send_resume()
         except HomeAssistantError as err:
-            _LOGGER.warning("Could not resume the battery while unloading: %s", err)
+            _LOGGER.warning("Could not resume the battery while unloading: %s", scrub(err))
 
     async def async_move_to(self, target_soc: float, power_watts: float, minutes: int,
                             charge: bool) -> dict[str, Any]:
@@ -279,12 +296,38 @@ class DispatchSession:
                 await self.coordinator.async_send_resume()
         except HomeAssistantError as err:
             # The last command expires on its own within DISPATCH_CHUNK_SECONDS.
-            _LOGGER.warning("Resume after %s failed: %s", reason, err)
+            _LOGGER.warning("Resume after %s failed: %s", reason, scrub(err))
         await self.coordinator.async_request_refresh()
 
     async def _async_at_end(self, _now: datetime) -> None:
         if self.state is not None:
             await self._async_resume_quietly("completed")
+
+    def _level_age(self) -> float | None:
+        """Seconds since the gateway last gave a battery level, or None if it
+        hasn't (the coordinator records it only from a real local reading)."""
+        read_at = self.coordinator.battery_level_at
+        return None if read_at is None else (dt_util.utcnow() - read_at).total_seconds()
+
+    def _stale_limit(self) -> float:
+        """How old the battery level may be to renew on: 2 minutes, or 2.5
+        polling intervals on a slower poll."""
+        interval = self.coordinator.update_interval
+        polls = interval.total_seconds() * DISPATCH_STALE_POLLS if interval else 0
+        return max(DISPATCH_STALE_SECONDS, polls)
+
+    def _stale_for(self, state: DispatchState) -> float | None:
+        """Seconds since the last battery level, if it's too old to renew on;
+        None while it's fresh, and always for a 0 W hold."""
+        if state.power_watts == 0:
+            return None
+        age = self._level_age()
+        if age is None:  # no reading at all: count from the session's start
+            age = (dt_util.utcnow() - state.started).total_seconds()
+        if age > self._stale_limit():
+            return age
+        self._stale_logged = False  # fresh again: a later gap is logged again
+        return None
 
     @callback
     def _on_reading(self) -> None:
@@ -311,6 +354,23 @@ class DispatchSession:
             return
         if (state.ends - dt_util.utcnow()).total_seconds() < 1:
             return  # the end timer handles it
+        stale = self._stale_for(state)
+        if stale is not None:
+            # Without a fresh battery level the limits can't be checked, and
+            # the Powerwall ignores its backup reserve during a dispatch: don't
+            # renew. The last command runs out on its own; end the session
+            # once it has.
+            if stale >= self._stale_limit() + DISPATCH_CHUNK_SECONDS:
+                _LOGGER.warning("Battery dispatch ended: no battery level from the gateway for %d s",
+                                stale)
+                await self._async_resume_quietly("battery_level_unknown")
+                return
+            if not self._stale_logged:
+                self._stale_logged = True
+                _LOGGER.warning("Battery dispatch not renewed: no fresh battery level from the gateway "
+                                "(%d s); it ends if none arrives within %d s", stale,
+                                self._stale_limit() + DISPATCH_CHUNK_SECONDS - stale)
+            return
         try:
             async with self._send_lock:
                 if self.state is not state:
@@ -320,6 +380,6 @@ class DispatchSession:
         except HomeAssistantError as err:
             self._failures += 1
             _LOGGER.warning("Battery dispatch renewal failed (%s/%s): %s",
-                            self._failures, DISPATCH_MAX_FAILURES, err)
+                            self._failures, DISPATCH_MAX_FAILURES, scrub(err))
             if self._failures >= DISPATCH_MAX_FAILURES and self.state is state:
                 self._end("connection_lost")

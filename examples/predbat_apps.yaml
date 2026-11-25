@@ -64,7 +64,9 @@ pred_bat:
     clock_time_format: "%Y-%m-%d %H:%M:%S"
     write_and_poll_sleep: 2
     has_time_window: False
-    # A 0 W dispatch holds the battery (no charge, no discharge)
+    # A 0 W dispatch holds the battery (no charge, no discharge). For freeze
+    # exporting the home then runs from the grid, not the battery; set
+    # support_discharge_freeze: False if you'd rather Predbat didn't plan it.
     support_charge_freeze: True
     support_discharge_freeze: True
     has_idle_time: False

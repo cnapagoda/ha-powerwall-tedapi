@@ -188,3 +188,23 @@ async def test_missing_target_entities(hass: HomeAssistant, fake_powerwall) -> N
     with pytest.raises(ServiceValidationError):
         await async_import(hass, "OTHER-DIN", {"battery_energy_charged": "sensor.a",
                                                "battery_energy_discharged": "sensor.b"}, True)
+
+
+async def test_net_imports_into_the_net_sensors(hass: HomeAssistant, fake_powerwall) -> None:
+    """2.8.2 (#35): `net` copies into the netted pair instead of the gateway's counters."""
+    ids = await _setup(hass)
+    registry = er.async_get(hass)
+    net = {key: registry.async_get_entity_id("sensor", DOMAIN, f"{DIN}_battery_energy_{key}_net")
+           for key in ("charged", "discharged")}
+    _counter(ids["src_charged"], T0, 72, 1.0)
+    _counter(ids["src_discharged"], T0, 72, 0.5)
+    _counter(net["charged"], JOIN, 24, 1.0, first_state=6539.0)
+    _counter(net["discharged"], JOIN, 24, 0.5, first_state=6354.0)
+    await async_wait_recording_done(hass)
+    resp = await _call(hass, net=True)
+    assert resp["battery_energy_charged"]["target"] == net["charged"]
+    assert resp["battery_energy_discharged"]["target"] == net["discharged"]
+    assert resp["battery_energy_charged"]["hours"] == 48
+    # Without it, the gateway's counters (no history of their own here) are the target.
+    with pytest.raises(ServiceValidationError):
+        await _call(hass)

@@ -22,12 +22,14 @@
         "data": {
           "host": "Gateway address",
           "gw_pwd": "Gateway password",
-          "wifi_host": "Wi-Fi fallback address"
+          "wifi_host": "Wi-Fi fallback address",
+          "customer_password": "Customer password (optional)"
         },
         "data_description": {
           "host": "The gateway's address on your home network, for example `192.168.1.50`. Your router lists it as `teslapw_…`.",
           "gw_pwd": "The whole password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Letters are upper case. Most gateways also accept just its last 5 characters; a Backup Gateway 1 needs the whole password.",
-          "wifi_host": "The Powerwall's Wi-Fi hotspot, used over the same signed connection when the home-network address stops answering. Leave empty if Home Assistant cannot reach the hotspot. Also used to read follower Powerwall 3s, which the signed connection can't reach over the home network."
+          "wifi_host": "Optional. Enter the Powerwall's Wi-Fi hotspot address (usually `192.168.91.1`) only if Home Assistant is also connected to the Powerwall's own `TeslaPW_…` Wi-Fi; otherwise leave it empty. It's used over the same signed connection when the home-network address stops answering, and to read follower Powerwall 3s, which the signed connection can't reach over the home network.",
+          "customer_password": "Only if the gateway's customer login password was changed and no longer matches the sticker (for example by an installer, or on an older firmware's web page). Used as it is for that login; leave empty to derive it from the gateway password."
         }
       },
       "access": {
@@ -49,6 +51,14 @@
         "data_description": {
           "key_file": "The private key file (`.pem`, starts with `-----BEGIN PRIVATE KEY-----` or `-----BEGIN RSA PRIVATE KEY-----`) whose public key is registered and VERIFIED on this Powerwall. Not the public key.",
           "cloud_backup": "Also sign in to a Tesla account, so settings can still be changed through the Tesla cloud when the local connection is down."
+        }
+      },
+      "wifi_only": {
+        "title": "Continue without the customer password",
+        "description": "The gateway refused its customer login, so its customer password was probably changed (for example by an installer). The Powerwall's own Wi-Fi accepted the gateway password, which needs no customer login, so setup can continue with the **Wi-Fi password** connection. It can read everything but can't change settings or dispatch the battery; link a Tesla account to change settings through the cloud. Home Assistant has to stay on the Powerwall's `TeslaPW_…` Wi-Fi.\n\nTo use a signed connection (local control) instead, enter the **Customer password**.",
+        "menu_options": {
+          "wifi": "Continue with the Wi-Fi password connection",
+          "gateway": "Enter the customer password"
         }
       },
       "wifi": {
@@ -93,6 +103,13 @@
         "title": "Could not connect",
         "description": "The last connection check failed (see the message below). Select **Submit** to go back and check the gateway address and password."
       },
+      "reauth_connect_failed": {
+        "title": "Could not connect",
+        "description": "The last connection check failed (see the message below). If the gateway was only away for a moment, or is still applying the key, try again. Otherwise start over to enter the password or use another key.",
+        "data": {
+          "next": "Next"
+        }
+      },
       "reauth_confirm": {
         "title": "The Powerwall no longer accepts Home Assistant",
         "description": "The gateway keeps refusing the password or the key. Readings stop until this is fixed; settings still work through the Tesla cloud if an account is linked.",
@@ -106,10 +123,12 @@
       "reauth_password": {
         "title": "Gateway password",
         "data": {
-          "gw_pwd": "Gateway password"
+          "gw_pwd": "Gateway password",
+          "customer_password": "Customer password (optional)"
         },
         "data_description": {
-          "gw_pwd": "The whole password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Letters are upper case. Most gateways also accept just its last 5 characters; a Backup Gateway 1 needs the whole password."
+          "gw_pwd": "The whole password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Letters are upper case. Most gateways also accept just its last 5 characters; a Backup Gateway 1 needs the whole password.",
+          "customer_password": "Only if the gateway's customer login password was changed and no longer matches the sticker (for example by an installer, or on an older firmware's web page). Used as it is for that login; leave empty to derive it from the gateway password."
         }
       },
       "reconfigure": {
@@ -119,13 +138,15 @@
           "host": "Gateway address",
           "gw_pwd": "Gateway password",
           "rsa_key_path": "RSA private key file",
-          "wifi_host": "Wi-Fi fallback address (signed only)"
+          "wifi_host": "Wi-Fi fallback address (signed only)",
+          "customer_password": "Customer password (optional)"
         },
         "data_description": {
           "host": "The gateway's address on your home network, for example `192.168.1.50`. Your router lists it as `teslapw_…`.",
           "gw_pwd": "The whole password on the QR sticker inside the Powerwall's cover (Powerwall 3: behind the front glass, lower left). Letters are upper case. Most gateways also accept just its last 5 characters; a Backup Gateway 1 needs the whole password.",
           "rsa_key_path": "Full path to the private key file on the Home Assistant host, for example `/config/tesla_tedapi/tedapi_rsa_private.pem`. Leave empty to use the Wi-Fi password connection (read only).",
-          "wifi_host": "The Powerwall's Wi-Fi hotspot address (usually `192.168.91.1`), used when the home-network address stops answering. Leave empty if Home Assistant can't reach the hotspot. Also used to read follower Powerwall 3s, which the signed connection can't reach over the home network."
+          "wifi_host": "The Powerwall's Wi-Fi hotspot address (usually `192.168.91.1`), used when the home-network address stops answering. Leave empty if Home Assistant can't reach the hotspot. Also used to read follower Powerwall 3s, which the signed connection can't reach over the home network.",
+          "customer_password": "Only if the gateway's customer login password was changed and no longer matches the sticker (for example by an installer, or on an older firmware's web page). Used as it is for that login; leave empty to derive it from the gateway password."
         }
       },
       "new_key": {
@@ -170,7 +191,9 @@
     "error": {
       "cannot_connect": "Could not reach the Powerwall at that address. Check the address (your router lists the gateway as `teslapw_…`), that the Powerwall is on and on the same network as Home Assistant, and try again.",
       "wifi_password_refused": "The Powerwall answered but refused the password. Check it on the QR sticker (letters are upper case). The password alone works only over the Powerwall's own Wi-Fi (`192.168.91.1`), not on its home-network address: there, use a signed connection.",
-      "invalid_gw_pwd": "The gateway refused this password. Check the QR sticker (letters are upper case).",
+      "invalid_gw_pwd": "The gateway refused this password. Check the QR sticker (letters are upper case). If the customer password was changed and nobody knows it, connect Home Assistant to the Powerwall's own `TeslaPW_…` Wi-Fi and enter `192.168.91.1`: setup can continue there without it, as a Wi-Fi password connection.",
+      "invalid_customer_pwd": "The gateway refused this customer password. Leave the field empty to use the sticker password.",
+      "wifi_fallback_password_refused": "The Powerwall's own Wi-Fi (the Wi-Fi fallback address) answered but refused the gateway password. Check it on the QR sticker (letters are upper case). With a customer password set, this is where the gateway password is checked.",
       "password_required": "Signed access needs the gateway password.",
       "invalid_rsa_key": "That is not an RSA private key in PEM format. Upload the private key file (it starts with `-----BEGIN`), not the public key.",
       "key_not_accepted": "The Powerwall did not accept the key. Check that it is the private key (not the public one), that it was registered for this Powerwall, and that the registration is VERIFIED (the On/Off switch step was done). Or choose **Register a new key**.",
@@ -454,8 +477,14 @@
       "battery_energy_charged": {
         "name": "Battery energy charged"
       },
+      "battery_energy_charged_net": {
+        "name": "Battery energy charged (net)"
+      },
       "battery_energy_discharged": {
         "name": "Battery energy discharged"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Battery energy discharged (net)"
       },
       "solar_energy_produced": {
         "name": "Solar energy produced"
@@ -770,6 +799,9 @@
     "dispatch_soc_limit": {
       "message": "The battery level ({soc}%) is already past the {limit} limit."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "The battery level hasn't been read from the gateway recently, so the dispatch's limits can't be checked. Try again once the gateway answers (a 0 W hold still works)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W is above the {cap} W limit set in the integration options."
     },
@@ -1065,6 +1097,10 @@
         "source_discharged": {
           "name": "Discharged source",
           "description": "The energy sensor with the battery's discharged energy to copy, for example Tesla Fleet's or Teslemetry's *Battery discharged*."
+        },
+        "net": {
+          "name": "Into the net sensors",
+          "description": "Copy into Battery energy charged (net) and Battery energy discharged (net) instead of the gateway's counters, for example after switching the Energy dashboard to them."
         }
       }
     },
@@ -1236,6 +1272,10 @@
       "title": "A Powerwall 3 is missing from the readings",
       "description": "{count} Powerwall 3 unit(s) on this gateway don't appear in the readings, although the Wi-Fi fallback (`{wifi_host}`) is set. On the signed connection follower Powerwalls are read over that Wi-Fi only: check that Home Assistant can still reach it.\n\nPower, energy and capacity totals already include every Powerwall; only the missing units' battery packs, temperatures and fans are absent. This clears by itself once they appear."
     },
+    "wifi_fallback_unreachable": {
+      "title": "The Wi-Fi fallback address can't be reached",
+      "description": "The Wi-Fi fallback address (`{wifi_host}`) hasn't answered for over an hour, so it can't take over if the gateway's home-network address stops answering, and follower Powerwall 3s can't be read over it. Make sure Home Assistant is connected to the Powerwall's own Wi-Fi, or clear the address under **Reconfigure** if you don't use it. This repair clears itself once the address answers again."
+    },
     "powerwall_follower_hotspot": {
       "title": "A Powerwall 3 is missing from the readings",
       "description": "{count} Powerwall 3 unit(s) on this gateway don't appear in the readings. The signed connection uses the Powerwall's own Wi-Fi (`{wifi_host}`), and follower Powerwalls are read over that Wi-Fi: check that Home Assistant still reaches it reliably.\n\nPower, energy and capacity totals already include every Powerwall; only the missing units' battery packs, temperatures and fans are absent. This clears by itself once they appear."
@@ -1364,6 +1404,7 @@
         "max_soc": "upper limit reached",
         "stopped": "stopped",
         "connection_lost": "connection lost",
+        "battery_level_unknown": "battery level unknown",
         "unloaded": "integration unloaded"
       }
     },
@@ -1379,6 +1420,12 @@
       "options": {
         "import": "Import",
         "export": "Export"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Try again",
+        "start_over": "Start over"
       }
     }
   }

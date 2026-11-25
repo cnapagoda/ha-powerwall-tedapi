@@ -25,7 +25,7 @@ from custom_components.tesla_tedapi.const import (
 from custom_components.tesla_tedapi.coordinator import detect_model, model_id
 from custom_components.tesla_tedapi.texts import DATA_TEXTS, ENGLISH, Texts, texts
 
-from .conftest import DIN, local
+from .conftest import DIN, FakePowerwall, local
 from .test_storm import ACCOUNT, V1R, _eid, _refresh, _setup
 
 
@@ -287,6 +287,7 @@ async def test_live_options_keep_a_dispatch_running(hass: HomeAssistant, fake_po
     assert entry.runtime_data.coordinator is coordinator
     assert coordinator.problem_after == timedelta(minutes=25)
     assert coordinator.update_interval == timedelta(seconds=45)
+    assert coordinator.flows.max_gap == 300
     assert coordinator.restore_settings is False
     problem = hass.states.get(_eid(hass, "binary_sensor", "alert_problem"))
     assert problem.attributes["minutes_before_problem"] == 25
@@ -295,6 +296,18 @@ async def test_live_options_keep_a_dispatch_running(hass: HomeAssistant, fake_po
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(DOMAIN, "dispatch_battery_power",
                                        {"power_watts": 5000, "duration_seconds": 60}, blocking=True)
+
+
+async def test_longer_polling_interval_applies_to_the_energy_flows(hass: HomeAssistant, fake_powerwall) -> None:
+    """Raised to 300 s without a reload: readings a little over 300 s apart
+    still count toward the energy flows."""
+    entry = await _setup(hass, V1R)
+    coordinator = entry.runtime_data.coordinator
+    assert coordinator.flows.max_gap == 300
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        await _set_options(hass, entry, scan_interval=300)
+    reload.assert_not_called()
+    assert coordinator.flows.max_gap == 750
 
 
 async def test_status_event_option_applies_live(hass: HomeAssistant, fake_powerwall) -> None:
@@ -308,6 +321,51 @@ async def test_status_event_option_applies_live(hass: HomeAssistant, fake_powerw
     await _refresh(hass, entry)
     assert hass.states.get(event).attributes["alert"] == "BackfeedLimited"
     assert hass.states.get(event).attributes["event_type"] == "cleared"
+
+
+async def test_alert_event_fires_a_reading_once(hass: HomeAssistant, fake_powerwall) -> None:
+    """Updating the entities without a new reading (an option, a command's
+    result) doesn't fire the last reading's alert changes again."""
+    entry = await _setup(hass, V1R)
+    event = _eid(hass, "event", "alert_event")
+    fired = async_capture_events(hass, "state_changed")
+    fake_powerwall.alert_list = ["SystemConnectedToGrid", "BatteryComms"]
+    await _refresh(hass, entry)
+    assert hass.states.get(event).attributes["alert"] == "BatteryComms"
+    count = sum(1 for e in fired if e.data["entity_id"] == event)
+    entry.runtime_data.coordinator.async_update_listeners()
+    await hass.async_block_till_done()
+    assert sum(1 for e in fired if e.data["entity_id"] == event) == count
+    # The next reading's changes still fire.
+    fake_powerwall.alert_list = ["SystemConnectedToGrid"]
+    await _refresh(hass, entry)
+    assert hass.states.get(event).attributes["event_type"] == "cleared"
+
+
+async def test_pack_alerts_survive_a_failed_vitals_read(hass: HomeAssistant, fake_powerwall) -> None:
+    """A pack missing from one reading keeps its alerts and their start time."""
+    entry = await _setup(hass, V1R)
+    coordinator = entry.runtime_data.coordinator
+    real = FakePowerwall.vitals
+
+    def with_alert(self):
+        vitals = real(self)
+        vitals[next(k for k in vitals if k.startswith("TEPOD--"))]["alerts"] = ["BatteryFault"]
+        return vitals
+
+    def failing(self):
+        raise RuntimeError("vitals timed out")
+
+    with patch.object(FakePowerwall, "vitals", with_alert):
+        await _refresh(hass, entry)
+    since = coordinator.alerts.since["BatteryFault"]
+    with patch.object(FakePowerwall, "vitals", failing):
+        await _refresh(hass, entry)
+    assert coordinator.alert_changes == []
+    assert coordinator.alerts.since["BatteryFault"] == since
+    # Read again without it: now it has cleared.
+    await _refresh(hass, entry)
+    assert [c.kind for c in coordinator.alert_changes] == ["cleared"]
 
 
 async def test_saving_the_same_options_does_nothing(hass: HomeAssistant, fake_powerwall) -> None:

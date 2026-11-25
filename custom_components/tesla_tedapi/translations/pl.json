@@ -22,12 +22,14 @@
         "data": {
           "host": "Adres bramy",
           "gw_pwd": "Hasło bramy",
-          "wifi_host": "Zapasowy adres Wi-Fi"
+          "wifi_host": "Zapasowy adres Wi-Fi",
+          "customer_password": "Hasło klienta (opcjonalne)"
         },
         "data_description": {
           "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
           "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
-          "wifi_host": "Hotspot Wi-Fi Powerwall, używany przez to samo podpisane połączenie, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu. Służy też do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową."
+          "wifi_host": "Opcjonalne. Wpisz adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`) tylko wtedy, gdy Home Assistant jest też połączony z własną siecią `TeslaPW_…` Powerwall; w przeciwnym razie zostaw puste. Jest używany przez to samo podpisane połączenie, gdy adres w sieci domowej przestaje odpowiadać, oraz do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową.",
+          "customer_password": "Tylko jeśli hasło logowania klienta bramy zostało zmienione i nie pasuje już do naklejki (na przykład przez instalatora lub na stronie internetowej starszego oprogramowania). Używane bez zmian do tego logowania; pozostaw puste, aby wyliczyć je z hasła bramy."
         }
       },
       "access": {
@@ -49,6 +51,14 @@
         "data_description": {
           "key_file": "Plik klucza prywatnego (`.pem`, zaczyna się od `-----BEGIN PRIVATE KEY-----` lub `-----BEGIN RSA PRIVATE KEY-----`), którego klucz publiczny jest zarejestrowany i VERIFIED w tej Powerwall. Nie klucz publiczny.",
           "cloud_backup": "Zaloguj się także do konta Tesla, aby ustawienia można było zmieniać przez chmurę Tesla, gdy połączenie lokalne nie działa."
+        }
+      },
+      "wifi_only": {
+        "title": "Kontynuuj bez hasła klienta",
+        "description": "Brama odrzuciła logowanie klienta, więc jej hasło klienta zostało prawdopodobnie zmienione (na przykład przez instalatora). Własna sieć Wi-Fi Powerwalla przyjęła hasło bramy, które nie wymaga logowania klienta, więc konfiguracja może kontynuować z połączeniem **tylko hasło Wi-Fi**. Odczytuje ono wszystko, ale nie może zmieniać ustawień ani sterować baterią; połącz konto Tesla, aby zmieniać ustawienia przez chmurę. Home Assistant musi pozostać w sieci Wi-Fi `TeslaPW_…` Powerwalla.\n\nAby zamiast tego użyć połączenia podpisanego (sterowanie lokalne), wpisz **hasło klienta**.",
+        "menu_options": {
+          "wifi": "Kontynuuj z połączeniem tylko z hasłem Wi-Fi",
+          "gateway": "Wpisz hasło klienta"
         }
       },
       "wifi": {
@@ -93,6 +103,13 @@
         "title": "Nie można połączyć",
         "description": "Ostatnie sprawdzenie połączenia nie powiodło się (zobacz komunikat poniżej). Wybierz **Zatwierdź**, aby wrócić i sprawdzić adres i hasło bramy."
       },
+      "reauth_connect_failed": {
+        "title": "Nie można połączyć",
+        "description": "Ostatnie sprawdzenie połączenia nie powiodło się (zobacz komunikat poniżej). Jeśli brama była niedostępna tylko przez chwilę lub wciąż wprowadza klucz, spróbuj ponownie. W przeciwnym razie zacznij od nowa, aby wpisać hasło lub użyć innego klucza.",
+        "data": {
+          "next": "Dalej"
+        }
+      },
       "reauth_confirm": {
         "title": "Powerwall nie akceptuje już Home Assistant",
         "description": "Brama ciągle odrzuca hasło lub klucz. Odczyty są wstrzymane do czasu naprawy; ustawienia nadal działają przez chmurę Tesla, jeśli połączono konto.",
@@ -106,10 +123,12 @@
       "reauth_password": {
         "title": "Hasło bramy",
         "data": {
-          "gw_pwd": "Hasło bramy"
+          "gw_pwd": "Hasło bramy",
+          "customer_password": "Hasło klienta (opcjonalne)"
         },
         "data_description": {
-          "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła."
+          "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
+          "customer_password": "Tylko jeśli hasło logowania klienta bramy zostało zmienione i nie pasuje już do naklejki (na przykład przez instalatora lub na stronie internetowej starszego oprogramowania). Używane bez zmian do tego logowania; pozostaw puste, aby wyliczyć je z hasła bramy."
         }
       },
       "reconfigure": {
@@ -119,13 +138,15 @@
           "host": "Adres bramy",
           "gw_pwd": "Hasło bramy",
           "rsa_key_path": "Plik klucza prywatnego RSA",
-          "wifi_host": "Zapasowy adres Wi-Fi (tylko podpisane)"
+          "wifi_host": "Zapasowy adres Wi-Fi (tylko podpisane)",
+          "customer_password": "Hasło klienta (opcjonalne)"
         },
         "data_description": {
           "host": "Adres bramy w sieci domowej, na przykład `192.168.1.50`. Router pokazuje go jako `teslapw_…`.",
           "gw_pwd": "Całe hasło z naklejki QR pod pokrywą Powerwall (Powerwall 3: za przednią szybą, na dole po lewej). Litery są wielkie. Większość bramek przyjmuje też tylko jego ostatnie 5 znaków; Backup Gateway 1 wymaga całego hasła.",
           "rsa_key_path": "Pełna ścieżka do pliku klucza prywatnego na hoście Home Assistant, na przykład `/config/tesla_tedapi/tedapi_rsa_private.pem`. Zostaw puste, aby użyć połączenia hasłem Wi-Fi (tylko odczyt).",
-          "wifi_host": "Adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`), używany, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu. Służy też do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową."
+          "wifi_host": "Adres hotspotu Wi-Fi Powerwall (zwykle `192.168.91.1`), używany, gdy adres w sieci domowej przestaje odpowiadać. Zostaw puste, jeśli Home Assistant nie ma dostępu do hotspotu. Służy też do odczytu podrzędnych Powerwall 3, których połączenie podpisane nie osiąga przez sieć domową.",
+          "customer_password": "Tylko jeśli hasło logowania klienta bramy zostało zmienione i nie pasuje już do naklejki (na przykład przez instalatora lub na stronie internetowej starszego oprogramowania). Używane bez zmian do tego logowania; pozostaw puste, aby wyliczyć je z hasła bramy."
         }
       },
       "new_key": {
@@ -170,7 +191,9 @@
     "error": {
       "cannot_connect": "Nie można połączyć się z Powerwall pod tym adresem. Sprawdź adres (router pokazuje bramę jako `teslapw_…`), czy Powerwall jest włączona i w tej samej sieci co Home Assistant, i spróbuj ponownie.",
       "wifi_password_refused": "Powerwall odpowiedział, ale odrzucił hasło. Sprawdź je na naklejce z kodem QR (wielkie litery). Samo hasło działa tylko przez własne Wi-Fi Powerwalla (`192.168.91.1`), a nie pod jego adresem w sieci domowej: tam użyj połączenia podpisanego.",
-      "invalid_gw_pwd": "Brama odrzuciła to hasło. Sprawdź naklejkę z kodem QR (litery są wielkie).",
+      "invalid_gw_pwd": "Brama odrzuciła to hasło. Sprawdź naklejkę z kodem QR (litery są wielkie). Jeśli hasło klienta zostało zmienione i nikt go nie zna, połącz Home Assistant z siecią Wi-Fi `TeslaPW_…` Powerwalla i wpisz `192.168.91.1`: tam konfiguracja może kontynuować bez niego, jako połączenie z hasłem Wi-Fi.",
+      "invalid_customer_pwd": "Brama odrzuciła to hasło klienta. Zostaw pole puste, aby użyć hasła z naklejki.",
+      "wifi_fallback_password_refused": "Własna sieć Wi-Fi Powerwalla (zapasowy adres Wi-Fi) odpowiedziała, ale odrzuciła hasło bramy. Sprawdź je na naklejce z kodem QR (wielkie litery). Przy ustawionym haśle klienta hasło bramy jest sprawdzane tutaj.",
       "password_required": "Dostęp podpisany wymaga hasła bramy.",
       "invalid_rsa_key": "To nie jest prywatny klucz RSA w formacie PEM. Prześlij plik klucza prywatnego (zaczyna się od `-----BEGIN`), a nie klucz publiczny.",
       "key_not_accepted": "Powerwall nie przyjęła klucza. Sprawdź, czy to klucz prywatny (nie publiczny), czy został zarejestrowany dla tej Powerwall i czy rejestracja ma stan VERIFIED (wykonano krok z włącznikiem). Albo wybierz **Zarejestruj nowy klucz**.",
@@ -454,8 +477,14 @@
       "battery_energy_charged": {
         "name": "Energia naładowana do baterii"
       },
+      "battery_energy_charged_net": {
+        "name": "Energia naładowana do baterii (netto)"
+      },
       "battery_energy_discharged": {
         "name": "Energia rozładowana z baterii"
+      },
+      "battery_energy_discharged_net": {
+        "name": "Energia rozładowana z baterii (netto)"
       },
       "solar_energy_produced": {
         "name": "Energia wyprodukowana z fotowoltaiki"
@@ -770,6 +799,9 @@
     "dispatch_soc_limit": {
       "message": "Poziom baterii ({soc}%) już przekroczył limit {limit}."
     },
+    "dispatch_battery_level_unknown": {
+      "message": "Poziom baterii nie był ostatnio odczytany z bramy, więc nie można sprawdzić limitów polecenia. Spróbuj ponownie, gdy brama odpowie (utrzymanie przy 0 W nadal działa)."
+    },
     "dispatch_power_cap": {
       "message": "{power} W przekracza limit {cap} W ustawiony w opcjach integracji."
     },
@@ -1065,6 +1097,10 @@
         "source_discharged": {
           "name": "Źródło rozładowania",
           "description": "Czujnik energii z energią rozładowaną z baterii, na przykład *Battery discharged* z Tesla Fleet lub Teslemetry."
+        },
+        "net": {
+          "name": "Do czujników netto",
+          "description": "Skopiuj do „Energia naładowana do baterii (netto)” i „Energia rozładowana z baterii (netto)” zamiast do liczników bramy, na przykład po przełączeniu na nie panelu Energia."
         }
       }
     },
@@ -1236,6 +1272,10 @@
       "title": "Brak jednego Powerwall 3 w odczytach",
       "description": "{count} Powerwall 3 tej bramy nie pojawia się w odczytach, choć zapasowy adres Wi-Fi (`{wifi_host}`) jest ustawiony. Przy połączeniu podpisanym Powerwalle podrzędne odczytuje się tylko przez to Wi-Fi: sprawdź, czy Home Assistant nadal ma do niego dostęp.\n\nSumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek. Zgłoszenie zniknie samo, gdy się pojawią."
     },
+    "wifi_fallback_unreachable": {
+      "title": "Zapasowy adres Wi-Fi jest nieosiągalny",
+      "description": "Zapasowy adres Wi-Fi (`{wifi_host}`) nie odpowiada od ponad godziny, więc nie może przejąć połączenia, gdy adres bramy w sieci domowej przestanie odpowiadać, a podrzędnych Powerwall 3 nie da się przez niego odczytać. Upewnij się, że Home Assistant jest połączony z własną siecią Wi-Fi Powerwalla, albo usuń adres w **Zmień konfigurację**, jeśli z niego nie korzystasz. Ta naprawa zniknie sama, gdy adres znów odpowie."
+    },
     "powerwall_follower_hotspot": {
       "title": "Brak jednego Powerwall 3 w odczytach",
       "description": "{count} Powerwall 3 tej bramy nie pojawia się w odczytach. Połączenie podpisane korzysta z Wi-Fi Powerwalla (`{wifi_host}`), a Powerwalle podrzędne odczytuje się przez to Wi-Fi: sprawdź, czy Home Assistant ma do niego niezawodny dostęp.\n\nSumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek. Zgłoszenie zniknie samo, gdy się pojawią."
@@ -1364,6 +1404,7 @@
         "max_soc": "osiągnięto górny limit",
         "stopped": "zatrzymano",
         "connection_lost": "utracono połączenie",
+        "battery_level_unknown": "nieznany poziom baterii",
         "unloaded": "integracja wyłączona"
       }
     },
@@ -1379,6 +1420,12 @@
       "options": {
         "import": "Pobór",
         "export": "Oddawanie"
+      }
+    },
+    "reauth_connect_failed": {
+      "options": {
+        "retry": "Spróbuj ponownie",
+        "start_over": "Zacznij od nowa"
       }
     }
   }

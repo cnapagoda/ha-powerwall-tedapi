@@ -33,6 +33,7 @@ The price blueprints work with any price sensor (Amber, Octopus, Nord Pool, Tibb
 |---|---|---|
 | **Run a load on surplus solar** | Turns a load on while the battery is nearly full and the house still exports, and off when the house imports or the battery falls below a level. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fsolar_surplus_load.yaml) |
 | **Problem alert** | A notification when the **Problem** sensor turns on, with what the Powerwall reports, and when it clears. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fproblem_alert.yaml) |
+| **Connection alert** | A notification when Home Assistant hasn't reached the gateway for a while, or the gateway has lost its home-network internet and runs on cellular, and when it's back. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.2%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fconnection_alert.yaml) |
 
 ⚠️ These use battery dispatch: see [Safety](safety.md) about the warranty.
 
@@ -215,6 +216,12 @@ Needs a signed connection. It doesn't need Tesla's Storm Watch. Grid charging du
 
 It doesn't change the Powerwall. A stop condition also turns off a load you switched on yourself; turn the automation off to run the load by hand.
 
+**Running a heat pump on surplus solar** (space heating or cooling, or a heat-pump water heater):
+
+- **What to choose as the Load:** the heat pump's `climate` or `water_heater` entity works if it can be switched on and off (the blueprint sends `homeassistant.turn_on` / `turn_off`). Gentler for the compressor: a "boost" or SG Ready switch, if your heat pump has one, or a template switch helper (**Settings → Helpers → Template → Switch**) whose on and off actions raise and lower the setpoint instead of switching the heat pump off.
+- **Settings:** set **And the house exports more than** to at least what the heat pump draws, so starting it doesn't tip the house into importing at once. Raise **For at least** to 15 minutes or more, and leave a wide gap between **Start when the battery is above** and **Or the battery falls below** (for example 95 % and 70 %).
+- **Short cycling:** a compressor needs minimum run and off times, and the blueprint doesn't enforce them: the battery level stops it straight away. Follow the manufacturer's guidance, and prefer the boost or setpoint approach above over switching the heat pump off.
+
 </details>
 
 <details>
@@ -227,6 +234,22 @@ It doesn't change the Powerwall. A stop condition also turns off a load you swit
 | Also when the problem has cleared | On | |
 
 **Problem** turns on when a warning or fault has lasted the problem delay: see [Alerts](alerts.md).
+
+</details>
+
+<details>
+<summary><b>Connection alert</b></summary>
+
+| Input | Default | |
+|---|---|---|
+| Powerwall Setup health | | `sensor.powerwall_tedapi_setup_health`. It reports the gateway as unreachable with a cloud backup, and turns unavailable without one; both count. |
+| Unreachable for | 10 min | |
+| Powerwall Network connection (optional) | | `sensor.powerwall_tedapi_network_connection`, to also be told when the gateway runs on cellular. Leave empty without one. |
+| On cellular for | 15 min | |
+| Notify action | `notify.notify` | For example `notify.mobile_app_your_phone`. |
+| Also when the connection is back | On | Sent only after an alert, and not if Home Assistant restarted in between. |
+
+A gateway that keeps dropping off usually has a weak link to the home network: see [Troubleshooting](troubleshooting.md).
 
 </details>
 

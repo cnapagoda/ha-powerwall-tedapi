@@ -14,7 +14,7 @@ from custom_components.tesla_tedapi import calendar as tariff_calendar, tariff
 
 from .conftest import TARIFF
 from .test_storm import ACCOUNT, V1R, _eid, _refresh, _setup
-from .test_tariff import US_TARIFF
+from .test_tariff import NEM3_TARIFF, US_TARIFF, nem3_price
 
 ADELAIDE = ZoneInfo("Australia/Adelaide")
 
@@ -119,6 +119,26 @@ async def test_sell_price_from_the_sell_tariffs_own_seasons(hass: HomeAssistant,
     assert buy.state == "0.28" and buy.attributes["period"] == "OFF_PEAK"
     assert hass.states.get(_eid(hass, "calendar", "sell_tariff")).attributes["message"].startswith(
         "ALL_DAY: 0.06 ")
+
+
+async def test_nem3_hourly_export_calendar(hass: HomeAssistant, fake_powerwall, freezer) -> None:
+    """2.8.2 (#31): a PG&E NEM 3.0-shaped tariff: the sell price sensor follows
+    the hourly export price, and the Sell tariff calendar has one event per
+    hour on a weekday."""
+    await hass.config.async_set_time_zone("America/Los_Angeles")
+    freezer.move_to("2026-11-19T18:00:00+00:00")  # Thursday 10:00 local
+    fake_powerwall.tariff = copy.deepcopy(NEM3_TARIFF)
+    await _setup(hass, {**V1R, **ACCOUNT}, {"tesla_tariff": True})
+    sell = hass.states.get(_eid(hass, "sensor", "tariff_sell_price"))
+    assert float(sell.state) == nem3_price(11, 10, False)
+    assert (sell.attributes["season"], sell.attributes["period"]) == ("November", "hour_10_weekday")
+    calendar = _eid(hass, "calendar", "sell_tariff")
+    response = await hass.services.async_call("calendar", "get_events", {
+        "entity_id": calendar, "start_date_time": "2026-11-19T00:00:00-08:00",
+        "end_date_time": "2026-11-20T00:00:00-08:00"}, blocking=True, return_response=True)
+    events = response[calendar]["events"]
+    assert len(events) == 24
+    assert [event["summary"].split(":")[0] for event in events] == [f"hour_{h}_weekday" for h in range(24)]
 
 
 async def test_calendar_without_a_feed_in_tariff(hass: HomeAssistant, fake_powerwall, freezer) -> None:

@@ -384,9 +384,15 @@ def fake_gateway():
     # Whether the gateway takes only the full password, without being a
     # Backup Gateway 1 (some Powerwall 2 gateways).
     FakeGateway.full_only = False
+    # A customer password the owner changed: only it logs in (2.8.2, #23).
+    FakeGateway.customer = ""
     FakeGateway.part_number = None
     FakeGateway.locked = False
     FakeGateway.logins: list[str] = []
+    # The Powerwall's own Wi-Fi (gateway.check_wifi_password): None = no
+    # answer there (Home Assistant isn't on it), else the password it takes.
+    FakeGateway.wifi = None
+    FakeGateway.wifi_checks: list[str] = []
 
     def login(host, gw_pwd, full=False):
         if not FakeGateway.reachable:
@@ -395,8 +401,9 @@ def fake_gateway():
             raise gateway.GatewayLocked("too many login attempts")
         sent = gateway.customer_password(gw_pwd, full)
         FakeGateway.logins.append(sent)
-        if sent != gateway.customer_password(FakeGateway.password,
-                                             FakeGateway.gateway1 or FakeGateway.full_only):
+        expected = FakeGateway.customer or gateway.customer_password(
+            FakeGateway.password, FakeGateway.gateway1 or FakeGateway.full_only)
+        if sent != expected:
             raise gateway.GatewayPasswordRejected
         return "token"
 
@@ -410,7 +417,20 @@ def fake_gateway():
     def din_any(host, gw_pwd, full=False):
         return gateway._with_full_password(din, host, gw_pwd, full)
 
+    def wifi_din(host, gw_pwd):
+        FakeGateway.wifi_checks.append(host)
+        if FakeGateway.wifi is None:
+            raise gateway.GatewayUnreachable("no route")
+        if gw_pwd != FakeGateway.wifi:
+            raise gateway.GatewayPasswordRejected("HTTP 403, Wi-Fi password")
+        return FakeGateway.din
+
+    def check_wifi_password(host, gw_pwd):
+        wifi_din(host, gw_pwd)
+
     with patch.object(gateway, "login", login), patch.object(gateway, "din", din), \
+            patch.object(gateway, "check_wifi_password", check_wifi_password), \
+            patch.object(gateway, "wifi_din", wifi_din), \
             patch.object(gateway, "login_any", login_any), patch.object(gateway, "din_any", din_any), \
             patch.object(gateway, "answers", lambda host: FakeGateway.answers), \
             patch.object(gateway, "full_password_login", lambda host: FakeGateway.gateway1), \

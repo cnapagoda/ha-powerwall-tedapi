@@ -334,3 +334,159 @@ async def test_repeated_dispatch_warns_once(hass: HomeAssistant, fake_powerwall,
     with caplog.at_level(logging.WARNING):
         await _dispatch(hass, watts=0)
     assert sum("may affect the Powerwall warranty" in r.getMessage() for r in caplog.records) == 1
+
+
+# ---- 2.8.2: renew only on a fresh battery level ----
+
+
+async def _gateway_silent(hass: HomeAssistant, entry, freezer, seconds: int) -> None:
+    """Let `seconds` pass with every poll failing (the old data stays), firing
+    the renewal timer on the way."""
+    from homeassistant.helpers.update_coordinator import UpdateFailed  # noqa: PLC0415
+
+    coordinator = entry.runtime_data.coordinator
+    with patch.object(coordinator, "_async_update_data", side_effect=UpdateFailed("silent")):
+        for _ in range(seconds // 30):
+            freezer.tick(timedelta(seconds=30))
+            await coordinator.async_refresh()
+            async_fire_time_changed(hass)
+            await hass.async_block_till_done(wait_background_tasks=True)
+
+
+async def test_stale_battery_level_stops_renewals_then_ends(hass: HomeAssistant, fake_powerwall, freezer,
+                                                           caplog) -> None:
+    entry = await _setup(hass, V1R)
+    ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)
+    await _dispatch(hass, -2000, 3600)
+    pw = local(fake_powerwall)
+    sent = len(pw.dispatches)
+    # 2 minutes without a battery level: still running, renewals still sent.
+    await _gateway_silent(hass, entry, freezer, 120)
+    assert entry.runtime_data.dispatch.active
+    renewed_while_fresh = len(pw.dispatches)
+    assert renewed_while_fresh > sent
+    # Past 2 minutes: no more renewals, one warning, still not ended.
+    await _gateway_silent(hass, entry, freezer, 180)
+    assert len(pw.dispatches) == renewed_while_fresh
+    assert entry.runtime_data.dispatch.active
+    assert caplog.text.count("Battery dispatch not renewed") == 1
+    # The last command has run out: the session ends and hands the battery back.
+    resumes = pw.resumes
+    await _gateway_silent(hass, entry, freezer, 210)
+    assert not entry.runtime_data.dispatch.active
+    assert [e.data["reason"] for e in ended] == ["battery_level_unknown"]
+    assert pw.resumes == resumes + 1
+    assert entry.runtime_data.dispatch.last_end_reason == "battery_level_unknown"
+
+
+async def test_battery_level_back_in_time_keeps_the_dispatch(hass: HomeAssistant, fake_powerwall, freezer,
+                                                            caplog) -> None:
+    entry = await _setup(hass, V1R)
+    ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)
+    await _dispatch(hass, -2000, 3600)
+    pw = local(fake_powerwall)
+    await _gateway_silent(hass, entry, freezer, 210)  # renewals paused
+    paused = len(pw.dispatches)
+    coordinator = entry.runtime_data.coordinator
+    freezer.tick(timedelta(seconds=30))
+    await coordinator.async_refresh()  # the gateway answers again
+    await _tick(hass, 61)
+    assert len(pw.dispatches) > paused  # renewed again
+    assert entry.runtime_data.dispatch.active and ended == []
+    # A later gap warns again.
+    await _gateway_silent(hass, entry, freezer, 180)
+    assert caplog.text.count("Battery dispatch not renewed") == 2
+
+
+async def test_slow_polling_allows_an_older_battery_level(hass: HomeAssistant, fake_powerwall) -> None:
+    """A 300 s polling interval must not stop dispatches: the limit follows it."""
+    from custom_components.tesla_tedapi.const import DISPATCH_STALE_SECONDS  # noqa: PLC0415
+
+    entry = await _setup(hass, V1R)
+    session = entry.runtime_data.dispatch
+    coordinator = entry.runtime_data.coordinator
+    coordinator.update_interval = timedelta(seconds=300)
+    assert session._stale_limit() == 750
+    coordinator.update_interval = timedelta(seconds=30)
+    assert session._stale_limit() == DISPATCH_STALE_SECONDS
+    coordinator.update_interval = None
+    assert session._stale_limit() == DISPATCH_STALE_SECONDS
+
+
+async def test_blind_start_or_resend_is_refused_but_a_hold_is_allowed(hass: HomeAssistant, fake_powerwall,
+                                                                     freezer) -> None:
+    """A planner re-sending its dispatch every few minutes can't keep a session
+    going without a battery level (review of 2.8.2): a charge or discharge is
+    refused, a 0 W hold isn't."""
+    entry = await _setup(hass, V1R)
+    session = entry.runtime_data.dispatch
+    await _dispatch(hass, -2000, 3600)
+    await _gateway_silent(hass, entry, freezer, 180)  # past the 2-minute limit
+    pw = local(fake_powerwall)
+    sent = len(pw.dispatches)
+    with pytest.raises(ServiceValidationError) as err:
+        await _dispatch(hass, -2000, 3600)  # the planner's re-send
+    assert err.value.translation_key == "dispatch_battery_level_unknown"
+    with pytest.raises(ServiceValidationError):
+        await _dispatch(hass, 3000, 3600)
+    assert len(pw.dispatches) == sent  # nothing sent
+    # The running session still ends on its own once its last command is out.
+    ended = async_capture_events(hass, EVENT_DISPATCH_ENDED)
+    await _gateway_silent(hass, entry, freezer, 330)
+    assert [e.data["reason"] for e in ended] == ["battery_level_unknown"]
+    assert not session.active
+    # A 0 W hold moves no energy past any limit: allowed, and renewed, while blind.
+    await _dispatch(hass, 0, 3600)
+    holds = len(pw.dispatches)
+    await _gateway_silent(hass, entry, freezer, 600)
+    assert session.active and len(pw.dispatches) > holds
+
+
+async def test_only_a_real_reading_counts_as_fresh(hass: HomeAssistant, fake_powerwall, freezer) -> None:
+    """Data shown again (a command's result, a tariff read, options) must not
+    make an old battery level look fresh (review of 2.8.2)."""
+    entry = await _setup(hass, V1R)
+    coordinator = entry.runtime_data.coordinator
+    read_at = coordinator.battery_level_at
+    assert read_at is not None
+    freezer.tick(timedelta(seconds=300))
+    coordinator._apply_extras(site_limits={"import_limit_kw": None, "export_limit_kw": 5})
+    coordinator.async_update_listeners()
+    assert coordinator.battery_level_at == read_at
+    with pytest.raises(ServiceValidationError):
+        await _dispatch(hass, -2000, 600)
+    # A real reading makes it fresh again.
+    await coordinator.async_refresh()
+    assert coordinator.battery_level_at > read_at
+    await _dispatch(hass, -2000, 600)
+    assert entry.runtime_data.dispatch.active
+
+
+async def test_session_without_any_reading_counts_from_its_start(hass: HomeAssistant, fake_powerwall,
+                                                                 freezer) -> None:
+    """Defensive: if the coordinator has no reading time at all, the session's
+    age counts from its start."""
+    entry = await _setup(hass, V1R)
+    session = entry.runtime_data.dispatch
+    await _dispatch(hass, -2000, 3600)
+    entry.runtime_data.coordinator.battery_level_at = None
+    assert session._stale_for(session.state) is None  # just started
+    freezer.tick(timedelta(seconds=200))
+    assert session._stale_for(session.state) == pytest.approx(200, abs=1)
+
+
+@pytest.mark.parametrize("how", ["unload", "stop"])
+async def test_flows_saved_on_unload_and_stop(hass: HomeAssistant, fake_powerwall, hass_storage, how) -> None:
+    """The delayed save only follows full reads: flows counted on fast polls
+    since then are saved when the entry unloads or Home Assistant stops, so
+    the counters don't go back after a reload or restart."""
+    entry = await _setup(hass, V1R)
+    coordinator = entry.runtime_data.coordinator
+    coordinator.flows.totals["solar_to_home"] = 91.003
+    key = f"{DOMAIN}.{entry.entry_id}"
+    if how == "unload":
+        assert await hass.config_entries.async_unload(entry.entry_id)
+    else:
+        hass.bus.async_fire(EVENT_HOMEASSISTANT_STOP)
+    await hass.async_block_till_done()
+    assert hass_storage[key]["data"]["flows"]["totals"]["solar_to_home"] == 91.003

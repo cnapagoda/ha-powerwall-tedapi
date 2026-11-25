@@ -242,6 +242,11 @@ import_battery_history:
         entity:
           domain: sensor
           device_class: energy
+    net:
+      required: false
+      default: false
+      selector:
+        boolean:
 set_site_limit:
   fields:
     config_entry_id:

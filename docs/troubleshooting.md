@@ -14,7 +14,8 @@
 
 | Symptom | Try |
 |---|---|
-| *The gateway refused this password* | Enter the full password from the QR sticker inside the Powerwall's cover, in upper case. Setup tries its last 5 characters, then the full password. If both are refused, the gateway's customer password may have been changed (for example by the installer): open `https://<gateway address>/` in a browser and log in as **Customer** to check, and use **Forgot password** there to set a new one. The [debug log](#collecting-information-for-a-bug-report) says why it was refused (HTTP status, gateway part number), never the password. |
+| *The Powerwall's own Wi-Fi … refused the gateway password* | With a customer password set, the sticker password is checked at the Wi-Fi fallback address. Check it on the QR sticker (upper case), or leave the fallback address empty if Home Assistant isn't on the Powerwall's `TeslaPW_…` Wi-Fi. |
+| *The gateway refused this password* | Enter the full password from the QR sticker inside the Powerwall's cover, in upper case. Setup tries its last 5 characters, then the full password. If both are refused, the gateway's customer password may have been changed (for example by the installer). If you know it, enter it under **Customer password**. If nobody does, setup can still continue on the Powerwall's own Wi-Fi: connect Home Assistant to `TeslaPW_…`, enter `192.168.91.1` as the gateway address, and choose the Wi-Fi password connection it offers (monitoring; settings through a Tesla account). On recent firmware the gateway's own web page no longer offers a login, so you can test a password with: `curl -k -X POST https://<gateway address>/api/login/Basic -H "Content-Type: application/json" -d '{"username":"customer","password":"<password>","email":"user@example.com","force_sm_off":false}'` (a correct password returns a `token`; several wrong ones lock the login for a few minutes). The [debug log](#collecting-information-for-a-bug-report) says why it was refused (HTTP status, gateway part number), never the password. |
 | *The Powerwall didn't accept the dispatch: …* | The text after the colon is the gateway's own reason, with its status code. One Powerwall 3 refuses more than 10,000 W. Lower the power, or **Largest dispatch power**. |
 | *pypowerwall … is loaded in Home Assistant, but this integration needs … or newer* (setup stops, or the integration shows *Failed to set up*) | Home Assistant runs one pypowerwall for all integrations, and another custom integration that pins an older one loaded it first (for example `ha-pypowerwall`). Remove that integration (disabling it isn't enough: delete it in HACS or from `custom_components`), restart Home Assistant and try again. See [which integrations can stay](migration.md#which-integrations-can-stay). |
 | *The gateway is refusing logins after too many attempts* | The gateway locks its login for a few minutes after several wrong passwords. Wait about 15 minutes before you try again. |
@@ -42,6 +43,7 @@
 | Symptom | Try |
 |---|---|
 | All sensors *unavailable* | The gateway can't be reached. Check the network; settings keep working through the cloud backup if you have one. **Setup health** shows `gateway_reachable: false`. |
+| Readings drop to *unknown* or *unavailable* every few minutes, or for hours | The gateway answers slowly or not at all, usually because its own link to the home network is weak (the log shows *Read timed out*). **Network connection** switching to *Cellular* points the same way. Restart the Wi-Fi access point nearest the gateway, or connect the gateway by Ethernet. Energy flows can't count across the gaps. The [Connection alert](automations.md) blueprint tells you when it happens. |
 | Power sensors *unknown* for a moment | The gateway's meters didn't answer that poll. The next reading fills it in; a missed reading is no longer recorded as 0 W. |
 | Readings stop now and then | Add the Powerwall's Wi-Fi as **Wi-Fi fallback address** if Home Assistant can reach it, or improve the network path (Ethernet for the gateway, a better access point). Try a longer **Polling interval** if another app also polls the gateway. |
 | **Battery level** differs from the Tesla app by a point | Normal rounding and timing: the app updates less often. **Battery state of energy** is the raw value and reads 2–4 points higher. |
@@ -96,6 +98,7 @@
 | *Fleet API cloud backup is not working* / *can't change settings* | See above. |
 | *Signed local access stopped after a firmware update* | The first reading on new firmware couldn't use the signed connection. Wait for a few polls; if it stays, register a new key (**Configure → Register a new signed key**) and open an issue with the firmware version. |
 | *The Powerwall couldn't reconnect to the grid* | The automatic reconnect failed; it's retried every minute. Check the gateway connection, or reconnect in the Tesla app. |
+| *The Wi-Fi fallback address can't be reached* | The **Wi-Fi fallback address** answered before but hasn't for over an hour (it's checked every 30 minutes; an address that has never answered raises no repair). Connect Home Assistant to the Powerwall's own Wi-Fi, or clear the address under **Reconfigure** if you don't use it. It clears itself once the address answers. **Setup health**'s `wifi_fallback_reachable` attribute shows the last check. |
 | *Tesla's cloud capped the backup reserve* / *A cloud change did not apply as set* | See [Settings and control](#settings-and-control). |
 | *Tesla stored a different tariff* | A tariff write wasn't shown by Tesla after 35 minutes (or a Fleet API read-back showed other rates). See [Tesla tariff](tesla-tariff.md). |
 | *A Powerwall 3 is missing from the readings* | With several Powerwall 3s, one stayed out of the readings for 10 polls. On the signed connection the followers are read over the **Wi-Fi fallback address** only: set it to `192.168.91.1` if Home Assistant can reach the Powerwall's Wi-Fi (if the connection already uses `192.168.91.1`, check that it still answers). Totals and **Battery health** still count every Powerwall. See [Several Powerwalls](setup.md#several-powerwalls). |
@@ -105,17 +108,17 @@ The integration's card can also show **Reauthenticate**: the gateway keeps refus
 ## Collecting information for a bug report
 
 1. **Diagnostics:** **Settings → Devices & services → Tesla Powerwall TEDAPI → ⋮ → Download diagnostics.** Passwords, email, site ID and serial numbers are hidden; check it anyway before sharing. For connection problems, the `tedapi_mode` field shows the connection actually in use. Turn on **Gateway configuration in diagnostics** in the options if you're asked for it.
-2. **Debug log:** add this to `configuration.yaml` and restart, or use **Enable debug logging** on the integration's page:
+2. **Debug log:** use **Enable debug logging** on the integration's page, or add this to `configuration.yaml` and restart:
 
    ```yaml
    logger:
      logs:
        custom_components.tesla_tedapi: debug
-       pypowerwall: debug
        aiopytedapi: debug
    ```
 
+   Only if you're asked for it, add `pypowerwall: debug` too. It logs everything the gateway sends. Serial numbers and addresses in it are masked where they're recognised, but the gateway configuration's customer and installer details, site name and utility aren't. Remove those before you share it, or send it privately.
 3. Reproduce the problem, then **Disable debug logging** (the log downloads automatically) or copy the relevant lines.
 4. [Open an issue](https://github.com/cnapagoda/ha-powerwall-tedapi/issues/new/choose) with the versions (integration, Home Assistant, Powerwall model and firmware), your connection type, the diagnostics and the log.
 
-**Never post** the key (`tedapi_rsa_private.pem`), Tesla tokens (`.pypowerwall.auth`) or the gateway password.
+**Never post** the key (`tedapi_rsa_private.pem`), Tesla tokens (`.pypowerwall.auth`) or the gateway password. Diagnostics are redacted; logs aren't fully, so check them for serial numbers and addresses first.

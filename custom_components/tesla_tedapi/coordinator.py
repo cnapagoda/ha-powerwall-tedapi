@@ -27,9 +27,11 @@ from homeassistant.util import dt as dt_util
 
 from . import gateway, phases as phases_mod, tariff as tariff_mod, tesla_cloud
 from .alerts import SEVERITY_FAULT, AlertChange, AlertTracker, describe, level, problem_after, summary
+from .battery_net import NetBatteryEnergy
 from .client import local_kwargs
 from .cloud import CloudBackend, OwnerSettings, live_readings, live_time, wall_connectors
 from .const import (
+    APP_HIDDEN_PCT,
     AUTH_FILE,
     BACKEND_FLEET,
     BACKEND_OWNER,
@@ -46,6 +48,7 @@ from .const import (
     CLOUD_VERIFY_TIMEOUT_SECONDS,
     CONF_CLOUD_READINGS,
     CONF_CONNECTION_MODE,
+    CONF_CUSTOMER_PASSWORD,
     CONF_FLEET_PROVIDER,
     CONF_FLEET_SITE_ID,
     CONF_FULL_PASSWORD_LOGIN,
@@ -90,6 +93,7 @@ from .firmware import FirmwareTracker, split_version
 from .fleet import FleetBackup, FleetTimeout, entry_api, provider_label
 from .flows import EnergyFlows
 from .outages import OutageTracker
+from .privacy import scrub
 from .texts import texts as shared_texts
 from .wear import CapacityTrend
 
@@ -134,6 +138,10 @@ ENERGY_COUNTERS: dict[str, tuple[str, str]] = {
 
 # Polls a follower Powerwall 3 may be missing before the repair is raised.
 FOLLOWER_MISSING_POLLS = 10
+# The Wi-Fi fallback address is checked this often (s), in the background, and
+# a repair raised once it hasn't answered for WIFI_FALLBACK_DOWN_SECONDS.
+WIFI_FALLBACK_CHECK_SECONDS = 1800
+WIFI_FALLBACK_DOWN_SECONDS = 3600
 # Battery pack part numbers -> friendly names (TEPOD vitals blocks). Packs of
 # the same model are told apart by name_packs.
 PACK_NAMES = {"1707000": "Powerwall 3", "1807000": "Expansion Pack"}
@@ -490,6 +498,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._gw_pwd: str = data.get(CONF_GW_PWD, "")
         # Backup Gateway 1: the customer login takes the full password.
         self._full_login: bool = bool(data.get(CONF_FULL_PASSWORD_LOGIN))
+        # A customer password that differs from the sticker (used as is).
+        self._customer_pwd: str = data.get(CONF_CUSTOMER_PASSWORD, "")
         self._rsa_key_path: str = data.get(CONF_RSA_KEY_PATH, "")
         self._host: str = data.get(CONF_HOST, DEFAULT_HOST_WIFI)
         self._wifi_host: str = data.get(CONF_WIFI_HOST, "") or ""
@@ -529,6 +539,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._energy_lower: dict[str, int] = {}
         self.din: str | None = entry.unique_id
         self.firmware_version: str | None = None
+        # When the gateway last gave a battery level (UTC): set only by a
+        # local read that returned one, never by data shown again (a command's
+        # result, a tariff read). Battery dispatches renew only while it's fresh.
+        self.battery_level_at: datetime | None = None
         self.model: str = detect_model(self.din, None)
         # Alert descriptions and summaries in Home Assistant's language.
         self.texts = shared_texts(hass)
@@ -547,6 +561,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.cloud_writes: dict[str, CloudWrite] = {}
         self.outages = OutageTracker()
         self.daily = DailyEnergy()
+        self.battery_net = NetBatteryEnergy()
+        self._din_issues_cleared = False
         self.grid_check = GridCheck()
         self.flows = EnergyFlows(self._scan_interval(entry).total_seconds())
         self.capacity_trend = CapacityTrend()
@@ -559,6 +575,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # True while an off-grid run started here is on (set up in __init__).
         self.intentional_off_grid: Callable[[], bool] = lambda: False
         self._write_issues: set[str] = set()
+        # The Wi-Fi fallback address's last check: when (monotonic), whether
+        # it answered (None until checked), and since when it hasn't.
+        self._fallback_checked_at: float | None = None
+        self._fallback_ok: bool | None = None
+        # The fallback address that has answered at least once (kept across
+        # restarts): only one that has worked raises a repair when it stops.
+        self._fallback_answered: str | None = None
+        self._fallback_down_since: float | None = None
+        self._fallback_checking = False
         self._follower_missing = 0
         # Battery packs' names by serial (see name_packs); saved.
         self._pack_names: dict[str, str] = {}
@@ -577,7 +602,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # (aiopytedapi, async).
         self.extras = GatewayExtras(
             hass, mode=self._conn_mode, host=self._host, gw_pwd=self._gw_pwd, rsa_key_path=self._rsa_key_path,
-            full_login=self._full_login, wifi_host=self._wifi_host, din=self.din)
+            full_login=self._full_login, wifi_host=self._wifi_host, din=self.din,
+            customer_pwd=self._customer_pwd)
 
         super().__init__(
             hass,
@@ -626,6 +652,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         option on every reading."""
         self._apply_live_options(self.config_entry.options)
         self.update_interval = self._scan_interval(self.config_entry)
+        # A longer polling interval needs a longer gap allowance, or the
+        # energy flows stop counting.
+        self.flows.set_poll_seconds(self.update_interval.total_seconds())
         self.async_update_listeners()
 
     def _make_backends(self, hass: HomeAssistant, entry: TedapiConfigEntry) -> list[CloudBackend]:
@@ -659,6 +688,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return self._conn_mode
 
     @property
+    def _log_name(self) -> str:
+        """The entry as the log names it: its title, masked (a default title
+        holds the DIN); never the gateway's address."""
+        return scrub(self.config_entry.title)
+
+    @property
     def follower_host(self) -> str:
         """The address follower Powerwall 3s are read over on the signed
         connection: the Wi-Fi fallback, or the gateway's own address when that
@@ -678,7 +713,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         kwargs = local_kwargs(
             self._conn_mode, self._host, self._gw_pwd, self._rsa_key_path, str(self.hass.config.time_zone),
-            full_login=self._full_login, wifi_host=self._wifi_host,
+            full_login=self._full_login, wifi_host=self._wifi_host, customer_pwd=self._customer_pwd,
             # pypowerwall's own cache: shorter than a fast poll, so each one
             # reads the gateway.
             cache_seconds=min(5, max(1, int(self._scan_interval(self.config_entry).total_seconds()) - 1)))
@@ -1070,6 +1105,17 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         def num(v, minimum=0):
             return isinstance(v, (int, float)) and not isinstance(v, bool) and v >= minimum
 
+        # The energy above the app's 0 %: the bottom APP_HIDDEN_PCT can't be
+        # used, even in an outage. pypowerwall's backup time divides all of
+        # the remaining energy by the load, so it's scaled to this part.
+        usable_wh = None
+        if num(full_wh) and full_wh > 0 and num(remaining_wh):
+            usable_wh = max(0.0, remaining_wh - full_wh * APP_HIDDEN_PCT / 100)
+        if num(backup_hours) and usable_wh is not None and remaining_wh > 0:
+            backup_hours = backup_hours * usable_wh / remaining_wh
+        else:
+            backup_hours = None
+
         config = None
         try:
             config = pw.client.tedapi.get_config()
@@ -1082,6 +1128,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "pack_count": _pack_count(config),
             "battery_full_kwh": round(full_wh / 1000, 2) if num(full_wh) and full_wh > 0 else None,
             "battery_remaining_kwh": round(remaining_wh / 1000, 2) if num(remaining_wh) else None,
+            "battery_usable_kwh": round(usable_wh / 1000, 2) if usable_wh is not None else None,
             "packs": name_packs(_extract_packs(vitals), self._pack_names, self.din, _pack_count(config)),
             "inverter_ambient_temp": _extract_pinv_value(vitals, "PCH_AmbientTemp", din=self.din),
             "inverter_heatsink_temp": _extract_pinv_value(vitals, "PCH_heatsinkTemp", din=self.din),
@@ -1122,7 +1169,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         return None
                     _LOGGER.warning("%s: local write failed", what)
                 except Exception as err:  # noqa: BLE001
-                    _LOGGER.warning("%s: local write error (%s)", what, err)
+                    _LOGGER.warning("%s: local write error (%s)", what, scrub(err))
             else:
                 _LOGGER.warning("%s: gateway not connected", what)
         if not self.cloud_enabled:
@@ -1146,7 +1193,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.info("%s: sent through %s, checking that the Powerwall applies it", what, backend.label)
                 return backend.label
             errors.append(f"{backend.label} did not accept it")
-        _LOGGER.warning("%s: local and cloud writes failed (%s)", what, "; ".join(errors))
+        _LOGGER.warning("%s: local and cloud writes failed (%s)", what, scrub("; ".join(errors)))
         raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_failed")
 
     def _write_setting(self, key: str, what: str, value: Any, write) -> None:
@@ -1187,7 +1234,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             ok = bool(pw.client.tedapi._write_config({f"site_info.{SOLAR_CURTAILMENT_KEY}": bool(enabled)}))  # noqa: SLF001
         except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Solar curtailment write error: %s", err)
+            _LOGGER.warning("Solar curtailment write error: %s", scrub(err))
             ok = False
         if not ok:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="write_failed")
@@ -1386,7 +1433,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         caller reports it like a refusal (None), so everything that sends
         commands sees a HomeAssistantError and nothing else."""
         _LOGGER.warning("%s: the command failed before the Powerwall answered (%s: %s)",
-                        what, type(err).__name__, err)
+                        what, type(err).__name__, scrub(err))
 
     def _max_backup(self, minutes: int | None) -> None:
         """Start (minutes) or cancel (None) a manual backup event over signed
@@ -1524,11 +1571,21 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.outages.restore(stored.get("outages") or {})
         self.firmware.restore(stored.get("firmware") or {})
         self.daily.restore(stored.get("daily") or {})
+        self.battery_net.restore(stored.get("battery_net") or {})
         self.grid_check.restore(stored.get("grid_check") or {})
         self.flows.restore(stored.get("flows") or {})
         self.capacity_trend.restore(stored.get("capacity_trend") or {})
+        answered = stored.get("wifi_fallback_answered")
+        self._fallback_answered = answered if isinstance(answered, str) else None
         names = stored.get("pack_names")
         self._pack_names = {str(k): str(v) for k, v in names.items()} if isinstance(names, dict) else {}
+
+    async def async_save_state(self) -> None:
+        """Save now, when the entry unloads or Home Assistant stops. The
+        delayed save only follows full reads, so without this the energy flows
+        counted on fast polls since the last one would be lost, and the flow
+        counters would go back a little after every reload or restart."""
+        await self._store.async_save(self._state_to_save())
 
     def _state_to_save(self) -> dict[str, Any]:
         return {"export_wanted": self.wanted["grid_export"],
@@ -1537,10 +1594,12 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "outages": self.outages.as_dict(),
                 "firmware": self.firmware.as_dict(),
                 "daily": self.daily.as_dict(),
+                "battery_net": self.battery_net.as_dict(),
                 "grid_check": self.grid_check.as_dict(),
                 "flows": self.flows.as_dict(),
                 "capacity_trend": self.capacity_trend.as_dict(),
-                "pack_names": dict(self._pack_names)}
+                "pack_names": dict(self._pack_names),
+                "wifi_fallback_answered": self._fallback_answered}
 
     async def _async_update_data(self) -> dict[str, Any]:
         try:
@@ -1565,27 +1624,30 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     raise
                 if not self._gateway_down:
                     self._gateway_down = True
-                    _LOGGER.warning("The Powerwall gateway at %s can't be reached (%s); readings are "
-                                    "unavailable and settings use the cloud backup", self._host, err)
+                    _LOGGER.warning("%s: the gateway can't be reached (%s); readings are unavailable "
+                                    "and settings use the cloud backup", self._log_name, scrub(err))
             else:
                 self._password_refused = self._key_refused = 0
                 if self._gateway_down:
                     self._gateway_down = False
-                    _LOGGER.info("The Powerwall gateway at %s answers again", self._host)
+                    _LOGGER.info("%s: the gateway answers again", self._log_name)
         except Exception as err:
             self._pw = None
             self._full_at = None
             self._sync_cloud_issue()
-            raise UpdateFailed(f"Powerwall update failed: {err}") from err
+            raise UpdateFailed(f"Powerwall update failed: {scrub(err)}") from err
 
         if data.get("din"):
             self.din = data["din"]
         if data.get("firmware_version"):
             self.firmware_version = data["firmware_version"]
         if data.get("local_ok"):
+            if data.get("battery_level") is not None:
+                self.battery_level_at = dt_util.utcnow()
             self.model = detect_model(self.din, data.get("packs"))
             if data.get("full_read", True):  # it counts polls: full reads only
                 self._sync_follower_issue(data.get("missing_powerwalls"))
+        self._schedule_fallback_check()
         due = [backend for backend in self.backends if self._cloud_check_due(backend)]
         if due:
             for backend in due:
@@ -1802,11 +1864,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         now = dt_util.utcnow()
         if data.get("local_ok") and energy:
             data["energy_today"] = self.daily.update(energy, now)
+            if data.get("full_read", True):  # fast polls carry the last counters
+                self.battery_net.update(now, energy.get("battery_energy_charged"),
+                                        energy.get("battery_energy_discharged"))
             self.grid_check.update(self.daily.day, data.get("grid_power"), energy.get("grid_energy_imported"),
                                    energy.get("grid_energy_exported"), now)
         else:
             data["energy_today"] = {}
         data["energy_day"] = self.daily.day
+        data["battery_net"] = self.battery_net.summary()
         data["grid_check"] = self.grid_check.summary()
 
     def _track_firmware(self, data: dict[str, Any]) -> None:
@@ -1843,8 +1909,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self._follower_missing < FOLLOWER_MISSING_POLLS or issue_id in self._write_issues:
             return
         signed = self._conn_mode == MODE_V1R
-        _LOGGER.warning("%d Powerwall 3(s) missing from the readings (%s)%s", len(missing),
-                        ", ".join(missing),
+        # A count, not the serials: logs end up in public issues.
+        _LOGGER.warning("%d Powerwall 3(s) missing from the readings%s", len(missing),
                         "; on the signed connection followers are read over the Wi-Fi fallback only"
                         if signed else "")
         self._write_issues.add(issue_id)
@@ -1856,6 +1922,62 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             else "powerwall_follower_hotspot" if signed and self.follower_host
             else "powerwall_follower_hidden" if signed else "powerwall_follower_missing",
             translation_placeholders={"count": str(len(missing)), "wifi_host": self.follower_host},
+        )
+
+    def _schedule_fallback_check(self) -> None:
+        """Check the Wi-Fi fallback address in the background when due: every
+        WIFI_FALLBACK_CHECK_SECONDS, never in the way of a poll."""
+        if self._conn_mode != MODE_V1R or not self._wifi_host or self._wifi_host == self._host:
+            return
+        now = time.monotonic()
+        if self._fallback_checking or (self._fallback_checked_at is not None
+                                       and now - self._fallback_checked_at < WIFI_FALLBACK_CHECK_SECONDS):
+            return
+        self._fallback_checking = True
+        self._fallback_checked_at = now
+        self.config_entry.async_create_background_task(
+            self.hass, self._async_check_fallback(), "tesla_tedapi Wi-Fi fallback check")
+
+    async def _async_check_fallback(self) -> None:
+        try:
+            ok = await self.hass.async_add_executor_job(gateway.answers, self._wifi_host)
+        finally:
+            self._fallback_checking = False
+        self._sync_fallback_issue(ok, time.monotonic())
+
+    def _sync_fallback_issue(self, ok: bool, now: float) -> None:
+        """A repair once the Wi-Fi fallback address hasn't answered for
+        WIFI_FALLBACK_DOWN_SECONDS; removed when it answers again (or the
+        address is cleared: the entry reloads and its repairs are cleared).
+
+        Only for an address that has answered before: one that never has was
+        most likely kept from setup without Home Assistant ever joining the
+        Powerwall's Wi-Fi (2.8.1 and earlier filled it in), and isn't news."""
+        issue_id = f"wifi_fallback_unreachable_{self.config_entry.entry_id}"
+        self._fallback_ok = ok
+        if ok:
+            self._fallback_down_since = None
+            if self._fallback_answered != self._wifi_host:
+                self._fallback_answered = self._wifi_host
+                self._store.async_delay_save(self._state_to_save, 10)
+            if issue_id in self._write_issues:
+                _LOGGER.info("%s: the Wi-Fi fallback address answers again", self._log_name)
+                self._write_issues.discard(issue_id)
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        if self._fallback_down_since is None:
+            self._fallback_down_since = now
+        if (now - self._fallback_down_since < WIFI_FALLBACK_DOWN_SECONDS or issue_id in self._write_issues
+                or self._fallback_answered != self._wifi_host):
+            return
+        _LOGGER.warning("%s: the Wi-Fi fallback address hasn't answered for over an hour", self._log_name)
+        self._write_issues.add(issue_id)
+        ir.async_create_issue(
+            self.hass, DOMAIN, issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="wifi_fallback_unreachable",
+            translation_placeholders={"wifi_host": self._wifi_host},
         )
 
     def _sync_firmware_issue(self, works: bool) -> None:
@@ -1936,7 +2058,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._client_error_logged = True
             _LOGGER.error(
                 "The Powerwall client failed before reaching the gateway (%s: %s). If another integration "
-                "installs a different pypowerwall, remove it and restart Home Assistant", type(err).__name__, err)
+                "installs a different pypowerwall, remove it and restart Home Assistant",
+                type(err).__name__, scrub(err))
 
     def _classify_failure(self, key_refused: bool | None = None) -> str:
         """Why the signed connection failed: password, key, network, or a
@@ -1946,7 +2069,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if not self._gw_pwd:
             return "password"
         try:
-            gateway.login(self._host, self._gw_pwd, self._full_login)
+            if self._customer_pwd:
+                gateway.login(self._host, self._customer_pwd, True)
+            else:
+                gateway.login(self._host, self._gw_pwd, self._full_login)
         except gateway.GatewayPasswordRejected:
             return "password"
         except gateway.GatewayUnreachable:
@@ -2043,6 +2169,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "checks": checks,
             "problems": problems,
             "wifi_fallback": bool(self._wifi_host) if self._conn_mode == MODE_V1R else None,
+            # None until checked (or without a fallback address).
+            "wifi_fallback_reachable": self._fallback_ok if self._conn_mode == MODE_V1R and self._wifi_host
+            else None,
             "cloud_linked": self.cloud_enabled,
             "cloud_backends": {
                 backend.name: {
@@ -2065,7 +2194,18 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         now = dt_util.utcnow()
         self.alert_changes = []
         if data.get("local_ok") and data.get("alerts") is not None:
-            packs = {p["name"]: p["alerts"] for p in (data.get("packs") or {}).values() if p.get("alerts")}
+            read = (data.get("packs") or {}).values()
+            packs = {p["name"]: list(p["alerts"]) for p in read if p.get("alerts")}
+            # A pack missing from this reading (the vitals read failed, or a
+            # follower Powerwall 3 is away) says nothing about its alerts:
+            # keep them, so they aren't cleared and raised again with a new
+            # start time. Only for packs still known (see name_packs).
+            names_read = {p["name"] for p in read}
+            known = set(self._pack_names.values())
+            for alert, sources in self.alerts.sources.items():
+                for source in sources:
+                    if source != "gateway" and source not in names_read and source in known:
+                        packs.setdefault(source, []).append(alert)
             self.alert_changes = self.alerts.update(data["alerts"], packs, now)
             for change in self.alert_changes:
                 _LOGGER.info("Powerwall alert %s: %s (%s)", change.kind, change.name, change.description)
@@ -2082,6 +2222,16 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # lists repair ids in every diagnostics download, unredacted, and the
         # DIN contains the gateway's serial number (#29).
         entry_id = self.config_entry.entry_id
+        if self.din and not self._din_issues_cleared:
+            # Up to 2.8.0 they were named after the DIN. Home Assistant keeps
+            # such a repair, inactive, after a restart, so it stayed in every
+            # diagnostics download (#35): remove those of this gateway.
+            registry = ir.async_get(self.hass)
+            prefix = f"alert_{self.din}_"
+            for domain, issue_id in list(registry.issues):
+                if domain == DOMAIN and issue_id.startswith(prefix):
+                    ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            self._din_issues_cleared = True
         wanted = {f"alert_{entry_id}_{name}": name for name in problems}
         for issue_id, name in wanted.items():
             if issue_id in self._issues:

@@ -29,6 +29,7 @@ from .const import (
     ATTR_MAX_MINUTES,
     ATTR_MAX_SOC,
     ATTR_MIN_SOC,
+    ATTR_NET,
     ATTR_ONLY_IF_CHANGED,
     ATTR_POWER_WATTS,
     ATTR_READ_BACK,
@@ -65,6 +66,7 @@ from .const import (
 from .coordinator import TedapiConfigEntry, TedapiCoordinator, TedapiRuntimeData
 from .dispatch import DispatchSession, quiet_dispatch_repeats
 from .off_grid import OffGridSession, off_grid_store
+from .privacy import mask_library_logs, scrub
 from .texts import async_setup_texts
 
 _LOGGER = logging.getLogger(__name__)
@@ -98,6 +100,7 @@ IMPORT_HISTORY_SCHEMA = vol.Schema({
     vol.Optional(ATTR_DRY_RUN, default=True): cv.boolean,
     vol.Required(ATTR_SOURCE_CHARGED): cv.entity_id,
     vol.Required(ATTR_SOURCE_DISCHARGED): cv.entity_id,
+    vol.Optional(ATTR_NET, default=False): cv.boolean,
 })
 SET_TARIFF_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
@@ -262,7 +265,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         return await async_import(hass, coordinator.din, {
             "battery_energy_charged": call.data[ATTR_SOURCE_CHARGED],
             "battery_energy_discharged": call.data[ATTR_SOURCE_DISCHARGED],
-        }, call.data[ATTR_DRY_RUN])
+        }, call.data[ATTR_DRY_RUN], net=call.data[ATTR_NET])
 
     async def set_tariff(call: ServiceCall) -> ServiceResponse:
         return await _tariff_coordinator(hass, call).async_set_tariff(
@@ -330,10 +333,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
     except client.ClientTooOld as err:
         # Not ConfigEntryNotReady: retrying can't help, only a restart
         # without the integration that loaded the older pypowerwall.
-        _LOGGER.error("%s. Another integration loaded it; remove that one and restart Home Assistant", err)
+        _LOGGER.error("%s. Another integration loaded it; remove that one and restart Home Assistant", scrub(err))
         raise ConfigEntryError(
             translation_domain=DOMAIN, translation_key="pypowerwall_too_old",
             translation_placeholders={"found": err.found, "required": client.required()}) from err
+    await hass.async_add_executor_job(mask_library_logs)
     coordinator = TedapiCoordinator(hass, entry)
     await coordinator.async_load_state()
     try:
@@ -366,14 +370,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         # Home Assistant doesn't unload entries when it stops or restarts:
         # end a running dispatch here, so the battery is handed back now (not
         # when the last command expires) and the ended event still fires.
+        # Save the state too: the flows counted on fast polls since the last
+        # full read aren't saved yet.
         if (dispatch := entry.runtime_data.dispatch) is not None:
             await dispatch.async_shutdown()
+        await coordinator.async_save_state()
 
     # async_listen, not async_listen_once: removing a once-listener that has
     # already fired (unload after the stop) logs an error.
     entry.async_on_unload(hass.bus.async_listen(EVENT_HOMEASSISTANT_STOP, _async_stop))
     _LOGGER.debug("Powerwall %s loaded (firmware %s, %s, settings %s)",
-                  coordinator.din, coordinator.firmware_version, coordinator.connection_mode,
+                  scrub(entry.title), coordinator.firmware_version, coordinator.connection_mode,
                   "enabled" if coordinator.control_enabled else "read-only")
     return True
 
@@ -423,6 +430,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> b
     if entry.runtime_data.off_grid is not None:
         entry.runtime_data.off_grid.async_shutdown()
     entry.runtime_data.coordinator.async_clear_issues()
+    await entry.runtime_data.coordinator.async_save_state()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 

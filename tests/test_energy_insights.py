@@ -19,8 +19,16 @@ from .test_storm import V1R, _eid, _refresh, _setup
 
 
 @pytest.mark.parametrize(("readings", "expected"), [
-    # Solar covers the home, charges the battery; the grid tops the charge up.
-    ((3000, -500, 100, 2600), {"solar_to_home": 2600, "solar_to_battery": 400, "grid_to_battery": 100}),
+    # Solar charges the battery and covers most of the home; the grid the rest.
+    ((3000, -500, 100, 2600), {"solar_to_home": 2500, "solar_to_battery": 500, "grid_to_home": 100}),
+    # The grid runs the home while the battery charges (#33): solar goes into the battery and the
+    # grid runs the home, as Tesla's counters and the Energy dashboard count it.
+    ((2000, -5000, 3500, 500), {"solar_to_battery": 2000, "grid_to_home": 500, "grid_to_battery": 3000}),
+    # Solar beyond the charge covers the home, the grid tops the charge up.
+    ((2400, -2000, 1000, 1400), {"solar_to_battery": 2000, "solar_to_home": 400,
+                                 "grid_to_home": 1000}),
+    # Solar beyond the charge and the home is exported.
+    ((6000, -2000, -3000, 1000), {"solar_to_battery": 2000, "solar_to_home": 1000, "solar_to_grid": 3000}),
     # Solar covers the home and exports the rest.
     ((5000, 0, -3000, 2000), {"solar_to_home": 2000, "solar_to_grid": 3000}),
     # Night: the battery runs the home, the grid the rest.
@@ -87,9 +95,11 @@ async def test_flow_sensors(hass: HomeAssistant, fake_powerwall, freezer) -> Non
     freezer.tick(30)
     await _refresh(hass, entry)
     # The fake gateway: solar 3000 W, battery charging 500 W, grid 100 W in, home 2600 W.
-    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_home")).state == "0.022"  # 2.6 kW for 30 s
-    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_battery")).state == "0.003"
-    assert hass.states.get(_eid(hass, "sensor", "flow_grid_to_battery")).state == "0.001"
+    # Solar charges the battery first, then the home; the grid covers the rest of the home.
+    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_home")).state == "0.021"  # 2.5 kW for 30 s
+    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_battery")).state == "0.004"
+    assert hass.states.get(_eid(hass, "sensor", "flow_grid_to_home")).state == "0.001"
+    assert hass.states.get(_eid(hass, "sensor", "flow_grid_to_battery")).state == "0.0"
     assert hass.states.get(_eid(hass, "sensor", "flow_battery_to_grid")).state == "0.0"
     coordinator = entry.runtime_data.coordinator
     assert coordinator._state_to_save()["flows"]["totals"]["solar_to_home"] > 0
@@ -101,7 +111,7 @@ async def test_flow_sensors(hass: HomeAssistant, fake_powerwall, freezer) -> Non
     assert coordinator.flows.last is None
     freezer.tick(30)
     await _refresh(hass, entry)
-    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_home")).state == "0.022"
+    assert hass.states.get(_eid(hass, "sensor", "flow_solar_to_home")).state == "0.021"
 
 
 # -- battery economics -----------------------------------------------------
@@ -115,6 +125,23 @@ def test_round_trip_efficiency() -> None:
     # More out than in: the counters don't cover the same energy (DC solar).
     assert wear.round_trip_efficiency(1000, 1000) == 100.0
     assert wear.round_trip_efficiency(1000, 1050) is None
+
+
+def test_efficiency_basis() -> None:
+    """2.8.2: what the figure is based on, and why it's unknown when it is."""
+    assert wear.efficiency_basis(1000.04, 900) == {
+        "basis": "battery_side_lifetime", "charged_kwh": 1000.0, "discharged_kwh": 900.0,
+        "min_charged_kwh": wear.MIN_EFFICIENCY_KWH, "unknown_reason": None}
+    assert wear.efficiency_basis(10, 9)["unknown_reason"] == "not_enough_history"
+    assert wear.efficiency_basis(1000, 1050)["unknown_reason"] == "counters_disagree"
+    assert wear.efficiency_basis(None, 5) == {
+        "basis": "battery_side_lifetime", "charged_kwh": None, "discharged_kwh": 5.0,
+        "min_charged_kwh": wear.MIN_EFFICIENCY_KWH, "unknown_reason": "no_counters"}
+    assert wear.efficiency_basis(500, True)["unknown_reason"] == "no_counters"
+    # Wherever the figure is unknown, the basis says why; where it shows, it doesn't.
+    for charged, discharged in ((1000, 900), (10, 9), (1000, 1050), (None, 5), (1000, 1000)):
+        unknown = wear.round_trip_efficiency(charged, discharged) is None
+        assert (wear.efficiency_basis(charged, discharged)["unknown_reason"] is not None) == unknown
 
 
 def _trend(days: int, start_kwh: float, per_day: float, packs: int = 1) -> wear.CapacityTrend:
@@ -168,6 +195,9 @@ async def test_battery_economics_sensors(hass: HomeAssistant, fake_powerwall, fr
     # The fake gateway's counters: 500 kWh into the battery, 450 kWh out.
     efficiency = hass.states.get(_eid(hass, "sensor", "battery_round_trip_efficiency"))
     assert efficiency.state == "90.0"
+    assert efficiency.attributes["basis"] == "battery_side_lifetime"
+    assert (efficiency.attributes["charged_kwh"], efficiency.attributes["discharged_kwh"]) == (500.0, 450.0)
+    assert efficiency.attributes["unknown_reason"] is None
     fade = hass.states.get(_eid(hass, "sensor", "battery_capacity_fade"))
     assert fade.state == "unknown"  # one sample: no trend yet
     assert fade.attributes["samples"] == 1 and fade.attributes["days"] == 0
@@ -301,3 +331,32 @@ async def test_powerwall_3_keeps_inverter_temperatures(hass: HomeAssistant, fake
     await _setup(hass, V1R)
     assert hass.states.get(_eid(hass, "sensor", "inverter_ambient_temperature")).state == "25.0"
     assert hass.states.get(_eid(hass, "sensor", "inverter_heatsink_temperature")).state == "30.0"
+
+
+@pytest.mark.parametrize(
+    ("status", "backup", "usable"),
+    [
+        # 5 % of 13.9 kWh is hidden: 6.305 of the 7 kWh can be used.
+        ({"nominal_full_pack_energy": 13900, "nominal_energy_remaining": 7000}, 12.5 * 6305 / 7000, 6.305),
+        # At or below the app's 0 %: nothing left to run on.
+        ({"nominal_full_pack_energy": 13900, "nominal_energy_remaining": 600}, 0.0, 0.0),
+        # Without the full capacity the hidden part isn't known.
+        ({"nominal_energy_remaining": 7000}, None, None),
+    ],
+)
+async def test_backup_time_and_usable_energy_leave_out_the_hidden_bottom(
+        hass: HomeAssistant, fake_powerwall, status, backup, usable) -> None:
+    """The Powerwall stops at the app's 0 % (5 % on the gateway's scale), in
+    an outage too: backup time and usable energy count only what's above it,
+    while Battery energy remaining stays the gateway's figure."""
+    with patch.object(FakePowerwall, "system_status", lambda self: status):
+        await _setup(hass, V1R)
+    hours = hass.states.get(_eid(hass, "sensor", "backup_time_remaining")).state
+    remaining = hass.states.get(_eid(hass, "sensor", "battery_energy_remaining"))
+    assert float(remaining.state) == status["nominal_energy_remaining"] / 1000
+    if backup is None:
+        assert hours == "unknown"
+        assert remaining.attributes["usable_kwh"] is None
+    else:
+        assert float(hours) == pytest.approx(backup, abs=0.01)
+        assert remaining.attributes["usable_kwh"] == pytest.approx(usable, abs=0.01)
