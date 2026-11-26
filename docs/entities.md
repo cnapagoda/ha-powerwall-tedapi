@@ -317,5 +317,6 @@ Read from the gateway every 5 minutes (the site limits with each full read where
 | `cloud_backends` | Per backup: `ok`, `starting`, `can_change_settings`, `failures`, `last_ok`. |
 | `cloud_token_expires` | When the Owner API access token expires (it's renewed automatically). |
 | `cloud_last_ok` | The last successful cloud read. |
+| `read_times` | How the gateway answered in the last hour, for full and power-only reads: `count`, `median_s`, `slowest_s`, `failed`, `timeouts` and the connection `paths` used; `loop_delay_ms` (how late Home Assistant ran a task: high values mean Home Assistant was busy, not the gateway slow); and `dispatch_level_age_s` (how old the battery level was at battery dispatch renewals). Not recorded. |
 
 *Needs attention* about the cloud only appears when **no** backup can change settings; a single failing backup gets its own repair instead.

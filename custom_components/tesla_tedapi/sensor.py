@@ -1017,7 +1017,7 @@ class TedapiSensor(TedapiEntity, SensorEntity):
         "import_difference_pct", "export_difference_pct", "covered_minutes", "gaps",
         # setup health
         "checks", "cloud_backends", "cloud_token_expires", "cloud_last_ok", "wifi_fallback", "cloud_linked",
-        "wifi_fallback_reachable",
+        "wifi_fallback_reachable", "read_times",
         # round-trip efficiency: the counters behind it change on every poll
         "charged_kwh", "discharged_kwh", "min_charged_kwh",
         # battery energy remaining: changes with every reading

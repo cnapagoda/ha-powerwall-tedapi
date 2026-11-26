@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import logging
 import math
+import time
 from typing import Any
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
@@ -393,6 +394,10 @@ class DispatchSession:
                                 "(%d s); it ends if none arrives within %d s", stale,
                                 self._stale_limit() + DISPATCH_CHUNK_SECONDS - stale)
             return
+        age = self._level_age()
+        if age is not None:
+            self.coordinator.read_times.level_age(time.monotonic(), age)
+        self.coordinator.sample_loop_lag()
         try:
             async with self._send_lock:
                 if self.state is not state:

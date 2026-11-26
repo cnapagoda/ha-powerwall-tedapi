@@ -56,9 +56,9 @@ async def test_churning_attributes_not_recorded(hass: HomeAssistant, fake_powerw
     # Setup health: the per-check detail is live; the problems stay recorded.
     health = _eid(hass, "setup_health")
     live = hass.states.get(health).attributes
-    assert "checks" in live and "problems" in live
+    assert "checks" in live and "problems" in live and "read_times" in live
     recorded = await _recorded(hass, health, start)
-    assert "checks" not in recorded and "problems" in recorded
+    assert "checks" not in recorded and "problems" in recorded and "read_times" not in recorded
 
     # The alert codes stay recorded; the details don't.
     alerts = _eid(hass, "alerts")

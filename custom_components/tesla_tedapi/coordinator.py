@@ -101,6 +101,7 @@ from .fleet import FleetBackup, FleetTimeout, entry_api, provider_label
 from .flows import EnergyFlows
 from .outages import OutageTracker
 from .privacy import scrub
+from .readtimes import ReadTimes, is_timeout
 from .texts import texts as shared_texts
 from .wear import CapacityTrend
 
@@ -627,6 +628,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._polling = False
         self._poll_done = asyncio.Event()
         self._poll_done.set()
+        # How long the gateway takes to answer, and how late the event loop
+        # runs (Setup health, diagnostics).
+        self.read_times = ReadTimes()
         # The last failed signed read was a refused key (password fine): then
         # readings come over the Powerwall's Wi-Fi with its password instead,
         # read-only, through a client of their own (writes never use it).
@@ -811,17 +815,22 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # Reads (executor)
     # ------------------------------------------------------------------
 
+    def _full_due(self) -> bool:
+        """Whether this poll is a full read (else only the live readings, laid
+        over the last full read: fast polling)."""
+        full, read_at = self._full, self._full_at
+        full_seconds = self._full_seconds(self.config_entry)
+        return not (full is not None and read_at is not None and self.update_interval is not None
+                    and self.update_interval.total_seconds() < full_seconds
+                    # A second early: timers drift, and a full read a poll
+                    # late would stretch the polling interval.
+                    and time.monotonic() - read_at < full_seconds - 1)
+
     def _fetch_all(self) -> dict[str, Any]:
         """A full read, or between two of them (fast polling) only the live
         readings laid over the last full read."""
-        full, read_at = self._full, self._full_at
-        full_seconds = self._full_seconds(self.config_entry)
-        if (full is not None and read_at is not None and self.update_interval is not None
-                and self.update_interval.total_seconds() < full_seconds
-                # A second early: timers drift, and a full read a poll late
-                # would stretch the polling interval.
-                and time.monotonic() - read_at < full_seconds - 1):
-            return {**full, **self._fetch_live(self._pw), "full_read": False}
+        if not self._full_due():
+            return {**(self._full or {}), **self._fetch_live(self._pw), "full_read": False}
         data = self._fetch_full()
         self._full, self._full_at = dict(data), time.monotonic()
         return data
@@ -1718,13 +1727,26 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.async_update_listeners()
         return True
 
+    @callback
+    def sample_loop_lag(self) -> None:
+        """How late the event loop runs a callback asked for now: a busy Home
+        Assistant, told apart from a slow gateway."""
+        loop = self.hass.loop
+        asked = loop.time()
+        loop.call_soon(lambda: self.read_times.loop_lag(time.monotonic(), loop.time() - asked))
+
     async def _async_poll(self) -> dict[str, Any]:
         try:
+            kind = "full" if self._full_due() else "fast"
+            started = time.monotonic()
+            self.sample_loop_lag()
             try:
                 if self._pw is None:
                     self._pw = await self.hass.async_add_executor_job(self._init_powerwall)
                 data = await self.hass.async_add_executor_job(self._fetch_all)
             except Exception as err:
+                self.read_times.read(time.monotonic(), kind, time.monotonic() - started, ok=False,
+                                     timeout=is_timeout(err))
                 key_refused = _key_refused(self._pw)
                 self._pw = None
                 self._full_at = None  # a full read first once it answers again
@@ -1758,6 +1780,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         _LOGGER.warning("%s: the gateway can't be reached (%s); readings are unavailable "
                                         "and settings use the cloud backup", self._log_name, scrub(err))
             else:
+                self.read_times.read(time.monotonic(), "full" if data.get("full_read", True) else "fast",
+                                     time.monotonic() - started, ok=True, path=self._connection_path(data))
                 self._sync_wrong_gateway(False)
                 self._password_refused = self._key_refused = 0
                 self._key_refused_now = False
@@ -2374,6 +2398,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             },
             "cloud_token_expires": token_expires,
             "cloud_last_ok": max(last_oks).isoformat() if last_oks else None,
+            "read_times": self.read_times.summary(time.monotonic()),
         }
 
     # ------------------------------------------------------------------

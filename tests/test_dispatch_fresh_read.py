@@ -77,7 +77,8 @@ async def test_a_late_poll_doesnt_pause_renewals(hass: HomeAssistant, fake_power
     with patch.object(pw, "level", level), caplog.at_level(logging.WARNING):
         await _tick(hass, session)
     assert level.calls >= 1
-    assert len(pw.dispatches) == sent + 1
+    # Renewed (its own renewal timer may have fired too as the clock moved).
+    assert len(pw.dispatches) > sent
     assert "not renewed" not in caplog.text
     age = (dt_util.utcnow() - entry.runtime_data.coordinator.battery_level_at).total_seconds()
     assert age < 1

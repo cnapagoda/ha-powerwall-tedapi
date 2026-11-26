@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import re
+import time
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -175,6 +176,7 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: TedapiC
         # No Tesla sign-in kept for this entry (2.9.0).
         "local_only": not fleet.has_signin(entry.data),
         "connection_path": coordinator.connection_path,
+        "read_times": coordinator.read_times.summary(time.monotonic()),
         "token_cache": token,
         "dispatch": runtime.dispatch.as_dict() if runtime.dispatch else None,
         "data": redact_values(async_redact_data(data, TO_REDACT), secrets),
