@@ -330,8 +330,8 @@
           "mqtt_secret": "Commandogeheim (optioneel)"
         },
         "data_description": {
-          "mqtt_base_topic": "Berichten gaan naar `<basis>/power`, /battery, /energy, /settings, /status en /event/…. Letters, cijfers, _ en -, gescheiden door /. Elke Powerwall heeft een eigen nodig.",
-          "mqtt_commands": "Bedrijfsmodus, back-upreserve, laden van het net en teruglevering, via `<basis>/cmd/…`, met dezelfde controles als de entiteiten. Vraagt publiceren aan. Iedereen die naar je broker kan publiceren kan ze gebruiken: beperk dat met de toegangsregels van de broker, of stel een geheim in.",
+          "mqtt_base_topic": "Berichten gaan naar `basis/power`, /battery, /energy, /settings, /status en /event/…. Letters, cijfers, _ en -, gescheiden door /. Elke Powerwall heeft een eigen nodig.",
+          "mqtt_commands": "Bedrijfsmodus, back-upreserve, laden van het net en teruglevering, via `basis/cmd/…`, met dezelfde controles als de entiteiten. Vraagt publiceren aan. Iedereen die naar je broker kan publiceren kan ze gebruiken: beperk dat met de toegangsregels van de broker, of stel een geheim in.",
           "mqtt_battery_commands": "Batterijsturing, laden en ontladen tot een niveau, hervatten en maximale back-up, met alle grenzen van de acties. Alleen met instellingscommando's aan. Lees eerst Veiligheid.",
           "mqtt_secret": "Indien ingesteld, wordt een commando alleen uitgevoerd als het veld token overeenkomt."
         }

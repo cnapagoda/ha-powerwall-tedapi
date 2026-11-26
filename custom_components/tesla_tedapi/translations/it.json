@@ -330,8 +330,8 @@
           "mqtt_secret": "Segreto dei comandi (facoltativo)"
         },
         "data_description": {
-          "mqtt_base_topic": "I messaggi vanno a `<base>/power`, /battery, /energy, /settings, /status e /event/…. Lettere, cifre, _ e -, separati da /. Ogni Powerwall ne serve uno proprio.",
-          "mqtt_commands": "Modalità operativa, riserva di backup, ricarica dalla rete ed esportazione, da `<base>/cmd/…`, con gli stessi controlli delle entità. Richiede la pubblicazione attiva. Chiunque possa pubblicare sul tuo broker può usarli: limitalo con le regole di accesso del broker o imposta un segreto.",
+          "mqtt_base_topic": "I messaggi vanno a `base/power`, /battery, /energy, /settings, /status e /event/…. Lettere, cifre, _ e -, separati da /. Ogni Powerwall ne serve uno proprio.",
+          "mqtt_commands": "Modalità operativa, riserva di backup, ricarica dalla rete ed esportazione, da `base/cmd/…`, con gli stessi controlli delle entità. Richiede la pubblicazione attiva. Chiunque possa pubblicare sul tuo broker può usarli: limitalo con le regole di accesso del broker o imposta un segreto.",
           "mqtt_battery_commands": "Controllo della batteria, carica e scarica fino a un livello, ripresa e backup massimo, con tutti i limiti delle azioni. Solo con i comandi per le impostazioni attivi. Leggi prima Sicurezza.",
           "mqtt_secret": "Se impostato, un comando viene eseguito solo se il suo campo token corrisponde."
         }

@@ -330,8 +330,8 @@
           "mqtt_secret": "Secreto de órdenes (opcional)"
         },
         "data_description": {
-          "mqtt_base_topic": "Los mensajes van a `<base>/power`, /battery, /energy, /settings, /status y /event/…. Letras, dígitos, _ y -, separados por /. Cada Powerwall necesita el suyo.",
-          "mqtt_commands": "Modo de funcionamiento, reserva de respaldo, carga desde la red y exportación, desde `<base>/cmd/…`, con las mismas comprobaciones que las entidades. Necesita la publicación activada. Cualquiera que pueda publicar en tu broker puede usarlas: restríngelo con las reglas de acceso del broker o define un secreto.",
+          "mqtt_base_topic": "Los mensajes van a `base/power`, /battery, /energy, /settings, /status y /event/…. Letras, dígitos, _ y -, separados por /. Cada Powerwall necesita el suyo.",
+          "mqtt_commands": "Modo de funcionamiento, reserva de respaldo, carga desde la red y exportación, desde `base/cmd/…`, con las mismas comprobaciones que las entidades. Necesita la publicación activada. Cualquiera que pueda publicar en tu broker puede usarlas: restríngelo con las reglas de acceso del broker o define un secreto.",
           "mqtt_battery_commands": "Despacho de la batería, cargar y descargar hasta un nivel, reanudar y respaldo máximo, con todos los límites de las acciones. Solo con las órdenes de ajustes activadas. Lee Seguridad primero.",
           "mqtt_secret": "Si se define, una orden solo se ejecuta si su campo token coincide."
         }
