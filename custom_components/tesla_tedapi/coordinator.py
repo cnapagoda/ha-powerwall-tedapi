@@ -324,6 +324,10 @@ def _key_refused(pw: Any) -> bool | None:
     return bool(getattr(transport, "key_unknown", False) or getattr(transport, "pending_verification", False))
 
 
+# The settings the gateway last reported, kept for the Connection path sensor.
+LAST_KNOWN_SETTINGS = ("operation_mode", "backup_reserve", "grid_charging", "grid_export", "read_at")
+
+
 class WrongGateway(Exception):
     """The gateway at the entry's address is another Powerwall (its DIN isn't
     the entry's): a second site, or an address handed to another device."""
@@ -1664,6 +1668,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._fallback_answered = answered if isinstance(answered, str) else None
         names = stored.get("pack_names")
         self._pack_names = {str(k): str(v) for k, v in names.items()} if isinstance(names, dict) else {}
+        # When the gateway last answered and the settings it gave (2.9.0):
+        # shown while it can't be reached, also right after a restart.
+        read_at = dt_util.parse_datetime(str(stored.get("last_local_read") or ""))
+        self.last_local_read = read_at if read_at is not None and read_at.tzinfo is not None else None
+        settings = stored.get("last_known_settings")
+        if isinstance(settings, dict):
+            self.last_known_settings = {key: settings.get(key) for key in LAST_KNOWN_SETTINGS if key in settings}
 
     async def async_save_state(self) -> None:
         """Save now, when the entry unloads or Home Assistant stops. The
@@ -1684,7 +1695,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "flows": self.flows.as_dict(),
                 "capacity_trend": self.capacity_trend.as_dict(),
                 "pack_names": dict(self._pack_names),
-                "wifi_fallback_answered": self._fallback_answered}
+                "wifi_fallback_answered": self._fallback_answered,
+                "last_local_read": self.last_local_read.isoformat() if self.last_local_read else None,
+                "last_known_settings": self.last_known_settings}
 
     async def _async_update_data(self) -> dict[str, Any]:
         self._polling = True

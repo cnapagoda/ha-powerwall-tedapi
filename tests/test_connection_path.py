@@ -186,3 +186,34 @@ async def test_read_only_keeps_going_once_reauth_has_started(hass: HomeAssistant
     coordinator._reauth_started = True
     await _refresh(hass, entry)
     assert _path(hass).state == "wifi_password"
+
+
+async def test_last_known_settings_survive_a_restart(hass: HomeAssistant, fake_powerwall, hass_storage) -> None:
+    """With a cloud backup the entry starts while the gateway is down: the
+    Connection path still says when it last answered, and what it reported."""
+    entry = await _setup(hass, {**V1R, **ACCOUNT})
+    coordinator = entry.runtime_data.coordinator
+    read_at, settings = coordinator.last_local_read, coordinator.last_known_settings
+    assert read_at is not None and settings["operation_mode"] == "self_consumption"
+    fake_powerwall.fail_local = True
+    assert await hass.config_entries.async_reload(entry.entry_id)  # saves, then starts again
+    await hass.async_block_till_done()
+    state = _path(hass)
+    assert state.state == "cloud"
+    assert state.attributes["last_local_read"] == read_at.isoformat()
+    assert state.attributes["last_known_settings"] == settings
+
+
+async def test_stored_last_known_values_that_cant_be_used(hass: HomeAssistant, fake_powerwall,
+                                                          hass_storage) -> None:
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data={**V1R, **ACCOUNT}, minor_version=2,
+                            title="Powerwall")
+    hass_storage[f"{DOMAIN}.{entry.entry_id}"] = {"version": 1, "key": f"{DOMAIN}.{entry.entry_id}", "data": {
+        "last_local_read": "2026-11-26T09:00:00", "last_known_settings": ["not", "a", "dict"]}}
+    entry.add_to_hass(hass)
+    fake_powerwall.fail_local = True
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    state = _path(hass)
+    assert state.state == "cloud"
+    assert state.attributes["last_local_read"] is None and state.attributes["last_known_settings"] is None
