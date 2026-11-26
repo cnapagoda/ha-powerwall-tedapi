@@ -297,12 +297,14 @@
             "data": {
               "dispatch_floor_reserve": "Entladungen stoppen bei der Backup-Reserve",
               "dispatch_max_watts": "Größte Dispatch-Leistung",
-              "dispatch_stale_minutes": "So alt darf der Batteriestand sein"
+              "dispatch_stale_minutes": "So alt darf der Batteriestand sein",
+              "dispatch_grid_charging": "Laden aus dem Netz für eine Ladung einschalten"
             },
             "data_description": {
               "dispatch_floor_reserve": "Eine ohne `min_soc` gestartete Entladung stoppt, wenn die Batterie die Backup-Reserve erreicht.",
               "dispatch_max_watts": "Dispatch-Aufrufe über dieser Leistung werden abgelehnt (höchstens 30.000 W). Stelle ein, was dein System liefern kann: eine Powerwall 3 lehnt mehr als 10.000 W ab. Eine Erhöhung liegt in deiner Verantwortung: stelle nur ein, was deine Verkabelung, Sicherungen, dein Gateway und dein Netzanschluss zulassen.",
-              "dispatch_stale_minutes": "Ein Laden oder Entladen wird nur mit einem höchstens so alten Batteriestand gestartet oder verlängert (1–5 Minuten, Standard 2; nie weniger als 2½ Abfrageintervalle). Während einer Steuerung ignoriert die Powerwall ihre Notstromreserve, und ihre Grenzen werden gegen diesen Stand geprüft: jede Minute mehr lässt eine 10-kW-Steuerung etwa 0,17 kWh weiter über eine Grenze laufen. Nur erhöhen, wenn eine langsame Verbindung Steuerungen immer wieder pausiert."
+              "dispatch_stale_minutes": "Ein Laden oder Entladen wird nur mit einem höchstens so alten Batteriestand gestartet oder verlängert (1–5 Minuten, Standard 2; nie weniger als 2½ Abfrageintervalle). Während einer Steuerung ignoriert die Powerwall ihre Notstromreserve, und ihre Grenzen werden gegen diesen Stand geprüft: jede Minute mehr lässt eine 10-kW-Steuerung etwa 0,17 kWh weiter über eine Grenze laufen. Nur erhöhen, wenn eine langsame Verbindung Steuerungen immer wieder pausiert.",
+              "dispatch_grid_charging": "Eine Lade-Steuerung (auch `charge_to`) schaltet Laden aus dem Netz ein, wenn es aus ist, damit sie aus dem Netz laden kann, und schaltet es am Ende der Steuerung wieder aus, sofern es zwischendurch nicht geändert wurde. Laden aus dem Netz kann je nach Tarif Geld kosten."
             }
           },
           "advanced": {

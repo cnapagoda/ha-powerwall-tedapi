@@ -66,6 +66,7 @@ from .const import (
     CONF_CUSTOMER_PASSWORD,
     CONF_DIAGNOSTICS_GATEWAY,
     CONF_DISPATCH_FLOOR_RESERVE,
+    CONF_DISPATCH_GRID_CHARGING,
     CONF_DISPATCH_MAX_WATTS,
     CONF_DISPATCH_STALE_MINUTES,
     CONF_FLEET_PROVIDER,
@@ -1415,6 +1416,8 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                     vol.Required(CONF_DISPATCH_STALE_MINUTES, default=opts.get(
                         CONF_DISPATCH_STALE_MINUTES, DISPATCH_STALE_SECONDS // 60)): vol.All(
                             box(DISPATCH_STALE_MINUTES_MIN, DISPATCH_STALE_MINUTES_MAX, 1, "min"), vol.Coerce(int)),
+                    vol.Required(CONF_DISPATCH_GRID_CHARGING, default=opts.get(
+                        CONF_DISPATCH_GRID_CHARGING, False)): bool,
                 }), {"collapsed": False}),
                 vol.Required("advanced"): section(vol.Schema(advanced), {"collapsed": True}),
             }),

@@ -5,7 +5,8 @@ its backup reserve and export setting. Instead of sending the full duration at
 once, a session sends short commands (DISPATCH_CHUNK_SECONDS) and renews them,
 so the Powerwall goes back to normal within minutes if Home Assistant stops. It
 also stops on state-of-charge limits, which the Powerwall itself ignores, and
-is only renewed while the battery level it checks them against is fresh."""
+is only renewed while the battery level it checks them against is fresh.
+With the option on, a charge turns Grid charging on for its duration."""
 from __future__ import annotations
 
 import asyncio
@@ -24,11 +25,13 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_DISPATCH_FLOOR_RESERVE,
+    CONF_DISPATCH_GRID_CHARGING,
     CONF_DISPATCH_MAX_WATTS,
     CONF_DISPATCH_STALE_MINUTES,
     DISPATCH_CHUNK_SECONDS,
     DISPATCH_DEFAULT_WATTS,
     DISPATCH_FRESH_READ_SECONDS,
+    DISPATCH_GRID_RETRY_SECONDS,
     DISPATCH_MAX_FAILURES,
     DISPATCH_RENEW_SECONDS,
     DISPATCH_STALE_MINUTES_MAX,
@@ -90,6 +93,17 @@ class DispatchSession:
         # a start overtaken by a stop doesn't install its session.
         self._send_lock = asyncio.Lock()
         self._ends = 0
+        # Turning Grid charging back off after a charge (option): one at a
+        # time, retried at most every DISPATCH_GRID_RETRY_SECONDS.
+        self._grid_lock = asyncio.Lock()
+        self._grid_retry_at = 0.0
+
+    @callback
+    def async_setup(self) -> CALLBACK_TYPE:
+        """Listen to every reading: Grid charging a charge turned on is turned
+        off again also when that failed at the end, or the session ended with
+        a restart."""
+        return self.coordinator.async_add_listener(self._on_any_reading)
 
     # ---- listeners (entities) ----
 
@@ -224,10 +238,8 @@ class DispatchSession:
             _LOGGER.warning("Battery dispatch started: %s W until %s. A dispatch overrides the backup "
                             "reserve and export setting and may affect the Powerwall warranty; use at "
                             "your own risk", power_watts, state.ends)
-        if not repeat and power_watts < 0 and (self.coordinator.data or {}).get("grid_charging") is False:
-            _LOGGER.warning("Battery dispatch is charging with Grid charging off: the Powerwall "
-                            "charges from solar only, not from the grid. Turn on Grid charging "
-                            "to charge from the grid")
+        if not repeat:
+            await self._async_grid_charging_for(power_watts)
         self._notify()
         self.hass.async_create_task(self.coordinator.async_request_refresh())
         return {**self.as_dict(), "response": result}
@@ -249,12 +261,14 @@ class DispatchSession:
         if self.state is None:
             self._cancel_timers()
             return
-        self._end("unloaded")
+        self._end("unloaded", release=False)
         try:
             async with self._send_lock:
                 await self.coordinator.async_send_resume()
         except HomeAssistantError as err:
             _LOGGER.warning("Could not resume the battery while unloading: %s", scrub(err))
+        # If this fails, it's saved and done after the next start.
+        await self._async_release_grid_charging()
 
     async def async_move_to(self, target_soc: float, power_watts: float, minutes: int,
                             charge: bool) -> dict[str, Any]:
@@ -280,12 +294,14 @@ class DispatchSession:
         self._unsubs = []
 
     @callback
-    def _end(self, reason: str) -> None:
+    def _end(self, reason: str, release: bool = True) -> None:
         self._cancel_timers()
         self._ends += 1
         state, self.state = self.state, None
         if state is None:
             return
+        if release and self.coordinator.grid_charging_by_dispatch:
+            self.hass.async_create_task(self._async_release_grid_charging())
         self.last_end_reason = reason
         self.hass.bus.async_fire(EVENT_DISPATCH_ENDED, {
             "config_entry_id": self.coordinator.config_entry.entry_id,
@@ -308,6 +324,62 @@ class DispatchSession:
     async def _async_at_end(self, _now: datetime) -> None:
         if self.state is not None:
             await self._async_resume_quietly("completed")
+
+    # ---- grid charging for a charge (option) ----
+
+    async def _async_grid_charging_for(self, power_watts: float) -> None:
+        """A new charge turns Grid charging on (option on) or warns that it
+        charges from solar only; a discharge or hold after a charge turns it
+        back off."""
+        coordinator = self.coordinator
+        if power_watts >= 0:
+            if coordinator.grid_charging_by_dispatch:
+                await self._async_release_grid_charging()
+            return
+        # After a turn-off still under way (the end of an earlier charge).
+        async with self._grid_lock:
+            if coordinator.grid_charging_now() is not False:
+                return  # on (perhaps by an earlier charge), or not known
+            if not coordinator.config_entry.options.get(CONF_DISPATCH_GRID_CHARGING, False):
+                _LOGGER.warning("Battery dispatch is charging with Grid charging off: the Powerwall "
+                                "charges from solar only, not from the grid. Turn on Grid charging "
+                                "to charge from the grid")
+                return
+            try:
+                await coordinator.async_set_grid_charging(True, by_dispatch=True)
+            except HomeAssistantError as err:
+                _LOGGER.warning("Battery dispatch: could not turn on Grid charging (%s), so it charges "
+                                "from solar only", scrub(err))
+                return
+        _LOGGER.info("Battery dispatch turned on Grid charging; it's turned off again when the dispatch ends")
+
+    async def _async_release_grid_charging(self) -> None:
+        """Turn off Grid charging that a charge turned on, unless a charge is
+        running again or someone turned it off already. Changing the setting
+        any other way clears the coordinator's flag, so it's left alone then."""
+        coordinator = self.coordinator
+        async with self._grid_lock:
+            if not coordinator.grid_charging_by_dispatch:
+                return
+            if self.state is not None and self.state.power_watts < 0:
+                return  # a new charge needs it
+            if coordinator.grid_charging_now() is False:
+                coordinator.set_grid_charging_by_dispatch(False)  # already off
+                return
+            self._grid_retry_at = time.monotonic() + DISPATCH_GRID_RETRY_SECONDS
+            try:
+                await coordinator.async_set_grid_charging(False, by_dispatch=True)
+            except HomeAssistantError as err:
+                _LOGGER.warning("Could not turn Grid charging off again after the battery dispatch "
+                                "(%s); trying again in %d minutes", scrub(err), DISPATCH_GRID_RETRY_SECONDS // 60)
+                return
+            _LOGGER.info("Grid charging turned off again after the battery dispatch")
+
+    @callback
+    def _on_any_reading(self) -> None:
+        if (self.state is None and self.coordinator.grid_charging_by_dispatch
+                and not self._grid_lock.locked() and time.monotonic() >= self._grid_retry_at):
+            self.hass.async_create_task(self._async_release_grid_charging())
 
     def _level_age(self) -> float | None:
         """Seconds since the gateway last gave a battery level, or None if it

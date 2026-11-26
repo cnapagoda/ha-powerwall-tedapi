@@ -69,7 +69,7 @@ With solar on a Powerwall 3's own inputs, the Powerwall then limits its solar in
 | Powerwall Operation mode | | `select.powerwall_tedapi_operation_mode`. |
 | Leave Tesla's own optimisation alone | On | Does nothing while the Powerwall is in Time-Based Control. |
 
-Charging from the grid needs **Grid charging** on.
+Charging from the grid needs **Grid charging** on, or the option **Turn on grid charging for a charge**.
 
 </details>
 

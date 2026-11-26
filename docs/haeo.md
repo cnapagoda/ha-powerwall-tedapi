@@ -9,7 +9,7 @@
 1. **Signed connection.** Battery dispatch needs the signed (v1r) connection; see [Setup](setup.md).
 2. **In HAEO's battery element:** **Current Charge Percentage** `sensor.powerwall_tedapi_battery_level`, **Capacity** the total: 13.5 kWh for each Powerwall and Expansion Pack, added up, and max charge and discharge power in kW (one Powerwall 3: 10 kW; Powerwall 2: 5 kW each). Set the minimum charge to at least your backup reserve.
 3. **Import the blueprint** [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Ffollow_energy_plan.yaml) and create an automation from it: **Planned battery power** your battery's `sensor.<battery>_active_power`, **Planned grid power** your grid's `sensor.<grid>_active_power`. HAEO's sensors are in kW; the blueprint converts them.
-4. **Turn on Grid charging**, so a planned charge can draw from the grid, and check **Largest dispatch power** in the integration options (**Configure → Settings → Battery dispatch**) is at least the blueprint's **Largest battery power**.
+4. **Turn on Grid charging** (or the option **Turn on grid charging for a charge**), so a planned charge can draw from the grid, and check **Largest dispatch power** in the integration options (**Configure → Settings → Battery dispatch**) is at least the blueprint's **Largest battery power**.
 
 Use the Powerwall in **Self-Powered** mode, and turn off other automations that dispatch the battery or change its mode.
 

@@ -373,6 +373,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         applied_data=dict(entry.data),
         applied_options=dict(entry.options),
     )
+    if (dispatch := entry.runtime_data.dispatch) is not None:
+        entry.async_on_unload(dispatch.async_setup())
     if (off_grid := entry.runtime_data.off_grid) is not None:
         await off_grid.async_load()
         coordinator.intentional_off_grid = lambda: off_grid.intentional

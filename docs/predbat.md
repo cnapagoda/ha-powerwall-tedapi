@@ -9,7 +9,7 @@
 1. **Signed connection.** Battery dispatch needs the signed (v1r) connection; see [Setup](setup.md).
 2. **Enable the four *today* energy sensors** (disabled by default) on each entity's settings page: **Home energy consumed today**, **Grid energy imported today**, **Grid energy exported today** and **Solar energy produced today**.
 3. **Create two Number helpers** (**Settings → Devices & services → Helpers → Create helper → Number**), minimum 0, maximum 10000, step 100, unit W: `input_number.predbat_powerwall_charge_rate` and `input_number.predbat_powerwall_discharge_rate`. Predbat writes the power it chose into them.
-4. **Turn on Grid charging.** A dispatch charges from the grid only while it's on; otherwise from solar only.
+4. **Turn on Grid charging**, or the option **Turn on grid charging for a charge** (**Configure → Settings → Battery dispatch**) to have it on only while Predbat charges. A dispatch charges from the grid only while it's on; otherwise from solar only.
 5. **Check the integration options** (**Configure → Settings → Battery dispatch**): **Largest dispatch power** at least Predbat's `battery_rate_max`, and with **Discharges stop at the backup reserve** on, a backup reserve at or below the lowest level you want Predbat to use.
 6. **Install Predbat** ([installation](https://springfall2008.github.io/batpred/install/)) and use [`examples/predbat_apps.yaml`](../examples/predbat_apps.yaml) as its `apps.yaml`. Adjust the entity IDs if yours differ (see [conventions](README.md#conventions-in-these-pages)), the time zone, currency and `battery_rate_max` (one Powerwall 3: 10000 W; Powerwall 2: 5000 W each), add your [energy rates](https://springfall2008.github.io/batpred/energy-rates/), then delete `template: True`.
 

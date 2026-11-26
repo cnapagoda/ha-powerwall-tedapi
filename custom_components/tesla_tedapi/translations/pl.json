@@ -297,12 +297,14 @@
             "data": {
               "dispatch_floor_reserve": "Rozładowanie zatrzymuje się na rezerwie awaryjnej",
               "dispatch_max_watts": "Największa moc sterowania",
-              "dispatch_stale_minutes": "Maksymalny wiek poziomu baterii"
+              "dispatch_stale_minutes": "Maksymalny wiek poziomu baterii",
+              "dispatch_grid_charging": "Włącz ładowanie z sieci na czas ładowania"
             },
             "data_description": {
               "dispatch_floor_reserve": "Rozładowanie uruchomione bez `min_soc` zatrzymuje się, gdy bateria osiągnie rezerwę awaryjną.",
               "dispatch_max_watts": "Wywołania dispatch powyżej tej mocy są odrzucane (najwyżej 30 000 W). Ustaw to, co może dostarczyć Twój system: jeden Powerwall 3 odrzuca więcej niż 10 000 W. Podniesienie tej wartości to Twoja odpowiedzialność: ustaw tylko tyle, ile pozwalają okablowanie, wyłączniki, bramka i przyłącze sieciowe.",
-              "dispatch_stale_minutes": "Ładowanie lub rozładowanie jest uruchamiane lub przedłużane tylko na poziomie baterii nie starszym niż ten (1–5 minut, domyślnie 2; nigdy mniej niż 2½ interwału odpytywania). Podczas sterowania Powerwall ignoruje swoją rezerwę zapasową, a jego limity są sprawdzane względem tego poziomu: każda minuta więcej pozwala sterowaniu 10 kW przekroczyć limit o około 0,17 kWh więcej. Zwiększ tylko, jeśli wolne połączenie ciągle wstrzymuje sterowanie."
+              "dispatch_stale_minutes": "Ładowanie lub rozładowanie jest uruchamiane lub przedłużane tylko na poziomie baterii nie starszym niż ten (1–5 minut, domyślnie 2; nigdy mniej niż 2½ interwału odpytywania). Podczas sterowania Powerwall ignoruje swoją rezerwę zapasową, a jego limity są sprawdzane względem tego poziomu: każda minuta więcej pozwala sterowaniu 10 kW przekroczyć limit o około 0,17 kWh więcej. Zwiększ tylko, jeśli wolne połączenie ciągle wstrzymuje sterowanie.",
+              "dispatch_grid_charging": "Sterowanie ładowaniem (także `charge_to`) włącza Ładowanie z sieci, jeśli jest wyłączone, aby móc ładować z sieci, i wyłącza je ponownie po zakończeniu sterowania, chyba że w międzyczasie zostało zmienione. Ładowanie z sieci może kosztować zależnie od taryfy."
             }
           },
           "advanced": {

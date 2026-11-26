@@ -8,7 +8,7 @@
 
 1. **Signed connection.** Battery dispatch needs the signed (v1r) connection; see [Setup](setup.md).
 2. **Add the scripts** from [`examples/evcc_scripts.yaml`](../examples/evcc_scripts.yaml) to `scripts.yaml` and reload scripts. Set `power_watts` in the charge and discharge scripts to what your Powerwall can do (one Powerwall 3: 10,000 W), and no more than **Largest dispatch power** in the integration options.
-3. **Turn on Grid charging**, so evcc's battery charge can draw from the grid.
+3. **Turn on Grid charging** (or the option **Turn on grid charging for a charge**), so evcc's battery charge can draw from the grid.
 4. **Connect evcc to Home Assistant** as described in [evcc's Home Assistant docs](https://docs.evcc.io/en/meters/home-assistant), and add the meters to `evcc.yaml`:
 
 ```yaml

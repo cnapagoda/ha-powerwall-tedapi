@@ -39,6 +39,11 @@ CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
 # 2.9.0). Bounded: during a dispatch the Powerwall ignores its backup reserve,
 # and the older the level, the further a dispatch can run past its limits.
 CONF_DISPATCH_STALE_MINUTES = "dispatch_stale_minutes"
+# A charge dispatch turns Grid charging on if it's off, and off again when it
+# ends (2.9.0; off by default: charging from the grid may cost money).
+CONF_DISPATCH_GRID_CHARGING = "dispatch_grid_charging"
+# Turning it off again after a dispatch is retried this often if it fails.
+DISPATCH_GRID_RETRY_SECONDS = 300
 DISPATCH_STALE_MINUTES_MIN = 1
 DISPATCH_STALE_MINUTES_MAX = 5
 # Which cloud backup to use and in what order (one of CLOUD_CHOICES).
@@ -66,7 +71,7 @@ def valid_base_topic(topic: str) -> bool:
 LIVE_OPTIONS = frozenset({
     CONF_SCAN_INTERVAL, CONF_RESTORE_EXPORT, CONF_STATUS_EVENTS, CONF_PROBLEM_MINUTES,
     CONF_DISPATCH_FLOOR_RESERVE, CONF_DISPATCH_MAX_WATTS, CONF_DIAGNOSTICS_GATEWAY, CONF_CLOUD_READINGS,
-    CONF_DISPATCH_STALE_MINUTES,
+    CONF_DISPATCH_STALE_MINUTES, CONF_DISPATCH_GRID_CHARGING,
 })
 
 # The gateway's network MAC addresses (lower case, no separators), learnt

@@ -11,7 +11,8 @@
 #   - the signed (v1r) connection, which battery dispatch needs
 #   - the four "today" energy sensors enabled (disabled by default)
 #   - two Number helpers for the charge and discharge rate
-#   - Grid charging on, so a charge can draw from the grid
+#   - Grid charging on (or the option "Turn on grid charging for a charge"),
+#     so a charge can draw from the grid
 #   - Largest dispatch power (integration options) at least battery_rate_max
 #
 # Entity IDs assume the device "Powerwall TEDAPI" with no area, for example

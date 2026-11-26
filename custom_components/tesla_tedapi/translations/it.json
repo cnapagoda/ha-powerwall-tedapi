@@ -297,12 +297,14 @@
             "data": {
               "dispatch_floor_reserve": "Le scariche si fermano alla riserva di backup",
               "dispatch_max_watts": "Potenza massima di dispatch",
-              "dispatch_stale_minutes": "Età massima del livello della batteria"
+              "dispatch_stale_minutes": "Età massima del livello della batteria",
+              "dispatch_grid_charging": "Attiva la carica dalla rete per una carica"
             },
             "data_description": {
               "dispatch_floor_reserve": "Una scarica avviata senza `min_soc` si ferma quando la batteria raggiunge la riserva di backup.",
               "dispatch_max_watts": "Le chiamate di dispatch sopra questa potenza vengono rifiutate (al massimo 30.000 W). Impostala su ciò che il tuo sistema può erogare: una Powerwall 3 rifiuta più di 10.000 W. Aumentarla è una tua responsabilità: imposta solo ciò che consentono il cablaggio, gli interruttori, il gateway e la connessione alla rete.",
-              "dispatch_stale_minutes": "Una carica o scarica viene avviata o rinnovata solo con un livello della batteria al massimo così vecchio (1–5 minuti, predefinito 2; mai meno di 2½ intervalli di lettura). Durante un controllo la Powerwall ignora la riserva di backup, e i suoi limiti sono verificati su questo livello: ogni minuto in più lascia che un controllo da 10 kW superi un limite di circa 0,17 kWh in più. Aumentalo solo se una connessione lenta mette continuamente in pausa i controlli."
+              "dispatch_stale_minutes": "Una carica o scarica viene avviata o rinnovata solo con un livello della batteria al massimo così vecchio (1–5 minuti, predefinito 2; mai meno di 2½ intervalli di lettura). Durante un controllo la Powerwall ignora la riserva di backup, e i suoi limiti sono verificati su questo livello: ogni minuto in più lascia che un controllo da 10 kW superi un limite di circa 0,17 kWh in più. Aumentalo solo se una connessione lenta mette continuamente in pausa i controlli.",
+              "dispatch_grid_charging": "Un dispatch di carica (anche `charge_to`) attiva Carica dalla rete se è disattivata, così può caricare dalla rete, e la disattiva di nuovo al termine del dispatch, a meno che nel frattempo non sia stata cambiata. Caricare dalla rete può costare denaro secondo la tua tariffa."
             }
           },
           "advanced": {

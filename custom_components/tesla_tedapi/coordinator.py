@@ -587,6 +587,14 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Settings the gateway drops from its config now and then (export rule,
         # grid charging): the last value set or seen, written back when missing.
         self.wanted: dict[str, Any] = dict.fromkeys(DROPPABLE_SETTINGS)
+        # A charge dispatch turned Grid charging on (option "Turn on grid
+        # charging for a charge", 2.9.0): it's turned off again when the
+        # dispatch ends, also after a restart. Cleared when anyone else
+        # changes the setting.
+        self.grid_charging_by_dispatch = False
+        # The last Grid charging value written from Home Assistant, and when
+        # (monotonic): a reading can lag a write by a few seconds.
+        self._grid_charging_written: tuple[bool, float] | None = None
         self.restores: dict[str, int] = dict.fromkeys(DROPPABLE_SETTINGS, 0)
         self.last_restored: dict[str, datetime | None] = dict.fromkeys(DROPPABLE_SETTINGS)
         self._restore_at: dict[str, float] = {}
@@ -1639,9 +1647,28 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self.hass.async_add_executor_job(self._set_reserve, reserve)
         await self.async_request_refresh()
 
-    async def async_set_grid_charging(self, enabled: bool) -> None:
+    async def async_set_grid_charging(self, enabled: bool, *, by_dispatch: bool = False) -> None:
+        if not by_dispatch and self.grid_charging_by_dispatch:
+            self.set_grid_charging_by_dispatch(False)  # the user's setting from now on
         await self.hass.async_add_executor_job(self._set_grid_charging, enabled)
+        self._grid_charging_written = (bool(enabled), time.monotonic())
+        if by_dispatch:
+            self.set_grid_charging_by_dispatch(bool(enabled))
         await self.async_request_refresh()
+
+    def grid_charging_now(self) -> bool | None:
+        """Grid charging as last written here if that was in the last
+        minute (the reading may not show it yet), else as last read."""
+        written = self._grid_charging_written
+        if written is not None and time.monotonic() - written[1] < 60:
+            return written[0]
+        return (self.data or {}).get("grid_charging")
+
+    @callback
+    def set_grid_charging_by_dispatch(self, value: bool) -> None:
+        if self.grid_charging_by_dispatch != value:
+            self.grid_charging_by_dispatch = value
+            self._store.async_delay_save(self._state_to_save, 1)
 
     async def async_set_grid_export(self, mode: str) -> None:
         await self.hass.async_add_executor_job(self._set_grid_export, mode)
@@ -1656,6 +1683,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         stored = await self._store.async_load() or {}
         self.wanted["grid_export"] = stored.get("export_wanted")
         self.wanted["grid_charging"] = stored.get("grid_charging_wanted")
+        self.grid_charging_by_dispatch = stored.get("grid_charging_by_dispatch") is True
         self.alerts.restore(stored.get("alerts") or {})
         self.outages.restore(stored.get("outages") or {})
         self.firmware.restore(stored.get("firmware") or {})
@@ -1686,6 +1714,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _state_to_save(self) -> dict[str, Any]:
         return {"export_wanted": self.wanted["grid_export"],
                 "grid_charging_wanted": self.wanted["grid_charging"],
+                "grid_charging_by_dispatch": self.grid_charging_by_dispatch,
                 "alerts": self.alerts.as_dict(),
                 "outages": self.outages.as_dict(),
                 "firmware": self.firmware.as_dict(),
