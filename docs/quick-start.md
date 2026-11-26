@@ -53,6 +53,8 @@ Go to **Settings → Devices & services**. If Home Assistant has already found t
 
    <img src="images/setup-06-confirm-key.png" alt="Waiting for the switch toggle" width="560">
 
+4. **Keep the Tesla sign-in?** *Keep it as a cloud backup* is the usual choice. *Remove it: local only* keeps no Tesla sign-in at all ([what that means](configuration.md#local-only)).
+
 That's it. You now have a **Powerwall TEDAPI** device with its sensors and controls.
 
 <img src="images/setup-07-done.png" alt="Setup complete" width="560">
@@ -62,7 +64,7 @@ That's it. You now have a **Powerwall TEDAPI** device with its sensors and contr
 - **[Add the Energy dashboard sensors](energy-dashboard.md).** This is the first thing most people want.
 - **[Add a dashboard card](dashboards.md)** for power flows, battery level and settings.
 - **Check Setup health.** The **Setup health** sensor on the device page should say *OK*. If it says *Needs attention*, its attributes name the problem.
-- **Optional: set up a [cloud backup](cloud-backup.md)**, so you can still change settings if Home Assistant can't reach the gateway. If you signed in to Tesla above, it's already set up.
+- **Optional: set up a [cloud backup](cloud-backup.md)**, so you can still change settings if Home Assistant can't reach the gateway. If you kept the Tesla sign-in above, it's already set up.
 - **Coming from another Powerwall integration?** See [Migrating](migration.md) to keep your Energy dashboard history.
 - **Want to charge or discharge on command?** Use the action `tesla_tedapi.dispatch_battery_power` (or `charge_to` / `discharge_to`). See [Battery dispatch: start here](actions.md#battery-dispatch-start-here), and read [Safety](safety.md) first.
 - **Want automations?** Start with the [blueprints](automations.md#blueprints). Read [Safety](safety.md) before anything that dispatches the battery.

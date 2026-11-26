@@ -99,6 +99,14 @@
         "title": "Die Powerwall hat den Schlüssel nicht bestätigt",
         "description": "Es kam keine Bestätigung rechtzeitig an (oder der Schlüssel wurde entfernt). Wähle **Absenden**, um den Schlüssel erneut zu registrieren und ein neues 10-Minuten-Fenster zu öffnen, und führe dann den Schalter-Schritt aus."
       },
+      "keep_signin": {
+        "title": "Tesla-Anmeldung behalten?",
+        "description": "Die Powerwall hat den Schlüssel angenommen: Messwerte und Einstellungen gehen jetzt direkt an das Gateway. Die Tesla-Anmeldung, mit der er registriert wurde, kann als Cloud-Sicherung bleiben (Storm Watch, Wall Connectors, der Tesla-Tarif und Einstellungsänderungen, solange das Gateway nicht erreichbar ist) oder entfernt werden, sodass nichts die Server von Tesla erreicht. Ein Tesla-Konto kann später in den Optionen wieder verknüpft werden.",
+        "menu_options": {
+          "keep_cloud": "Als Cloud-Sicherung behalten (empfohlen)",
+          "local_only": "Entfernen: nur lokal"
+        }
+      },
       "connect_failed": {
         "title": "Verbindung fehlgeschlagen",
         "description": "Die letzte Verbindungsprüfung ist fehlgeschlagen (siehe Meldung unten). Wähle **Absenden**, um zurückzugehen und Gateway-Adresse und Passwort zu prüfen."
@@ -243,6 +251,7 @@
           "link_account": "Tesla-Konto verknüpfen (Owner API)",
           "fleet_signin": "Bei Tesla Fleet oder Teslemetry anmelden",
           "unlink_account": "Eine Cloud-Sicherung trennen",
+          "local_only": "Nur lokal (Tesla-Anmeldungen entfernen)",
           "new_key": "Neuen signierten Schlüssel registrieren"
         }
       },
@@ -330,13 +339,17 @@
       },
       "unlink_account": {
         "title": "Eine Cloud-Sicherung trennen",
-        "description": "Wähle die Cloud-Sicherung, die nicht mehr genutzt werden soll. **Owner API:** das hier verknüpfte Tesla-Konto wird entfernt (die gespeicherte Anmeldung bleibt auf der Festplatte, bis du den Ordner `tesla_tedapi` entfernst). **Tesla Fleet:** diese Integration nutzt sie nicht mehr; die Integration Tesla Fleet oder Teslemetry selbst bleibt unverändert. Einstellungen werden dann über die andere Sicherung oder nur über die lokale Verbindung geändert.",
+        "description": "Wähle die Cloud-Sicherung, die nicht mehr genutzt werden soll. **Owner API:** das hier verknüpfte Tesla-Konto wird entfernt (auch die gespeicherte Anmeldung wird entfernt, außer eine andere Powerwall nutzt dasselbe Konto). **Tesla Fleet:** diese Integration nutzt sie nicht mehr; die Integration Tesla Fleet oder Teslemetry selbst bleibt unverändert. Einstellungen werden dann über die andere Sicherung oder nur über die lokale Verbindung geändert.",
         "data": {
           "backup": "Cloud-Sicherung"
         },
         "data_description": {
           "backup": "Die Sicherung, die nicht mehr genutzt werden soll."
         }
+      },
+      "local_only": {
+        "title": "Nur lokal",
+        "description": "Entfernt jede hier gespeicherte Tesla-Anmeldung (auch die gespeicherten Tokens des Tesla-Kontos, außer eine andere Powerwall nutzt dasselbe Konto) und schaltet die Cloud-Sicherung aus. Der signierte Schlüssel funktioniert weiter: Messwerte und Einstellungen gehen an das Gateway in deinem Netzwerk, und nichts erreicht die Server von Tesla.\n\nFunktioniert nicht mehr, und die Entitäten werden entfernt: Storm Watch, die Off-Grid-Reserve, Wall Connectors und der Tesla-Tarif. Einstellungen lassen sich nicht ändern, solange das Gateway nicht erreichbar ist, und einen neuen Schlüssel zu registrieren braucht wieder eine Tesla-Anmeldung."
       }
     },
     "error": {

@@ -387,6 +387,26 @@ def _remember_mac(hass: HomeAssistant, entry: ConfigEntry, mac: str) -> None:
         hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_MACS: [*macs, mac]})
 
 
+async def _async_forget_signin(hass: HomeAssistant, entry_id: str | None, email: str, authpath: str) -> None:
+    """Remove a Tesla account's saved tokens from the token cache, keeping an
+    account another entry uses. Only in this integration's own folder, where
+    setup saves them: a cache elsewhere (an entry from an older version) may be
+    shared with other integrations that use pypowerwall. entry_id: the entry
+    the sign-in belongs to (None in setup, before there is one)."""
+    if not (email and authpath) or not tesla_cloud.same_folder(authpath, hass.config.path(STORAGE_FOLDER)):
+        return
+    others = [(entry.data.get(CONF_OWNERS_AUTHPATH) or hass.config.config_dir, entry.data[CONF_OWNERS_EMAIL])
+              for entry in hass.config_entries.async_entries(DOMAIN)
+              if entry.entry_id != entry_id and entry.data.get(CONF_OWNERS_EMAIL)]
+    try:
+        removed = await hass.async_add_executor_job(tesla_cloud.forget_account, authpath, email, others)
+    except OSError as err:
+        _LOGGER.warning("The Tesla sign-in's saved tokens couldn't be removed: %s", scrub(err))
+        return
+    if removed:
+        _LOGGER.info("The Tesla sign-in's saved tokens were removed")
+
+
 class TeslaLoginMixin:
     """Tesla sign-in (pasted callback URL) and site choice, shared by the
     config flow, the options flow and the cloud sign-in repair."""
@@ -519,6 +539,9 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         # Reauth started only to sign in to the Fleet API.
         self._fleet_only = False
         self._cloud_wanted = False
+        # A sign-in made only to register the key: kept as the cloud backup
+        # (True) or forgotten, local only (False). None: not asked yet.
+        self._keep_signin: bool | None = None
         self._site: tesla_cloud.EnergySite | None = None
         self._public_der: bytes | None = None
         # Options -> Register a new signed key: a key of its own is made, and
@@ -955,6 +978,27 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         self._din = din
         if self._token is None and self._fleet is None and self._cloud_wanted:
             return await self.async_step_signin()
+        if self._register and self.source != SOURCE_REAUTH and self._keep_signin is None:
+            return await self.async_step_keep_signin()
+        return await self._async_finish()
+
+    async def async_step_keep_signin(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The key works. The sign-in was made to register it: keep it as the
+        cloud backup, or forget it and stay local only."""
+        return self.async_show_menu(step_id="keep_signin", menu_options=["keep_cloud", "local_only"])
+
+    async def async_step_keep_cloud(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        self._keep_signin = True
+        return await self._async_finish()
+
+    async def async_step_local_only(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Local only: the sign-in isn't kept, and its saved tokens are removed
+        (unless another entry uses the same Tesla account)."""
+        self._keep_signin = False
+        if self._token is not None:
+            await _async_forget_signin(self.hass, None, self._email, self._folder)
+        self._token = None
+        self._fleet = self._fleet_api = None
         return await self._async_finish()
 
     async def async_step_connect_failed(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -1238,9 +1282,26 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         menu.append("fleet_signin")
         if self._backups_in_use():
             menu.append("unlink_account")
-        if self.config_entry.data.get(CONF_CONNECTION_MODE, MODE_V1R) == MODE_V1R:
+        signed = self.config_entry.data.get(CONF_CONNECTION_MODE, MODE_V1R) == MODE_V1R
+        if signed and fleet.has_signin(self.config_entry.data):
+            # Over the Wi-Fi password connection, the cloud is the only way
+            # to change settings: Unlink is there for that.
+            menu.append("local_only")
+        if signed:
             menu.append("new_key")
         return self.async_show_menu(step_id="init", menu_options=menu)
+
+    async def async_step_local_only(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Local only: every Tesla sign-in kept here is removed (the Owner API
+        account's saved tokens too) and the cloud backup is turned off. The
+        signed key keeps working; the cloud-only entities go."""
+        if user_input is not None:
+            await self._async_forget_owner_account()
+            data = {k: v for k, v in self.config_entry.data.items()
+                    if k not in (*FLEET_DATA_KEYS, CONF_OWNERS_EMAIL, CONF_OWNERS_AUTHPATH, CONF_SITE_ID)}
+            _LOGGER.info("Local only: the Tesla sign-ins kept for this Powerwall were removed")
+            return self._save(data=data, options={**self.config_entry.options, CONF_CLOUD_BACKENDS: CLOUD_NONE})
+        return self.async_show_form(step_id="local_only", data_schema=vol.Schema({}))
 
     async def async_step_new_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Register another signed key (e.g. through Tesla Fleet). It goes on as
@@ -1361,25 +1422,10 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         return self.async_create_entry(data=options)
 
     async def _async_forget_owner_account(self) -> None:
-        """Remove this entry's Tesla account tokens from the token cache, keeping
-        an account another entry uses. Only in this integration's own folder,
-        where setup saves them: a cache elsewhere (an entry from an older
-        version) may be shared with other integrations that use pypowerwall."""
+        """Remove the saved tokens of the Tesla account linked to this entry."""
         data = self.config_entry.data
-        email = data.get(CONF_OWNERS_EMAIL) or ""
-        authpath = data.get(CONF_OWNERS_AUTHPATH) or ""
-        if not (email and authpath) or not tesla_cloud.same_folder(authpath, self.hass.config.path(STORAGE_FOLDER)):
-            return
-        others = [(entry.data.get(CONF_OWNERS_AUTHPATH) or self.hass.config.config_dir, entry.data[CONF_OWNERS_EMAIL])
-                  for entry in self.hass.config_entries.async_entries(DOMAIN)
-                  if entry.entry_id != self.config_entry.entry_id and entry.data.get(CONF_OWNERS_EMAIL)]
-        try:
-            removed = await self.hass.async_add_executor_job(tesla_cloud.forget_account, authpath, email, others)
-        except OSError as err:
-            _LOGGER.warning("The Tesla sign-in's saved tokens couldn't be removed: %s", scrub(err))
-            return
-        if removed:
-            _LOGGER.info("The Tesla sign-in's saved tokens were removed")
+        await _async_forget_signin(self.hass, self.config_entry.entry_id, data.get(CONF_OWNERS_EMAIL) or "",
+                                   data.get(CONF_OWNERS_AUTHPATH) or "")
 
     async def async_step_unlink_account(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Stop using one cloud backup: the Owner API (the Tesla account linked

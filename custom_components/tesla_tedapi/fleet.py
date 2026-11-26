@@ -31,6 +31,7 @@ from .const import (
     CONF_FLEET_SITE_ID,
     CONF_FLEET_TOKEN,
     CONF_OAUTH_TOKEN,
+    CONF_OWNERS_EMAIL,
     PROVIDER_TESLA_FLEET,
     PROVIDER_TESLEMETRY,
 )
@@ -244,6 +245,13 @@ def signed_in(data: Any) -> bool:
     if provider == PROVIDER_TESLEMETRY:
         return bool(data.get(CONF_FLEET_TOKEN))
     return provider == PROVIDER_TESLA_FLEET and isinstance(data.get(CONF_OAUTH_TOKEN), dict)
+
+
+def has_signin(data: Any) -> bool:
+    """Any Tesla sign-in is kept for the entry: a Tesla account linked here
+    (Owner API) or a Fleet API sign-in made here. Without one the entry is
+    local only: nothing it does reaches Tesla's servers."""
+    return bool(data.get(CONF_OWNERS_EMAIL)) or signed_in(data)
 
 
 def static_token(token: str) -> Callable[[], Awaitable[str]]:

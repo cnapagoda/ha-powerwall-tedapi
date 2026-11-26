@@ -99,6 +99,14 @@
         "title": "The Powerwall did not confirm the key",
         "description": "No confirmation arrived in time (or the key was removed). Select **Submit** to register the key again and open a new 10-minute window, then do the switch step."
       },
+      "keep_signin": {
+        "title": "Keep the Tesla sign-in?",
+        "description": "The Powerwall accepted the key: readings and settings now go straight to the gateway. The Tesla sign-in used to register it can stay as a cloud backup (Storm Watch, Wall Connectors, the Tesla tariff, and settings changes while the gateway can't be reached), or be removed so nothing reaches Tesla's servers. A Tesla account can be linked again later in the options.",
+        "menu_options": {
+          "keep_cloud": "Keep it as a cloud backup (recommended)",
+          "local_only": "Remove it: local only"
+        }
+      },
       "connect_failed": {
         "title": "Could not connect",
         "description": "The last connection check failed (see the message below). Select **Submit** to go back and check the gateway address and password."
@@ -243,6 +251,7 @@
           "link_account": "Link a Tesla account (Owner API)",
           "fleet_signin": "Sign in to Tesla Fleet or Teslemetry",
           "unlink_account": "Unlink a cloud backup",
+          "local_only": "Local only (remove the Tesla sign-ins)",
           "new_key": "Register a new signed key"
         }
       },
@@ -330,13 +339,17 @@
       },
       "unlink_account": {
         "title": "Unlink a cloud backup",
-        "description": "Choose the cloud backup to stop using. **Owner API:** the Tesla account linked here is removed (the saved sign-in stays on disk until you remove the `tesla_tedapi` folder). **Tesla Fleet:** this integration stops using it; the Tesla Fleet or Teslemetry integration itself is not changed. Settings changes then use the other backup, or only the local connection.",
+        "description": "Choose the cloud backup to stop using. **Owner API:** the Tesla account linked here is removed (its saved sign-in is removed too, unless another Powerwall uses the same account). **Tesla Fleet:** this integration stops using it; the Tesla Fleet or Teslemetry integration itself is not changed. Settings changes then use the other backup, or only the local connection.",
         "data": {
           "backup": "Cloud backup"
         },
         "data_description": {
           "backup": "The backup to stop using."
         }
+      },
+      "local_only": {
+        "title": "Local only",
+        "description": "Removes every Tesla sign-in kept here (the Tesla account's saved tokens too, unless another Powerwall uses the same account) and turns the cloud backup off. The signed key keeps working: readings and settings go to the gateway on your network, and nothing reaches Tesla's servers.\n\nStops working, and their entities are removed: Storm Watch, the off-grid reserve, Wall Connectors and the Tesla tariff. Settings can't be changed while the gateway can't be reached, and registering a new key later needs a Tesla sign-in again."
       }
     },
     "error": {

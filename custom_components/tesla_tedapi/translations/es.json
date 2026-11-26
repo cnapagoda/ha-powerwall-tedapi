@@ -99,6 +99,14 @@
         "title": "La Powerwall no confirmó la clave",
         "description": "No llegó ninguna confirmación a tiempo (o la clave se eliminó). Selecciona **Enviar** para registrar la clave de nuevo y abrir una nueva ventana de 10 minutos, y luego haz el paso del interruptor."
       },
+      "keep_signin": {
+        "title": "¿Conservar el inicio de sesión de Tesla?",
+        "description": "La Powerwall aceptó la clave: las lecturas y los ajustes van ahora directamente a la puerta de enlace. El inicio de sesión de Tesla usado para registrarla puede quedarse como respaldo en la nube (Storm Watch, Wall Connectors, la tarifa de Tesla y los cambios de ajustes mientras no se llega a la puerta de enlace) o quitarse, para que nada llegue a los servidores de Tesla. Más adelante se puede volver a vincular una cuenta de Tesla en las opciones.",
+        "menu_options": {
+          "keep_cloud": "Conservarlo como respaldo en la nube (recomendado)",
+          "local_only": "Quitarlo: solo local"
+        }
+      },
       "connect_failed": {
         "title": "No se pudo conectar",
         "description": "La última comprobación de conexión falló (mira el mensaje de abajo). Selecciona **Enviar** para volver y revisar la dirección y la contraseña de la pasarela."
@@ -243,6 +251,7 @@
           "link_account": "Vincular una cuenta de Tesla (Owner API)",
           "fleet_signin": "Iniciar sesión en Tesla Fleet o Teslemetry",
           "unlink_account": "Desvincular un respaldo en la nube",
+          "local_only": "Solo local (quitar los inicios de sesión de Tesla)",
           "new_key": "Registrar una clave firmada nueva"
         }
       },
@@ -330,13 +339,17 @@
       },
       "unlink_account": {
         "title": "Desvincular un respaldo en la nube",
-        "description": "Elige el respaldo en la nube que se dejará de usar. **Owner API:** se quita la cuenta de Tesla vinculada aquí (el inicio de sesión guardado permanece en el disco hasta que elimines la carpeta `tesla_tedapi`). **Tesla Fleet:** esta integración deja de usarlo; la integración Tesla Fleet o Teslemetry no cambia. Los ajustes se cambian entonces por el otro respaldo, o solo por la conexión local.",
+        "description": "Elige el respaldo en la nube que se dejará de usar. **Owner API:** se quita la cuenta de Tesla vinculada aquí (también se quita el inicio de sesión guardado, salvo que otra Powerwall use la misma cuenta). **Tesla Fleet:** esta integración deja de usarlo; la integración Tesla Fleet o Teslemetry no cambia. Los ajustes se cambian entonces por el otro respaldo, o solo por la conexión local.",
         "data": {
           "backup": "Respaldo en la nube"
         },
         "data_description": {
           "backup": "El respaldo que se dejará de usar."
         }
+      },
+      "local_only": {
+        "title": "Solo local",
+        "description": "Quita todos los inicios de sesión de Tesla guardados aquí (también los tokens guardados de la cuenta de Tesla, salvo que otra Powerwall use la misma cuenta) y desactiva el respaldo en la nube. La clave firmada sigue funcionando: las lecturas y los ajustes van a la puerta de enlace en tu red, y nada llega a los servidores de Tesla.\n\nDeja de funcionar, y sus entidades se quitan: Storm Watch, la reserva sin red, los Wall Connectors y la tarifa de Tesla. Los ajustes no se pueden cambiar mientras no se llega a la puerta de enlace, y registrar una clave nueva más adelante vuelve a necesitar un inicio de sesión de Tesla."
       }
     },
     "error": {

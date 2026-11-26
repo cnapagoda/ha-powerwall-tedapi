@@ -18,7 +18,7 @@ from custom_components.tesla_tedapi import config_flow, fleet as fleet_mod, tesl
 from custom_components.tesla_tedapi.const import DOMAIN
 
 from .conftest import DIN, TESLEMETRY, FakePowerwall
-from .test_config_flow import CLOUD, SETUP, _gateway
+from .test_config_flow import CLOUD, SETUP, _gateway, _keep_signin
 
 PUB = b"our public key"
 OTHER = b"the Tesla app key"
@@ -103,7 +103,7 @@ async def test_register_through_teslemetry(hass: HomeAssistant, tmp_path, fleet)
         result = await _teslemetry(hass, await _to_signin(hass))
         assert result["type"] is FlowResultType.SHOW_PROGRESS
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(result["flow_id"]))
     assert result["type"] is FlowResultType.CREATE_ENTRY
     # Teslemetry's own endpoint, with an RSA customer key.
     assert keys.added == [("add_authorized_client", {"key_type": 1, "public_key": _b64(PUB),
@@ -123,7 +123,7 @@ async def test_teslemetry_uses_the_account_region(hass: HomeAssistant, tmp_path,
     with KeyServer(fleet, [3]).patch, _key(tmp_path), patch(SETUP, return_value=True):
         result = await _teslemetry(hass, await _to_signin(hass))
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(result["flow_id"]))
     assert result["data"]["fleet_server"] == "https://eu.teslemetry.com"
 
 
@@ -155,7 +155,7 @@ async def test_site_chosen_among_several(hass: HomeAssistant, tmp_path, fleet) -
         assert result["step_id"] == "site"
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"site": "42"})
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(result["flow_id"]))
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"]["fleet_site_id"] == 42
 
@@ -341,7 +341,7 @@ async def test_register_through_tesla_fleet(hass: HomeAssistant, tmp_path, fleet
         result = await _to_signin(hass)
         result = await _oauth(hass, aioclient_mock, result["flow_id"])
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(result["flow_id"]))
     assert result["type"] is FlowResultType.CREATE_ENTRY
     data = result["data"]
     assert data["fleet_provider"] == "tesla_fleet" and data["fleet_site_id"] == 42

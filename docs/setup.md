@@ -113,7 +113,7 @@ Any of the [three sign-ins](#which-connection-and-which-sign-in) can send the re
 
    The wizard checks every 10 seconds and continues by itself once the Powerwall confirms. It shows the start of the key's fingerprint so you can tell keys apart. If the 10-minute window closes, it registers the key again once by itself; after that it asks you to try again.
 
-The sign-in is kept (a Tesla account in `config/tesla_tedapi/.pypowerwall.auth`, a Fleet API sign-in in the integration's entry) and used as the [cloud backup](cloud-backup.md).
+4. **Keep the sign-in, or not.** Keep it as the [cloud backup](cloud-backup.md) (a Tesla account in `config/tesla_tedapi/.pypowerwall.auth`, a Fleet API sign-in in the integration's entry), or remove it: [local only](configuration.md#local-only).
 
 <details>
 <summary>Screenshots: Tesla sign-in, confirmation, done</summary>

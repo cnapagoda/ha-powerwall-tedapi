@@ -443,7 +443,7 @@ async def test_menu_offers_link_and_unlink_with_only_fleet(hass: HomeAssistant, 
     entry = await _setup(hass, {**V1R, **TESLEMETRY})
     result = await _unlink(hass, entry, None)
     assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "fleet_signin",
-                                      "unlink_account", "new_key"]
+                                      "unlink_account", "local_only", "new_key"]
     result = await _unlink(hass, entry, "tesla_fleet")
     assert result["offered"] == ["tesla_fleet"]
     assert entry.options["cloud_backends"] == "none"

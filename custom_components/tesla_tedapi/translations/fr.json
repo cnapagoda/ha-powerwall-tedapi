@@ -99,6 +99,14 @@
         "title": "La Powerwall n'a pas confirmé la clé",
         "description": "Aucune confirmation n'est arrivée à temps (ou la clé a été supprimée). Sélectionnez **Valider** pour enregistrer à nouveau la clé et ouvrir une nouvelle fenêtre de 10 minutes, puis effectuez l'étape de l'interrupteur."
       },
+      "keep_signin": {
+        "title": "Garder la connexion Tesla ?",
+        "description": "La Powerwall a accepté la clé : les mesures et les réglages passent maintenant directement par la passerelle. La connexion Tesla utilisée pour l'enregistrer peut rester comme sauvegarde cloud (Storm Watch, Wall Connectors, le tarif Tesla, et les changements de réglages quand la passerelle est injoignable) ou être retirée, pour que rien n'atteigne les serveurs de Tesla. Un compte Tesla peut être lié à nouveau plus tard dans les options.",
+        "menu_options": {
+          "keep_cloud": "La garder comme sauvegarde cloud (recommandé)",
+          "local_only": "La retirer : local uniquement"
+        }
+      },
       "connect_failed": {
         "title": "Connexion impossible",
         "description": "La dernière vérification de connexion a échoué (voir le message ci-dessous). Sélectionnez **Valider** pour revenir en arrière et vérifier l'adresse et le mot de passe de la passerelle."
@@ -243,6 +251,7 @@
           "link_account": "Lier un compte Tesla (Owner API)",
           "fleet_signin": "Se connecter à Tesla Fleet ou Teslemetry",
           "unlink_account": "Dissocier une sauvegarde cloud",
+          "local_only": "Local uniquement (retirer les connexions Tesla)",
           "new_key": "Enregistrer une nouvelle clé signée"
         }
       },
@@ -330,13 +339,17 @@
       },
       "unlink_account": {
         "title": "Dissocier une sauvegarde cloud",
-        "description": "Choisissez la sauvegarde cloud à ne plus utiliser. **Owner API :** le compte Tesla associé ici est retiré (la connexion enregistrée reste sur le disque jusqu'à ce que vous supprimiez le dossier `tesla_tedapi`). **Tesla Fleet :** cette intégration cesse de l'utiliser ; l'intégration Tesla Fleet ou Teslemetry elle-même n'est pas modifiée. Les réglages passent alors par l'autre sauvegarde, ou seulement par la connexion locale.",
+        "description": "Choisissez la sauvegarde cloud à ne plus utiliser. **Owner API :** le compte Tesla associé ici est retiré (sa connexion enregistrée est aussi retirée, sauf si une autre Powerwall utilise le même compte). **Tesla Fleet :** cette intégration cesse de l'utiliser ; l'intégration Tesla Fleet ou Teslemetry elle-même n'est pas modifiée. Les réglages passent alors par l'autre sauvegarde, ou seulement par la connexion locale.",
         "data": {
           "backup": "Sauvegarde cloud"
         },
         "data_description": {
           "backup": "La sauvegarde à ne plus utiliser."
         }
+      },
+      "local_only": {
+        "title": "Local uniquement",
+        "description": "Retire toutes les connexions Tesla gardées ici (aussi les jetons enregistrés du compte Tesla, sauf si une autre Powerwall utilise le même compte) et désactive la sauvegarde cloud. La clé signée continue de fonctionner : les mesures et les réglages passent par la passerelle sur votre réseau, et rien n'atteint les serveurs de Tesla.\n\nNe fonctionnent plus, et leurs entités sont retirées : Storm Watch, la réserve hors réseau, les Wall Connectors et le tarif Tesla. Les réglages ne peuvent pas être changés quand la passerelle est injoignable, et enregistrer une nouvelle clé plus tard demande à nouveau une connexion Tesla."
       }
     },
     "error": {

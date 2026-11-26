@@ -29,7 +29,9 @@ The Fleet API is Tesla's official API. Add the Owner API as a second backup if y
 
 **Configure → Cloud backup** offers the choices that are available: *None (local only)*, *Owner API*, *Fleet API*, *Fleet API, then Owner API* and *Owner API, then Fleet API*. Without a choice, a linked Tesla account is the backup.
 
-**Configure → Unlink a cloud backup** stops using one and removes its sign-in here, including the saved Tesla tokens.
+**Configure → Unlink a cloud backup** stops using one and removes its sign-in here, including the saved Tesla tokens. **Configure → Local only** removes them all ([Local only](configuration.md#local-only)).
+
+Without a cloud backup, the entities that need one (Storm Watch, the off-grid reserve, Wall Connectors, the Tesla tariff, and over the Wi-Fi password connection the settings) are removed rather than left unavailable. They come back when a backup is set up again.
 
 **Upgrading from 2.5 or earlier:** the Tesla Fleet backup used to borrow the sign-in of Home Assistant's Tesla Fleet or Teslemetry integration. It now needs its own. A repair, *Sign in to Tesla Fleet or Teslemetry*, asks for it; your cloud backup choice is kept, and a linked Owner API account keeps working meanwhile.
 

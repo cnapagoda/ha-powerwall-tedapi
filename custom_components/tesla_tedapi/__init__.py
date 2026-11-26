@@ -7,8 +7,9 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
-from homeassistant.core import Event, HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse
+from homeassistant.core import Event, HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse, callback
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady, ServiceValidationError
+from homeassistant.helpers import entity_registry as er
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.storage import Store
@@ -74,6 +75,16 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.CALENDAR, Platform.EVENT, Platform.NUMBER,
              Platform.SELECT, Platform.SENSOR, Platform.SWITCH]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+# Entities made only with a cloud backup, only with the Tesla tariff option,
+# or only while settings can be changed (a signed connection or a cloud
+# backup), by the key in their unique id ("<DIN>_<key>"). Once the entry no
+# longer makes them, they're removed from the entity registry rather than
+# left unavailable (2.9.0); their history stays in the recorder.
+CLOUD_ONLY_KEYS = frozenset({"storm_watch", "storm_watch_active", "grid_services_active", "off_grid_reserve"})
+CLOUD_ONLY_PREFIXES = ("wall_connector_",)
+TARIFF_KEYS = frozenset({"tesla_tariff", "tariff_buy_price", "tariff_sell_price", "buy_tariff", "sell_tariff"})
+CONTROL_KEYS = frozenset({"backup_reserve", "grid_charging", "operation_mode", "grid_export"})
 
 _SOC = vol.All(vol.Coerce(float), vol.Range(min=0, max=100))
 DISPATCH_SCHEMA = vol.Schema({
@@ -353,6 +364,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         raise ConfigEntryNotReady("Powerwall DIN not available yet")
 
     coordinator.async_sync_signin_issue()
+    _async_remove_unmade_entities(hass, entry, coordinator)
     entry.runtime_data = TedapiRuntimeData(
         coordinator=coordinator,
         dispatch=DispatchSession(hass, coordinator) if coordinator.dispatch_supported else None,
@@ -383,6 +395,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
                   scrub(entry.title), coordinator.firmware_version, coordinator.connection_mode,
                   "enabled" if coordinator.control_enabled else "read-only")
     return True
+
+
+@callback
+def _async_remove_unmade_entities(hass: HomeAssistant, entry: TedapiConfigEntry,
+                                  coordinator: TedapiCoordinator) -> None:
+    """Remove the entities this entry no longer makes: the cloud backup's
+    without one, the Tesla tariff's with the option off, and the settings
+    when they can't be changed. They come back when that changes."""
+    unmade: set[str] = set()
+    prefixes: tuple[str, ...] = ()
+    if not coordinator.cloud_enabled:
+        unmade |= CLOUD_ONLY_KEYS
+        prefixes = CLOUD_ONLY_PREFIXES
+    if not coordinator.tariff_enabled:
+        unmade |= TARIFF_KEYS
+    if not coordinator.control_enabled:
+        unmade |= CONTROL_KEYS
+    registry = er.async_get(hass)
+    owners = tuple(f"{owner}_" for owner in (coordinator.din, entry.entry_id) if owner)
+    removed = 0
+    for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
+        key = next((entity.unique_id[len(owner):] for owner in owners if entity.unique_id.startswith(owner)), None)
+        if key is not None and (key in unmade or key.startswith(prefixes)):
+            registry.async_remove(entity.entity_id)
+            removed += 1
+    if removed:
+        _LOGGER.info("Removed %d entities that need a cloud backup, the Tesla tariff or settings control, "
+                     "which this Powerwall's setup no longer has", removed)
 
 
 # Entry data updated by the integration itself (a refreshed token, the

@@ -99,6 +99,14 @@
         "title": "De Powerwall heeft de sleutel niet bevestigd",
         "description": "Er kwam niet op tijd een bevestiging (of de sleutel is verwijderd). Kies **Verzenden** om de sleutel opnieuw te registreren en een nieuw venster van 10 minuten te openen, en voer dan de schakelstap uit."
       },
+      "keep_signin": {
+        "title": "De Tesla-aanmelding houden?",
+        "description": "De Powerwall heeft de sleutel geaccepteerd: metingen en instellingen gaan nu rechtstreeks naar de gateway. De Tesla-aanmelding waarmee hij is geregistreerd kan blijven als cloudback-up (Storm Watch, Wall Connectors, het Tesla-tarief en het wijzigen van instellingen als de gateway niet bereikbaar is) of worden verwijderd, zodat niets de servers van Tesla bereikt. Een Tesla-account kan later opnieuw worden gekoppeld in de opties.",
+        "menu_options": {
+          "keep_cloud": "Houden als cloudback-up (aanbevolen)",
+          "local_only": "Verwijderen: alleen lokaal"
+        }
+      },
       "connect_failed": {
         "title": "Kan geen verbinding maken",
         "description": "De laatste verbindingscontrole is mislukt (zie de melding hieronder). Kies **Verzenden** om terug te gaan en het gateway-adres en wachtwoord te controleren."
@@ -243,6 +251,7 @@
           "link_account": "Een Tesla-account koppelen (Owner API)",
           "fleet_signin": "Aanmelden bij Tesla Fleet of Teslemetry",
           "unlink_account": "Een cloudback-up ontkoppelen",
+          "local_only": "Alleen lokaal (Tesla-aanmeldingen verwijderen)",
           "new_key": "Nieuwe ondertekende sleutel registreren"
         }
       },
@@ -330,13 +339,17 @@
       },
       "unlink_account": {
         "title": "Een cloudback-up ontkoppelen",
-        "description": "Kies de cloudback-up die niet meer gebruikt moet worden. **Owner API:** het hier gekoppelde Tesla-account wordt verwijderd (de opgeslagen aanmelding blijft op schijf staan tot je de map `tesla_tedapi` verwijdert). **Tesla Fleet:** deze integratie gebruikt hem niet meer; de integratie Tesla Fleet of Teslemetry zelf blijft ongewijzigd. Instellingen gaan dan via de andere back-up, of alleen via de lokale verbinding.",
+        "description": "Kies de cloudback-up die niet meer gebruikt moet worden. **Owner API:** het hier gekoppelde Tesla-account wordt verwijderd (ook de opgeslagen aanmelding wordt verwijderd, tenzij een andere Powerwall hetzelfde account gebruikt). **Tesla Fleet:** deze integratie gebruikt hem niet meer; de integratie Tesla Fleet of Teslemetry zelf blijft ongewijzigd. Instellingen gaan dan via de andere back-up, of alleen via de lokale verbinding.",
         "data": {
           "backup": "Cloudback-up"
         },
         "data_description": {
           "backup": "De back-up die niet meer gebruikt moet worden."
         }
+      },
+      "local_only": {
+        "title": "Alleen lokaal",
+        "description": "Verwijdert elke Tesla-aanmelding die hier bewaard is (ook de opgeslagen tokens van het Tesla-account, tenzij een andere Powerwall hetzelfde account gebruikt) en zet de cloudback-up uit. De ondertekende sleutel blijft werken: metingen en instellingen gaan naar de gateway in je netwerk, en niets bereikt de servers van Tesla.\n\nWerkt niet meer, en de entiteiten worden verwijderd: Storm Watch, de off-grid-reserve, Wall Connectors en het Tesla-tarief. Instellingen kunnen niet worden gewijzigd als de gateway niet bereikbaar is, en later een nieuwe sleutel registreren vraagt weer een Tesla-aanmelding."
       }
     },
     "error": {

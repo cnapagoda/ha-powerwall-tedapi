@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
-from . import tesla_cloud
+from . import fleet, tesla_cloud
 from .const import (
     AUTH_FILE,
     CONF_CUSTOMER_PASSWORD,
@@ -170,6 +170,8 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: TedapiC
         "control_enabled": coordinator.control_enabled,
         "cloud_enabled": coordinator.cloud_enabled,
         "cloud_backends": [backend.name for backend in coordinator.backends],
+        # No Tesla sign-in kept for this entry (2.9.0).
+        "local_only": not fleet.has_signin(entry.data),
         "token_cache": token,
         "dispatch": runtime.dispatch.as_dict() if runtime.dispatch else None,
         "data": redact_values(async_redact_data(data, TO_REDACT), secrets),

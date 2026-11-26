@@ -99,6 +99,14 @@
         "title": "Powerwall nie potwierdziła klucza",
         "description": "Potwierdzenie nie przyszło na czas (albo klucz usunięto). Wybierz **Zatwierdź**, aby ponownie zarejestrować klucz i otworzyć nowe 10-minutowe okno, a potem wykonaj krok z przełącznikiem."
       },
+      "keep_signin": {
+        "title": "Zachować logowanie Tesla?",
+        "description": "Powerwall przyjął klucz: odczyty i ustawienia idą teraz bezpośrednio do bramy. Logowanie Tesla użyte do jego rejestracji może zostać jako kopia zapasowa w chmurze (Storm Watch, Wall Connectory, taryfa Tesla oraz zmiany ustawień, gdy brama jest nieosiągalna) albo zostać usunięte, tak aby nic nie trafiało na serwery Tesli. Konto Tesla można później ponownie połączyć w opcjach.",
+        "menu_options": {
+          "keep_cloud": "Zachowaj jako kopię zapasową w chmurze (zalecane)",
+          "local_only": "Usuń: tylko lokalnie"
+        }
+      },
       "connect_failed": {
         "title": "Nie można połączyć",
         "description": "Ostatnie sprawdzenie połączenia nie powiodło się (zobacz komunikat poniżej). Wybierz **Zatwierdź**, aby wrócić i sprawdzić adres i hasło bramy."
@@ -243,6 +251,7 @@
           "link_account": "Połącz konto Tesla (Owner API)",
           "fleet_signin": "Zaloguj się do Tesla Fleet lub Teslemetry",
           "unlink_account": "Odłącz kopię zapasową w chmurze",
+          "local_only": "Tylko lokalnie (usuń logowania Tesla)",
           "new_key": "Zarejestruj nowy podpisany klucz"
         }
       },
@@ -330,13 +339,17 @@
       },
       "unlink_account": {
         "title": "Odłącz kopię zapasową w chmurze",
-        "description": "Wybierz kopię zapasową w chmurze, której nie chcesz już używać. **Owner API:** konto Tesla połączone tutaj zostanie usunięte (zapisane logowanie zostaje na dysku, dopóki nie usuniesz folderu `tesla_tedapi`). **Tesla Fleet:** ta integracja przestanie z niej korzystać; sama integracja Tesla Fleet lub Teslemetry się nie zmienia. Ustawienia będą wtedy zmieniane przez drugą kopię albo tylko przez połączenie lokalne.",
+        "description": "Wybierz kopię zapasową w chmurze, której nie chcesz już używać. **Owner API:** konto Tesla połączone tutaj zostanie usunięte (zapisane logowanie też zostaje usunięte, chyba że inny Powerwall używa tego samego konta). **Tesla Fleet:** ta integracja przestanie z niej korzystać; sama integracja Tesla Fleet lub Teslemetry się nie zmienia. Ustawienia będą wtedy zmieniane przez drugą kopię albo tylko przez połączenie lokalne.",
         "data": {
           "backup": "Kopia zapasowa w chmurze"
         },
         "data_description": {
           "backup": "Kopia zapasowa, której nie chcesz już używać."
         }
+      },
+      "local_only": {
+        "title": "Tylko lokalnie",
+        "description": "Usuwa każde zapisane tutaj logowanie Tesla (także zapisane tokeny konta Tesla, chyba że inny Powerwall używa tego samego konta) i wyłącza kopię zapasową w chmurze. Podpisany klucz nadal działa: odczyty i ustawienia idą do bramy w Twojej sieci, a nic nie trafia na serwery Tesli.\n\nPrzestają działać, a ich encje są usuwane: Storm Watch, rezerwa poza siecią, Wall Connectory i taryfa Tesla. Ustawień nie da się zmienić, gdy brama jest nieosiągalna, a rejestracja nowego klucza w przyszłości znowu wymaga logowania Tesla."
       }
     },
     "error": {

@@ -3,6 +3,7 @@
 Everything here is done in the UI: **Settings → Devices & services → Tesla Powerwall TEDAPI**.
 
 - [Options (Configure)](#options-configure)
+- [Local only](#local-only)
 - [Reconfigure](#reconfigure)
 - [When the Powerwall stops accepting Home Assistant](#when-the-powerwall-stops-accepting-home-assistant)
 - [Removing the integration](#removing-the-integration)
@@ -18,6 +19,7 @@ Select **Configure** on the integration. The menu offers:
 | **Link a Tesla account (Owner API)** | Add the Owner API backup without setting the Powerwall up again (refresh token or browser sign-in). Shown when no account is linked. |
 | **Sign in to Tesla Fleet or Teslemetry** | Add or renew the Fleet API backup. It continues as a reauthentication on the integration's card. |
 | **Unlink a cloud backup** | Stop using one backup and keep the other. Its sign-in here is removed, including the saved Tesla tokens. |
+| **Local only (remove the Tesla sign-ins)** | Remove every Tesla sign-in kept here, including the saved Tesla tokens, and turn the cloud backup off. Signed connections with a sign-in only. See [Local only](#local-only). |
 | **Register a new signed key** | Make and register another key (Tesla account, Tesla Fleet or Teslemetry sign-in), or upload one. Signed connections only. It continues as a reauthentication on the integration's card. The key in use keeps working: the new one is kept in a file of its own, and the entry switches to it only once the Powerwall has confirmed it (the switch step at the unit) and the connection works with it. The old key file is then removed, unless another Powerwall set up here uses it. |
 
 <details>
@@ -48,6 +50,18 @@ The form is in four sections: **General** (polling, fast polling, restore), **Al
 
 > [!NOTE]
 > The settings above apply straight away, except **Fast polling interval for power** and **Tesla tariff (cloud)**. Changing either of those, the cloud backup, a linked account or the connection (**Reconfigure**) reloads the integration: **a battery dispatch that is running ends** (reason `unloaded`) and the battery goes back to normal. An off-grid run continues: it's saved and picked up again.
+
+## Local only
+
+A signed connection needs a Tesla sign-in once, to register its key. After that it can run with no Tesla sign-in kept: choose *Remove it: local only* at the end of setup, or **Configure → Local only** later. Nothing the integration does then reaches Tesla's servers.
+
+What stops working:
+
+- Storm Watch, the off-grid reserve, Wall Connectors and the Tesla tariff. Their entities are removed; their history is kept.
+- Changing settings while Home Assistant can't reach the gateway.
+- Registering a new key needs a Tesla sign-in again.
+
+To keep the sign-in but not use it, choose **Configure → Cloud backup → None** instead. To go back, **Link a Tesla account** or **Sign in to Tesla Fleet or Teslemetry**.
 
 ## Reconfigure
 

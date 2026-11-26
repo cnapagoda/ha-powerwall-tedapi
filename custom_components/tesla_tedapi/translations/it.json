@@ -99,6 +99,14 @@
         "title": "La Powerwall non ha confermato la chiave",
         "description": "Non è arrivata nessuna conferma in tempo (o la chiave è stata rimossa). Seleziona **Invia** per registrare di nuovo la chiave e aprire una nuova finestra di 10 minuti, poi esegui il passaggio dell'interruttore."
       },
+      "keep_signin": {
+        "title": "Tenere l'accesso Tesla?",
+        "description": "La Powerwall ha accettato la chiave: letture e impostazioni ora vanno direttamente al gateway. L'accesso Tesla usato per registrarla può restare come backup cloud (Storm Watch, Wall Connector, la tariffa Tesla e le modifiche alle impostazioni quando il gateway non è raggiungibile) oppure essere rimosso, così nulla raggiunge i server di Tesla. Un account Tesla si può ricollegare più tardi nelle opzioni.",
+        "menu_options": {
+          "keep_cloud": "Tienilo come backup cloud (consigliato)",
+          "local_only": "Rimuovilo: solo locale"
+        }
+      },
       "connect_failed": {
         "title": "Impossibile connettersi",
         "description": "L'ultimo controllo della connessione non è riuscito (vedi il messaggio qui sotto). Seleziona **Invia** per tornare indietro e controllare indirizzo e password del gateway."
@@ -243,6 +251,7 @@
           "link_account": "Collega un account Tesla (Owner API)",
           "fleet_signin": "Accedi a Tesla Fleet o Teslemetry",
           "unlink_account": "Scollega un backup cloud",
+          "local_only": "Solo locale (rimuovi gli accessi Tesla)",
           "new_key": "Registra una nuova chiave firmata"
         }
       },
@@ -330,13 +339,17 @@
       },
       "unlink_account": {
         "title": "Scollega un backup cloud",
-        "description": "Scegli il backup cloud da non usare più. **Owner API:** l'account Tesla collegato qui viene rimosso (l'accesso salvato resta su disco finché non rimuovi la cartella `tesla_tedapi`). **Tesla Fleet:** questa integrazione smette di usarlo; l'integrazione Tesla Fleet o Teslemetry non cambia. Le impostazioni passano allora dall'altro backup, o solo dalla connessione locale.",
+        "description": "Scegli il backup cloud da non usare più. **Owner API:** l'account Tesla collegato qui viene rimosso (viene rimosso anche l'accesso salvato, a meno che un'altra Powerwall usi lo stesso account). **Tesla Fleet:** questa integrazione smette di usarlo; l'integrazione Tesla Fleet o Teslemetry non cambia. Le impostazioni passano allora dall'altro backup, o solo dalla connessione locale.",
         "data": {
           "backup": "Backup cloud"
         },
         "data_description": {
           "backup": "Il backup da non usare più."
         }
+      },
+      "local_only": {
+        "title": "Solo locale",
+        "description": "Rimuove ogni accesso Tesla salvato qui (anche i token salvati dell'account Tesla, a meno che un'altra Powerwall usi lo stesso account) e disattiva il backup cloud. La chiave firmata continua a funzionare: letture e impostazioni vanno al gateway nella tua rete, e nulla raggiunge i server di Tesla.\n\nSmettono di funzionare, e le loro entità vengono rimosse: Storm Watch, la riserva off-grid, i Wall Connector e la tariffa Tesla. Le impostazioni non si possono cambiare quando il gateway non è raggiungibile, e registrare una nuova chiave più tardi richiede di nuovo un accesso Tesla."
       }
     },
     "error": {
