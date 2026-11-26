@@ -971,7 +971,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Dispatch battery power",
-      "description": "Run the battery at a fixed power for a set time over the signed local connection. Positive watts discharge, negative watts charge, 0 holds the battery idle. Overrides the export setting; a discharge stops at the backup reserve unless `min_soc` is given (option). The integration renews the command every minute in short steps, so the Powerwall returns to normal within 5 minutes if Home Assistant stops. A new call replaces a running dispatch. Use at your own risk: dispatching the battery may affect your Powerwall warranty, which may cover unlimited cycles only for self-consumption, time-based control and backup.",
+      "description": "Run the battery at a fixed power for a set time over the signed local connection. Positive watts discharge, negative watts charge, 0 holds the battery idle. Overrides the export setting; a discharge stops at the backup reserve unless `min_soc` is given (option). The integration renews the command every 30 seconds in short steps, so the Powerwall returns to normal within 2 minutes if Home Assistant stops. A new call replaces a running dispatch. Use at your own risk: dispatching the battery may affect your Powerwall warranty, which may cover unlimited cycles only for self-consumption, time-based control and backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

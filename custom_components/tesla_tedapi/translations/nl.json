@@ -971,7 +971,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Batterijvermogen sturen",
-      "description": "Laat de batterij een vaste tijd op een vast vermogen draaien via de ondertekende lokale verbinding. Positieve watts ontladen, negatieve laden, 0 houdt de batterij stil. Gaat boven de terugleverinstelling; een ontlading stopt bij de back-upreserve, tenzij `min_soc` is opgegeven (optie). De integratie vernieuwt de opdracht elke minuut in korte stappen, zodat de Powerwall binnen 5 minuten normaal werkt als Home Assistant stopt. Een nieuwe aanroep vervangt een lopende dispatch. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
+      "description": "Laat de batterij een vaste tijd op een vast vermogen draaien via de ondertekende lokale verbinding. Positieve watts ontladen, negatieve laden, 0 houdt de batterij stil. Gaat boven de terugleverinstelling; een ontlading stopt bij de back-upreserve, tenzij `min_soc` is opgegeven (optie). De integratie vernieuwt de opdracht elke 30 seconden in korte stappen, zodat de Powerwall binnen 2 minuten normaal werkt als Home Assistant stopt. Een nieuwe aanroep vervangt een lopende dispatch. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

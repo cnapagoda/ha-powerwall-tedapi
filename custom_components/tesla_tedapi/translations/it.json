@@ -971,7 +971,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Dispatch della potenza della batteria",
-      "description": "Fa funzionare la batteria a una potenza fissa per un tempo stabilito tramite la connessione locale firmata. Watt positivi scaricano, negativi caricano, 0 tiene la batteria a riposo. Ha la precedenza sull'impostazione di immissione; una scarica si ferma alla riserva di backup a meno che sia indicato `min_soc` (opzione). L'integrazione rinnova il comando ogni minuto a piccoli passi, così la Powerwall torna alla normalità entro 5 minuti se Home Assistant si ferma. Una nuova chiamata sostituisce un dispatch in corso. Uso a proprio rischio: comandare la batteria può influire sulla garanzia della Powerwall, che potrebbe coprire cicli illimitati solo per autoconsumo, controllo a fasce orarie e backup.",
+      "description": "Fa funzionare la batteria a una potenza fissa per un tempo stabilito tramite la connessione locale firmata. Watt positivi scaricano, negativi caricano, 0 tiene la batteria a riposo. Ha la precedenza sull'impostazione di immissione; una scarica si ferma alla riserva di backup a meno che sia indicato `min_soc` (opzione). L'integrazione rinnova il comando ogni 30 secondi a piccoli passi, così la Powerwall torna alla normalità entro 2 minuti se Home Assistant si ferma. Una nuova chiamata sostituisce un dispatch in corso. Uso a proprio rischio: comandare la batteria può influire sulla garanzia della Powerwall, che potrebbe coprire cicli illimitati solo per autoconsumo, controllo a fasce orarie e backup.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

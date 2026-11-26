@@ -971,7 +971,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Batterieleistung steuern",
-      "description": "Betreibt die Batterie über die signierte lokale Verbindung für eine festgelegte Zeit mit fester Leistung. Positive Watt entladen, negative laden, 0 hält die Batterie im Leerlauf. Übersteuert die Einspeiseeinstellung; eine Entladung stoppt bei der Backup-Reserve, außer `min_soc` ist angegeben (optional). Die Integration erneuert den Befehl jede Minute in kurzen Schritten, sodass die Powerwall innerhalb von 5 Minuten zum Normalbetrieb zurückkehrt, wenn Home Assistant stoppt. Ein neuer Aufruf ersetzt einen laufenden Dispatch. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
+      "description": "Betreibt die Batterie über die signierte lokale Verbindung für eine festgelegte Zeit mit fester Leistung. Positive Watt entladen, negative laden, 0 hält die Batterie im Leerlauf. Übersteuert die Einspeiseeinstellung; eine Entladung stoppt bei der Backup-Reserve, außer `min_soc` ist angegeben (optional). Die Integration erneuert den Befehl alle 30 Sekunden in kurzen Schritten, sodass die Powerwall innerhalb von 2 Minuten zum Normalbetrieb zurückkehrt, wenn Home Assistant stoppt. Ein neuer Aufruf ersetzt einen laufenden Dispatch. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

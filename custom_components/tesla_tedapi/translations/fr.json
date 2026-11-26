@@ -971,7 +971,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Piloter la puissance de la batterie",
-      "description": "Fait fonctionner la batterie à une puissance fixe pendant une durée donnée via la connexion locale signée. Des watts positifs déchargent, négatifs chargent, 0 maintient la batterie au repos. Prend le pas sur le paramètre d'export ; une décharge s'arrête à la réserve de secours sauf si `min_soc` est indiqué (option). L'intégration renouvelle la commande chaque minute par petites étapes, de sorte que la Powerwall revient à la normale en 5 minutes si Home Assistant s'arrête. Un nouvel appel remplace un dispatch en cours. À vos risques et périls : piloter la batterie peut affecter la garantie de la Powerwall, qui ne couvre peut-être des cycles illimités que pour l'autoconsommation, le pilotage horaire et le secours.",
+      "description": "Fait fonctionner la batterie à une puissance fixe pendant une durée donnée via la connexion locale signée. Des watts positifs déchargent, négatifs chargent, 0 maintient la batterie au repos. Prend le pas sur le paramètre d'export ; une décharge s'arrête à la réserve de secours sauf si `min_soc` est indiqué (option). L'intégration renouvelle la commande toutes les 30 secondes par petites étapes, de sorte que la Powerwall revient à la normale en 2 minutes si Home Assistant s'arrête. Un nouvel appel remplace un dispatch en cours. À vos risques et périls : piloter la batterie peut affecter la garantie de la Powerwall, qui ne couvre peut-être des cycles illimités que pour l'autoconsommation, le pilotage horaire et le secours.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

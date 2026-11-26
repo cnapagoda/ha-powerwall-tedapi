@@ -971,7 +971,7 @@
   "services": {
     "dispatch_battery_power": {
       "name": "Steruj mocą baterii",
-      "description": "Utrzymuje baterię na stałej mocy przez określony czas przez podpisane połączenie lokalne. Dodatnie waty rozładowują, ujemne ładują, 0 utrzymuje baterię w spoczynku. Ma pierwszeństwo przed ustawieniem oddawania; rozładowanie zatrzymuje się na rezerwie awaryjnej, chyba że podano `min_soc` (opcja). Integracja odnawia polecenie co minutę krótkimi krokami, więc Powerwall wraca do normalnej pracy w ciągu 5 minut, jeśli Home Assistant się zatrzyma. Nowe wywołanie zastępuje trwające sterowanie. Na własne ryzyko: sterowanie baterią może wpłynąć na gwarancję Powerwall, która może obejmować nieograniczoną liczbę cykli tylko przy autokonsumpcji, sterowaniu czasowym i zasilaniu awaryjnym.",
+      "description": "Utrzymuje baterię na stałej mocy przez określony czas przez podpisane połączenie lokalne. Dodatnie waty rozładowują, ujemne ładują, 0 utrzymuje baterię w spoczynku. Ma pierwszeństwo przed ustawieniem oddawania; rozładowanie zatrzymuje się na rezerwie awaryjnej, chyba że podano `min_soc` (opcja). Integracja odnawia polecenie co 30 sekund krótkimi krokami, więc Powerwall wraca do normalnej pracy w ciągu 2 minut, jeśli Home Assistant się zatrzyma. Nowe wywołanie zastępuje trwające sterowanie. Na własne ryzyko: sterowanie baterią może wpłynąć na gwarancję Powerwall, która może obejmować nieograniczoną liczbę cykli tylko przy autokonsumpcji, sterowaniu czasowym i zasilaniu awaryjnym.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",

@@ -48,7 +48,7 @@ PYPOWERWALL_DISPATCH_LOGGER = "pypowerwall.tedapi.tedapi_v1r"
 
 class RepeatDispatchFilter(logging.Filter):
     """Drops pypowerwall's per-command warning. A session renews its command
-    every minute, and its start is logged here with the same warning."""
+    every 30 seconds, and its start is logged here with the same warning."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         return not str(record.msg).startswith("Battery dispatch accepted")
