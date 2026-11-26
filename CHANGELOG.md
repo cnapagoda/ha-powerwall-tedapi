@@ -23,6 +23,7 @@
 - Alerts: descriptions for `PWS_a082_PowerLimits` and `HighControlLoopJitter`, notices seen briefly while exporting at full power up to a site export limit (#37, thanks benv666).
 - Fix: **Home power** no longer reads below 0 W. The gateway's load reading dips below zero for a moment now and then; the energy flows already counted it as 0.
 - Fix: **Unlink a cloud backup** removed the Tesla account from the integration, but its saved sign-in tokens stayed in the integration's folder. They're now removed too, unless another Powerwall entry uses the same account.
+- Fix: **Settings → Advanced** showed its note on how to get the **Tesla tariff** option also once a cloud backup was set up, with the asterisks of its formatting showing. It now shows only without a cloud backup, as plain text.
 - Docs: the **Connection alert** blueprint's import button pointed to a release that doesn't exist (2.8.2); it now imports from 2.8.3.
 
 ## 2.8.3

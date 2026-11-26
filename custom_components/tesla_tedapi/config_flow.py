@@ -130,7 +130,9 @@ CONF_BACKUP = "backup"
 CONF_ACCESS_TOKEN = "access_token"
 MANUAL = "manual"
 # Sections of the Settings form (strings.json: options.step.settings.sections).
-SETTINGS_SECTIONS = ("general", "alerts", "dispatch", "advanced")
+# "advanced_no_cloud" is the Advanced section without a cloud backup: its
+# description says how to get the cloud-only options.
+SETTINGS_SECTIONS = ("general", "alerts", "dispatch", "advanced", "advanced_no_cloud")
 
 PASSWORD = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 KEY_FILE = FileSelector(FileSelectorConfig(accept=".pem,.key,.txt"))
@@ -1383,12 +1385,13 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             return NumberSelector(NumberSelectorConfig(
                 min=lo, max=hi, step=step, unit_of_measurement=unit, mode=NumberSelectorMode.BOX))
 
+        # Tesla tariff and cloud readings (cloud only): offered once a cloud
+        # backup is set up. Without one, the section says how to set it up.
+        cloud = cloud_choice(self.config_entry.data, opts) != CLOUD_NONE
         advanced: dict[Any, Any] = {
-            # Tesla tariff and cloud readings (cloud only): offered once a
-            # cloud backup is set up.
             **({vol.Required(CONF_TESLA_TARIFF, default=opts.get(CONF_TESLA_TARIFF, False)): bool,
                 vol.Required(CONF_CLOUD_READINGS, default=opts.get(CONF_CLOUD_READINGS, False)): bool}
-               if cloud_choice(self.config_entry.data, opts) != CLOUD_NONE else {}),
+               if cloud else {}),
             vol.Required(CONF_DIAGNOSTICS_GATEWAY, default=opts.get(CONF_DIAGNOSTICS_GATEWAY, False)): bool,
         }
         return self.async_show_form(
@@ -1419,7 +1422,8 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                     vol.Required(CONF_DISPATCH_GRID_CHARGING, default=opts.get(
                         CONF_DISPATCH_GRID_CHARGING, False)): bool,
                 }), {"collapsed": False}),
-                vol.Required("advanced"): section(vol.Schema(advanced), {"collapsed": True}),
+                vol.Required("advanced" if cloud else "advanced_no_cloud"): section(
+                    vol.Schema(advanced), {"collapsed": True}),
             }),
         )
 

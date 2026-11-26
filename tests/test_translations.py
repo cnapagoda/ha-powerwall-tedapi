@@ -54,3 +54,16 @@ def _strings(value: Any, path: str = "") -> list[tuple[str, str]]:
 def test_no_html(path: Path) -> None:
     found = [(where, text[:60]) for where, text in _strings(_load(path)) if HTML.search(text)]
     assert not found, found
+
+
+# The frontend shows a form section's description as plain text, unlike a
+# step's or a field's: Markdown there shows its asterisks (2.9.0).
+MARKDOWN = re.compile(r"\*\*|`|\[[^\]]+\]\(")
+
+
+@pytest.mark.parametrize("path", [FOLDER / "strings.json", *sorted((FOLDER / "translations").glob("*.json"))],
+                         ids=lambda p: p.name)
+def test_no_markdown_in_section_descriptions(path: Path) -> None:
+    found = [(where, text[:60]) for where, text in _strings(_load(path))
+             if ".sections." in where and where.endswith(".description") and MARKDOWN.search(text)]
+    assert not found, found

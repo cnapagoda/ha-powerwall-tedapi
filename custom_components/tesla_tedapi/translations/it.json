@@ -318,8 +318,17 @@
               "tesla_tariff": "Leggere dal backup cloud la tariffa che Tesla usa per il controllo a fasce orarie (sensori, calendari e azioni di lettura/impostazione). Solo cloud.",
               "cloud_readings": "Mentre il gateway non è raggiungibile, mostrare potenza, livello ed energia della batteria (residua e capacità totale) dal backup cloud (hanno l'attributo `source: cloud` e possono essere vecchi di qualche minuto). I contatori di energia e tutto il resto restano non disponibili. Disattivato: tutte le letture sono non disponibili finché il gateway non risponde.",
               "diagnostics_gateway_config": "Aggiungere la configurazione del gateway ai download di diagnostica, senza numeri di serie, posizione, nomi e credenziali. Utile per le segnalazioni di bug."
+            }
+          },
+          "advanced_no_cloud": {
+            "name": "Avanzate",
+            "data": {
+              "diagnostics_gateway_config": "Configurazione del gateway nella diagnostica"
             },
-            "description": "L'opzione **Tariffa Tesla** compare qui dopo aver impostato un backup cloud: nel menu scegli prima **Collega un account Tesla** o **Accedi a Tesla Fleet o Teslemetry**."
+            "data_description": {
+              "diagnostics_gateway_config": "Aggiungere la configurazione del gateway ai download di diagnostica, senza numeri di serie, posizione, nomi e credenziali. Utile per le segnalazioni di bug."
+            },
+            "description": "L'opzione «Tariffa Tesla» compare qui dopo aver impostato un backup cloud: nel menu scegli prima «Collega un account Tesla» o «Accedi a Tesla Fleet o Teslemetry»."
           }
         }
       },

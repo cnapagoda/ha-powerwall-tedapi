@@ -108,7 +108,14 @@ async def test_cloud_readings_not_offered_without_a_cloud_backup(hass: HomeAssis
     entry = await _setup(hass, V1R)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})
-    assert "cloud_readings" not in result["data_schema"].schema["advanced"].schema.schema
+    # The Advanced section of its own, which says how to set a backup up.
+    assert "advanced" not in result["data_schema"].schema
+    assert "cloud_readings" not in result["data_schema"].schema["advanced_no_cloud"].schema.schema
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {
+        "general": {}, "alerts": {}, "dispatch": {},
+        "advanced_no_cloud": {"diagnostics_gateway_config": True}})
+    assert entry.options["diagnostics_gateway_config"] is True
+    assert "advanced_no_cloud" not in entry.options
 
 
 # -- the cloud backup's live status ------------------------------------------

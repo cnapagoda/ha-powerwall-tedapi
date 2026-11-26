@@ -318,8 +318,17 @@
               "tesla_tariff": "Read the tariff Tesla uses for Time-Based Control from the cloud backup (sensors, calendars and get/set tariff actions). Cloud only.",
               "cloud_readings": "While the gateway can't be reached, show power, battery level and battery energy (remaining and full capacity) from the cloud backup instead (they carry the attribute `source: cloud` and can be a few minutes old). Energy counters and everything else stay unavailable. Off: all readings are unavailable until the gateway answers.",
               "diagnostics_gateway_config": "Add the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports."
+            }
+          },
+          "advanced_no_cloud": {
+            "name": "Advanced",
+            "data": {
+              "diagnostics_gateway_config": "Gateway configuration in diagnostics"
             },
-            "description": "The **Tesla tariff** option appears here once a cloud backup is set up: in the menu, choose **Link a Tesla account** or **Sign in to Tesla Fleet or Teslemetry** first."
+            "data_description": {
+              "diagnostics_gateway_config": "Add the gateway's own configuration to diagnostics downloads, with serial numbers, location, names and credentials removed. Useful for bug reports."
+            },
+            "description": "The “Tesla tariff” option appears here once a cloud backup is set up: in the menu, choose “Link a Tesla account” or “Sign in to Tesla Fleet or Teslemetry” first."
           }
         }
       },
