@@ -35,6 +35,7 @@ from .const import (
     CONF_MQTT_BASE_TOPIC,
     CONF_MQTT_BATTERY_COMMANDS,
     CONF_MQTT_COMMANDS,
+    CONF_MQTT_PUBLISH,
     CONF_MQTT_SECRET,
     DEFAULT_MQTT_BASE_TOPIC,
     DOMAIN,
@@ -259,16 +260,23 @@ class MqttBridge:
         self.entry.async_create_background_task(self.hass, self.async_start(), "tesla_tedapi MQTT publishing")
 
     async def async_stop(self) -> None:
-        """Stop, and say offline."""
+        """Stop, and say offline; or, when publishing was turned off or moved
+        to another base topic (the entry already has the new options), clear
+        the retained messages instead, so "offline" isn't left behind."""
         if self._retry is not None:
             self._retry()
             self._retry = None
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
-        if self.started:
-            self.started = False
+        if not self.started:
+            return
+        self.started = False
+        if self.entry.options.get(CONF_MQTT_PUBLISH) and base_topic(self.entry) == self.base:
             await self._async_send("availability", OFFLINE, retain=True)
+            return
+        for name in RETAINED:
+            await self._async_send(name, "", retain=True)
 
     @callback
     def _on_update(self) -> None:

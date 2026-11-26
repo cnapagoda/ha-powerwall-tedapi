@@ -223,6 +223,28 @@ async def test_options_turn_it_off_clears_the_retained_messages(hass: HomeAssist
     assert cleared == {f"{BASE}/{name}" for name in ("availability", "power", "battery", "energy", "settings",
                                                       "status")}
     assert entry.runtime_data.mqtt is None
+    # Nothing retained is left: the bridge stopping after the clear doesn't
+    # leave "offline" behind (found in the live test).
+    last = {}
+    for topic, payload, retain in _messages(mqtt_mock):
+        if retain:
+            last[topic] = payload
+    assert all(payload == "" for payload in last.values()), last
+
+
+async def test_moving_the_base_topic_leaves_nothing_under_the_old_one(hass: HomeAssistant, fake_powerwall,
+                                                                       mqtt_mock) -> None:
+    entry = await _setup(hass, ON)
+    result = await _mqtt_step(hass, entry)
+    await hass.config_entries.options.async_configure(result["flow_id"], {"mqtt_publish": True,
+                                                                          "mqtt_base_topic": "home/pw"})
+    await hass.async_block_till_done()
+    last = {}
+    for topic, payload, retain in _messages(mqtt_mock):
+        if retain:
+            last[topic] = payload
+    assert all(payload == "" for topic, payload in last.items() if topic.startswith(f"{BASE}/")), last
+    assert last["home/pw/availability"] == "online"
 
 
 async def test_options_a_second_powerwall_gets_its_own_topic(hass: HomeAssistant, fake_powerwall,
