@@ -14,7 +14,7 @@ The integration can publish the Powerwall's readings, settings, status and event
 1. Set up Home Assistant's [MQTT integration](https://www.home-assistant.io/integrations/mqtt/) with your broker (for example the Mosquitto add-on). This integration publishes through it: there are no broker settings of its own.
 2. **Settings → Devices & services → Tesla Powerwall TEDAPI → Configure → MQTT.** Turn on **Publish to MQTT** and choose a **Base topic** (default `tesla_tedapi/powerwall`; a second Powerwall gets `tesla_tedapi/powerwall_2`).
 
-Turning it off, or changing the base topic, removes the retained messages under the old base topic. So does removing the integration. If the MQTT integration isn't set up, a repair says so; everything else keeps working.
+Turning it off, or changing the base topic, removes the retained messages under the old base topic. So does removing the integration. If the MQTT integration isn't set up, a repair says so and everything else keeps working; publishing starts by itself within 5 minutes once it is.
 
 ## Topics
 

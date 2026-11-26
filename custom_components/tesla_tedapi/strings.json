@@ -330,8 +330,8 @@
           "mqtt_secret": "Command secret (optional)"
         },
         "data_description": {
-          "mqtt_base_topic": "Messages go to <base>/power, /battery, /energy, /settings, /status and /event/…. Letters, digits, _ and -, separated by /. Each Powerwall needs its own.",
-          "mqtt_commands": "Operation mode, backup reserve, grid charging and grid export, from <base>/cmd/…, with the same checks as the entities. Needs publishing on. Anyone who can publish to your broker can use them: restrict it with the broker's access rules, or set a secret.",
+          "mqtt_base_topic": "Messages go to `<base>/power`, /battery, /energy, /settings, /status and /event/…. Letters, digits, _ and -, separated by /. Each Powerwall needs its own.",
+          "mqtt_commands": "Operation mode, backup reserve, grid charging and grid export, from `<base>/cmd/…`, with the same checks as the entities. Needs publishing on. Anyone who can publish to your broker can use them: restrict it with the broker's access rules, or set a secret.",
           "mqtt_battery_commands": "Battery dispatch, charge to and discharge to a level, resume, and max backup, with every limit of the actions. Only with setting commands on. Read Safety first.",
           "mqtt_secret": "When set, a command runs only if its token field matches."
         }

@@ -406,3 +406,51 @@ async def test_a_command_as_bytes(hass: HomeAssistant, fake_powerwall, mqtt_mock
     await entry.runtime_data.mqtt._async_command("set_mode", b'{"mode": "backup"}', False)
     await hass.async_block_till_done()
     assert _last(mqtt_mock, "cmd/result")["ok"] is True
+
+
+async def test_nothing_after_offline(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    """A reading still being published when the entry unloads sends nothing
+    after "offline"."""
+    entry = await _setup(hass, BATTERY)
+    bridge = entry.runtime_data.mqtt
+    fake_powerwall.soe = 90.0
+    fake_powerwall.alert_list = ["SystemConnectedToGrid", "PodCommissioningTime"]
+    await bridge.async_stop()
+    before = len(_messages(mqtt_mock))
+    await _refresh(hass, entry)
+    await bridge._async_publish_all()
+    assert len(_messages(mqtt_mock)) == before
+    assert _messages(mqtt_mock)[-1] == (f"{BASE}/availability", "offline", True)
+
+
+async def test_starts_once_mqtt_is_set_up_later(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    """MQTT wasn't there at first: tried again every 5 minutes, and the repair
+    goes once publishing starts."""
+    from datetime import timedelta  # noqa: PLC0415
+
+    from homeassistant.util import dt as dt_util  # noqa: PLC0415
+    from pytest_homeassistant_custom_component.common import async_fire_time_changed  # noqa: PLC0415
+
+    from custom_components.tesla_tedapi import mqtt_bridge  # noqa: PLC0415
+
+    with patch.object(mqtt_bridge.mqtt, "async_wait_for_mqtt_client", return_value=False):
+        entry = await _setup(hass, ON)
+        await hass.async_block_till_done()
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=mqtt_bridge.RETRY_SECONDS + 1))
+        await hass.async_block_till_done()
+    issue_id = f"mqtt_unavailable_{entry.entry_id}"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is not None
+    assert not entry.runtime_data.mqtt.started
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2 * mqtt_bridge.RETRY_SECONDS + 2))
+    await hass.async_block_till_done()
+    assert entry.runtime_data.mqtt.started
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
+    assert _last(mqtt_mock, "availability") == "online"
+
+
+async def test_unload_while_waiting_for_mqtt(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, ON)
+    bridge = entry.runtime_data.mqtt
+    assert bridge._retry is not None
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert bridge._retry is None

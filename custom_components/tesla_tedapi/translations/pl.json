@@ -330,8 +330,8 @@
           "mqtt_secret": "Sekret poleceń (opcjonalny)"
         },
         "data_description": {
-          "mqtt_base_topic": "Wiadomości trafiają do <baza>/power, /battery, /energy, /settings, /status i /event/…. Litery, cyfry, _ i -, rozdzielone /. Każdy Powerwall potrzebuje własnego.",
-          "mqtt_commands": "Tryb pracy, rezerwa zapasowa, ładowanie z sieci i eksport, z <baza>/cmd/…, z tymi samymi kontrolami co encje. Wymaga włączonego publikowania. Każdy, kto może publikować do Twojego brokera, może ich użyć: ogranicz to regułami dostępu brokera albo ustaw sekret.",
+          "mqtt_base_topic": "Wiadomości trafiają do `<baza>/power`, /battery, /energy, /settings, /status i /event/…. Litery, cyfry, _ i -, rozdzielone /. Każdy Powerwall potrzebuje własnego.",
+          "mqtt_commands": "Tryb pracy, rezerwa zapasowa, ładowanie z sieci i eksport, z `<baza>/cmd/…`, z tymi samymi kontrolami co encje. Wymaga włączonego publikowania. Każdy, kto może publikować do Twojego brokera, może ich użyć: ogranicz to regułami dostępu brokera albo ustaw sekret.",
           "mqtt_battery_commands": "Sterowanie baterią, ładowanie i rozładowanie do poziomu, wznowienie i maksymalna rezerwa, ze wszystkimi limitami akcji. Tylko z włączonymi poleceniami ustawień. Najpierw przeczytaj Bezpieczeństwo.",
           "mqtt_secret": "Jeśli ustawiony, polecenie działa tylko wtedy, gdy jego pole token się zgadza."
         }

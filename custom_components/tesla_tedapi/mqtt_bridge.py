@@ -26,6 +26,7 @@ from homeassistant.components import mqtt
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.event import async_call_later
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 
@@ -91,6 +92,9 @@ BATTERY_COMMANDS = {
 }
 RESULT = "result"
 MAX_COMMAND_BYTES = 2048
+# Without Home Assistant's MQTT client, start is tried again this often (s):
+# the MQTT integration may be set up later.
+RETRY_SECONDS = 300
 
 
 def issue_id(entry_id: str) -> str:
@@ -220,17 +224,22 @@ class MqttBridge:
         self.commands = bool(options.get(CONF_MQTT_COMMANDS))
         self.battery_commands = self.commands and bool(options.get(CONF_MQTT_BATTERY_COMMANDS))
         self._secret = str(options.get(CONF_MQTT_SECRET) or "")
+        self._retry: Callable[[], None] | None = None
 
     async def async_start(self) -> bool:
         """Start publishing once Home Assistant's MQTT client is there. False,
         with a repair, when the MQTT integration isn't set up."""
+        self._retry = None
         if not await mqtt.async_wait_for_mqtt_client(self.hass):
-            _LOGGER.warning("%s: MQTT publishing is on, but the MQTT integration isn't set up",
-                            scrub(self.entry.title))
-            ir.async_create_issue(
-                self.hass, DOMAIN, issue_id(self.entry.entry_id), is_fixable=False, is_persistent=False,
-                severity=ir.IssueSeverity.WARNING, translation_key="mqtt_unavailable",
-                translation_placeholders={"name": scrub(self.entry.title)})
+            registry = ir.async_get(self.hass)
+            if registry.async_get_issue(DOMAIN, issue_id(self.entry.entry_id)) is None:
+                _LOGGER.warning("%s: MQTT publishing is on, but the MQTT integration isn't set up",
+                                scrub(self.entry.title))
+                ir.async_create_issue(
+                    self.hass, DOMAIN, issue_id(self.entry.entry_id), is_fixable=False, is_persistent=False,
+                    severity=ir.IssueSeverity.WARNING, translation_key="mqtt_unavailable",
+                    translation_placeholders={"name": scrub(self.entry.title)})
+            self._retry = async_call_later(self.hass, RETRY_SECONDS, self._retry_start)
             return False
         ir.async_delete_issue(self.hass, DOMAIN, issue_id(self.entry.entry_id))
         self.started = True
@@ -244,8 +253,16 @@ class MqttBridge:
         self._on_update()
         return True
 
+    @callback
+    def _retry_start(self, _now: Any) -> None:
+        self._retry = None
+        self.entry.async_create_background_task(self.hass, self.async_start(), "tesla_tedapi MQTT publishing")
+
     async def async_stop(self) -> None:
         """Stop, and say offline."""
+        if self._retry is not None:
+            self._retry()
+            self._retry = None
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
@@ -354,11 +371,15 @@ class MqttBridge:
         if changes is not self._fired_alerts:
             self._fired_alerts = changes
             for change in changes:
+                if not self.started:
+                    return
                 payload = {**alert_payload(change), "schema": SCHEMA, "ts": dt_util.utcnow().isoformat()}
                 await self._async_send("event/alert", _json(payload), retain=False)
 
     async def _async_retained(self, name: str, payload: Any, source: str | None = None, *,
                               raw: bool = False) -> None:
+        if not self.started:
+            return  # stopped meanwhile: nothing after "offline"
         if raw:
             body = key = str(payload)
         else:
