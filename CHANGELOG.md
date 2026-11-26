@@ -3,7 +3,7 @@
 ## 2.9.0
 
 - **MQTT publishing (optional, off by default):** **Configure → MQTT** publishes the readings, settings, status and events through Home Assistant's MQTT integration, for tools outside Home Assistant ([MQTT](docs/mqtt.md)). Nothing in the topics or messages identifies the Powerwall. Without the MQTT integration, a repair says so and everything else keeps working.
-- **MQTT commands (optional, off by default):** settings (mode, reserve, grid charging, export) and, with a second switch, battery control (dispatch, charge or discharge to a level, resume, max backup) from `<base>/cmd/<command>`, through the same checks and limits as the entities and actions, with an optional shared secret and an answer on `<base>/cmd/result`. Retained commands are never run. Going off-grid and site limits aren't offered over MQTT.
+- **MQTT commands (optional, off by default):** settings (mode, reserve, grid charging, export) and, with a second switch, battery control (dispatch, freeze, charge or discharge to a level, resume, max backup) from `<base>/cmd/<command>`, through the same checks and limits as the entities and actions, with an optional shared secret and an answer on `<base>/cmd/result`. Retained commands are never run. Going off-grid and site limits aren't offered over MQTT.
 - **Local only.** After the key is registered, setup asks whether to keep the Tesla sign-in as the cloud backup or remove it. **Configure → Local only** removes the sign-ins later. With no sign-in kept, nothing the integration does reaches Tesla's servers.
 - When the gateway keeps refusing the key while the password works, the reauthentication says so and offers a new key first. On a local-only setup, the Tesla sign-in made to register the new key can be removed again afterwards (or kept as the cloud backup, which then turns it on).
 - **Connection path** sensor (diagnostic): how the latest reading came (signed connection, its Wi-Fi fallback, Wi-Fi password, cloud backup only, or none). It stays available when the other entities aren't and then shows when the gateway last answered and the settings it last reported, also after a restart.
@@ -23,6 +23,7 @@
 - Alerts: descriptions for `PWS_a082_PowerLimits` and `HighControlLoopJitter`, notices seen briefly while exporting at full power up to a site export limit (#37, thanks benv666).
 - Fix: **Home power** no longer reads below 0 W. The gateway's load reading dips below zero for a moment now and then; the energy flows already counted it as 0.
 - Fix: **Unlink a cloud backup** removed the Tesla account from the integration, but its saved sign-in tokens stayed in the integration's folder. They're now removed too, unless another Powerwall entry uses the same account.
+- Docs: the **Connection alert** blueprint's import button pointed to a release that doesn't exist (2.8.2); it now imports from 2.8.3.
 
 ## 2.8.3
 

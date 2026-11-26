@@ -146,6 +146,7 @@ card:
   content: >-
     {% set e = 'binary_sensor.powerwall_tedapi_dispatch_active' %}
     **Dispatch running:** {{ state_attr(e, 'power_watts') | int }} W
+    {%- if state_attr(e, 'freeze') %} ({{ state_attr(e, 'freeze') | replace('_', ' ') }}){% endif %}
     until {{ as_timestamp(state_attr(e, 'ends')) | timestamp_custom('%H:%M') }}
     {%- if state_attr(e, 'target_soc') %}, target {{ state_attr(e, 'target_soc') }} %{% endif %}.
 ```

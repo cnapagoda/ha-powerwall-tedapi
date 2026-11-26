@@ -127,7 +127,7 @@ The flows are the energy delivered at the gateway. **Home energy consumed** and 
 
 | Entity | Entity ID | Notes |
 |---|---|---|
-| **Grid connected** | `binary_sensor.powerwall_tedapi_grid_connected` | On while the Powerwall is on the grid. Off during an outage, *Go off-grid*, and while it syncs to reconnect. Attribute `grid_status`: `UP`, `DOWN` or `SYNCING`. With a signed connection it also shows an [off-grid run](actions.md#tesla_tedapigo_off_grid) started here: `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below`, `last_end_reason`. |
+| **Grid connected** | `binary_sensor.powerwall_tedapi_grid_connected` | On while the Powerwall is on the grid. Off during an outage, *Go off-grid*, and while it syncs to reconnect. Attribute `grid_status`: `UP`, `DOWN` or `SYNCING`. With a signed connection it also shows an [off-grid run](actions.md#tesla_tedapigo_off_grid) started here: `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below`, `curtailment` (a run started to limit solar), `last_end_reason`. |
 | Grid status | `sensor.powerwall_tedapi_grid_status` | `up`, `down` or `syncing` (shown as *Up*, *Down*, *Syncing* in your language). Before 2.5.1 the states were upper case. |
 | Grid frequency 🩺 | `sensor.powerwall_tedapi_grid_frequency` | Hz. |
 | Grid voltage 🩺 | `sensor.powerwall_tedapi_grid_voltage` | V. |
@@ -209,7 +209,7 @@ The experimental **On-grid solar curtailment** switch works the same way (`switc
 
 | Entity | Entity ID | Notes |
 |---|---|---|
-| **Dispatch active** 🔑 | `binary_sensor.powerwall_tedapi_dispatch_active` | On while a [battery dispatch](actions.md#tesla_tedapidispatch_battery_power) started here runs. Attributes: `power_watts`, `started`, `ends`, `min_soc`, `max_soc`, `target_soc` (for `charge_to` / `discharge_to`), and `last_end_reason` when idle. |
+| **Dispatch active** 🔑 | `binary_sensor.powerwall_tedapi_dispatch_active` | On while a [battery dispatch](actions.md#tesla_tedapidispatch_battery_power) started here runs. Attributes: `power_watts`, `started`, `ends`, `min_soc`, `max_soc`, `target_soc` (for `charge_to` / `discharge_to`), `freeze` and `max_power_watts` (for [`freeze_battery`](actions.md#tesla_tedapifreeze_battery)), and `last_end_reason` when idle. |
 | **Backup event** 🔑 | `binary_sensor.powerwall_tedapi_backup_event` | On while a backup event runs: a [max backup](actions.md#tesla_tedapistart_max_backup) started here or in the Tesla app, or one Storm Watch scheduled. The Powerwall then charges to full and holds it. Attributes: `kind` (`manual` or the event's name), `start`, `end`; when none is running, the next scheduled one. Read every 5 minutes. |
 | Storm Watch active ☁️ | `binary_sensor.powerwall_tedapi_storm_watch_active` | Tesla's Storm Watch is preparing for severe weather. |
 | Grid services active ☁️ | `binary_sensor.powerwall_tedapi_grid_services_active` | Tesla reports grid services (for example a virtual power plant) as active on the site. Only on sites enrolled in grid services. |
