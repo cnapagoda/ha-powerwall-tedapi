@@ -312,7 +312,7 @@
             },
             "data_description": {
               "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensoren, agenda's en acties om te lezen/instellen). Alleen cloud.",
-              "cloud_readings": "Zolang de gateway onbereikbaar is, vermogen en batterijniveau uit de cloudback-up tonen (ze dragen het attribuut `source: cloud` en kunnen enkele minuten oud zijn). Energietellers en al het andere blijven niet beschikbaar. Uit: alle metingen zijn niet beschikbaar tot de gateway antwoordt.",
+              "cloud_readings": "Zolang de gateway onbereikbaar is, vermogen, batterijniveau en batterij-energie (resterend en volledige capaciteit) uit de cloudback-up tonen (ze dragen het attribuut `source: cloud` en kunnen enkele minuten oud zijn). Energietellers en al het andere blijven niet beschikbaar. Uit: alle metingen zijn niet beschikbaar tot de gateway antwoordt.",
               "diagnostics_gateway_config": "De configuratie van de gateway toevoegen aan diagnostiekdownloads, zonder serienummers, locatie, namen en inloggegevens. Handig voor bugmeldingen."
             },
             "description": "De optie **Tesla-tarief** verschijnt hier zodra een cloudback-up is ingesteld: kies in het menu eerst **Een Tesla-account koppelen** of **Aanmelden bij Tesla Fleet of Teslemetry**."

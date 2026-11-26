@@ -312,7 +312,7 @@
             },
             "data_description": {
               "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensoren, Kalender und Aktionen zum Lesen/Setzen). Nur Cloud.",
-              "cloud_readings": "Solange das Gateway nicht erreichbar ist, Leistung und Batteriestand stattdessen aus dem Cloud-Backup anzeigen (sie tragen das Attribut `source: cloud` und können einige Minuten alt sein). Energiezähler und alles andere bleiben nicht verfügbar. Aus: alle Messwerte sind nicht verfügbar, bis das Gateway antwortet.",
+              "cloud_readings": "Solange das Gateway nicht erreichbar ist, Leistung, Batteriestand und Batterieenergie (verbleibend und volle Kapazität) stattdessen aus dem Cloud-Backup anzeigen (sie tragen das Attribut `source: cloud` und können einige Minuten alt sein). Energiezähler und alles andere bleiben nicht verfügbar. Aus: alle Messwerte sind nicht verfügbar, bis das Gateway antwortet.",
               "diagnostics_gateway_config": "Die Konfiguration des Gateways zu Diagnose-Downloads hinzufügen, ohne Seriennummern, Standort, Namen und Zugangsdaten. Hilfreich für Fehlerberichte."
             },
             "description": "Die Option **Tesla-Tarif** erscheint hier, sobald ein Cloud-Backup eingerichtet ist: Wähle im Menü zuerst **Tesla-Konto verknüpfen** oder **Bei Tesla Fleet oder Teslemetry anmelden**."

@@ -227,7 +227,8 @@ def _efficiency_attrs(d: dict[str, Any]) -> dict[str, Any]:
 # can't be reached (the cloud readings option): the readings themselves and
 # the ones split from them.
 CLOUD_READING_SENSORS = frozenset({
-    *LIVE_READINGS, "grid_import_power", "grid_export_power", "battery_discharge_power", "battery_charge_power"})
+    *LIVE_READINGS, "grid_import_power", "grid_export_power", "battery_discharge_power", "battery_charge_power",
+    "battery_energy_remaining", "battery_full_capacity"})
 
 
 SENSORS: tuple[TedapiSensorEntityDescription, ...] = (
@@ -1063,12 +1064,11 @@ class TedapiSensor(TedapiEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        if self.entity_description.attrs_fn and self.data:
-            return self.entity_description.attrs_fn(self.data)
+        attrs = self.entity_description.attrs_fn(self.data) if self.entity_description.attrs_fn and self.data else None
         if self._from_cloud:
             # Says so while the reading isn't the gateway's own.
-            return {"source": "cloud", "last_updated": self.data.get("readings_updated")}
-        return None
+            return {**(attrs or {}), "source": "cloud", "last_updated": self.data.get("readings_updated")}
+        return attrs
 
 
 class ConnectionPathSensor(TedapiEntity, SensorEntity):

@@ -228,6 +228,33 @@ async def test_cloud_readings_while_the_gateway_is_down(hass: HomeAssistant, fak
         assert coordinator.flows.last is None
 
 
+async def test_cloud_readings_include_the_battery_energy(hass: HomeAssistant, fake_powerwall) -> None:
+    """2.9.0: Battery energy remaining and Battery full capacity (the pair
+    Predbat reads) come from the live status too, on the gateway's scale."""
+    live = {"response": {**LIVE["response"], "energy_left": 16321.5, "total_pack_energy": 27000}}
+    with patch.object(FakePowerwall, "_site_power", lambda self, force=False: live):
+        entry = await _setup(hass, {**V1R, **ACCOUNT}, {"cloud_readings": True})
+        fake_powerwall.fail_local = True
+        local(fake_powerwall).power = _down
+        await _refresh(hass, entry)
+    remaining = hass.states.get(_eid(hass, "sensor", "battery_energy_remaining"))
+    assert remaining.state == "16.32" and remaining.attributes["source"] == "cloud"
+    assert remaining.attributes["usable_kwh"] == round(16.32 - 27.0 * 0.05, 2)
+    full = hass.states.get(_eid(hass, "sensor", "battery_full_capacity"))
+    assert full.state == "27.0" and full.attributes["source"] == "cloud"
+    assert hass.states.get(_eid(hass, "sensor", "battery_health")).state == "unavailable"
+
+
+def test_live_battery_energy() -> None:
+    from custom_components.tesla_tedapi.cloud import live_readings  # noqa: PLC0415
+
+    readings = live_readings({"energy_left": 0, "total_pack_energy": 0})
+    assert readings == {"battery_remaining_kwh": 0.0}  # an empty battery, but no capacity of 0
+    assert "battery_usable_kwh" not in readings
+    assert live_readings({"energy_left": 1000, "total_pack_energy": 27000})["battery_usable_kwh"] == 0.0
+    assert live_readings({"energy_left": "x", "total_pack_energy": None}) == {}
+
+
 async def test_no_cloud_readings_unless_the_option_is_on(hass: HomeAssistant, fake_powerwall) -> None:
     with patch.object(FakePowerwall, "_site_power", _live):
         entry = await _setup(hass, {**V1R, **ACCOUNT})

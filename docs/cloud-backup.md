@@ -43,7 +43,7 @@ Without a cloud backup, the entities that need one (Storm Watch, the off-grid re
 - **Tesla's cloud caps the backup reserve at 80 %.** Locally any value up to 100 % works. To charge to full and hold it, use a [max backup](actions.md#tesla_tedapistart_max_backup).
 - Each backup is checked with a real read about once an hour (10 minutes after a failure). This keeps the Owner API sign-in fresh, so a broken sign-in shows up before you need it.
 - When the gateway can't be reached but the cloud keeps the settings working, this is logged once as a warning, and again when the gateway answers.
-- **Live status:** the backup also provides [Wall Connector](entities.md#wall-connector) readings and, with the **Cloud readings while the gateway is unreachable** option, power and battery level while the gateway can't be reached. It's read every minute through Tesla Fleet or Teslemetry and every 5 minutes through the Owner API, only when needed.
+- **Live status:** the backup also provides [Wall Connector](entities.md#wall-connector) readings and, with the **Cloud readings while the gateway is unreachable** option, power, battery level and battery energy while the gateway can't be reached. It's read every minute through Tesla Fleet or Teslemetry and every 5 minutes through the Owner API, only when needed.
 
 ## When a backup stops working
 

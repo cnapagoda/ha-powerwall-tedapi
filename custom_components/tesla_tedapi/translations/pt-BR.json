@@ -312,7 +312,7 @@
             },
             "data_description": {
               "tesla_tariff": "Ler da reserva na nuvem a tarifa que a Tesla usa no controle por horário (sensores, calendários e ações de ler/definir). Somente nuvem.",
-              "cloud_readings": "Enquanto o gateway está inacessível, mostrar a potência e o nível da bateria a partir do backup na nuvem (levam o atributo `source: cloud` e podem ter alguns minutos). Os contadores de energia e todo o resto continuam indisponíveis. Desligado: todas as leituras ficam indisponíveis até o gateway responder.",
+              "cloud_readings": "Enquanto o gateway está inacessível, mostrar a potência, o nível e a energia da bateria (restante e capacidade total) a partir do backup na nuvem (levam o atributo `source: cloud` e podem ter alguns minutos). Os contadores de energia e todo o resto continuam indisponíveis. Desligado: todas as leituras ficam indisponíveis até o gateway responder.",
               "diagnostics_gateway_config": "Adicionar a configuração do gateway aos downloads de diagnóstico, sem números de série, localização, nomes e credenciais. Útil para relatar erros."
             },
             "description": "A opção **Tarifa da Tesla** aparece aqui depois que um backup na nuvem é configurado: no menu, escolha primeiro **Vincular uma conta Tesla** ou **Entrar no Tesla Fleet ou Teslemetry**."

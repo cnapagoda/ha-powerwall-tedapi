@@ -28,7 +28,7 @@
 └──────────────────────────────────┘
 ```
 
-- **Readings** come from the gateway on your network. With the **Cloud readings while the gateway is unreachable** option, power and battery level come from the cloud backup while the gateway can't be reached.
+- **Readings** come from the gateway on your network. With the **Cloud readings while the gateway is unreachable** option, power, battery level and battery energy come from the cloud backup while the gateway can't be reached.
 - **Wall Connectors** come from the cloud backup.
 - **Two libraries talk to the gateway:** [pypowerwall](https://github.com/jasonacox/pypowerwall) for readings, settings and commands, and [aiopytedapi](https://pypi.org/project/aiopytedapi/) for the network status, site limits, calibration delay and registered keys. aiopytedapi uses Home Assistant's own connection pool, so it doesn't block Home Assistant.
 - **Settings** are written to the gateway over the signed connection. The [cloud backup](cloud-backup.md) is only used when that fails, or on a Wi-Fi password connection.
@@ -54,7 +54,7 @@ The integration polls the gateway every 30 seconds by default (**Polling interva
 
 After you change a setting, the integration reads the Powerwall again straight away, so the entity shows the new value within seconds. A change made through the cloud is read back for up to 5 minutes.
 
-If the gateway can't be reached, readings show *unavailable* until it answers again (or, with the **Cloud readings** option, power and battery level come from the cloud backup). Nothing is filled in for the missed time, except that the lifetime energy counters catch up.
+If the gateway can't be reached, readings show *unavailable* until it answers again (or, with the **Cloud readings** option, power, battery level and battery energy come from the cloud backup). Nothing is filled in for the missed time, except that the lifetime energy counters catch up.
 
 **Choosing a polling interval:** 30 s suits most people. Shorter intervals give smoother power graphs and quicker dispatch limits, but more load on the gateway and a bigger database. If you also run Powerwall-Dashboard or another poller, consider a longer interval. For smooth power graphs, set **Fast polling interval for power** (5–60 s) and keep the polling interval for everything else.
 
