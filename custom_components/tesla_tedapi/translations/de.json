@@ -1000,6 +1000,36 @@
         }
       }
     },
+    "freeze_battery": {
+      "name": "Batterie einfrieren",
+      "description": "Betreibt die Batterie über die signierte lokale Verbindung nur in eine Richtung, mit der Leistung, die die Messwerte ergeben. `charge_only` lädt aus dem Solarstrom, den das Haus nicht braucht, und entlädt nie; `discharge_only` deckt, was das Haus über den Solarstrom hinaus braucht, und lädt nie, sodass überschüssiger Solarstrom eingespeist wird. Die Leistung folgt jedem Messwert, dazwischen kann also etwas aus dem Netz kommen oder ins Netz gehen; ohne frischen Messwert wird die Batterie gehalten. Gedacht für Predbats Freeze Charging und Freeze Exporting. Schaltet nie das Laden aus dem Netz ein; sonst wie ein Batterie-Dispatch, mit demselben Risiko für die Powerwall-Garantie.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "direction": {
+          "name": "Richtung",
+          "description": "`charge_only`: keine Entladung, lädt aus überschüssigem Solarstrom. `discharge_only`: keine Ladung, deckt das Haus."
+        },
+        "duration_seconds": {
+          "name": "Dauer",
+          "description": "Wie lange eingefroren wird, in Sekunden (bis zu 24 Stunden)."
+        },
+        "max_power_watts": {
+          "name": "Größte Leistung",
+          "description": "Höchstens so viel lädt oder entlädt die Batterie, in Watt. Standard: Größte Dispatch-Leistung (Integrationsoptionen)."
+        },
+        "min_soc": {
+          "name": "Entladen stoppen bei",
+          "description": "Mit `discharge_only` wird die Batterie gehalten, sobald ihr Stand (Skala der Tesla-App) auf diesen Prozentwert fällt. Standard: die Backup-Reserve."
+        },
+        "max_soc": {
+          "name": "Laden stoppen bei",
+          "description": "Mit `charge_only` wird die Batterie gehalten, sobald ihr Stand (Skala der Tesla-App) diesen Prozentwert erreicht."
+        }
+      }
+    },
     "charge_to": {
       "name": "Bis zu einem Akkustand laden",
       "description": "Lädt den Akku über die signierte lokale Verbindung mit fester Leistung, bis der Zielstand erreicht ist, höchstens bis zum Zeitlimit. Lädt aus Solarstrom und, wenn Netzladen erlaubt ist, aus dem Netz. Endet mit dem Ereignisgrund `target_reached` oder `completed`. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
@@ -1518,6 +1548,12 @@
       "options": {
         "import": "Bezug",
         "export": "Einspeisung"
+      }
+    },
+    "freeze_direction": {
+      "options": {
+        "charge_only": "Nur laden (aus überschüssigem Solarstrom)",
+        "discharge_only": "Nur entladen (deckt das Haus)"
       }
     },
     "reauth_connect_failed": {

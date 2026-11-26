@@ -49,8 +49,9 @@ The **[Grid outage alert](automations.md#blueprints)** blueprint does this for y
 |---|---|
 | `config_entry_id` | The Powerwall. |
 | `reason` | Why it ended (below). |
-| `power_watts` | The dispatch power. |
+| `power_watts` | The dispatch power (for a freeze, the last power sent). |
 | `battery_level` | **Battery level** when it ended. |
+| `freeze` | `charge_only` or `discharge_only` for a [freeze](actions.md#tesla_tedapifreeze_battery), otherwise empty. |
 
 | `reason` | |
 |---|---|

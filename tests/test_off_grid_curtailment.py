@@ -26,7 +26,10 @@ async def _reconnect(hass: HomeAssistant, **data) -> dict:
 
 
 async def _synced(hass: HomeAssistant, entry, fake) -> None:
-    """The Powerwall has synced back to the grid, and a reading shows it."""
+    """The Powerwall has synced back to the grid, and a reading shows it.
+    The refresh the reconnect asked for finishes first: still reading
+    SYNCING, it would otherwise land after this one."""
+    await hass.async_block_till_done()
     fake.grid = "UP"
     await _refresh(hass, entry)
 

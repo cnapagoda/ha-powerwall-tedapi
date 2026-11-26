@@ -268,6 +268,13 @@ DISPATCH_STALE_POLLS = 2.5
 # Before a dispatch stops renewing (or refuses to start) on a battery level
 # that's too old: one extra read of the level, given at most this long (s).
 DISPATCH_FRESH_READ_SECONDS = 20
+# A freeze (freeze_battery, 2.9.0) runs the battery one way only, at the power
+# the readings call for: charge_only charges from solar the home doesn't use,
+# discharge_only covers what the home uses beyond solar. A reading that moves
+# that power by at least this much (W) sends a new command at once; smaller
+# changes wait for the next renewal.
+FREEZE_DIRECTIONS = ("charge_only", "discharge_only")
+FREEZE_STEP_WATTS = 100
 
 EVENT_DISPATCH_ENDED = f"{DOMAIN}_dispatch_ended"
 
@@ -311,6 +318,7 @@ SERVICE_RECONNECT_GRID = "reconnect_grid"
 SERVICE_SET_SITE_LIMIT = "set_site_limit"
 SERVICE_DELAY_CALIBRATION = "delay_battery_calibration"
 SERVICE_REMOVE_KEY = "remove_registered_key"
+SERVICE_FREEZE = "freeze_battery"
 ATTR_DIRECTION = "direction"
 ATTR_LIMIT_KW = "limit_kw"
 ATTR_DELAY_HOURS = "delay_hours"
@@ -321,6 +329,7 @@ CALIBRATION_DELAY_MAX_HOURS = 168
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 ATTR_POWER_WATTS = "power_watts"
+ATTR_MAX_POWER_WATTS = "max_power_watts"
 ATTR_DURATION_SECONDS = "duration_seconds"
 ATTR_MIN_SOC = "min_soc"
 ATTR_MAX_SOC = "max_soc"

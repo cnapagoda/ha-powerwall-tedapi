@@ -351,6 +351,9 @@ async def test_battery_commands(hass: HomeAssistant, fake_powerwall, mqtt_mock) 
     assert result["ok"] is True
     assert _local(fake_powerwall).dispatches
     assert (await _command(hass, mqtt_mock, "resume", {}))["ok"] is True
+    result = await _command(hass, mqtt_mock, "freeze", {"direction": "charge_only", "duration_seconds": 60})
+    assert result["ok"] is True
+    assert (await _command(hass, mqtt_mock, "resume", {}))["ok"] is True
     # The action's own limits apply.
     result = await _command(hass, mqtt_mock, "dispatch", {"power_watts": 99999, "duration_seconds": 60})
     assert result["error"] == "invalid_arguments"

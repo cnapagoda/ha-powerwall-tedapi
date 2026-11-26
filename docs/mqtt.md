@@ -46,7 +46,7 @@ JSON. Every payload has `schema` (1), `ts` (when it was sent, UTC) and, except e
 
 **settings**: `operation_mode`, `backup_reserve`, `grid_charging`, `grid_export`, `site_limits`, `storm_watch` (with a cloud backup) and `settings_source` (`local`, `cloud` or `mixed`).
 
-**status**: `alert_level`, `alerts` (the active alert codes), `network` (the gateway's internet connection), `firmware_version`, `health` (Setup health), `dispatch` (`active`, `power_watts`, `ends`; signed connection only) and `outage`.
+**status**: `alert_level`, `alerts` (the active alert codes), `network` (the gateway's internet connection), `firmware_version`, `health` (Setup health), `dispatch` (`active`, `power_watts`, `ends`, `freeze`; signed connection only) and `outage`.
 
 **event/alert**: `kind` (`raised` or `cleared`), `alert`, `severity`, `description`. The other events carry the same data as the [Home Assistant events](events.md).
 
@@ -57,7 +57,7 @@ Nothing in the topics or payloads identifies your Powerwall or network: no gatew
 Off by default, with two switches in **Configure → MQTT** (publishing must be on too):
 
 - **Accept setting commands**: `set_mode`, `set_reserve`, `set_grid_charging`, `set_grid_export`.
-- **Accept battery control commands** (only with setting commands on): `dispatch`, `charge_to`, `discharge_to`, `resume`, `start_max_backup`, `cancel_max_backup`. Read [Safety](safety.md) first.
+- **Accept battery control commands** (only with setting commands on): `dispatch`, `freeze`, `charge_to`, `discharge_to`, `resume`, `start_max_backup`, `cancel_max_backup`. Read [Safety](safety.md) first.
 
 Publish a JSON object to `<base>/cmd/<command>`. Each runs the same code as the entity or [action](actions.md) it stands for, so every check and limit applies (largest dispatch power, discharges stop at the backup reserve, a battery level that's too old stops a dispatch, settings need the signed connection or a cloud backup). Going off-grid and site limits aren't offered over MQTT.
 
@@ -68,6 +68,7 @@ Publish a JSON object to `<base>/cmd/<command>`. Each runs the same code as the 
 | `set_grid_charging` | `enabled`: `true` or `false` |
 | `set_grid_export` | `rule`: `battery_ok`, `pv_only` or `never` |
 | `dispatch` | as [`dispatch_battery_power`](actions.md): `power_watts`, `duration_seconds`, optional `min_soc`, `max_soc` |
+| `freeze` | as [`freeze_battery`](actions.md#tesla_tedapifreeze_battery): `direction`, `duration_seconds`, optional `max_power_watts`, `min_soc`, `max_soc` |
 | `charge_to`, `discharge_to` | as the actions: `target_soc`, `power_watts`, `max_minutes` |
 | `resume`, `cancel_max_backup` | none |
 | `start_max_backup` | `duration_minutes` |

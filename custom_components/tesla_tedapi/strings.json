@@ -1000,6 +1000,36 @@
         }
       }
     },
+    "freeze_battery": {
+      "name": "Freeze battery",
+      "description": "Run the battery one way only, over the signed local connection, at the power the readings call for. `charge_only` charges from the solar the home doesn't use and never discharges; `discharge_only` covers what the home uses beyond solar and never charges, so surplus solar is exported. The power follows each reading, so a little may come from or go to the grid in between; without a fresh reading the battery is held. Made for Predbat's freeze charging and freeze exporting. It never turns Grid charging on; otherwise it works like a battery dispatch and may affect your Powerwall warranty in the same way.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Only needed when more than one Powerwall is set up."
+        },
+        "direction": {
+          "name": "Direction",
+          "description": "`charge_only`: no discharge, charges from surplus solar. `discharge_only`: no charge, covers the home."
+        },
+        "duration_seconds": {
+          "name": "Duration",
+          "description": "How long to freeze, in seconds (up to 24 hours)."
+        },
+        "max_power_watts": {
+          "name": "Largest power",
+          "description": "The most the battery charges or discharges, in watts. Default: Largest dispatch power (integration options)."
+        },
+        "min_soc": {
+          "name": "Stop discharging at",
+          "description": "With `discharge_only`, hold the battery once its level (Tesla app scale) falls to this percentage. Default: the backup reserve."
+        },
+        "max_soc": {
+          "name": "Stop charging at",
+          "description": "With `charge_only`, hold the battery once its level (Tesla app scale) reaches this percentage."
+        }
+      }
+    },
     "charge_to": {
       "name": "Charge to a battery level",
       "description": "Charge the battery at a set power over the signed local connection until it reaches the target level, or for at most the time limit. Charges from solar and, if grid charging is allowed, from the grid. Ends with event reason `target_reached` or `completed`. Use at your own risk: dispatching the battery may affect your Powerwall warranty, which may cover unlimited cycles only for self-consumption, time-based control and backup.",
@@ -1518,6 +1548,12 @@
       "options": {
         "import": "Import",
         "export": "Export"
+      }
+    },
+    "freeze_direction": {
+      "options": {
+        "charge_only": "Charge only (from surplus solar)",
+        "discharge_only": "Discharge only (covers the home)"
       }
     },
     "reauth_connect_failed": {

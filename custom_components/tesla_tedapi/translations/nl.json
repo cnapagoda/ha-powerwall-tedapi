@@ -1000,6 +1000,36 @@
         }
       }
     },
+    "freeze_battery": {
+      "name": "Batterij bevriezen",
+      "description": "Laat de batterij via de ondertekende lokale verbinding maar één kant op werken, met het vermogen dat de metingen aangeven. `charge_only` laadt met de zonne-energie die het huis niet gebruikt en ontlaadt nooit; `discharge_only` dekt wat het huis boven de zonne-energie gebruikt en laadt nooit, dus overtollige zonne-energie wordt teruggeleverd. Het vermogen volgt elke meting, dus daartussen kan er wat van of naar het net gaan; zonder verse meting wordt de batterij vastgehouden. Bedoeld voor Predbats freeze charging en freeze exporting. Zet nooit Laden van het net aan; verder werkt het als een batterij-dispatch en kan het de Powerwall-garantie op dezelfde manier raken.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "direction": {
+          "name": "Richting",
+          "description": "`charge_only`: geen ontlading, laadt met overtollige zonne-energie. `discharge_only`: geen lading, dekt het huis."
+        },
+        "duration_seconds": {
+          "name": "Duur",
+          "description": "Hoe lang bevriezen, in seconden (tot 24 uur)."
+        },
+        "max_power_watts": {
+          "name": "Grootste vermogen",
+          "description": "Hoogstens zoveel laadt of ontlaadt de batterij, in watt. Standaard: Grootste dispatch-vermogen (integratie-opties)."
+        },
+        "min_soc": {
+          "name": "Stop ontladen bij",
+          "description": "Met `discharge_only` wordt de batterij vastgehouden zodra het niveau (schaal van de Tesla-app) tot dit percentage daalt. Standaard: de back-upreserve."
+        },
+        "max_soc": {
+          "name": "Stop laden bij",
+          "description": "Met `charge_only` wordt de batterij vastgehouden zodra het niveau (schaal van de Tesla-app) dit percentage bereikt."
+        }
+      }
+    },
     "charge_to": {
       "name": "Laden tot een batterijniveau",
       "description": "Laadt de batterij met een vast vermogen via de ondertekende lokale verbinding tot het doelniveau, hoogstens tot de tijdslimiet. Laadt uit zonne-energie en, als laden van het net is toegestaan, van het net. Eindigt met gebeurtenisreden `target_reached` of `completed`. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
@@ -1518,6 +1548,12 @@
       "options": {
         "import": "Afname",
         "export": "Teruglevering"
+      }
+    },
+    "freeze_direction": {
+      "options": {
+        "charge_only": "Alleen laden (met overtollige zonne-energie)",
+        "discharge_only": "Alleen ontladen (dekt het huis)"
       }
     },
     "reauth_connect_failed": {

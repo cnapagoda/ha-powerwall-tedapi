@@ -7,6 +7,7 @@ The integration adds these actions (formerly called *services*). Try them in **D
 | Action | Needs | What it does |
 |---|---|---|
 | [`dispatch_battery_power`](#tesla_tedapidispatch_battery_power) | Signed | Run the battery at a fixed power for a set time. |
+| [`freeze_battery`](#tesla_tedapifreeze_battery) | Signed | Run the battery one way only: charge from surplus solar, or cover the home. |
 | [`charge_to` / `discharge_to`](#tesla_tedapicharge_to--tesla_tedapidischarge_to) | Signed | Charge or discharge until a battery level is reached. |
 | [`resume_battery_operation`](#tesla_tedapiresume_battery_operation) | Signed | End a dispatch now. |
 | [`start_max_backup`](#tesla_tedapistart_max_backup) | Signed | Charge to full and hold it for a set time. |
@@ -34,6 +35,7 @@ data:
 ```
 
 - **To a battery level instead of for a time:** `tesla_tedapi.charge_to` / `discharge_to`.
+- **One way only** (charge from surplus solar, or cover the home): `tesla_tedapi.freeze_battery`.
 - **Stop early:** `tesla_tedapi.resume_battery_operation`, or the **Stop battery dispatch** button.
 - **Settings that apply** (**Configure → Settings → Battery dispatch**): whether a discharge stops at the backup reserve, and **Largest dispatch power**.
 - **How much power:** no more than **Largest dispatch power** (default 10,000 W, at most 30,000 W). Within that the Powerwall decides: it refuses what it can't deliver, and the action then fails with the gateway's reason and status code in the error. One Powerwall 3 (with or without an expansion pack) refuses more than 10,000 W. With several Powerwalls, raise **Largest dispatch power** only to what your installation can safely carry: wiring, breakers, gateway and backup switch ratings, and your grid connection and export limit ([Safety](safety.md#battery-dispatch)). Try a short dispatch first and watch your grid export.
@@ -71,7 +73,41 @@ data:
   max_soc: 90
 ```
 
-**Response** (optional): the dispatch as **Dispatch active** shows it (`active`, `power_watts`, `started`, `ends`, `min_soc`, `max_soc`, `target_soc`), plus the gateway's `response`.
+**Response** (optional): the dispatch as **Dispatch active** shows it (`active`, `power_watts`, `started`, `ends`, `min_soc`, `max_soc`, `target_soc`, `freeze`, `max_power_watts`), plus the gateway's `response`.
+
+---
+
+## `tesla_tedapi.freeze_battery`
+
+Run the battery one way only, at the power the readings call for. Made for Predbat's freeze charging and freeze exporting ([Predbat](predbat.md)).
+
+| `direction` | The battery | Surplus solar |
+|---|---|---|
+| `charge_only` | Charges from the solar the home doesn't use; never discharges. The home runs from the grid when solar isn't enough. | Charges the battery. |
+| `discharge_only` | Covers what the home uses beyond solar; never charges. | Exported. |
+
+| Field | Required | |
+|---|---|---|
+| `direction` | Yes | `charge_only` or `discharge_only`. |
+| `duration_seconds` | Yes | 1 s to 24 h. |
+| `max_power_watts` | No | The most the battery charges or discharges. Default and limit: **Largest dispatch power**. |
+| `min_soc` | No | With `discharge_only`: hold the battery once **Battery level** falls to this. Default: the backup reserve (option **Discharges stop at the backup reserve**). |
+| `max_soc` | No | With `charge_only`: hold the battery once **Battery level** reaches this. |
+| `config_entry_id` | No | Only with several Powerwalls. |
+
+It runs as a dispatch (above): the same 2-minute steps, **Dispatch active** and [`tesla_tedapi_dispatch_ended`](events.md#tesla_tedapi_dispatch_ended), and a new call (a dispatch or a freeze) replaces it. The differences:
+
+- The power follows each reading, so a little may come from or go to the grid between readings.
+- At `min_soc` or `max_soc`, or without a fresh local reading, the battery is held (0 W) and the freeze goes on; it doesn't end there.
+- It never turns **Grid charging** on.
+
+```yaml
+# Cover the home from the battery for an hour, never charging it
+action: tesla_tedapi.freeze_battery
+data:
+  direction: discharge_only
+  duration_seconds: 3600
+```
 
 ---
 

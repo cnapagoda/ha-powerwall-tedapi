@@ -49,6 +49,7 @@ from .const import (
     SERVICE_CHARGE_TO,
     SERVICE_DISCHARGE_TO,
     SERVICE_DISPATCH,
+    SERVICE_FREEZE,
     SERVICE_RESUME,
     SERVICE_START_MAX_BACKUP,
 )
@@ -85,6 +86,7 @@ SETTINGS_COMMANDS: dict[str, vol.Schema] = {
 }
 BATTERY_COMMANDS = {
     "dispatch": SERVICE_DISPATCH,
+    "freeze": SERVICE_FREEZE,
     "charge_to": SERVICE_CHARGE_TO,
     "discharge_to": SERVICE_DISCHARGE_TO,
     "resume": SERVICE_RESUME,
@@ -169,7 +171,7 @@ def status_payload(data: dict[str, Any], dispatch: dict[str, Any] | None) -> dic
         "network": (data.get("network") or {}).get("active"),
         "firmware_version": split_version(data.get("firmware_version"))[0],
         "health": (data.get("health") or {}).get("state"),
-        "dispatch": {key: (dispatch or {}).get(key) for key in ("active", "power_watts", "ends")}
+        "dispatch": {key: (dispatch or {}).get(key) for key in ("active", "power_watts", "ends", "freeze")}
         if dispatch is not None else None,
         "outage": bool(outages.get("ongoing")),
     }

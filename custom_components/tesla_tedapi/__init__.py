@@ -31,6 +31,7 @@ from .const import (
     ATTR_FINGERPRINT,
     ATTR_LIMIT_KW,
     ATTR_MAX_MINUTES,
+    ATTR_MAX_POWER_WATTS,
     ATTR_MAX_SOC,
     ATTR_MIN_SOC,
     ATTR_NET,
@@ -49,6 +50,7 @@ from .const import (
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
     DOMAIN,
+    FREEZE_DIRECTIONS,
     LIVE_OPTIONS,
     MAX_BACKUP_MAX_MINUTES,
     OFF_GRID_MAX_MINUTES,
@@ -57,6 +59,7 @@ from .const import (
     SERVICE_DELAY_CALIBRATION,
     SERVICE_DISCHARGE_TO,
     SERVICE_DISPATCH,
+    SERVICE_FREEZE,
     SERVICE_GET_TARIFF,
     SERVICE_GO_OFF_GRID,
     SERVICE_IMPORT_BATTERY_HISTORY,
@@ -99,6 +102,16 @@ DISPATCH_SCHEMA = vol.Schema({
         vol.Coerce(float), vol.Range(min=-DISPATCH_MAX_WATTS, max=DISPATCH_MAX_WATTS)),
     vol.Required(ATTR_DURATION_SECONDS): vol.All(
         vol.Coerce(int), vol.Range(min=1, max=DISPATCH_MAX_SECONDS)),
+    vol.Optional(ATTR_MIN_SOC): _SOC,
+    vol.Optional(ATTR_MAX_SOC): _SOC,
+})
+# Battery one way only, at the power the readings call for (Predbat's freezes).
+FREEZE_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    vol.Required(ATTR_DIRECTION): vol.In(FREEZE_DIRECTIONS),
+    vol.Required(ATTR_DURATION_SECONDS): vol.All(
+        vol.Coerce(int), vol.Range(min=1, max=DISPATCH_MAX_SECONDS)),
+    vol.Optional(ATTR_MAX_POWER_WATTS): vol.All(vol.Coerce(float), vol.Range(min=100, max=DISPATCH_MAX_WATTS)),
     vol.Optional(ATTR_MIN_SOC): _SOC,
     vol.Optional(ATTR_MAX_SOC): _SOC,
 })
@@ -244,6 +257,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             call.data.get(ATTR_MAX_SOC),
         )
 
+    async def freeze_battery(call: ServiceCall) -> ServiceResponse:
+        return await _session(hass, call).async_start(
+            0, call.data[ATTR_DURATION_SECONDS], call.data.get(ATTR_MIN_SOC), call.data.get(ATTR_MAX_SOC),
+            freeze=call.data[ATTR_DIRECTION], max_power=call.data.get(ATTR_MAX_POWER_WATTS))
+
     async def charge_to(call: ServiceCall) -> ServiceResponse:
         return await _session(hass, call).async_move_to(
             call.data[ATTR_TARGET_SOC], call.data[ATTR_POWER_WATTS], call.data[ATTR_MAX_MINUTES], charge=True)
@@ -323,6 +341,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                                  schema=START_MAX_BACKUP_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_CANCEL_MAX_BACKUP, cancel_max_backup, schema=RESUME_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_DISPATCH, dispatch, schema=DISPATCH_SCHEMA,
+                                 supports_response=SupportsResponse.OPTIONAL)
+    hass.services.async_register(DOMAIN, SERVICE_FREEZE, freeze_battery, schema=FREEZE_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_CHARGE_TO, charge_to, schema=MOVE_TO_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)

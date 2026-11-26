@@ -6,7 +6,11 @@ once, a session sends short commands (DISPATCH_CHUNK_SECONDS) and renews them,
 so the Powerwall goes back to normal within minutes if Home Assistant stops. It
 also stops on state-of-charge limits, which the Powerwall itself ignores, and
 is only renewed while the battery level it checks them against is fresh.
-With the option on, a charge turns Grid charging on for its duration."""
+With the option on, a charge turns Grid charging on for its duration.
+
+A freeze runs the battery one way only, at the power the readings call for:
+charge_only charges from the solar the home doesn't use, discharge_only covers
+what the home uses beyond solar. Without a fresh reading it holds (0 W)."""
 from __future__ import annotations
 
 import asyncio
@@ -40,6 +44,7 @@ from .const import (
     DISPATCH_STALE_SECONDS,
     DOMAIN,
     EVENT_DISPATCH_ENDED,
+    FREEZE_STEP_WATTS,
 )
 from .coordinator import TedapiCoordinator
 from .privacy import scrub
@@ -72,6 +77,10 @@ class DispatchState:
     max_soc: float | None
     # Started by charge_to / discharge_to: reaching the limit is the goal.
     target: bool = False
+    # A freeze (charge_only / discharge_only): power_watts is the power last
+    # sent, which follows the readings up to cap.
+    freeze: str | None = None
+    cap: float = 0.0
 
 
 class DispatchSession:
@@ -97,6 +106,8 @@ class DispatchSession:
         # time, retried at most every DISPATCH_GRID_RETRY_SECONDS.
         self._grid_lock = asyncio.Lock()
         self._grid_retry_at = 0.0
+        # A freeze's new power after a reading is being sent.
+        self._freeze_pending = False
 
     @callback
     def async_setup(self) -> CALLBACK_TYPE:
@@ -135,8 +146,10 @@ class DispatchSession:
         return data.get("battery_level")
 
     def _limit_hit(self, state: DispatchState) -> str | None:
+        """The limit a charge or discharge has reached. A freeze doesn't end
+        at its limit: it holds there (_freeze_power)."""
         soc = self._soc()
-        if soc is None:
+        if soc is None or state.freeze is not None:
             return None
         if state.power_watts > 0 and state.min_soc is not None and soc <= state.min_soc:
             return "min_soc"
@@ -160,13 +173,18 @@ class DispatchSession:
             "min_soc": s.min_soc,
             "max_soc": s.max_soc,
             "target_soc": (s.max_soc if s.power_watts < 0 else s.min_soc) if s.target else None,
+            "freeze": s.freeze,
+            "max_power_watts": s.cap if s.freeze else None,
         }
 
     # ---- control ----
 
     async def async_start(self, power_watts: float, duration_seconds: int,
                           min_soc: float | None, max_soc: float | None,
-                          target: bool = False) -> dict[str, Any]:
+                          *, target: bool = False, freeze: str | None = None,
+                          max_power: float | None = None) -> dict[str, Any]:
+        """A dispatch at power_watts, or with `freeze` one that follows the
+        readings in that direction, up to max_power (power_watts is ignored)."""
         if not self.coordinator.dispatch_supported:
             raise ServiceValidationError(
                 "Battery dispatch needs the signed (v1r) connection",
@@ -175,13 +193,15 @@ class DispatchSession:
         options = self.coordinator.config_entry.options
         # The user's own limit (Largest dispatch power); within it the gateway decides.
         cap = options.get(CONF_DISPATCH_MAX_WATTS, DISPATCH_DEFAULT_WATTS)
-        if abs(power_watts) > cap:
+        asked = (max_power if max_power is not None else cap) if freeze else power_watts
+        if abs(asked) > cap:
             raise ServiceValidationError(
-                f"{power_watts} W is above the {cap} W limit set in the integration options",
+                f"{asked} W is above the {cap} W limit set in the integration options",
                 translation_domain=DOMAIN, translation_key="dispatch_power_cap",
-                translation_placeholders={"power": str(power_watts), "cap": str(cap)},
+                translation_placeholders={"power": str(asked), "cap": str(cap)},
             )
-        if power_watts > 0 and min_soc is None and options.get(CONF_DISPATCH_FLOOR_RESERVE, True):
+        discharges = power_watts > 0 if freeze is None else freeze == "discharge_only"
+        if discharges and min_soc is None and options.get(CONF_DISPATCH_FLOOR_RESERVE, True):
             # Without a floor a discharge would run the battery below the backup
             # reserve; stop there unless the caller gives min_soc.
             reserve = (self.coordinator.data or {}).get("reserve")
@@ -189,13 +209,19 @@ class DispatchSession:
                 min_soc = float(reserve)
         now = dt_util.utcnow()
         state = DispatchState(power_watts, now, now + timedelta(seconds=duration_seconds),
-                              min_soc, max_soc, target)
+                              min_soc, max_soc, target, freeze, float(abs(asked)))
         # A charge or discharge needs a fresh battery level to check its
         # limits against. Refusing here also covers a planner re-sending its
         # dispatch every few minutes: a re-send can't keep a blind session
-        # going (a 0 W hold moves no energy, so it may).
+        # going (a 0 W hold moves no energy, so it may). A freeze holds
+        # until a fresh reading arrives instead.
         age = self._level_age()
-        if (power_watts != 0 and (age is None or age > self._stale_limit())
+        stale = age is None or age > self._stale_limit()
+        if freeze is not None:
+            if stale:
+                await self._async_fresh_level(DISPATCH_FRESH_READ_SECONDS)
+            state.power_watts = self._freeze_power(state)
+        elif (power_watts != 0 and stale
                 and not await self._async_fresh_level(DISPATCH_FRESH_READ_SECONDS)):
             raise ServiceValidationError(
                 "The battery level hasn't been read recently, so the dispatch limits can't be checked",
@@ -211,7 +237,7 @@ class DispatchSession:
 
         async with self._send_lock:
             ends = self._ends
-            result = await self.coordinator.async_send_dispatch(power_watts, self._chunk(state))
+            result = await self.coordinator.async_send_dispatch(state.power_watts, self._chunk(state))
             if self._ends != ends:
                 # Stopped while the command was on its way; the stop's resume
                 # is queued behind this lock and hands the battery back.
@@ -219,7 +245,9 @@ class DispatchSession:
                 return {**self.as_dict(), "response": result}
         # The same power again while running (a planner such as Predbat
         # re-sends its dispatch every cycle): already warned at the start.
-        repeat = self.state is not None and self.state.power_watts == power_watts
+        # A freeze in the same direction is a repeat whatever its power.
+        repeat = (self.state is not None and self.state.freeze == freeze
+                  and (freeze is not None or self.state.power_watts == power_watts))
         self._cancel_timers()
         self.state = state
         self._failures = 0
@@ -233,13 +261,18 @@ class DispatchSession:
             self.coordinator.async_add_listener(self._on_reading),
         ]
         if repeat:
-            _LOGGER.debug("Battery dispatch extended: %s W until %s", power_watts, state.ends)
+            _LOGGER.debug("Battery dispatch extended: %s until %s", freeze or f"{power_watts} W", state.ends)
+        elif freeze is not None:
+            _LOGGER.warning("Battery dispatch started: %s, following the readings up to %.0f W, until %s. "
+                            "A dispatch overrides the backup reserve and export setting and may affect "
+                            "the Powerwall warranty; use at your own risk", freeze, state.cap, state.ends)
         else:
             _LOGGER.warning("Battery dispatch started: %s W until %s. A dispatch overrides the backup "
                             "reserve and export setting and may affect the Powerwall warranty; use at "
                             "your own risk", power_watts, state.ends)
         if not repeat:
-            await self._async_grid_charging_for(power_watts)
+            # A freeze never turns Grid charging on: it charges from solar.
+            await self._async_grid_charging_for(0 if freeze else power_watts)
         self._notify()
         self.hass.async_create_task(self.coordinator.async_request_refresh())
         return {**self.as_dict(), "response": result}
@@ -308,6 +341,7 @@ class DispatchSession:
             "reason": reason,
             "power_watts": state.power_watts,
             "battery_level": self._soc(),
+            "freeze": state.freeze,
         })
         self._notify()
 
@@ -361,7 +395,7 @@ class DispatchSession:
         async with self._grid_lock:
             if not coordinator.grid_charging_by_dispatch:
                 return
-            if self.state is not None and self.state.power_watts < 0:
+            if self._charging():
                 return  # a new charge needs it
             if coordinator.grid_charging_now() is False:
                 coordinator.set_grid_charging_by_dispatch(False)  # already off
@@ -375,9 +409,13 @@ class DispatchSession:
                 return
             _LOGGER.info("Grid charging turned off again after the battery dispatch")
 
+    def _charging(self) -> bool:
+        """A charge is running (not a freeze, which charges from solar only)."""
+        return self.state is not None and self.state.freeze is None and self.state.power_watts < 0
+
     @callback
     def _on_any_reading(self) -> None:
-        if (self.state is None and self.coordinator.grid_charging_by_dispatch
+        if (not self._charging() and self.coordinator.grid_charging_by_dispatch
                 and not self._grid_lock.locked() and time.monotonic() >= self._grid_retry_at):
             self.hass.async_create_task(self._async_release_grid_charging())
 
@@ -429,8 +467,76 @@ class DispatchSession:
     @callback
     def _on_reading(self) -> None:
         state = self.state
-        if state is not None and self._limit_hit(state):
+        if state is not None and state.freeze is not None:
+            # Follow the reading at once if it moves the power enough, unless
+            # a command is on its way (the next reading or renewal catches up).
+            power = self._freeze_power(state)
+            if ((abs(power - state.power_watts) >= FREEZE_STEP_WATTS or (power == 0) != (state.power_watts == 0))
+                    and not self._freeze_pending and not self._send_lock.locked()):
+                self._freeze_pending = True
+                self.hass.async_create_task(self._async_freeze_step(state))
+        elif state is not None and self._limit_hit(state):
             self.hass.async_create_task(self._async_stop_at_limit(state))
+
+    # ---- freeze ----
+
+    def _freeze_power(self, state: DispatchState) -> float:
+        """The power a freeze calls for now, from the last local reading: what
+        the home uses beyond solar (discharge_only, positive) or the solar it
+        doesn't use (charge_only, negative), up to the freeze's cap, in tens
+        of watts. 0 (a hold) at its battery limit, or without a fresh reading."""
+        data = self.coordinator.data or {}
+        home, solar, soc = data.get("home_power"), data.get("solar_power"), self._soc()
+        age = self._level_age()
+        if (soc is None or age is None or age > self._stale_limit()
+                or not isinstance(home, (int, float)) or not isinstance(solar, (int, float))):
+            return 0.0
+        if state.freeze == "discharge_only":
+            if state.min_soc is not None and soc <= state.min_soc:
+                return 0.0
+            power = home - solar
+        else:
+            if state.max_soc is not None and soc >= state.max_soc:
+                return 0.0
+            power = solar - home
+        power = round(min(max(power, 0.0), state.cap) / 10) * 10.0
+        if not power:
+            return 0.0
+        return power if state.freeze == "discharge_only" else -power
+
+    async def _async_freeze_step(self, state: DispatchState) -> None:
+        try:
+            await self._async_send_freeze(state)
+        finally:
+            self._freeze_pending = False
+
+    async def _async_send_freeze(self, state: DispatchState) -> None:
+        """Send a freeze's power now (a renewal, or a reading that moved it)."""
+        power = self._freeze_power(state)
+        age = self._level_age()
+        if age is None or age > self._stale_limit():
+            if not self._stale_logged:
+                self._stale_logged = True
+                _LOGGER.warning("Battery dispatch (%s) holds the battery: no fresh reading from the gateway",
+                                state.freeze)
+        else:
+            self._stale_logged = False
+        try:
+            async with self._send_lock:
+                if self.state is not state:
+                    return  # ended while waiting for the lock
+                await self.coordinator.async_send_dispatch(power, self._chunk(state))
+            self._failures = 0
+        except HomeAssistantError as err:
+            self._failures += 1
+            _LOGGER.warning("Battery dispatch renewal failed (%s/%s): %s",
+                            self._failures, DISPATCH_MAX_FAILURES, scrub(err))
+            if self._failures >= DISPATCH_MAX_FAILURES and self.state is state:
+                self._end("connection_lost")
+            return
+        if power != state.power_watts:
+            state.power_watts = power
+            self._notify()
 
     async def _async_stop_at_limit(self, state: DispatchState) -> bool:
         """End the session if the SOC limit is reached; True if it ended."""
@@ -451,6 +557,18 @@ class DispatchSession:
             return
         if (state.ends - dt_util.utcnow()).total_seconds() < 1:
             return  # the end timer handles it
+        if state.freeze is not None:
+            age = self._level_age()
+            if state.power_watts != 0 and (age is None or age > self._stale_limit()):
+                # One extra read before falling back to a hold.
+                await self._async_fresh_level(DISPATCH_FRESH_READ_SECONDS)
+                if self.state is not state:
+                    return
+            if (age := self._level_age()) is not None:
+                self.coordinator.read_times.level_age(time.monotonic(), age)
+            self.coordinator.sample_loop_lag()
+            await self._async_send_freeze(state)
+            return
         stale = self._stale_for(state)
         if stale is not None:
             # One extra read first: a late poll shouldn't end the session.

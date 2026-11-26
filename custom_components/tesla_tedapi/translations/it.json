@@ -1000,6 +1000,36 @@
         }
       }
     },
+    "freeze_battery": {
+      "name": "Congela la batteria",
+      "description": "Fa funzionare la batteria in un solo verso, tramite la connessione locale firmata, alla potenza indicata dalle letture. `charge_only` carica con il solare che la casa non usa e non scarica mai; `discharge_only` copre ciò che la casa usa oltre al solare e non carica mai, quindi il surplus solare viene esportato. La potenza segue ogni lettura, quindi tra una lettura e l'altra un po' di energia può arrivare dalla rete o andarci; senza una lettura recente la batteria viene mantenuta. Pensato per il freeze charging e il freeze exporting di Predbat. Non attiva mai la carica dalla rete; per il resto funziona come un dispatch della batteria e può influire allo stesso modo sulla garanzia del Powerwall.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Necessario solo se è configurata più di una Powerwall."
+        },
+        "direction": {
+          "name": "Verso",
+          "description": "`charge_only`: nessuna scarica, carica con il surplus solare. `discharge_only`: nessuna carica, copre la casa."
+        },
+        "duration_seconds": {
+          "name": "Durata",
+          "description": "Per quanto congelare, in secondi (fino a 24 ore)."
+        },
+        "max_power_watts": {
+          "name": "Potenza massima",
+          "description": "Al massimo quanto la batteria carica o scarica, in watt. Predefinito: Potenza massima di dispatch (opzioni dell'integrazione)."
+        },
+        "min_soc": {
+          "name": "Ferma la scarica a",
+          "description": "Con `discharge_only`, mantiene la batteria quando il suo livello (scala dell'app Tesla) scende a questa percentuale. Predefinito: la riserva di backup."
+        },
+        "max_soc": {
+          "name": "Ferma la carica a",
+          "description": "Con `charge_only`, mantiene la batteria quando il suo livello (scala dell'app Tesla) raggiunge questa percentuale."
+        }
+      }
+    },
     "charge_to": {
       "name": "Carica fino a un livello",
       "description": "Carica la batteria a potenza fissa tramite la connessione locale firmata fino al livello obiettivo, al massimo per il tempo limite. Carica dal solare e, se la ricarica dalla rete è consentita, dalla rete. Termina con il motivo di evento `target_reached` o `completed`. Uso a proprio rischio: comandare la batteria può influire sulla garanzia della Powerwall, che potrebbe coprire cicli illimitati solo per autoconsumo, controllo a fasce orarie e backup.",
@@ -1518,6 +1548,12 @@
       "options": {
         "import": "Prelievo",
         "export": "Immissione"
+      }
+    },
+    "freeze_direction": {
+      "options": {
+        "charge_only": "Solo carica (dal surplus solare)",
+        "discharge_only": "Solo scarica (copre la casa)"
       }
     },
     "reauth_connect_failed": {

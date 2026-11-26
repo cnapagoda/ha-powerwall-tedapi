@@ -1000,6 +1000,36 @@
         }
       }
     },
+    "freeze_battery": {
+      "name": "Zamroź baterię",
+      "description": "Pracuje baterią tylko w jednym kierunku, przez podpisane połączenie lokalne, z mocą wynikającą z odczytów. `charge_only` ładuje energią słoneczną, której dom nie zużywa, i nigdy nie rozładowuje; `discharge_only` pokrywa to, co dom zużywa ponad energię słoneczną, i nigdy nie ładuje, więc nadwyżka energii słonecznej trafia do sieci. Moc podąża za każdym odczytem, więc pomiędzy nimi trochę energii może pochodzić z sieci lub do niej trafiać; bez świeżego odczytu bateria jest wstrzymana. Przeznaczone do freeze charging i freeze exporting w Predbat. Nigdy nie włącza ładowania z sieci; poza tym działa jak sterowanie baterią i może tak samo wpłynąć na gwarancję Powerwall.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "direction": {
+          "name": "Kierunek",
+          "description": "`charge_only`: bez rozładowania, ładuje z nadwyżki energii słonecznej. `discharge_only`: bez ładowania, pokrywa zużycie domu."
+        },
+        "duration_seconds": {
+          "name": "Czas trwania",
+          "description": "Jak długo zamrozić, w sekundach (do 24 godzin)."
+        },
+        "max_power_watts": {
+          "name": "Największa moc",
+          "description": "Najwięcej, ile bateria ładuje lub rozładowuje, w watach. Domyślnie: Największa moc sterowania (opcje integracji)."
+        },
+        "min_soc": {
+          "name": "Zatrzymaj rozładowanie przy",
+          "description": "Z `discharge_only` wstrzymuje baterię, gdy jej poziom (skala aplikacji Tesla) spadnie do tego procentu. Domyślnie: rezerwa awaryjna."
+        },
+        "max_soc": {
+          "name": "Zatrzymaj ładowanie przy",
+          "description": "Z `charge_only` wstrzymuje baterię, gdy jej poziom (skala aplikacji Tesla) osiągnie ten procent."
+        }
+      }
+    },
     "charge_to": {
       "name": "Naładuj do poziomu",
       "description": "Ładuje baterię stałą mocą przez podpisane połączenie lokalne do poziomu docelowego, najdłużej przez limit czasu. Ładuje z fotowoltaiki oraz, jeśli ładowanie z sieci jest dozwolone, z sieci. Kończy się zdarzeniem z powodem `target_reached` lub `completed`. Na własne ryzyko: sterowanie baterią może wpłynąć na gwarancję Powerwall, która może obejmować nieograniczoną liczbę cykli tylko przy autokonsumpcji, sterowaniu czasowym i zasilaniu awaryjnym.",
@@ -1518,6 +1548,12 @@
       "options": {
         "import": "Pobór",
         "export": "Oddawanie"
+      }
+    },
+    "freeze_direction": {
+      "options": {
+        "charge_only": "Tylko ładowanie (z nadwyżki słonecznej)",
+        "discharge_only": "Tylko rozładowanie (pokrywa dom)"
       }
     },
     "reauth_connect_failed": {

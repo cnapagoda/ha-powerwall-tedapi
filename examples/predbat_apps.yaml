@@ -2,8 +2,9 @@
 # Powerwall controlled locally through Tesla Powerwall TEDAPI.
 #
 # Predbat reads the integration's sensors and drives the battery with its
-# tesla_tedapi.dispatch_battery_power and tesla_tedapi.resume_battery_operation
-# actions, over the local signed connection. It never changes the operation
+# tesla_tedapi.dispatch_battery_power, tesla_tedapi.freeze_battery and
+# tesla_tedapi.resume_battery_operation actions, over the local signed
+# connection. It never changes the operation
 # mode, export rule, grid charging or backup reserve; the Powerwall returns to
 # its normal operation by itself within 10 minutes if Predbat stops.
 #
@@ -65,9 +66,9 @@ pred_bat:
     clock_time_format: "%Y-%m-%d %H:%M:%S"
     write_and_poll_sleep: 2
     has_time_window: False
-    # A 0 W dispatch holds the battery (no charge, no discharge). For freeze
-    # exporting the home then runs from the grid, not the battery; set
-    # support_discharge_freeze: False if you'd rather Predbat didn't plan it.
+    # Freezes run the battery one way only (tesla_tedapi.freeze_battery):
+    # freeze charging charges from surplus solar and never discharges, freeze
+    # exporting covers the home and never charges
     support_charge_freeze: True
     support_discharge_freeze: True
     has_idle_time: False
@@ -133,10 +134,10 @@ pred_bat:
     - input_number.predbat_powerwall_discharge_rate
 
   # ---- Service hooks: local battery dispatch ----
-  # Charge: dispatch -{power} W. Export: dispatch {power} W. Hold: dispatch 0 W.
-  # Stop: resume the Powerwall's normal operation. Each dispatch lasts 600 s
-  # and repeat: True re-sends it every Predbat cycle (5 minutes). The hold
-  # power must be the string "0": Predbat drops a hook value that is 0 or empty.
+  # Charge: dispatch -{power} W. Export: dispatch {power} W. Freeze charging:
+  # charge only, from surplus solar. Freeze exporting: discharge only, to
+  # cover the home. Stop: resume the Powerwall's normal operation. Each lasts
+  # 600 s and repeat: True re-sends it every Predbat cycle (5 minutes).
   # With more than one Powerwall set up, add config_entry_id to each hook.
   charge_start_service:
     - service: tesla_tedapi.dispatch_battery_power
@@ -144,8 +145,8 @@ pred_bat:
       duration_seconds: 600
       repeat: True
   charge_freeze_service:
-    - service: tesla_tedapi.dispatch_battery_power
-      power_watts: "0"
+    - service: tesla_tedapi.freeze_battery
+      direction: charge_only
       duration_seconds: 600
       repeat: True
   charge_stop_service:
@@ -156,8 +157,8 @@ pred_bat:
       duration_seconds: 600
       repeat: True
   discharge_freeze_service:
-    - service: tesla_tedapi.dispatch_battery_power
-      power_watts: "0"
+    - service: tesla_tedapi.freeze_battery
+      direction: discharge_only
       duration_seconds: 600
       repeat: True
   discharge_stop_service:
