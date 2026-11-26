@@ -245,6 +245,8 @@ async def test_new_key_from_options_through_teslemetry(hass: HomeAssistant, tmp_
           patch(SETUP, return_value=True)):
         result = await hass.config_entries.options.async_init(entry.entry_id)
         result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+        assert result["type"] is FlowResultType.FORM  # asks first (2.9.0)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {})
         assert result["reason"] == "new_key_started"
         await hass.async_block_till_done()
         flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
@@ -417,7 +419,8 @@ async def test_credentials_description(hass: HomeAssistant) -> None:
 
 async def _start_new_key(hass: HomeAssistant, entry: MockConfigEntry) -> tuple[str, dict]:
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+    await hass.config_entries.options.async_configure(result["flow_id"], {})
     await hass.async_block_till_done()
     flow_id = hass.config_entries.flow.async_progress_by_handler(DOMAIN)[0]["flow_id"]
     result = await hass.config_entries.flow.async_configure(flow_id, {"next_step_id": "register"})
@@ -622,3 +625,28 @@ async def test_reauth_with_the_same_key_removes_nothing(hass: HomeAssistant, tmp
         await hass.async_block_till_done(wait_background_tasks=True)
     remove.assert_not_called()
     assert old.read_bytes() == b"the key in use"
+
+
+async def test_new_key_by_mistake(hass: HomeAssistant) -> None:
+    """Register a new signed key, clicked by mistake (2.9.0): closing the
+    question starts nothing, and a reauth already started can be cancelled
+    from its menu, which keeps the current key."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R)
+    entry.add_to_hass(hass)
+    with patch(SETUP, return_value=True):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+        assert result["type"] is FlowResultType.FORM and result["step_id"] == "new_key"
+        hass.config_entries.options.async_abort(result["flow_id"])  # the window closed
+        await hass.async_block_till_done()
+        assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+        await hass.config_entries.options.async_configure(result["flow_id"], {})
+        await hass.async_block_till_done()
+        flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+        assert flows[0]["step_id"] == "new_key"
+        result = await hass.config_entries.flow.async_configure(flows[0]["flow_id"], {"next_step_id": "keep_key"})
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "new_key_cancelled"
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+    assert entry.data == V1R

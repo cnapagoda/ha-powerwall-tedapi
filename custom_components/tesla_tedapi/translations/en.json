@@ -172,7 +172,8 @@
         "description": "Register another signed key for this Powerwall. The current key keeps working; Home Assistant switches to the new key only once the Powerwall confirms it.",
         "menu_options": {
           "register": "Register a new key (recommended)",
-          "key_upload": "Upload a key that is already registered"
+          "key_upload": "Upload a key that is already registered",
+          "keep_key": "Cancel: keep the current key"
         }
       },
       "signin": {
@@ -248,7 +249,8 @@
       "missing_configuration": "Add the Tesla developer app under Settings → Application credentials first.",
       "oauth_implementation_unavailable": "The Tesla developer app isn't available. Check the application credentials.",
       "fleet_not_registered": "Tesla refused the developer app (HTTP 412): its domain isn't registered with Tesla for your account's region. Register it as described in the [setup guide]({docs_url}), then sign in again.",
-      "pypowerwall_too_old": "pypowerwall {found} is loaded in Home Assistant, but this integration needs {required} or newer. Another custom integration that uses an older pypowerwall loaded it first (for example ha-pypowerwall). Remove that integration (disabling it isn't enough), restart Home Assistant and start the setup again."
+      "pypowerwall_too_old": "pypowerwall {found} is loaded in Home Assistant, but this integration needs {required} or newer. Another custom integration that uses an older pypowerwall loaded it first (for example ha-pypowerwall). Remove that integration (disabling it isn't enough), restart Home Assistant and start the setup again.",
+      "new_key_cancelled": "Nothing changed: the current key keeps working."
     }
   },
   "options": {
@@ -391,6 +393,10 @@
       "local_only": {
         "title": "Local only",
         "description": "Removes every Tesla sign-in kept here (the Tesla account's saved tokens too, unless another Powerwall uses the same account) and turns the cloud backup off. The signed key keeps working: readings and settings go to the gateway on your network, and nothing reaches Tesla's servers.\n\nStops working, and their entities are removed: Storm Watch, the off-grid reserve, Wall Connectors and the Tesla tariff. Settings can't be changed while the gateway can't be reached, and registering a new key later needs a Tesla sign-in again."
+      },
+      "new_key": {
+        "title": "Register a new key",
+        "description": "This Powerwall already has a working key. A new key needs a Tesla sign-in and the Powerwall's On/Off switch at the unit; the current key keeps working until the new one is confirmed.\n\nSubmit to start. Close this window to keep the current key: nothing changes."
       }
     },
     "error": {

@@ -172,7 +172,8 @@
         "description": "Enregistrer une autre clé signée pour cette Powerwall. La clé actuelle continue de fonctionner ; Home Assistant ne passe à la nouvelle clé qu'une fois que la Powerwall l'a confirmée.",
         "menu_options": {
           "register": "Enregistrer une nouvelle clé (recommandé)",
-          "key_upload": "Téléverser une clé déjà enregistrée"
+          "key_upload": "Téléverser une clé déjà enregistrée",
+          "keep_key": "Annuler : garder la clé actuelle"
         }
       },
       "signin": {
@@ -248,7 +249,8 @@
       "missing_configuration": "Ajoutez d'abord l'app développeur Tesla dans Paramètres → Identifiants d'application.",
       "oauth_implementation_unavailable": "L'app développeur Tesla n'est pas disponible. Vérifiez les identifiants d'application.",
       "fleet_not_registered": "Tesla a refusé l'app développeur (HTTP 412) : son domaine n'est pas enregistré auprès de Tesla pour la région de votre compte. Enregistrez-le comme décrit dans le [guide d'installation]({docs_url}), puis reconnectez-vous.",
-      "pypowerwall_too_old": "pypowerwall {found} est chargé dans Home Assistant, mais cette intégration nécessite la version {required} ou une version plus récente. Une autre intégration personnalisée utilisant un pypowerwall plus ancien l'a chargé en premier (par exemple ha-pypowerwall). Supprimez cette intégration (la désactiver ne suffit pas), redémarrez Home Assistant et recommencez la configuration."
+      "pypowerwall_too_old": "pypowerwall {found} est chargé dans Home Assistant, mais cette intégration nécessite la version {required} ou une version plus récente. Une autre intégration personnalisée utilisant un pypowerwall plus ancien l'a chargé en premier (par exemple ha-pypowerwall). Supprimez cette intégration (la désactiver ne suffit pas), redémarrez Home Assistant et recommencez la configuration.",
+      "new_key_cancelled": "Rien n'a changé : la clé actuelle continue de fonctionner."
     }
   },
   "options": {
@@ -391,6 +393,10 @@
       "local_only": {
         "title": "Local uniquement",
         "description": "Retire toutes les connexions Tesla gardées ici (aussi les jetons enregistrés du compte Tesla, sauf si une autre Powerwall utilise le même compte) et désactive la sauvegarde cloud. La clé signée continue de fonctionner : les mesures et les réglages passent par la passerelle sur votre réseau, et rien n'atteint les serveurs de Tesla.\n\nNe fonctionnent plus, et leurs entités sont retirées : Storm Watch, la réserve hors réseau, les Wall Connectors et le tarif Tesla. Les réglages ne peuvent pas être changés quand la passerelle est injoignable, et enregistrer une nouvelle clé plus tard demande à nouveau une connexion Tesla."
+      },
+      "new_key": {
+        "title": "Enregistrer une nouvelle clé",
+        "description": "Cette Powerwall a déjà une clé qui fonctionne. Une nouvelle clé demande une connexion Tesla et l'interrupteur marche/arrêt de la Powerwall ; la clé actuelle continue de fonctionner jusqu'à ce que la nouvelle soit confirmée.\n\nValidez pour commencer. Fermez cette fenêtre pour garder la clé actuelle : rien ne change."
       }
     },
     "error": {

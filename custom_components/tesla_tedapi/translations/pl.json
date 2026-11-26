@@ -172,7 +172,8 @@
         "description": "Zarejestruj kolejny podpisany klucz dla tej Powerwall. Obecny klucz działa dalej; Home Assistant przełączy się na nowy klucz dopiero, gdy Powerwall go potwierdzi.",
         "menu_options": {
           "register": "Zarejestruj nowy klucz (zalecane)",
-          "key_upload": "Prześlij już zarejestrowany klucz"
+          "key_upload": "Prześlij już zarejestrowany klucz",
+          "keep_key": "Anuluj: zachowaj obecny klucz"
         }
       },
       "signin": {
@@ -248,7 +249,8 @@
       "missing_configuration": "Najpierw dodaj aplikację deweloperską Tesla w Ustawienia → Dane uwierzytelniające aplikacji.",
       "oauth_implementation_unavailable": "Aplikacja deweloperska Tesla jest niedostępna. Sprawdź dane uwierzytelniające aplikacji.",
       "fleet_not_registered": "Tesla odrzuciła aplikację deweloperską (HTTP 412): jej domena nie jest zarejestrowana w Tesli dla regionu Twojego konta. Zarejestruj ją zgodnie z [instrukcją konfiguracji]({docs_url}), a potem zaloguj się ponownie.",
-      "pypowerwall_too_old": "W Home Assistant załadowano pypowerwall {found}, a ta integracja wymaga wersji {required} lub nowszej. Inna integracja niestandardowa ze starszym pypowerwall załadowała go wcześniej (na przykład ha-pypowerwall). Usuń tę integrację (samo wyłączenie nie wystarczy), uruchom ponownie Home Assistant i zacznij konfigurację od nowa."
+      "pypowerwall_too_old": "W Home Assistant załadowano pypowerwall {found}, a ta integracja wymaga wersji {required} lub nowszej. Inna integracja niestandardowa ze starszym pypowerwall załadowała go wcześniej (na przykład ha-pypowerwall). Usuń tę integrację (samo wyłączenie nie wystarczy), uruchom ponownie Home Assistant i zacznij konfigurację od nowa.",
+      "new_key_cancelled": "Nic nie zmieniono: obecny klucz działa dalej."
     }
   },
   "options": {
@@ -391,6 +393,10 @@
       "local_only": {
         "title": "Tylko lokalnie",
         "description": "Usuwa każde zapisane tutaj logowanie Tesla (także zapisane tokeny konta Tesla, chyba że inny Powerwall używa tego samego konta) i wyłącza kopię zapasową w chmurze. Podpisany klucz nadal działa: odczyty i ustawienia idą do bramy w Twojej sieci, a nic nie trafia na serwery Tesli.\n\nPrzestają działać, a ich encje są usuwane: Storm Watch, rezerwa poza siecią, Wall Connectory i taryfa Tesla. Ustawień nie da się zmienić, gdy brama jest nieosiągalna, a rejestracja nowego klucza w przyszłości znowu wymaga logowania Tesla."
+      },
+      "new_key": {
+        "title": "Zarejestruj nowy klucz",
+        "description": "Ta Powerwall ma już działający klucz. Nowy klucz wymaga logowania do Tesla i przełącznika wł./wył. na Powerwall; obecny klucz działa dalej, dopóki nowy nie zostanie potwierdzony.\n\nZatwierdź, aby rozpocząć. Zamknij to okno, aby zachować obecny klucz: nic się nie zmieni."
       }
     },
     "error": {

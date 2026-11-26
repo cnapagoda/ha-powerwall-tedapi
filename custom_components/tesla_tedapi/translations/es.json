@@ -172,7 +172,8 @@
         "description": "Registrar otra clave firmada para esta Powerwall. La clave actual sigue funcionando; Home Assistant solo cambia a la clave nueva cuando la Powerwall la confirma.",
         "menu_options": {
           "register": "Registrar una clave nueva (recomendado)",
-          "key_upload": "Subir una clave ya registrada"
+          "key_upload": "Subir una clave ya registrada",
+          "keep_key": "Cancelar: conservar la clave actual"
         }
       },
       "signin": {
@@ -248,7 +249,8 @@
       "missing_configuration": "Añade primero la app de desarrollador de Tesla en Ajustes → Credenciales de aplicación.",
       "oauth_implementation_unavailable": "La app de desarrollador de Tesla no está disponible. Revisa las credenciales de aplicación.",
       "fleet_not_registered": "Tesla rechazó la app de desarrollador (HTTP 412): su dominio no está registrado en Tesla para la región de tu cuenta. Regístralo como se describe en la [guía de configuración]({docs_url}) y vuelve a iniciar sesión.",
-      "pypowerwall_too_old": "Home Assistant tiene cargado pypowerwall {found}, pero esta integración necesita {required} o posterior. Otra integración personalizada que usa un pypowerwall más antiguo lo cargó primero (por ejemplo, ha-pypowerwall). Elimina esa integración (deshabilitarla no basta), reinicia Home Assistant y vuelve a empezar la configuración."
+      "pypowerwall_too_old": "Home Assistant tiene cargado pypowerwall {found}, pero esta integración necesita {required} o posterior. Otra integración personalizada que usa un pypowerwall más antiguo lo cargó primero (por ejemplo, ha-pypowerwall). Elimina esa integración (deshabilitarla no basta), reinicia Home Assistant y vuelve a empezar la configuración.",
+      "new_key_cancelled": "No ha cambiado nada: la clave actual sigue funcionando."
     }
   },
   "options": {
@@ -391,6 +393,10 @@
       "local_only": {
         "title": "Solo local",
         "description": "Quita todos los inicios de sesión de Tesla guardados aquí (también los tokens guardados de la cuenta de Tesla, salvo que otra Powerwall use la misma cuenta) y desactiva el respaldo en la nube. La clave firmada sigue funcionando: las lecturas y los ajustes van a la puerta de enlace en tu red, y nada llega a los servidores de Tesla.\n\nDeja de funcionar, y sus entidades se quitan: Storm Watch, la reserva sin red, los Wall Connectors y la tarifa de Tesla. Los ajustes no se pueden cambiar mientras no se llega a la puerta de enlace, y registrar una clave nueva más adelante vuelve a necesitar un inicio de sesión de Tesla."
+      },
+      "new_key": {
+        "title": "Registrar una clave nueva",
+        "description": "Esta Powerwall ya tiene una clave que funciona. Una clave nueva necesita un inicio de sesión de Tesla y el interruptor de encendido/apagado de la Powerwall; la clave actual sigue funcionando hasta que se confirme la nueva.\n\nEnvía para empezar. Cierra esta ventana para conservar la clave actual: no cambia nada."
       }
     },
     "error": {

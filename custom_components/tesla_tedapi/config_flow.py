@@ -1181,7 +1181,12 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         one still works. The new key is made or uploaded into a file of its
         own; the entry (and its key file) only change once the Powerwall has
         confirmed the new key and the connection check passes with it."""
-        return self.async_show_menu(step_id="new_key", menu_options=["register", "key_upload"])
+        return self.async_show_menu(step_id="new_key", menu_options=["register", "key_upload", "keep_key"])
+
+    async def async_step_keep_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Cancel a new key asked for in the options: the current key stays,
+        and the Reauthenticate prompt goes."""
+        return self.async_abort(reason="new_key_cancelled")
 
     async def async_step_reauth_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """The gateway refuses the key, while the password works: the key was
@@ -1355,7 +1360,10 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
 
     async def async_step_new_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Register another signed key (e.g. through Tesla Fleet). It goes on as
-        a reauthentication, which Home Assistant shows on the integration."""
+        a reauthentication, which Home Assistant shows on the integration.
+        Asks first, so a click by mistake starts nothing."""
+        if user_input is None:
+            return self.async_show_form(step_id="new_key", data_schema=vol.Schema({}))
         self.config_entry.async_start_reauth(self.hass, data={**self.config_entry.data, NEW_KEY: True})
         return self.async_abort(reason="new_key_started")
 

@@ -172,7 +172,8 @@
         "description": "Nog een ondertekende sleutel voor deze Powerwall registreren. De huidige sleutel blijft werken; Home Assistant schakelt pas over naar de nieuwe sleutel als de Powerwall die bevestigt.",
         "menu_options": {
           "register": "Een nieuwe sleutel registreren (aanbevolen)",
-          "key_upload": "Een al geregistreerde sleutel uploaden"
+          "key_upload": "Een al geregistreerde sleutel uploaden",
+          "keep_key": "Annuleren: huidige sleutel houden"
         }
       },
       "signin": {
@@ -248,7 +249,8 @@
       "missing_configuration": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
       "oauth_implementation_unavailable": "De Tesla-ontwikkelaarsapp is niet beschikbaar. Controleer de applicatiegegevens.",
       "fleet_not_registered": "Tesla weigerde de ontwikkelaarsapp (HTTP 412): het domein is voor de regio van je account niet bij Tesla geregistreerd. Registreer het zoals beschreven in de [installatiehandleiding]({docs_url}) en meld je daarna opnieuw aan.",
-      "pypowerwall_too_old": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie met een oudere pypowerwall heeft die eerst geladen (bijvoorbeeld ha-pypowerwall). Verwijder die integratie (uitschakelen is niet genoeg), herstart Home Assistant en begin de installatie opnieuw."
+      "pypowerwall_too_old": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie met een oudere pypowerwall heeft die eerst geladen (bijvoorbeeld ha-pypowerwall). Verwijder die integratie (uitschakelen is niet genoeg), herstart Home Assistant en begin de installatie opnieuw.",
+      "new_key_cancelled": "Niets gewijzigd: de huidige sleutel blijft werken."
     }
   },
   "options": {
@@ -391,6 +393,10 @@
       "local_only": {
         "title": "Alleen lokaal",
         "description": "Verwijdert elke Tesla-aanmelding die hier bewaard is (ook de opgeslagen tokens van het Tesla-account, tenzij een andere Powerwall hetzelfde account gebruikt) en zet de cloudback-up uit. De ondertekende sleutel blijft werken: metingen en instellingen gaan naar de gateway in je netwerk, en niets bereikt de servers van Tesla.\n\nWerkt niet meer, en de entiteiten worden verwijderd: Storm Watch, de off-grid-reserve, Wall Connectors en het Tesla-tarief. Instellingen kunnen niet worden gewijzigd als de gateway niet bereikbaar is, en later een nieuwe sleutel registreren vraagt weer een Tesla-aanmelding."
+      },
+      "new_key": {
+        "title": "Nieuwe sleutel registreren",
+        "description": "Deze Powerwall heeft al een werkende sleutel. Een nieuwe sleutel vraagt een Tesla-aanmelding en de aan/uit-schakelaar van de Powerwall; de huidige sleutel blijft werken tot de nieuwe is bevestigd.\n\nVerzend om te beginnen. Sluit dit venster om de huidige sleutel te houden: er verandert niets."
       }
     },
     "error": {

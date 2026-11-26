@@ -172,7 +172,8 @@
         "description": "Einen weiteren signierten Schlüssel für diese Powerwall registrieren. Der aktuelle Schlüssel funktioniert weiter; Home Assistant wechselt erst zum neuen Schlüssel, wenn die Powerwall ihn bestätigt.",
         "menu_options": {
           "register": "Neuen Schlüssel registrieren (empfohlen)",
-          "key_upload": "Bereits registrierten Schlüssel hochladen"
+          "key_upload": "Bereits registrierten Schlüssel hochladen",
+          "keep_key": "Abbrechen: aktuellen Schlüssel behalten"
         }
       },
       "signin": {
@@ -248,7 +249,8 @@
       "missing_configuration": "Füge die Tesla-Entwickler-App zuerst unter Einstellungen → Anwendungs-Anmeldedaten hinzu.",
       "oauth_implementation_unavailable": "Die Tesla-Entwickler-App ist nicht verfügbar. Prüfe die Anwendungs-Anmeldedaten.",
       "fleet_not_registered": "Tesla hat die Entwickler-App abgelehnt (HTTP 412): Ihre Domain ist für die Region deines Kontos nicht bei Tesla registriert. Registriere sie wie in der [Einrichtungsanleitung]({docs_url}) beschrieben und melde dich dann erneut an.",
-      "pypowerwall_too_old": "In Home Assistant ist pypowerwall {found} geladen, diese Integration braucht aber {required} oder neuer. Eine andere benutzerdefinierte Integration mit einem älteren pypowerwall hat es zuerst geladen (zum Beispiel ha-pypowerwall). Entferne diese Integration (Deaktivieren reicht nicht), starte Home Assistant neu und beginne die Einrichtung erneut."
+      "pypowerwall_too_old": "In Home Assistant ist pypowerwall {found} geladen, diese Integration braucht aber {required} oder neuer. Eine andere benutzerdefinierte Integration mit einem älteren pypowerwall hat es zuerst geladen (zum Beispiel ha-pypowerwall). Entferne diese Integration (Deaktivieren reicht nicht), starte Home Assistant neu und beginne die Einrichtung erneut.",
+      "new_key_cancelled": "Nichts geändert: Der aktuelle Schlüssel funktioniert weiter."
     }
   },
   "options": {
@@ -391,6 +393,10 @@
       "local_only": {
         "title": "Nur lokal",
         "description": "Entfernt jede hier gespeicherte Tesla-Anmeldung (auch die gespeicherten Tokens des Tesla-Kontos, außer eine andere Powerwall nutzt dasselbe Konto) und schaltet die Cloud-Sicherung aus. Der signierte Schlüssel funktioniert weiter: Messwerte und Einstellungen gehen an das Gateway in deinem Netzwerk, und nichts erreicht die Server von Tesla.\n\nFunktioniert nicht mehr, und die Entitäten werden entfernt: Storm Watch, die Off-Grid-Reserve, Wall Connectors und der Tesla-Tarif. Einstellungen lassen sich nicht ändern, solange das Gateway nicht erreichbar ist, und einen neuen Schlüssel zu registrieren braucht wieder eine Tesla-Anmeldung."
+      },
+      "new_key": {
+        "title": "Neuen Schlüssel registrieren",
+        "description": "Diese Powerwall hat bereits einen funktionierenden Schlüssel. Ein neuer Schlüssel braucht eine Tesla-Anmeldung und den Ein/Aus-Schalter an der Powerwall; der aktuelle Schlüssel funktioniert weiter, bis der neue bestätigt ist.\n\nMit Absenden starten. Schließe dieses Fenster, um den aktuellen Schlüssel zu behalten: Es ändert sich nichts."
       }
     },
     "error": {
