@@ -1418,7 +1418,9 @@
         "podcommissiontime": "Eine Batterie speichert ihren Inbetriebnahmezeitpunkt",
         "solarmetercomms": "Verbindung zum Solarzähler verloren (kurze Aussetzer sind häufig)",
         "pws_a082_powerlimits": "Die Powerwall hat ihre Leistung kurz an einer Grenze gehalten (beobachtet beim Einspeisen an der Einspeisegrenze des Standorts)",
-        "highcontrolloopjitter": "Das Regel-Timing des Gateways war kurz unregelmäßig (beobachtet bei Einspeisung mit voller Leistung)"
+        "highcontrolloopjitter": "Das Regel-Timing des Gateways war kurz unregelmäßig (beobachtet bei Einspeisung mit voller Leistung)",
+        "bms_a083_nvram_filecache": "Das Batteriemanagement hat ein Problem mit seinem Cache für gespeicherte Daten gemeldet (beobachtet nach einem Firmware-Update)",
+        "pws_a091_nvmmmigratestuck": "Eine Speichermigration in der Powerwall ist nicht abgeschlossen (beobachtet nach einem Firmware-Update)"
       }
     },
     "alert_short": {
@@ -1458,7 +1460,9 @@
         "podcommissiontime": "Batterie-Inbetriebnahme",
         "solarmetercomms": "Solarzähler nicht erreichbar",
         "pws_a082_powerlimits": "Leistung an einer Grenze",
-        "highcontrolloopjitter": "Regel-Timing unregelmäßig"
+        "highcontrolloopjitter": "Regel-Timing unregelmäßig",
+        "bms_a083_nvram_filecache": "Problem im Batterie-Datencache",
+        "pws_a091_nvmmmigratestuck": "Speichermigration nicht abgeschlossen"
       }
     },
     "logbook": {

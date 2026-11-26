@@ -1418,7 +1418,9 @@
         "podcommissiontime": "A battery is recording its commissioning time",
         "solarmetercomms": "Lost communication with the solar meter (brief dropouts are common)",
         "pws_a082_powerlimits": "The Powerwall held its power at a limit for a moment (seen while exporting at the site's export limit)",
-        "highcontrolloopjitter": "The gateway's control timing was briefly irregular (seen during full-power export)"
+        "highcontrolloopjitter": "The gateway's control timing was briefly irregular (seen during full-power export)",
+        "bms_a083_nvram_filecache": "Battery management reported a problem with its stored-data cache (seen after a firmware update)",
+        "pws_a091_nvmmmigratestuck": "A memory migration in the Powerwall hasn't finished (seen after a firmware update)"
       }
     },
     "alert_short": {
@@ -1458,7 +1460,9 @@
         "podcommissiontime": "Battery commissioning",
         "solarmetercomms": "Solar meter comms lost",
         "pws_a082_powerlimits": "Power held at a limit",
-        "highcontrolloopjitter": "Control timing irregular"
+        "highcontrolloopjitter": "Control timing irregular",
+        "bms_a083_nvram_filecache": "Battery data cache problem",
+        "pws_a091_nvmmmigratestuck": "Memory migration unfinished"
       }
     },
     "logbook": {

@@ -1418,7 +1418,9 @@
         "podcommissiontime": "Een batterij legt haar inbedrijfstellingstijd vast",
         "solarmetercomms": "Verbinding met de zonnemeter verbroken (korte onderbrekingen komen vaak voor)",
         "pws_a082_powerlimits": "De Powerwall hield zijn vermogen even op een grens (gezien bij teruglevering op de terugleveringsgrens van de locatie)",
-        "highcontrolloopjitter": "De regeltiming van de gateway was even onregelmatig (gezien bij teruglevering op vol vermogen)"
+        "highcontrolloopjitter": "De regeltiming van de gateway was even onregelmatig (gezien bij teruglevering op vol vermogen)",
+        "bms_a083_nvram_filecache": "Het batterijbeheer meldde een probleem met zijn cache van opgeslagen gegevens (gezien na een firmware-update)",
+        "pws_a091_nvmmmigratestuck": "Een geheugenmigratie in de Powerwall is niet afgerond (gezien na een firmware-update)"
       }
     },
     "alert_short": {
@@ -1458,7 +1460,9 @@
         "podcommissiontime": "Inbedrijfstelling batterij",
         "solarmetercomms": "Zonnemeter onbereikbaar",
         "pws_a082_powerlimits": "Vermogen op een grens",
-        "highcontrolloopjitter": "Regeltiming onregelmatig"
+        "highcontrolloopjitter": "Regeltiming onregelmatig",
+        "bms_a083_nvram_filecache": "Probleem met batterijgegevenscache",
+        "pws_a091_nvmmmigratestuck": "Geheugenmigratie niet afgerond"
       }
     },
     "logbook": {

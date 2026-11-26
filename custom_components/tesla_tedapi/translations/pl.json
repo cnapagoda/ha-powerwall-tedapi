@@ -1418,7 +1418,9 @@
         "podcommissiontime": "Bateria zapisuje czas uruchomienia",
         "solarmetercomms": "Utracono komunikację z licznikiem PV (krótkie przerwy są częste)",
         "pws_a082_powerlimits": "Powerwall przez chwilę utrzymywał moc na granicy (zaobserwowane przy eksporcie na limicie eksportu instalacji)",
-        "highcontrolloopjitter": "Taktowanie sterowania bramy było przez chwilę nieregularne (zaobserwowane przy eksporcie pełną mocą)"
+        "highcontrolloopjitter": "Taktowanie sterowania bramy było przez chwilę nieregularne (zaobserwowane przy eksporcie pełną mocą)",
+        "bms_a083_nvram_filecache": "System zarządzania baterią zgłosił problem z pamięcią podręczną zapisanych danych (zaobserwowane po aktualizacji oprogramowania)",
+        "pws_a091_nvmmmigratestuck": "Migracja pamięci w Powerwallu się nie zakończyła (zaobserwowane po aktualizacji oprogramowania)"
       }
     },
     "alert_short": {
@@ -1458,7 +1460,9 @@
         "podcommissiontime": "Uruchomienie baterii",
         "solarmetercomms": "Brak łączności z licznikiem PV",
         "pws_a082_powerlimits": "Moc na granicy",
-        "highcontrolloopjitter": "Nieregularne taktowanie"
+        "highcontrolloopjitter": "Nieregularne taktowanie",
+        "bms_a083_nvram_filecache": "Problem z pamięcią danych baterii",
+        "pws_a091_nvmmmigratestuck": "Niezakończona migracja pamięci"
       }
     },
     "logbook": {

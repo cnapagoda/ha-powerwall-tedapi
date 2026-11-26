@@ -1418,7 +1418,9 @@
         "podcommissiontime": "Une batterie enregistre sa date de mise en service",
         "solarmetercomms": "Communication perdue avec le compteur solaire (les coupures brèves sont courantes)",
         "pws_a082_powerlimits": "La Powerwall a maintenu sa puissance à une limite un instant (vu en exportant à la limite d'export du site)",
-        "highcontrolloopjitter": "La cadence de contrôle de la passerelle a été brièvement irrégulière (vu lors d'un export à pleine puissance)"
+        "highcontrolloopjitter": "La cadence de contrôle de la passerelle a été brièvement irrégulière (vu lors d'un export à pleine puissance)",
+        "bms_a083_nvram_filecache": "La gestion de la batterie a signalé un problème avec son cache de données enregistrées (vu après une mise à jour du firmware)",
+        "pws_a091_nvmmmigratestuck": "Une migration de mémoire dans la Powerwall n'est pas terminée (vu après une mise à jour du firmware)"
       }
     },
     "alert_short": {
@@ -1458,7 +1460,9 @@
         "podcommissiontime": "Mise en service batterie",
         "solarmetercomms": "Compteur solaire injoignable",
         "pws_a082_powerlimits": "Puissance à une limite",
-        "highcontrolloopjitter": "Cadence de contrôle irrégulière"
+        "highcontrolloopjitter": "Cadence de contrôle irrégulière",
+        "bms_a083_nvram_filecache": "Problème de cache de données batterie",
+        "pws_a091_nvmmmigratestuck": "Migration de mémoire inachevée"
       }
     },
     "logbook": {

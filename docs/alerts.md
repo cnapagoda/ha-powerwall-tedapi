@@ -83,6 +83,8 @@ More cards in [Dashboards](dashboards.md).
 | `BMS_a023_SW_Assertion` | notice | Battery software error | Battery management software reported an internal error |
 | `PWS_a082_PowerLimits` | notice | Power held at a limit | The Powerwall held its power at a limit for a moment (seen while exporting at the site's export limit) |
 | `HighControlLoopJitter` | notice | Control timing irregular | The gateway's control timing was briefly irregular (seen during full-power export) |
+| `BMS_a083_Nvram_Filecache` | notice | Battery data cache problem | Battery management reported a problem with its stored-data cache (seen after a firmware update) |
+| `PWS_a091_NvmmMigrateStuck` | notice | Memory migration unfinished | A memory migration in the Powerwall hasn't finished (seen after a firmware update) |
 | `IslandChecksFailed` | warning | Backup check failed | Backup readiness check failed (normal for a few minutes when the battery fills or after a restart) |
 | `BatteryComms` | warning | Battery comms lost | The gateway can't communicate with a battery |
 | `PVInverterComms` | warning | Solar inverter comms lost | Lost communication with the solar inverter |

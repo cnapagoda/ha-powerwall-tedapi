@@ -1418,7 +1418,9 @@
         "podcommissiontime": "Una batería está registrando su fecha de puesta en servicio",
         "solarmetercomms": "Se perdió la comunicación con el medidor solar (las caídas breves son habituales)",
         "pws_a082_powerlimits": "La Powerwall mantuvo su potencia en un límite durante un momento (visto al exportar en el límite de exportación del sitio)",
-        "highcontrolloopjitter": "La sincronización del control de la puerta de enlace fue irregular un momento (visto al exportar a plena potencia)"
+        "highcontrolloopjitter": "La sincronización del control de la puerta de enlace fue irregular un momento (visto al exportar a plena potencia)",
+        "bms_a083_nvram_filecache": "La gestión de la batería informó un problema con su caché de datos guardados (visto tras una actualización de firmware)",
+        "pws_a091_nvmmmigratestuck": "Una migración de memoria en la Powerwall no ha terminado (visto tras una actualización de firmware)"
       }
     },
     "alert_short": {
@@ -1458,7 +1460,9 @@
         "podcommissiontime": "Puesta en servicio de batería",
         "solarmetercomms": "Medidor solar sin comunicación",
         "pws_a082_powerlimits": "Potencia en un límite",
-        "highcontrolloopjitter": "Sincronización de control irregular"
+        "highcontrolloopjitter": "Sincronización de control irregular",
+        "bms_a083_nvram_filecache": "Problema en la caché de datos de la batería",
+        "pws_a091_nvmmmigratestuck": "Migración de memoria sin terminar"
       }
     },
     "logbook": {

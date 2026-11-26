@@ -66,6 +66,17 @@ CATALOGUE: dict[str, tuple[str, str]] = {
         SEVERITY_NOTICE,
         "The gateway's control timing was briefly irregular (seen during full-power export)",
     ),
+    # On a Powerwall 3 and its Expansion Pack since firmware 26.42.1 (#36).
+    # Tesla doesn't say what they mean: the descriptions only restate the
+    # codes. Notices, like an unknown code.
+    "BMS_a083_Nvram_Filecache": (
+        SEVERITY_NOTICE,
+        "Battery management reported a problem with its stored-data cache (seen after a firmware update)",
+    ),
+    "PWS_a091_NvmmMigrateStuck": (
+        SEVERITY_NOTICE,
+        "A memory migration in the Powerwall hasn't finished (seen after a firmware update)",
+    ),
     # Warnings: expected during restarts or switch toggles, a problem if they last
     "IslandChecksFailed": (
         SEVERITY_WARNING,
@@ -126,6 +137,8 @@ SHORT: dict[str, str] = {
     "BMS_a023_SW_Assertion": "Battery software error",
     "PWS_a082_PowerLimits": "Power held at a limit",
     "HighControlLoopJitter": "Control timing irregular",
+    "BMS_a083_Nvram_Filecache": "Battery data cache problem",
+    "PWS_a091_NvmmMigrateStuck": "Memory migration unfinished",
     "PWS_a009_Rsd": "Rapid shutdown active",
     "PWS_a014_HvpFault": "Battery controller fault",
     "PWS_a044_HvpRsdFault": "Rapid-shutdown fault",
