@@ -122,7 +122,9 @@ RSA_PUBLIC_KEY_FILE = "tedapi_rsa_public.der"
 RSA_KEY_FILE_FORMAT = "tedapi_rsa_private_{}.pem"
 RSA_PUBLIC_KEY_FILE_FORMAT = "tedapi_rsa_public_{}.der"
 KEY_NAME_LENGTH = 12
+# pypowerwall's cloud-mode token cache and site pin, in the entry's folder.
 AUTH_FILE = ".pypowerwall.auth"
+SITE_FILE = ".pypowerwall.site"
 
 # Operation modes: API value -> option key (translated in strings.json)
 OPERATION_MODES = ("self_consumption", "backup", "autonomous")

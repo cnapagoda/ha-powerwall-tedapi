@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.9.0
+
+- Fix: **Unlink a cloud backup** removed the Tesla account from the integration, but its saved sign-in tokens stayed in the integration's folder. They're now removed too, unless another Powerwall entry uses the same account.
+
 ## 2.8.3
 
 - **Setup without the customer password, over the Powerwall's own Wi-Fi.** When the gateway refuses its customer login (its customer password was changed, for example by an installer, and nobody knows it) but the gateway address is the Powerwall's own Wi-Fi (`192.168.91.1`), which takes the sticker password with no customer login, setup now offers the **Wi-Fi password** connection instead of stopping at "The gateway refused this password". It reads everything; settings go through a Tesla account. Entering the customer password instead is still offered, for a signed connection. The refused-password message says how to get there (#23, thanks [@MattJBeard](https://github.com/MattJBeard)).

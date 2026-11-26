@@ -17,7 +17,7 @@ Select **Configure** on the integration. The menu offers:
 | **Cloud backup (Owner API, Fleet API)** | Choose which cloud backup to use, and in which order. See [Cloud backup](cloud-backup.md). |
 | **Link a Tesla account (Owner API)** | Add the Owner API backup without setting the Powerwall up again (refresh token or browser sign-in). Shown when no account is linked. |
 | **Sign in to Tesla Fleet or Teslemetry** | Add or renew the Fleet API backup. It continues as a reauthentication on the integration's card. |
-| **Unlink a cloud backup** | Stop using one backup and keep the other. Its sign-in here is removed. |
+| **Unlink a cloud backup** | Stop using one backup and keep the other. Its sign-in here is removed, including the saved Tesla tokens. |
 | **Register a new signed key** | Make and register another key (Tesla account, Tesla Fleet or Teslemetry sign-in), or upload one. Signed connections only. It continues as a reauthentication on the integration's card. The key in use keeps working: the new one is kept in a file of its own, and the entry switches to it only once the Powerwall has confirmed it (the switch step at the unit) and the connection works with it. The old key file is then removed, unless another Powerwall set up here uses it. |
 
 <details>

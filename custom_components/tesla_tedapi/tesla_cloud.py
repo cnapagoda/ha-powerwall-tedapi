@@ -15,6 +15,8 @@ import time
 from typing import Any
 import urllib.parse
 
+from .const import AUTH_FILE, SITE_FILE
+
 OWNER_API = "https://owner-api.teslamotors.com"
 
 
@@ -167,13 +169,57 @@ def save_token(token_data: dict[str, Any], authpath: str, email: str) -> None:
     from pypowerwall.tesla_auth import save_token as _save  # noqa: PLC0415
 
     os.makedirs(authpath, exist_ok=True)
-    _save(token_data, path=os.path.join(authpath, ".pypowerwall.auth"), email=email)
+    _save(token_data, path=os.path.join(authpath, AUTH_FILE), email=email)
 
 
 def save_site(authpath: str, site_id: int) -> None:
     """Pin cloud mode to this site (.pypowerwall.site)."""
-    with open(os.path.join(authpath, ".pypowerwall.site"), "w", encoding="utf-8") as f:
+    with open(os.path.join(authpath, SITE_FILE), "w", encoding="utf-8") as f:
         f.write(str(site_id))
+
+
+def same_folder(a: str, b: str) -> bool:
+    return os.path.realpath(a) == os.path.realpath(b)
+
+
+def forget_account(authpath: str, email: str, others: list[tuple[str, str]]) -> bool:
+    """Remove a Tesla account's tokens from the token cache in authpath
+    (.pypowerwall.auth), when an entry stops using it.
+
+    others: (authpath, email) of the other entries with a Tesla account. An
+    account another entry uses in the same folder is kept. The cache file is
+    deleted once no account is left in it, and the site pin
+    (.pypowerwall.site) once no other entry uses the folder. A cache that
+    can't be read is left as it is. Returns whether tokens were removed."""
+    sharing = [o_email for o_path, o_email in others if same_folder(o_path, authpath)]
+    if not sharing:
+        try:
+            os.remove(os.path.join(authpath, SITE_FILE))
+        except FileNotFoundError:
+            pass
+    wanted = email.strip().casefold()
+    if not wanted or any(o_email.strip().casefold() == wanted for o_email in sharing):
+        return False
+    path = os.path.join(authpath, AUTH_FILE)
+    try:
+        with open(path, encoding="utf-8") as f:
+            cache = json.load(f)
+    except (OSError, ValueError):
+        return False
+    if not isinstance(cache, dict):
+        return False
+    kept = {name: value for name, value in cache.items() if str(name).strip().casefold() != wanted}
+    if len(kept) == len(cache):
+        return False
+    if not kept:
+        os.remove(path)
+        return True
+    # A new file, owner-only from the start, put in place in one step.
+    tmp = f"{path}.tmp"
+    with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
+        json.dump(kept, f, indent=2)
+    os.replace(tmp, path)
+    return True
 
 
 def _call(method: str, path: str, token: str, data: dict | None = None) -> dict[str, Any]:

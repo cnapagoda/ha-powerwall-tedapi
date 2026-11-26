@@ -1360,6 +1360,27 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         self.hass.config_entries.async_update_entry(self.config_entry, data=data, options=options)
         return self.async_create_entry(data=options)
 
+    async def _async_forget_owner_account(self) -> None:
+        """Remove this entry's Tesla account tokens from the token cache, keeping
+        an account another entry uses. Only in this integration's own folder,
+        where setup saves them: a cache elsewhere (an entry from an older
+        version) may be shared with other integrations that use pypowerwall."""
+        data = self.config_entry.data
+        email = data.get(CONF_OWNERS_EMAIL) or ""
+        authpath = data.get(CONF_OWNERS_AUTHPATH) or ""
+        if not (email and authpath) or not tesla_cloud.same_folder(authpath, self.hass.config.path(STORAGE_FOLDER)):
+            return
+        others = [(entry.data.get(CONF_OWNERS_AUTHPATH) or self.hass.config.config_dir, entry.data[CONF_OWNERS_EMAIL])
+                  for entry in self.hass.config_entries.async_entries(DOMAIN)
+                  if entry.entry_id != self.config_entry.entry_id and entry.data.get(CONF_OWNERS_EMAIL)]
+        try:
+            removed = await self.hass.async_add_executor_job(tesla_cloud.forget_account, authpath, email, others)
+        except OSError as err:
+            _LOGGER.warning("The Tesla sign-in's saved tokens couldn't be removed: %s", scrub(err))
+            return
+        if removed:
+            _LOGGER.info("The Tesla sign-in's saved tokens were removed")
+
     async def async_step_unlink_account(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Stop using one cloud backup: the Owner API (the Tesla account linked
         here is removed) or the Fleet API (its sign-in here is removed)."""
@@ -1368,6 +1389,7 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             if user_input[CONF_BACKUP] == BACKEND_FLEET:
                 data = {k: v for k, v in self.config_entry.data.items() if k not in FLEET_DATA_KEYS}
                 return self._save(data=data, options=self._options_with(CLOUD_WITHOUT_FLEET))
+            await self._async_forget_owner_account()
             data = {k: v for k, v in self.config_entry.data.items()
                     if k not in (CONF_OWNERS_EMAIL, CONF_OWNERS_AUTHPATH, CONF_SITE_ID)}
             return self._save(data=data, options=self._options_with(CLOUD_WITHOUT_OWNER))
