@@ -239,6 +239,14 @@ def _instant_power(aggregates: dict, section: str) -> float | None:
     return round(float(measured["instant_power"]), 1)
 
 
+def _home_power(aggregates: dict) -> float | None:
+    """Home power, never below 0 W: the gateway's load reading dips below
+    zero for a moment now and then, and a home can't use negative power
+    (the energy flows already took it as 0)."""
+    value = _instant_power(aggregates, "load")
+    return max(0.0, value) if value is not None else None
+
+
 STRING_LETTERS = "ABCDEF"
 
 
@@ -816,7 +824,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "solar_power": _instant_power(aggregates, "solar"),
             "battery_power": _instant_power(aggregates, "battery"),
             "grid_power": _instant_power(aggregates, "site"),
-            "home_power": _instant_power(aggregates, "load"),
+            "home_power": _home_power(aggregates),
             "battery_soe": soe_value,
             "battery_level": app_soc(soe_value),
             "grid_status": pw.grid_status(),
@@ -877,7 +885,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "solar_power": _instant_power(aggregates, "solar"),
             "battery_power": _instant_power(aggregates, "battery"),
             "grid_power": _instant_power(aggregates, "site"),
-            "home_power": _instant_power(aggregates, "load"),
+            "home_power": _home_power(aggregates),
             "battery_soe": soe_value,
             "battery_level": app_soc(soe_value),
             "grid_status": grid_status,

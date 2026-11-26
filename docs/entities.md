@@ -40,7 +40,7 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 | Solar power | `sensor.powerwall_tedapi_solar_power` | W | |
 | Battery power | `sensor.powerwall_tedapi_battery_power` | W | + discharging, − charging. |
 | Grid power | `sensor.powerwall_tedapi_grid_power` | W | + importing, − exporting. |
-| Home power | `sensor.powerwall_tedapi_home_power` | W | |
+| Home power | `sensor.powerwall_tedapi_home_power` | W | Never below 0. |
 | Grid import power | `sensor.powerwall_tedapi_grid_import_power` | W | Never negative: 0 while exporting. |
 | Grid export power | `sensor.powerwall_tedapi_grid_export_power` | W | Never negative: 0 while importing. |
 | Battery discharge power | `sensor.powerwall_tedapi_battery_discharge_power` | W | Never negative: 0 while charging. |

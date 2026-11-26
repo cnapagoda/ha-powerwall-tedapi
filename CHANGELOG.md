@@ -9,6 +9,7 @@
 - **Connection path** sensor (diagnostic): how the latest reading came (signed connection, its Wi-Fi fallback, Wi-Fi password, cloud backup only, or none). It stays available when the other entities aren't and then shows when the gateway last answered and the settings it last reported.
 - While the Powerwall refuses the key, readings continue over its own Wi-Fi with the gateway password, read-only, when a **Wi-Fi fallback address** is set. Settings can't be changed over it.
 - Entities that need a cloud backup (Storm Watch, the off-grid reserve, Wall Connectors), the Tesla tariff's, and over the Wi-Fi password connection the settings, are now removed when the backup or the tariff is turned off, rather than left unavailable. They come back when it's turned on again.
+- Fix: **Home power** no longer reads below 0 W. The gateway's load reading dips below zero for a moment now and then; the energy flows already counted it as 0.
 - Fix: **Unlink a cloud backup** removed the Tesla account from the integration, but its saved sign-in tokens stayed in the integration's folder. They're now removed too, unless another Powerwall entry uses the same account.
 
 ## 2.8.3

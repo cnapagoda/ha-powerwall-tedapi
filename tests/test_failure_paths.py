@@ -93,6 +93,27 @@ async def test_a_real_zero_is_kept(hass: HomeAssistant, fake_powerwall) -> None:
     assert hass.states.get(_eid(hass, "sensor", "solar_power")).state == "0.0"
 
 
+async def test_home_power_never_below_zero(hass: HomeAssistant, fake_powerwall) -> None:
+    """2.9.0: the gateway's load reading dips below 0 W now and then."""
+    dip = {"site": {"instant_power": -2500.0}, "battery": {"instant_power": 0.0},
+           "solar": {"instant_power": 1700.0}, "load": {"instant_power": -804.0}}
+    with patch.multiple(FakePowerwall, poll=lambda self, path: dip, power=lambda self: dict(ZERO_POWER)):
+        entry = await _setup(hass, V1R)
+        coordinator = entry.runtime_data.coordinator
+        assert coordinator.data["home_power"] == 0.0
+        assert hass.states.get(_eid(hass, "sensor", "home_power")).state == "0.0"
+        # Fast polls too.
+        assert coordinator._fetch_live(local(fake_powerwall))["home_power"] == 0.0
+
+
+def test_cloud_home_power_never_below_zero() -> None:
+    from custom_components.tesla_tedapi.cloud import live_readings  # noqa: PLC0415
+
+    assert live_readings({"load_power": -120.5, "solar_power": 10})["home_power"] == 0.0
+    assert live_readings({"load_power": 300})["home_power"] == 300.0
+    assert "home_power" not in live_readings({"solar_power": 10})
+
+
 async def test_din_read_failing_retries_setup(hass: HomeAssistant, fake_powerwall) -> None:
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R, title="Powerwall")
     entry.add_to_hass(hass)

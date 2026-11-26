@@ -200,9 +200,13 @@ def live_time(live: dict[str, Any], read_at: datetime) -> datetime:
 
 
 def live_readings(live: dict[str, Any]) -> dict[str, float]:
-    """The readings in LIVE_READINGS that the live status has a number for."""
-    return {key: round(float(live[source]), 1) for key, source in LIVE_READINGS.items()
-            if _number((live or {}).get(source))}
+    """The readings in LIVE_READINGS that the live status has a number for.
+    Home power never below 0 W, as from the gateway."""
+    readings = {key: round(float(live[source]), 1) for key, source in LIVE_READINGS.items()
+                if _number((live or {}).get(source))}
+    if "home_power" in readings:
+        readings["home_power"] = max(0.0, readings["home_power"])
+    return readings
 
 
 class OwnerSettings:
