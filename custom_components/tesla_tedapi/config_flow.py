@@ -67,6 +67,7 @@ from .const import (
     CONF_DIAGNOSTICS_GATEWAY,
     CONF_DISPATCH_FLOOR_RESERVE,
     CONF_DISPATCH_MAX_WATTS,
+    CONF_DISPATCH_STALE_MINUTES,
     CONF_FLEET_PROVIDER,
     CONF_FLEET_SERVER,
     CONF_FLEET_SITE_ID,
@@ -97,6 +98,9 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DISPATCH_DEFAULT_WATTS,
     DISPATCH_MAX_WATTS,
+    DISPATCH_STALE_MINUTES_MAX,
+    DISPATCH_STALE_MINUTES_MIN,
+    DISPATCH_STALE_SECONDS,
     DOMAIN,
     FLEET_DATA_KEYS,
     MAX_POWER_INTERVAL,
@@ -1408,6 +1412,9 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                     vol.Required(CONF_DISPATCH_MAX_WATTS, default=opts.get(
                         CONF_DISPATCH_MAX_WATTS, DISPATCH_DEFAULT_WATTS)): vol.All(
                             box(100, DISPATCH_MAX_WATTS, 100, "W"), vol.Coerce(int)),
+                    vol.Required(CONF_DISPATCH_STALE_MINUTES, default=opts.get(
+                        CONF_DISPATCH_STALE_MINUTES, DISPATCH_STALE_SECONDS // 60)): vol.All(
+                            box(DISPATCH_STALE_MINUTES_MIN, DISPATCH_STALE_MINUTES_MAX, 1, "min"), vol.Coerce(int)),
                 }), {"collapsed": False}),
                 vol.Required("advanced"): section(vol.Schema(advanced), {"collapsed": True}),
             }),

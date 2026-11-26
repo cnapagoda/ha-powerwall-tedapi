@@ -296,11 +296,13 @@
             "name": "Batterijsturing",
             "data": {
               "dispatch_floor_reserve": "Ontladen stopt bij de back-upreserve",
-              "dispatch_max_watts": "Grootste dispatch-vermogen"
+              "dispatch_max_watts": "Grootste dispatch-vermogen",
+              "dispatch_stale_minutes": "Zo oud mag het batterijniveau zijn"
             },
             "data_description": {
               "dispatch_floor_reserve": "Een ontlading die zonder `min_soc` is gestart, stopt als de batterij de back-upreserve bereikt.",
-              "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd (hoogstens 30.000 W). Stel in wat je systeem kan leveren: één Powerwall 3 weigert meer dan 10.000 W. Verhogen is jouw verantwoordelijkheid: stel alleen in wat je bedrading, groepen, gateway en netaansluiting toelaten."
+              "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd (hoogstens 30.000 W). Stel in wat je systeem kan leveren: één Powerwall 3 weigert meer dan 10.000 W. Verhogen is jouw verantwoordelijkheid: stel alleen in wat je bedrading, groepen, gateway en netaansluiting toelaten.",
+              "dispatch_stale_minutes": "Laden of ontladen wordt alleen gestart of verlengd op een batterijniveau van hoogstens deze leeftijd (1–5 minuten, standaard 2; nooit minder dan 2½ pollintervallen). Tijdens een sturing negeert de Powerwall zijn back-upreserve, en de grenzen worden tegen dit niveau gecontroleerd: elke minuut extra laat een sturing van 10 kW ongeveer 0,17 kWh verder voorbij een grens gaan. Verhoog het alleen als een trage verbinding sturingen steeds pauzeert."
             }
           },
           "advanced": {

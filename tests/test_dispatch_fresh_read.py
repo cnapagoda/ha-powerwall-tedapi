@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
+import pytest
 
 from custom_components.tesla_tedapi.const import DOMAIN
 
@@ -176,3 +177,40 @@ async def test_an_extra_read_without_a_level(hass: HomeAssistant, fake_powerwall
     freezer.tick(timedelta(seconds=300))
     with patch.object(local(fake_powerwall), "level", return_value=None):
         assert not await entry.runtime_data.coordinator.async_read_battery_level(5)
+
+
+# ---- how old the battery level may be: an option (2.9.0) ----
+
+
+@pytest.mark.parametrize(("minutes", "limit"), [
+    (None, 120), (4, 240), (5, 300), (99, 300), (0, 75), ("x", 120), (True, 120)])
+async def test_the_stale_limit_option(hass: HomeAssistant, fake_powerwall, minutes, limit) -> None:
+    """1-5 minutes (default 2), and never under 2.5 polls (30 s here: 75 s)."""
+    options = {} if minutes is None else {"dispatch_stale_minutes": minutes}
+    entry = await _setup(hass, V1R, options)
+    assert entry.runtime_data.dispatch._stale_limit() == limit
+
+
+async def test_a_longer_limit_keeps_renewing(hass: HomeAssistant, fake_powerwall, freezer, caplog) -> None:
+    entry = await _setup(hass, V1R, {"dispatch_stale_minutes": 4})
+    session = entry.runtime_data.dispatch
+    coordinator = entry.runtime_data.coordinator
+    await _dispatch(hass)
+    pw = local(fake_powerwall)
+    sent = len(pw.dispatches)
+    coordinator._unschedule_refresh()
+    freezer.tick(timedelta(seconds=200))  # older than 2 minutes, within 4
+    with patch.object(coordinator, "async_read_battery_level", return_value=False), \
+            caplog.at_level(logging.WARNING):
+        await _tick(hass, session)
+    assert len(pw.dispatches) > sent
+    assert "not renewed" not in caplog.text
+
+
+async def test_the_option_applies_without_a_reload(hass: HomeAssistant, fake_powerwall) -> None:
+    entry = await _setup(hass, V1R)
+    coordinator = entry.runtime_data.coordinator
+    hass.config_entries.async_update_entry(entry, options={**entry.options, "dispatch_stale_minutes": 3})
+    await hass.async_block_till_done()
+    assert entry.runtime_data.coordinator is coordinator
+    assert entry.runtime_data.dispatch._stale_limit() == 180

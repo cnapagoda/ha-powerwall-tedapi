@@ -296,11 +296,13 @@
             "name": "Despacho da bateria",
             "data": {
               "dispatch_floor_reserve": "Descargas param na reserva de backup",
-              "dispatch_max_watts": "Maior potência de despacho"
+              "dispatch_max_watts": "Maior potência de despacho",
+              "dispatch_stale_minutes": "Idade máxima do nível da bateria"
             },
             "data_description": {
               "dispatch_floor_reserve": "Uma descarga iniciada sem `min_soc` para quando a bateria chega à reserva de backup.",
-              "dispatch_max_watts": "Chamadas de dispatch acima desta potência são recusadas (no máximo 30.000 W). Ajuste para o que seu sistema pode fornecer: uma Powerwall 3 recusa mais de 10.000 W. Aumentá-la é sua responsabilidade: defina apenas o que sua fiação, disjuntores, gateway e conexão à rede permitem."
+              "dispatch_max_watts": "Chamadas de dispatch acima desta potência são recusadas (no máximo 30.000 W). Ajuste para o que seu sistema pode fornecer: uma Powerwall 3 recusa mais de 10.000 W. Aumentá-la é sua responsabilidade: defina apenas o que sua fiação, disjuntores, gateway e conexão à rede permitem.",
+              "dispatch_stale_minutes": "Uma carga ou descarga só é iniciada ou renovada com um nível de bateria de no máximo esta idade (1–5 minutos, padrão 2; nunca menos que 2½ intervalos de leitura). Durante um despacho o Powerwall ignora a reserva de backup, e os limites são conferidos com este nível: cada minuto a mais deixa um despacho de 10 kW passar cerca de 0,17 kWh além de um limite. Aumente só se uma conexão lenta ficar pausando os despachos."
             }
           },
           "advanced": {

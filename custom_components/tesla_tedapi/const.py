@@ -35,6 +35,12 @@ MAX_POWER_INTERVAL = 60
 CONF_CLOUD_READINGS = "cloud_readings"
 CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
 CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
+# How old the battery level may be for a dispatch to start or renew (minutes;
+# 2.9.0). Bounded: during a dispatch the Powerwall ignores its backup reserve,
+# and the older the level, the further a dispatch can run past its limits.
+CONF_DISPATCH_STALE_MINUTES = "dispatch_stale_minutes"
+DISPATCH_STALE_MINUTES_MIN = 1
+DISPATCH_STALE_MINUTES_MAX = 5
 # Which cloud backup to use and in what order (one of CLOUD_CHOICES).
 CONF_CLOUD_BACKENDS = "cloud_backends"
 # MQTT publishing (optional, off by default; 2.9.0): the readings, settings,
@@ -60,6 +66,7 @@ def valid_base_topic(topic: str) -> bool:
 LIVE_OPTIONS = frozenset({
     CONF_SCAN_INTERVAL, CONF_RESTORE_EXPORT, CONF_STATUS_EVENTS, CONF_PROBLEM_MINUTES,
     CONF_DISPATCH_FLOOR_RESERVE, CONF_DISPATCH_MAX_WATTS, CONF_DIAGNOSTICS_GATEWAY, CONF_CLOUD_READINGS,
+    CONF_DISPATCH_STALE_MINUTES,
 })
 
 # The gateway's network MAC addresses (lower case, no separators), learnt

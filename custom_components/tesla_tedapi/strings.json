@@ -296,11 +296,13 @@
             "name": "Battery dispatch",
             "data": {
               "dispatch_floor_reserve": "Discharges stop at the backup reserve",
-              "dispatch_max_watts": "Largest dispatch power"
+              "dispatch_max_watts": "Largest dispatch power",
+              "dispatch_stale_minutes": "Battery level may be this old"
             },
             "data_description": {
               "dispatch_floor_reserve": "A discharge started without `min_soc` stops when the battery reaches the backup reserve.",
-              "dispatch_max_watts": "Dispatch calls above this power are refused (at most 30,000 W). Set it to what your system can deliver: one Powerwall 3 refuses more than 10,000 W. Raising it is your responsibility: only set what your wiring, breakers, gateway and grid connection allow."
+              "dispatch_max_watts": "Dispatch calls above this power are refused (at most 30,000 W). Set it to what your system can deliver: one Powerwall 3 refuses more than 10,000 W. Raising it is your responsibility: only set what your wiring, breakers, gateway and grid connection allow.",
+              "dispatch_stale_minutes": "A charge or discharge is only started or renewed on a battery level at most this old (1–5 minutes, default 2; never less than 2½ polling intervals). During a dispatch the Powerwall ignores its backup reserve, and its limits are checked against this level: each extra minute lets a 10 kW dispatch run about 0.17 kWh further past a limit. Raise it only if a slow connection keeps pausing dispatches."
             }
           },
           "advanced": {

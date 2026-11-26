@@ -25,11 +25,14 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_DISPATCH_FLOOR_RESERVE,
     CONF_DISPATCH_MAX_WATTS,
+    CONF_DISPATCH_STALE_MINUTES,
     DISPATCH_CHUNK_SECONDS,
     DISPATCH_DEFAULT_WATTS,
     DISPATCH_FRESH_READ_SECONDS,
     DISPATCH_MAX_FAILURES,
     DISPATCH_RENEW_SECONDS,
+    DISPATCH_STALE_MINUTES_MAX,
+    DISPATCH_STALE_MINUTES_MIN,
     DISPATCH_STALE_POLLS,
     DISPATCH_STALE_SECONDS,
     DOMAIN,
@@ -313,11 +316,17 @@ class DispatchSession:
         return None if read_at is None else (dt_util.utcnow() - read_at).total_seconds()
 
     def _stale_limit(self) -> float:
-        """How old the battery level may be to renew on: 2 minutes, or 2.5
-        polling intervals on a slower poll."""
+        """How old the battery level may be to start or renew on: the
+        option (1-5 minutes, default 2), or 2.5 polling intervals on a slower
+        poll. Read each time: the option changes without a reload."""
+        minutes = self.coordinator.config_entry.options.get(CONF_DISPATCH_STALE_MINUTES)
+        if isinstance(minutes, (int, float)) and not isinstance(minutes, bool):
+            limit = min(max(float(minutes), DISPATCH_STALE_MINUTES_MIN), DISPATCH_STALE_MINUTES_MAX) * 60
+        else:
+            limit = float(DISPATCH_STALE_SECONDS)
         interval = self.coordinator.update_interval
         polls = interval.total_seconds() * DISPATCH_STALE_POLLS if interval else 0
-        return max(DISPATCH_STALE_SECONDS, polls)
+        return max(limit, polls)
 
     async def _async_fresh_level(self, window: float) -> bool:
         """One extra read when the battery level is too old to go on: True if
