@@ -1968,8 +1968,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _track_flows(self, data: dict[str, Any]) -> None:
         """Energy flows from the gateway's power readings (never the cloud's)."""
         if data.get("local_ok"):
-            self.flows.update(dt_util.utcnow(), data.get("solar_power"), data.get("battery_power"),
-                              data.get("grid_power"), data.get("home_power"))
+            # The lifetime counters on full reads only: fast polls carry the
+            # last full read's.
+            counters = data.get("energy") if data.get("full_read", True) else None
+            filled = self.flows.update(dt_util.utcnow(), data.get("solar_power"), data.get("battery_power"),
+                                       data.get("grid_power"), data.get("home_power"), counters=counters)
+            if filled > 0:
+                _LOGGER.info("Energy flows: %.2f kWh filled in from the lifetime counters after a gap", filled)
         else:
             self.flows.pause()
         data["flows"] = self.flows.summary()
