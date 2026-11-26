@@ -1348,6 +1348,10 @@
     "mqtt_unavailable": {
       "title": "La publicación MQTT no puede empezar",
       "description": "La publicación MQTT está activada para {name}, pero la integración MQTT de Home Assistant no está configurada o no arrancó. Configura la integración MQTT, o desactiva la publicación en las opciones de la integración (**Configurar → MQTT**). Todo lo demás sigue funcionando."
+    },
+    "wrong_gateway": {
+      "title": "Otra Powerwall responde en la dirección de {name}",
+      "description": "La puerta de enlace en la dirección configurada para {name} es otra Powerwall (su identificador no coincide), por ejemplo después de que el router diera la dirección a otro dispositivo. No se lee nada de ella ni se le envía nada. Pon la dirección correcta en **Reconfigurar** (una dirección fija o una reserva DHCP para la puerta de enlace lo evita). Este aviso desaparece cuando la puerta de enlace de {name} vuelve a responder allí."
     }
   },
   "selector": {

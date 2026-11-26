@@ -1348,6 +1348,10 @@
     "mqtt_unavailable": {
       "title": "Publikowanie MQTT nie może się uruchomić",
       "description": "Publikowanie MQTT jest włączone dla {name}, ale integracja MQTT Home Assistant nie jest skonfigurowana albo się nie uruchomiła. Skonfiguruj integrację MQTT albo wyłącz publikowanie w opcjach integracji (**Konfiguruj → MQTT**). Wszystko inne działa dalej."
+    },
+    "wrong_gateway": {
+      "title": "Pod adresem {name} odpowiada inny Powerwall",
+      "description": "Brama pod adresem ustawionym dla {name} to inny Powerwall (jego identyfikator się nie zgadza), na przykład po tym, jak router przydzielił adres innemu urządzeniu. Nic nie jest z niej odczytywane ani do niej wysyłane. Ustaw właściwy adres w **Ponowna konfiguracja** (stały adres lub rezerwacja DHCP dla bramy temu zapobiega). To powiadomienie zniknie, gdy własna brama {name} znów tam odpowie."
     }
   },
   "selector": {

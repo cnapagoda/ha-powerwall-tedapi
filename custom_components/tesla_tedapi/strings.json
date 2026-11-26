@@ -1348,6 +1348,10 @@
     "mqtt_unavailable": {
       "title": "MQTT publishing can't start",
       "description": "MQTT publishing is on for {name}, but Home Assistant's MQTT integration isn't set up or didn't start. Set up the MQTT integration, or turn publishing off in the integration's options (**Configure → MQTT**). Everything else keeps working."
+    },
+    "wrong_gateway": {
+      "title": "A different Powerwall answers at {name}'s address",
+      "description": "The gateway at the address set for {name} is another Powerwall (its ID doesn't match), for example after the router gave the address to another device. Nothing is read from it or sent to it. Set the right address under **Reconfigure** (a fixed address or DHCP reservation for the gateway prevents this). This notice goes away once {name}'s own gateway answers there again."
     }
   },
   "selector": {

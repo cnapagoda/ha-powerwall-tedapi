@@ -323,6 +323,11 @@ def _key_refused(pw: Any) -> bool | None:
     return bool(getattr(transport, "key_unknown", False) or getattr(transport, "pending_verification", False))
 
 
+class WrongGateway(Exception):
+    """The gateway at the entry's address is another Powerwall (its DIN isn't
+    the entry's): a second site, or an address handed to another device."""
+
+
 def _lan_failed(pw: Any) -> bool:
     """Whether pypowerwall's signed client has failed over to the Wi-Fi
     fallback address (the home-network address stopped answering)."""
@@ -615,6 +620,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._key_refused = 0
         self._client_error_logged = False
         self._reauth_started = False
+        # The gateway at the address is another Powerwall (repair up).
+        self._wrong_gateway = False
         # The last failed signed read was a refused key (password fine): then
         # readings come over the Powerwall's Wi-Fi with its password instead,
         # read-only, through a client of their own (writes never use it).
@@ -875,6 +882,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # pypowerwall keeps the cached login. An empty DIN is the tell:
             # raise so a fresh client (new login) is built on the next poll.
             raise RuntimeError("no DIN from the gateway, reconnecting")
+        if not self._same_gateway(din):
+            # Before any setting is read or written back.
+            raise WrongGateway("the gateway at this address is a different Powerwall")
 
         control = self._read_control(pw) if self.control_enabled else {}
         site_info = self._read_site_info(pw) if self.control_enabled else None
@@ -1672,14 +1682,19 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 key_refused = _key_refused(self._pw)
                 self._pw = None
                 self._full_at = None  # a full read first once it answers again
-                if _client_mismatch(err):
+                wrong = isinstance(err, WrongGateway)
+                if wrong:
+                    # Not this Powerwall: its answers say nothing about our
+                    # password or key, and nothing is read from it.
+                    self._sync_wrong_gateway(True)
+                elif _client_mismatch(err):
                     # Not an answer from the gateway: don't count it as a
                     # refused password or key (that would ask for new access).
                     self._note_client_error(err)
                 else:
                     await self._async_note_local_failure(key_refused)
                 readonly = (await self.hass.async_add_executor_job(self._fetch_readonly)
-                            if self._readonly_wanted() else None)
+                            if self._readonly_wanted() and not wrong else None)
                 if readonly is not None:
                     data = readonly
                     if not self._readonly:
@@ -1697,6 +1712,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         _LOGGER.warning("%s: the gateway can't be reached (%s); readings are unavailable "
                                         "and settings use the cloud backup", self._log_name, scrub(err))
             else:
+                self._sync_wrong_gateway(False)
                 self._password_refused = self._key_refused = 0
                 self._key_refused_now = False
                 self._readonly_pw = None
@@ -2165,6 +2181,31 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return "network"
         return "stalled" if key_refused is False else "key"
 
+    def _same_gateway(self, din: str) -> bool:
+        """Whether the gateway that answered is this entry's (its DIN). An
+        entry whose id isn't a DIN has nothing to compare with."""
+        expected = self.config_entry.unique_id or ""
+        return "--" not in expected or din.strip().upper() == expected.strip().upper()
+
+    @callback
+    def _sync_wrong_gateway(self, wrong: bool) -> None:
+        """A repair while the address reaches another Powerwall; gone once
+        this one answers there again."""
+        if wrong == self._wrong_gateway:
+            return
+        self._wrong_gateway = wrong
+        issue_id = f"wrong_gateway_{self.config_entry.entry_id}"
+        if not wrong:
+            _LOGGER.info("%s: its own gateway answers at the address again", self._log_name)
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        _LOGGER.warning("%s: the gateway at its address is a different Powerwall; nothing is read from it "
+                        "or sent to it", self._log_name)
+        ir.async_create_issue(
+            self.hass, DOMAIN, issue_id, is_fixable=False, is_persistent=False,
+            severity=ir.IssueSeverity.ERROR, translation_key="wrong_gateway",
+            translation_placeholders={"name": self._log_name})
+
     def _readonly_wanted(self) -> bool:
         """Read over the Powerwall's Wi-Fi with its password: only while the
         gateway refuses the key, on a signed connection with an address on
@@ -2371,6 +2412,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def async_clear_issues(self) -> None:
         ir.async_delete_issue(self.hass, DOMAIN, f"fleet_signin_{self.config_entry.entry_id}")
+        ir.async_delete_issue(self.hass, DOMAIN, f"wrong_gateway_{self.config_entry.entry_id}")
+        self._wrong_gateway = False
         for issue_id in self._issues | self._write_issues:
             ir.async_delete_issue(self.hass, DOMAIN, issue_id)
         self._issues = set()

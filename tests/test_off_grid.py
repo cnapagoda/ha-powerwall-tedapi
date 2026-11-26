@@ -14,7 +14,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry, async_
 
 from custom_components.tesla_tedapi.const import DOMAIN, EVENT_OFF_GRID_ENDED
 
-from .conftest import local
+from .conftest import DIN, local
 from .test_storm import V1R, WIFI, _eid, _refresh, _setup
 
 
@@ -239,7 +239,7 @@ async def test_waits_between_status_reads(hass: HomeAssistant, fake_powerwall) -
 
 
 async def test_broken_saved_run_is_dropped(hass: HomeAssistant, fake_powerwall, hass_storage) -> None:
-    entry = MockConfigEntry(domain=DOMAIN, unique_id="0000000-00-A--TG000000000000", data=V1R, minor_version=2)
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R, minor_version=2)
     hass_storage[f"{DOMAIN}.{entry.entry_id}.off_grid"] = {
         "version": 1, "key": f"{DOMAIN}.{entry.entry_id}.off_grid", "data": {"started": "not a time"}}
     entry.add_to_hass(hass)

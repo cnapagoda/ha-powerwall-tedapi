@@ -1348,6 +1348,10 @@
     "mqtt_unavailable": {
       "title": "MQTT-publicatie kan niet starten",
       "description": "MQTT-publicatie staat aan voor {name}, maar de MQTT-integratie van Home Assistant is niet ingesteld of niet gestart. Stel de MQTT-integratie in, of zet publiceren uit in de opties van de integratie (**Configureren → MQTT**). Al het andere blijft werken."
+    },
+    "wrong_gateway": {
+      "title": "Op het adres van {name} antwoordt een andere Powerwall",
+      "description": "De gateway op het adres dat voor {name} is ingesteld is een andere Powerwall (de ID komt niet overeen), bijvoorbeeld nadat de router het adres aan een ander apparaat gaf. Er wordt niets van gelezen of naartoe gestuurd. Stel het juiste adres in onder **Opnieuw configureren** (een vast adres of DHCP-reservering voor de gateway voorkomt dit). Deze melding verdwijnt zodra de eigen gateway van {name} daar weer antwoordt."
     }
   },
   "selector": {

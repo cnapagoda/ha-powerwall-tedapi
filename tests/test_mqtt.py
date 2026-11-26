@@ -228,7 +228,9 @@ async def test_options_turn_it_off_clears_the_retained_messages(hass: HomeAssist
 async def test_options_a_second_powerwall_gets_its_own_topic(hass: HomeAssistant, fake_powerwall,
                                                              mqtt_mock) -> None:
     await _setup(hass, ON)
-    other = await _setup(hass, unique_id="1707000-11-J--TG0000000000OTHER")
+    # Not loaded (it's another gateway): its options still open.
+    other = MockConfigEntry(domain=DOMAIN, unique_id="1707000-11-J--TG0000000000OTHER", data=V1R, minor_version=2)
+    other.add_to_hass(hass)
     result = await _mqtt_step(hass, other)
     assert _default(result, "mqtt_base_topic") == f"{BASE}_2"
     result = await hass.config_entries.options.async_configure(
