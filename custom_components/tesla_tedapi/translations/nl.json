@@ -968,6 +968,9 @@
     },
     "key_not_removed": {
       "message": "De sleutel is niet verwijderd: {error}"
+    },
+    "off_grid_daily_limit": {
+      "message": "De vandaag toegestane off-grid tijd om zonne-energie te begrenzen ({minutes} min) is op."
     }
   },
   "services": {
@@ -1094,6 +1097,14 @@
         "min_soc": {
           "name": "Opnieuw verbinden bij",
           "description": "Opnieuw verbinden als het batterijniveau (schaal van de Tesla-app) tot dit percentage daalt. Standaard: de back-upreserve."
+        },
+        "curtailment": {
+          "name": "Om zonne-energie te begrenzen",
+          "description": "Laatste redmiddel om zonne-energie op de eigen ingangen van de Powerwall te begrenzen: off-grid produceert hij alleen wat huis en batterij opnemen. Verbindt opnieuw als de batterij tot 40% daalt (of de back-upreserve, als die hoger is), tenzij Opnieuw verbinden bij is ingesteld, om middernacht en zodra de daglimiet op is. Schakelen van het netcontactor geeft slijtage: probeer eerst teruglevering *never*."
+        },
+        "daily_limit_minutes": {
+          "name": "Daglimiet",
+          "description": "Met Om zonne-energie te begrenzen: toegestane off-grid tijd per dag om te begrenzen (standaard 6 uur)."
         }
       }
     },
@@ -1104,6 +1115,10 @@
         "config_entry_id": {
           "name": "Powerwall",
           "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "curtailment_only": {
+          "name": "Alleen een begrenzing",
+          "description": "Verbindt alleen opnieuw als het huis hier off-grid ging om zonne-energie te begrenzen; anders gebeurt er niets. Voor automatiseringen die geen off-grid periode mogen beëindigen die ze niet zelf startten."
         }
       }
     },

@@ -72,6 +72,7 @@ The **[Grid outage alert](automations.md#blueprints)** blueprint does this for y
 | `config_entry_id` | The Powerwall. |
 | `reason` | `completed` (the duration ran out), `min_soc` (the battery fell to the reconnect level), `requested` (`reconnect_grid` was called, or **Reconnect to the grid** was pressed), or `reconnected_elsewhere` (for example in the Tesla app). |
 | `battery_level` | **Battery level** when it ended. |
+| `curtailment` | Whether the run was started with `curtailment`. |
 
 ---
 

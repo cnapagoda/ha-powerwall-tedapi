@@ -968,6 +968,9 @@
     },
     "key_not_removed": {
       "message": "La clé n'a pas été supprimée : {error}"
+    },
+    "off_grid_daily_limit": {
+      "message": "Le temps hors réseau permis aujourd'hui pour écrêter le solaire ({minutes} min) est épuisé."
     }
   },
   "services": {
@@ -1094,6 +1097,14 @@
         "min_soc": {
           "name": "Reconnecter à",
           "description": "Reconnecter quand le niveau de la batterie (échelle de l'application Tesla) descend à ce pourcentage. Par défaut : la réserve de secours."
+        },
+        "curtailment": {
+          "name": "Pour écrêter le solaire",
+          "description": "Dernier recours pour limiter le solaire sur les entrées propres de la Powerwall : hors réseau, elle ne produit que ce que la maison et la batterie absorbent. Reconnecte quand la batterie descend à 40 % (ou à la réserve de secours, si plus haute) sauf si Reconnecter à est indiqué, à minuit, et une fois la limite quotidienne atteinte. Commuter le contacteur l'use : essayez d'abord l'export réseau *never*."
+        },
+        "daily_limit_minutes": {
+          "name": "Limite quotidienne",
+          "description": "Avec Pour écrêter le solaire : temps hors réseau permis par jour pour écrêter (6 heures par défaut)."
         }
       }
     },
@@ -1104,6 +1115,10 @@
         "config_entry_id": {
           "name": "Powerwall",
           "description": "Nécessaire uniquement si plusieurs Powerwall sont configurées."
+        },
+        "curtailment_only": {
+          "name": "Seulement un écrêtage",
+          "description": "Reconnecte seulement si la maison est passée hors réseau ici pour écrêter le solaire ; sinon ne fait rien. Pour les automatisations qui ne doivent pas terminer un passage hors réseau qu'elles n'ont pas lancé."
         }
       }
     },

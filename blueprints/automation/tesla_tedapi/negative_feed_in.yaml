@@ -8,6 +8,14 @@ blueprint:
     exporting. A separate solar inverter keeps exporting; limit it through its
     own integration. Works with any price sensor (Amber, Octopus, Nord Pool,
     Tibber, ...).
+
+    Optional last resort (off by default): if the Powerwall still exports
+    with export set to *never*, take the house off-grid for curtailment, so
+    the Powerwall's own solar only produces what the house and battery take,
+    and reconnect when the price is back. Needs the signed connection. It
+    stops at a battery floor, a daily limit and midnight, and never ends an
+    off-grid run it didn't start. Switching the grid contactor causes wear
+    and may affect your warranty: see the integration's Safety page.
   domain: automation
   source_url: https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/blueprints/automation/tesla_tedapi/negative_feed_in.yaml
   input:
@@ -50,6 +58,66 @@ blueprint:
           options:
             - battery_ok
             - pv_only
+    last_resort:
+      name: Last resort - go off-grid
+      collapsed: true
+      input:
+        off_grid:
+          name: Go off-grid if it still exports
+          description: >-
+            Only for solar on the Powerwall's own inputs (Powerwall 3). Off by
+            default.
+          default: false
+          selector:
+            boolean:
+        grid_power:
+          name: Powerwall Grid power
+          description: Needed with the option above (positive is import, negative export).
+          default: ""
+          selector:
+            entity:
+              integration: tesla_tedapi
+              domain: sensor
+              device_class: power
+        export_watts:
+          name: Export above (W)
+          default: 200
+          selector:
+            number:
+              min: 0
+              max: 30000
+              step: 50
+              unit_of_measurement: W
+              mode: box
+        off_grid_minutes:
+          name: For at least (minutes)
+          description: How long it must keep exporting with export set to never.
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 60
+              unit_of_measurement: min
+        min_soc:
+          name: Reconnect at
+          description: Reconnect when the battery falls to this level.
+          default: 40
+          selector:
+            number:
+              min: 5
+              max: 100
+              unit_of_measurement: "%"
+        daily_limit:
+          name: Daily limit (minutes)
+          description: Off-grid time for curtailment allowed per day.
+          default: 360
+          selector:
+            number:
+              min: 10
+              max: 1440
+              step: 10
+              unit_of_measurement: min
+              mode: box
 
 mode: queued
 max: 5
@@ -57,6 +125,15 @@ max: 5
 variables:
   export_select: !input export_select
   restore: !input restore
+  feed_in_price: !input feed_in_price
+  threshold: !input threshold
+  min_soc: !input min_soc
+  daily_limit: !input daily_limit
+
+trigger_variables:
+  off_grid: !input off_grid
+  grid_power: !input grid_power
+  export_watts: !input export_watts
 
 triggers:
   - trigger: numeric_state
@@ -71,6 +148,12 @@ triggers:
     above: !input threshold
     for:
       minutes: !input minutes
+  - trigger: template
+    id: still_exporting
+    value_template: >-
+      {{ off_grid and grid_power != '' and states(grid_power) | float(0) < -export_watts }}
+    for:
+      minutes: !input off_grid_minutes
 
 actions:
   - choose:
@@ -87,12 +170,39 @@ actions:
               option: never
       - conditions:
           - condition: trigger
-            id: back
+            id: still_exporting
           - condition: template
-            value_template: "{{ is_state(export_select, 'never') }}"
+            value_template: >-
+              {{ is_state(export_select, 'never')
+                 and states(feed_in_price) | float(1000) < threshold | float }}
         sequence:
-          - action: select.select_option
-            target:
-              entity_id: !input export_select
+          - action: tesla_tedapi.go_off_grid
             data:
-              option: "{{ restore }}"
+              config_entry_id: "{{ config_entry_id(export_select) }}"
+              confirm: true
+              curtailment: true
+              min_soc: "{{ min_soc }}"
+              daily_limit_minutes: "{{ daily_limit | int }}"
+      - conditions:
+          - condition: trigger
+            id: back
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ off_grid }}"
+            then:
+              # Only a run this started for curtailment; waits until the
+              # Powerwall syncs back to the grid.
+              - action: tesla_tedapi.reconnect_grid
+                data:
+                  config_entry_id: "{{ config_entry_id(export_select) }}"
+                  curtailment_only: true
+          - if:
+              - condition: template
+                value_template: "{{ is_state(export_select, 'never') }}"
+            then:
+              - action: select.select_option
+                target:
+                  entity_id: !input export_select
+                data:
+                  option: "{{ restore }}"

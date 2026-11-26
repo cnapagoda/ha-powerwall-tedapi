@@ -278,6 +278,12 @@ CONTACTOR_WAIT_SECONDS = 90
 CONTACTOR_POLL_SECONDS = 5
 # An automatic reconnect that fails is tried again this often.
 RECONNECT_RETRY_SECONDS = 60
+# Off-grid as last-resort solar curtailment (go_off_grid with curtailment,
+# 2.9.0): such runs stop at this battery level (or the backup reserve, if
+# higher) unless min_soc is given, add up to at most this many minutes a day
+# (local time) unless daily_limit_minutes is given, and end at midnight.
+OFF_GRID_CURTAIL_MIN_SOC = 40
+OFF_GRID_CURTAIL_DAILY_MINUTES = 360
 EVENT_OFF_GRID_ENDED = f"{DOMAIN}_off_grid_ended"
 # A grid outage started or ended (not an off-grid run started here).
 EVENT_GRID_OUTAGE = f"{DOMAIN}_grid_outage"
@@ -320,6 +326,9 @@ ATTR_MIN_SOC = "min_soc"
 ATTR_MAX_SOC = "max_soc"
 ATTR_DURATION_MINUTES = "duration_minutes"
 ATTR_CONFIRM = "confirm"
+ATTR_CURTAILMENT = "curtailment"
+ATTR_DAILY_LIMIT_MINUTES = "daily_limit_minutes"
+ATTR_CURTAILMENT_ONLY = "curtailment_only"
 ATTR_TARGET_SOC = "target_soc"
 ATTR_MAX_MINUTES = "max_minutes"
 

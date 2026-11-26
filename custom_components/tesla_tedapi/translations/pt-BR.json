@@ -968,6 +968,9 @@
     },
     "key_not_removed": {
       "message": "A chave não foi removida: {error}"
+    },
+    "off_grid_daily_limit": {
+      "message": "O tempo fora da rede permitido hoje para limitar a solar ({minutes} min) se esgotou."
     }
   },
   "services": {
@@ -1094,6 +1097,14 @@
         "min_soc": {
           "name": "Reconectar em",
           "description": "Reconectar quando o nível da bateria (escala do app da Tesla) cair para esta porcentagem. Padrão: a reserva de backup."
+        },
+        "curtailment": {
+          "name": "Para limitar a solar",
+          "description": "Último recurso para limitar a solar nas entradas próprias da Powerwall: fora da rede ela só produz o que a casa e a bateria consomem. Reconecta quando a bateria cai para 40% (ou para a reserva de backup, se maior), a menos que Reconectar em seja informado, à meia-noite e quando o limite diário se esgota. Comutar o contator causa desgaste: tente antes a exportação para a rede *never*."
+        },
+        "daily_limit_minutes": {
+          "name": "Limite diário",
+          "description": "Com Para limitar a solar: tempo fora da rede permitido por dia para limitar a solar (padrão 6 horas)."
         }
       }
     },
@@ -1104,6 +1115,10 @@
         "config_entry_id": {
           "name": "Powerwall",
           "description": "Necessário só quando há mais de uma Powerwall configurada."
+        },
+        "curtailment_only": {
+          "name": "Só uma limitação",
+          "description": "Reconecta só se a casa foi desconectada aqui para limitar a solar; caso contrário, não faz nada. Para automações que não devem encerrar uma desconexão que não iniciaram."
         }
       }
     },

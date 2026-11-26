@@ -20,6 +20,9 @@ from . import client
 from .const import (
     ATTR_CONFIG_ENTRY_ID,
     ATTR_CONFIRM,
+    ATTR_CURTAILMENT,
+    ATTR_CURTAILMENT_ONLY,
+    ATTR_DAILY_LIMIT_MINUTES,
     ATTR_DELAY_HOURS,
     ATTR_DIRECTION,
     ATTR_DRY_RUN,
@@ -132,6 +135,13 @@ GO_OFF_GRID_SCHEMA = vol.Schema({
     vol.Optional(ATTR_DURATION_MINUTES): vol.All(
         vol.Coerce(int), vol.Range(min=1, max=OFF_GRID_MAX_MINUTES)),
     vol.Optional(ATTR_MIN_SOC): _SOC,
+    vol.Optional(ATTR_CURTAILMENT, default=False): cv.boolean,
+    vol.Optional(ATTR_DAILY_LIMIT_MINUTES): vol.All(
+        vol.Coerce(int), vol.Range(min=1, max=OFF_GRID_MAX_MINUTES)),
+})
+RECONNECT_GRID_SCHEMA = vol.Schema({
+    vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
+    vol.Optional(ATTR_CURTAILMENT_ONLY, default=False): cv.boolean,
 })
 SET_SITE_LIMIT_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,
@@ -259,10 +269,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                 translation_domain=DOMAIN, translation_key="off_grid_confirm",
             )
         return await _off_grid(hass, call).async_go_off_grid(
-            call.data.get(ATTR_DURATION_MINUTES), call.data.get(ATTR_MIN_SOC))
+            call.data.get(ATTR_DURATION_MINUTES), call.data.get(ATTR_MIN_SOC),
+            curtailment=call.data[ATTR_CURTAILMENT], daily_limit=call.data.get(ATTR_DAILY_LIMIT_MINUTES))
 
     async def reconnect_grid(call: ServiceCall) -> ServiceResponse:
-        return await _off_grid(hass, call).async_reconnect()
+        return await _off_grid(hass, call).async_reconnect(curtailment_only=call.data[ATTR_CURTAILMENT_ONLY])
 
     async def get_tariff(call: ServiceCall) -> ServiceResponse:
         coordinator = _tariff_coordinator(hass, call)
@@ -306,7 +317,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_GO_OFF_GRID, go_off_grid, schema=GO_OFF_GRID_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
-    hass.services.async_register(DOMAIN, SERVICE_RECONNECT_GRID, reconnect_grid, schema=RESUME_SCHEMA,
+    hass.services.async_register(DOMAIN, SERVICE_RECONNECT_GRID, reconnect_grid, schema=RECONNECT_GRID_SCHEMA,
                                  supports_response=SupportsResponse.OPTIONAL)
     hass.services.async_register(DOMAIN, SERVICE_START_MAX_BACKUP, start_max_backup,
                                  schema=START_MAX_BACKUP_SCHEMA)

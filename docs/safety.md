@@ -41,6 +41,7 @@ The Powerwall refuses what it can't deliver, but it doesn't know your wiring or 
 - **The automatic reconnect needs Home Assistant running.** If Home Assistant (or the host, or the network) is down when the time is up, nothing reconnects; the Powerwall stays off-grid until you reconnect it here or in the Tesla app.
 - Solar stops for about 30 seconds while the contactor switches.
 - Don't use it for long periods unattended. It's meant for testing your backup, with you nearby.
+- **Going off-grid to limit solar** (`curtailment: true`, or the last resort in the negative feed-in blueprint) switches the grid contactor each time it runs. That wears the contactor, and Tesla's warranty may not cover it. Use it only where Grid export *never* doesn't stop the export. Such runs reconnect at 40 % (or the backup reserve), after 6 hours a day by default, and at midnight.
 
 The integration helps:
 

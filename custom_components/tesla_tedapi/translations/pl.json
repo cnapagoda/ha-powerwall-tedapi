@@ -968,6 +968,9 @@
     },
     "key_not_removed": {
       "message": "Klucz nie został usunięty: {error}"
+    },
+    "off_grid_daily_limit": {
+      "message": "Dozwolony dziś czas odłączenia od sieci w celu ograniczenia PV ({minutes} min) został wykorzystany."
     }
   },
   "services": {
@@ -1094,6 +1097,14 @@
         "min_soc": {
           "name": "Podłącz ponownie przy",
           "description": "Podłącz ponownie, gdy poziom baterii (skala aplikacji Tesla) spadnie do tego procentu. Domyślnie: rezerwa awaryjna."
+        },
+        "curtailment": {
+          "name": "Do ograniczenia PV",
+          "description": "Ostateczność do ograniczenia PV na własnych wejściach Powerwall: odłączona od sieci produkuje tylko tyle, ile pobiera dom i bateria. Podłącza ponownie, gdy bateria spadnie do 40% (lub do rezerwy awaryjnej, jeśli wyższa), chyba że ustawiono Podłącz ponownie przy, o północy i po wyczerpaniu dziennego limitu. Przełączanie stycznika powoduje zużycie: najpierw spróbuj oddawania do sieci *never*."
+        },
+        "daily_limit_minutes": {
+          "name": "Dzienny limit",
+          "description": "Z Do ograniczenia PV: dozwolony czas odłączenia od sieci na dzień w celu ograniczenia PV (domyślnie 6 godzin)."
         }
       }
     },
@@ -1104,6 +1115,10 @@
         "config_entry_id": {
           "name": "Powerwall",
           "description": "Potrzebne tylko, gdy skonfigurowano więcej niż jedną Powerwall."
+        },
+        "curtailment_only": {
+          "name": "Tylko ograniczenie PV",
+          "description": "Podłącza ponownie tylko, jeśli dom odłączono tutaj w celu ograniczenia PV; w przeciwnym razie nic nie robi. Dla automatyzacji, które nie powinny kończyć odłączenia, którego nie rozpoczęły."
         }
       }
     },

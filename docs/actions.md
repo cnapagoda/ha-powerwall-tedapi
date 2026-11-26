@@ -160,6 +160,8 @@ The same command as *Go off-grid* in the Tesla app: the Powerwall opens its grid
 | `confirm` | Yes | Must be `true`. |
 | `duration_minutes` | No | 1–1440 (24 hours). Reconnect after this long. |
 | `min_soc` | No | Reconnect when **Battery level** falls to this. Default: the backup reserve. |
+| `curtailment` | No | `true`: a last-resort way to limit solar on the Powerwall's own inputs, which off-grid only produce what the house and battery take. Such a run reconnects at 40 % (or the backup reserve, if higher) unless `min_soc` is given, at midnight, and once the daily limit is used up. Try Grid export *never* first; see [Safety](safety.md#going-off-grid). |
+| `daily_limit_minutes` | No | With `curtailment`: off-grid time for curtailment allowed per day, 1–1440. Default 360 (6 hours). |
 | `config_entry_id` | No | Only with several Powerwalls. |
 
 How an off-grid run works:
@@ -180,7 +182,7 @@ data:
   min_soc: 50
 ```
 
-**Response** (optional): `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below`, `grid_status`, and the gateway's `response`.
+**Response** (optional): `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below`, `curtailment`, `grid_status`, and the gateway's `response`.
 
 ---
 
@@ -188,11 +190,16 @@ data:
 
 Reconnect the house to the grid, also after *Go off-grid* in the Tesla app. It waits up to 90 seconds for the Powerwall to start syncing to the grid (**Grid connected** turns back on once it has synced). It fails during a real outage, when there's no grid to sync to. The **Reconnect to the grid** [button](entities.md#buttons) does the same.
 
+| Field | Required | |
+|---|---|---|
+| `curtailment_only` | No | `true`: reconnect only if the house went off-grid here with `curtailment`; otherwise do nothing. For automations that shouldn't end an off-grid run they didn't start. |
+| `config_entry_id` | No | Only with several Powerwalls. |
+
 ```yaml
 action: tesla_tedapi.reconnect_grid
 ```
 
-**Response** (optional): `grid_status` and the gateway's `response`.
+**Response** (optional): `grid_status` and the gateway's `response`; `reconnected: false` when `curtailment_only` left it alone.
 
 ---
 

@@ -968,6 +968,9 @@
     },
     "key_not_removed": {
       "message": "The key wasn't removed: {error}"
+    },
+    "off_grid_daily_limit": {
+      "message": "The off-grid time for curtailment allowed today ({minutes} min) is used up."
     }
   },
   "services": {
@@ -1094,6 +1097,14 @@
         "min_soc": {
           "name": "Reconnect at",
           "description": "Reconnect when the battery level (Tesla app scale) falls to this percentage. Default: the backup reserve."
+        },
+        "curtailment": {
+          "name": "For curtailment",
+          "description": "Last resort for limiting solar on the Powerwall's own inputs: while off-grid it only produces what the house and battery take. Reconnects when the battery falls to 40% (or the backup reserve, if higher) unless Reconnect at is set, at midnight, and once the daily limit is used up. Contactor switching causes wear: try Grid export *never* first."
+        },
+        "daily_limit_minutes": {
+          "name": "Daily limit",
+          "description": "With For curtailment: off-grid time for curtailment allowed per day (default 6 hours)."
         }
       }
     },
@@ -1104,6 +1115,10 @@
         "config_entry_id": {
           "name": "Powerwall",
           "description": "Only needed when more than one Powerwall is set up."
+        },
+        "curtailment_only": {
+          "name": "Only a curtailment run",
+          "description": "Reconnect only if the house went off-grid here for curtailment; otherwise do nothing. For automations that shouldn't end an off-grid run they didn't start."
         }
       }
     },

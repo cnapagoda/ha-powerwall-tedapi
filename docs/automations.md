@@ -10,7 +10,7 @@ The price blueprints work with any price sensor (Amber, Octopus, Nord Pool, Tibb
 
 | Blueprint | What it does | |
 |---|---|---|
-| **Stop exporting at negative feed-in prices** | While the feed-in price stays below a threshold for a few minutes, sets **Grid export mode** to *Disabled*; when it's back above, sets it back to the value you choose. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fnegative_feed_in.yaml) |
+| **Stop exporting at negative feed-in prices** | While the feed-in price stays below a threshold for a few minutes, sets **Grid export mode** to *Disabled*; when it's back above, sets it back to the value you choose. Optionally, as a last resort, goes off-grid while it still exports. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fnegative_feed_in.yaml) |
 | **Charge when import is cheap** ⚠️ | When the import price falls below a threshold, `charge_to` a target level; hands the battery back when the price rises. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fcheap_import_charge.yaml) |
 | **Export on a price spike** ⚠️ | When the feed-in price rises above a threshold, `discharge_to` a floor; hands the battery back when the price falls. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Fprice_spike_discharge.yaml) |
 | **Time-of-use charge and discharge** ⚠️ | For fixed time-of-use tariffs without a price feed: charge in the off-peak window, discharge in the peak window. | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Ftime_of_use.yaml) |
@@ -49,8 +49,15 @@ The price blueprints work with any price sensor (Amber, Octopus, Nord Pool, Tibb
 | For at least (minutes) | 5 | Avoids flapping on short dips. |
 | Powerwall Grid export | | `select.powerwall_tedapi_grid_export_mode`. |
 | Then set export back to | `battery_ok` | |
+| *Last resort - go off-grid* (collapsed): | | |
+| Go off-grid if it still exports | Off | Only for solar on the Powerwall's own inputs. Needs the signed connection. Read [Safety](safety.md#going-off-grid) first. |
+| Powerwall Grid power | | `sensor.powerwall_tedapi_grid_power`. Needed with the option above. |
+| Export above (W) | 200 | |
+| For at least (minutes) | 10 | How long it must keep exporting with export set to *never*. |
+| Reconnect at | 40 % | |
+| Daily limit (minutes) | 360 | |
 
-With solar on a Powerwall 3's own inputs, the Powerwall then limits its solar instead of exporting. A separate solar inverter keeps exporting; limit it through its own integration.
+With solar on a Powerwall 3's own inputs, the Powerwall then limits its solar instead of exporting. A separate solar inverter keeps exporting; limit it through its own integration. The last resort calls [`go_off_grid`](actions.md#tesla_tedapigo_off_grid) with `curtailment` and, when the price is back, [`reconnect_grid`](actions.md#tesla_tedapireconnect_grid) with `curtailment_only`, so it never ends an off-grid run it didn't start.
 
 </details>
 

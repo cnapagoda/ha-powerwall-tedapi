@@ -968,6 +968,9 @@
     },
     "key_not_removed": {
       "message": "La chiave non è stata rimossa: {error}"
+    },
+    "off_grid_daily_limit": {
+      "message": "Il tempo fuori rete consentito oggi per limitare il solare ({minutes} min) è esaurito."
     }
   },
   "services": {
@@ -1094,6 +1097,14 @@
         "min_soc": {
           "name": "Ricollega a",
           "description": "Ricollega quando il livello della batteria (scala dell'app Tesla) scende a questa percentuale. Predefinito: la riserva di backup."
+        },
+        "curtailment": {
+          "name": "Per limitare il solare",
+          "description": "Ultima risorsa per limitare il solare sugli ingressi propri della Powerwall: fuori rete produce solo quanto assorbono casa e batteria. Si ricollega quando la batteria scende al 40% (o alla riserva di backup, se più alta) a meno che sia impostato Ricollega a, a mezzanotte e una volta esaurito il limite giornaliero. La commutazione del contattore lo usura: prova prima l'immissione in rete *never*."
+        },
+        "daily_limit_minutes": {
+          "name": "Limite giornaliero",
+          "description": "Con Per limitare il solare: tempo fuori rete consentito al giorno per limitare il solare (predefinito 6 ore)."
         }
       }
     },
@@ -1104,6 +1115,10 @@
         "config_entry_id": {
           "name": "Powerwall",
           "description": "Necessario solo se è configurata più di una Powerwall."
+        },
+        "curtailment_only": {
+          "name": "Solo una limitazione",
+          "description": "Ricollega solo se la casa è stata scollegata qui per limitare il solare; altrimenti non fa nulla. Per automazioni che non devono terminare uno scollegamento che non hanno avviato."
         }
       }
     },

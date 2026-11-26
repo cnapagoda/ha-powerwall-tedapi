@@ -968,6 +968,9 @@
     },
     "key_not_removed": {
       "message": "Der Schlüssel wurde nicht entfernt: {error}"
+    },
+    "off_grid_daily_limit": {
+      "message": "Die heute erlaubte netzgetrennte Zeit zur Abregelung ({minutes} min) ist aufgebraucht."
     }
   },
   "services": {
@@ -1094,6 +1097,14 @@
         "min_soc": {
           "name": "Wieder verbinden bei",
           "description": "Wieder verbinden, wenn der Batteriestand (Skala der Tesla-App) auf diesen Prozentwert fällt. Standard: die Backup-Reserve."
+        },
+        "curtailment": {
+          "name": "Zur Abregelung",
+          "description": "Letztes Mittel, um Solar an den eigenen Eingängen der Powerwall zu begrenzen: netzgetrennt erzeugt sie nur, was Haus und Batterie aufnehmen. Verbindet wieder, wenn die Batterie auf 40 % fällt (oder die Backup-Reserve, falls höher), sofern Wieder verbinden bei nicht gesetzt ist, um Mitternacht und sobald das Tageslimit aufgebraucht ist. Das Schalten des Netzschützes verursacht Verschleiß: zuerst Netzeinspeisung *never* versuchen."
+        },
+        "daily_limit_minutes": {
+          "name": "Tageslimit",
+          "description": "Mit Zur Abregelung: pro Tag erlaubte netzgetrennte Zeit zur Abregelung (Standard 6 Stunden)."
         }
       }
     },
@@ -1104,6 +1115,10 @@
         "config_entry_id": {
           "name": "Powerwall",
           "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "curtailment_only": {
+          "name": "Nur eine Abregelung",
+          "description": "Nur wieder verbinden, wenn das Haus hier zur Abregelung vom Netz getrennt wurde; sonst nichts tun. Für Automationen, die keine Netztrennung beenden sollen, die sie nicht gestartet haben."
         }
       }
     },

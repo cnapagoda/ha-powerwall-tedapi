@@ -172,6 +172,20 @@ go_off_grid:
           max: 100
           unit_of_measurement: "%"
           mode: box
+    curtailment:
+      required: false
+      default: false
+      selector:
+        boolean:
+    daily_limit_minutes:
+      required: false
+      example: 360
+      selector:
+        number:
+          min: 1
+          max: 1440
+          unit_of_measurement: min
+          mode: box
 reconnect_grid:
   fields:
     config_entry_id:
@@ -179,6 +193,11 @@ reconnect_grid:
       selector:
         config_entry:
           integration: tesla_tedapi
+    curtailment_only:
+      required: false
+      default: false
+      selector:
+        boolean:
 get_tariff:
   fields:
     config_entry_id:

@@ -4,7 +4,12 @@ Tesla's setIslandMode command (signed v1r) opens or closes the grid contactor,
 like "Go off-grid" in the Tesla app. Each command is checked against the
 gateway's grid status. An off-grid run started here reconnects at its end time,
 or when the battery falls to its floor, which the Powerwall itself doesn't do.
-The run is saved, so these checks go on after a restart."""
+The run is saved, so these checks go on after a restart.
+
+A run for curtailment (2.9.0: solar on the Powerwall's own inputs is throttled
+to what the house and battery take while off-grid) has a higher battery floor,
+a daily limit and ends at midnight; reconnect_grid with curtailment_only ends
+only such a run, so an automation never ends one it didn't start."""
 from __future__ import annotations
 
 import asyncio
@@ -27,12 +32,19 @@ from .const import (
     CONTACTOR_WAIT_SECONDS,
     DOMAIN,
     EVENT_OFF_GRID_ENDED,
+    OFF_GRID_CURTAIL_DAILY_MINUTES,
+    OFF_GRID_CURTAIL_MIN_SOC,
     RECONNECT_RETRY_SECONDS,
 )
 from .coordinator import TedapiCoordinator
 from .privacy import scrub
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _midnight(now: datetime) -> datetime:
+    """The next local midnight."""
+    return dt_util.start_of_local_day(dt_util.as_local(now).date() + timedelta(days=1))
 
 
 def off_grid_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
@@ -44,6 +56,7 @@ class OffGridState:
     started: datetime
     ends: datetime | None
     min_soc: float | None
+    curtailment: bool = False
 
 
 class OffGridSession:
@@ -62,6 +75,8 @@ class OffGridSession:
         self.starting = False
         self._retry_at: float | None = None
         self._issue = False
+        # Off-grid time for curtailment already used today: (local date, s).
+        self._curtailed: tuple[str, float] | None = None
 
     @property
     def intentional(self) -> bool:
@@ -81,7 +96,19 @@ class OffGridSession:
             "off_grid_since": s.started.isoformat(),
             "reconnect_at": s.ends.isoformat() if s.ends else None,
             "reconnect_below": s.min_soc,
+            "curtailment": s.curtailment,
         }
+
+    def curtailed_seconds(self, now: datetime) -> float:
+        """Seconds off-grid for curtailment today (local time), a running run
+        included."""
+        today = dt_util.as_local(now).date().isoformat()
+        used = self._curtailed[1] if self._curtailed and self._curtailed[0] == today else 0.0
+        s = self.state
+        if s is not None and s.curtailment:
+            since = max(s.started, dt_util.start_of_local_day(dt_util.as_local(now).date()))
+            used += max(0.0, (now - since).total_seconds())
+        return used
 
     def _soc(self) -> float | None:
         data = self.coordinator.data or {}
@@ -91,7 +118,8 @@ class OffGridSession:
 
     # ---- control ----
 
-    async def async_go_off_grid(self, minutes: int | None, min_soc: float | None) -> dict[str, Any]:
+    async def async_go_off_grid(self, minutes: int | None, min_soc: float | None, *,
+                                curtailment: bool = False, daily_limit: int | None = None) -> dict[str, Any]:
         data = self.coordinator.data or {}
         status = data.get("grid_status") if data.get("local_ok") else None
         if status != "UP":
@@ -105,6 +133,8 @@ class OffGridSession:
             reserve = data.get("reserve")
             if isinstance(reserve, (int, float)):
                 min_soc = float(reserve)
+            if curtailment:
+                min_soc = max(min_soc or 0.0, float(OFF_GRID_CURTAIL_MIN_SOC))
         soc = self._soc()
         if min_soc is not None and isinstance(soc, (int, float)) and soc <= min_soc:
             raise ServiceValidationError(
@@ -112,6 +142,17 @@ class OffGridSession:
                 translation_domain=DOMAIN, translation_key="off_grid_battery_low",
                 translation_placeholders={"soc": str(soc), "limit": str(min_soc)},
             )
+        left = None
+        if curtailment:
+            now = dt_util.utcnow()
+            limit = (daily_limit or OFF_GRID_CURTAIL_DAILY_MINUTES) * 60
+            left = min(limit - self.curtailed_seconds(now), (_midnight(now) - now).total_seconds())
+            if left < 60:
+                raise ServiceValidationError(
+                    "The daily off-grid time for curtailment is used up",
+                    translation_domain=DOMAIN, translation_key="off_grid_daily_limit",
+                    translation_placeholders={"minutes": str(limit // 60)},
+                )
 
         self.starting = True
         try:
@@ -128,19 +169,26 @@ class OffGridSession:
             raise HomeAssistantError(translation_domain=DOMAIN, translation_key="off_grid_not_confirmed")
 
         now = dt_util.utcnow()
+        ends = now + timedelta(minutes=minutes) if minutes else None
+        if left is not None:
+            ends = min(ends or now + timedelta(seconds=left), now + timedelta(seconds=left))
         self._cancel_timers()
-        self.state = OffGridState(now, now + timedelta(minutes=minutes) if minutes else None, min_soc)
+        self.state = OffGridState(now, ends, min_soc, curtailment)
         self._retry_at = None
         await self._store.async_save(self._state_to_save())
         self._arm()
-        _LOGGER.warning("The Powerwall is off-grid (%s); it reconnects %s", status, self._plan())
+        _LOGGER.warning("The Powerwall is off-grid (%s%s); it reconnects %s", status,
+                        ", for curtailment" if curtailment else "", self._plan())
         self.coordinator.async_update_listeners()
         self.hass.async_create_task(self.coordinator.async_request_refresh())
         return {**self.as_dict(), "grid_status": status, "response": result}
 
-    async def async_reconnect(self, reason: str = "requested") -> dict[str, Any]:
+    async def async_reconnect(self, reason: str = "requested", *, curtailment_only: bool = False) -> dict[str, Any]:
         """Close the contactor (also when no run is known, e.g. one started in
-        the Tesla app) and wait until the Powerwall syncs back to the grid."""
+        the Tesla app) and wait until the Powerwall syncs back to the grid.
+        With curtailment_only, only a run started here for curtailment."""
+        if curtailment_only and not (self.state is not None and self.state.curtailment):
+            return {"reconnected": False}
         result = await self.coordinator.async_send_island(False)
         status = await self._async_wait(lambda s: s in ("UP", "SYNCING"))
         if status is None:
@@ -154,12 +202,17 @@ class OffGridSession:
         stored = await self._store.async_load()
         if not stored:
             return
+        used = stored.get("curtailed")
+        if (isinstance(used, dict) and isinstance(used.get("date"), str)
+                and isinstance(used.get("seconds"), (int, float))):
+            self._curtailed = (used["date"], float(used["seconds"]))
         started = dt_util.parse_datetime(stored.get("started") or "")
         if started is None:
-            await self._store.async_remove()
+            if self._curtailed is None:
+                await self._store.async_remove()
             return
         ends = dt_util.parse_datetime(stored["ends"]) if stored.get("ends") else None
-        self.state = OffGridState(started, ends, stored.get("min_soc"))
+        self.state = OffGridState(started, ends, stored.get("min_soc"), stored.get("curtailment") is True)
         data = self.coordinator.data or {}
         if data.get("local_ok") and data.get("grid_status") == "UP":
             await self._async_end("reconnected_elsewhere")
@@ -187,10 +240,13 @@ class OffGridSession:
         return " or ".join(parts) or "only when asked to"
 
     def _state_to_save(self) -> dict[str, Any]:
-        s = self.state
-        assert s is not None
-        return {"started": s.started.isoformat(), "ends": s.ends.isoformat() if s.ends else None,
-                "min_soc": s.min_soc}
+        out: dict[str, Any] = {}
+        if (s := self.state) is not None:
+            out = {"started": s.started.isoformat(), "ends": s.ends.isoformat() if s.ends else None,
+                   "min_soc": s.min_soc, "curtailment": s.curtailment}
+        if self._curtailed is not None:
+            out["curtailed"] = {"date": self._curtailed[0], "seconds": round(self._curtailed[1])}
+        return out
 
     async def _async_wait(self, done: Callable[[str], bool]) -> str | None:
         """The gateway's grid status once done() accepts it, or None after
@@ -268,15 +324,23 @@ class OffGridSession:
         if self._issue:
             self._issue = False
             ir.async_delete_issue(self.hass, DOMAIN, self._issue_id)
-        state, self.state = self.state, None
+        state = self.state
         if state is None:
             return
-        await self._store.async_remove()
+        if state.curtailment:
+            now = dt_util.utcnow()
+            self._curtailed = (dt_util.as_local(now).date().isoformat(), self.curtailed_seconds(now))
+        self.state = None
+        if self._curtailed is not None:
+            await self._store.async_save(self._state_to_save())
+        else:
+            await self._store.async_remove()
         self.last_end_reason = reason
         _LOGGER.warning("Off-grid run ended (%s)", reason)
         self.hass.bus.async_fire(EVENT_OFF_GRID_ENDED, {
             "config_entry_id": self.coordinator.config_entry.entry_id,
             "reason": reason,
             "battery_level": self._soc(),
+            "curtailment": state.curtailment,
         })
         self.coordinator.async_update_listeners()
