@@ -257,6 +257,7 @@
         "title": "Opcje Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Ustawienia",
+          "mqtt": "MQTT",
           "cloud_backup": "Kopia w chmurze (Owner API, Fleet API)",
           "link_account": "Połącz konto Tesla (Owner API)",
           "fleet_signin": "Zaloguj się do Tesla Fleet lub Teslemetry",
@@ -318,6 +319,17 @@
           }
         }
       },
+      "mqtt": {
+        "title": "MQTT",
+        "description": "Publikuj odczyty, ustawienia, stan i zdarzenia tego Powerwalla przez integrację MQTT Home Assistant, dla narzędzi poza Home Assistant. Domyślnie wyłączone; wymaga integracji MQTT. Tematy i wiadomości nigdy nie zawierają identyfikatora, numerów seryjnych ani adresu bramy. Wyłączenie usuwa zachowane (retained) wiadomości.",
+        "data": {
+          "mqtt_publish": "Publikuj do MQTT",
+          "mqtt_base_topic": "Temat bazowy"
+        },
+        "data_description": {
+          "mqtt_base_topic": "Wiadomości trafiają do <baza>/power, /battery, /energy, /settings, /status i /event/…. Litery, cyfry, _ i -, rozdzielone /. Każdy Powerwall potrzebuje własnego."
+        }
+      },
       "cloud_backup": {
         "title": "Zapas w chmurze",
         "description": "Gdy połączenie lokalne nie może odczytać ani zmienić ustawienia, używana jest chmura Tesli. Można użyć dwóch kopii zapasowych, osobno lub jedna po drugiej:\n\n- **Owner API**: konto Tesla połączone tutaj (*Połącz konto Tesla*). Obecnie: {owner}.\n- **Fleet API**: logowanie do Tesla Fleet lub Teslemetry wykonane tutaj (*Zaloguj się do Tesla Fleet lub Teslemetry*). Obecnie: {fleet}.\n\nPrzy obu ustawienia są odczytywane z pierwszej, która odpowie, a zmiana trafia do pierwszej, która ją przyjmie. Każda kopia jest sprawdzana mniej więcej co godzinę; ta, która przestanie działać, dostaje własną naprawę, a druga działa dalej.",
@@ -367,7 +379,9 @@
       "cloud_error": "Usługa Tesla zwróciła błąd. Spróbuj ponownie za minutę.",
       "owner_api_refused": "Zalogowano, ale Owner API Tesli odrzuciło token (HTTP 403). Zaloguj się ponownie; jeśli to się powtarza, Tesla mogła znowu zmienić zasady logowania: zgłoś problem (issue).",
       "invalid_token": "Tesla nie przyjęła tego tokenu odświeżania. Mógł wygasnąć albo zostać użyty przez inną aplikację: pobierz nowy z aplikacji do tokenów. Link logowania się nie zmienił.",
-      "invalid_callback": "To nie jest adres logowania z linku powyżej. Wklej pełny adres `tesla://auth/callback?code=…` z tego linku (starszy link już nie działa) albo token odświeżania. Link się nie zmienił."
+      "invalid_callback": "To nie jest adres logowania z linku powyżej. Wklej pełny adres `tesla://auth/callback?code=…` z tego linku (starszy link już nie działa) albo token odświeżania. Link się nie zmienił.",
+      "invalid_base_topic": "Użyj liter, cyfr, _ i -, rozdzielonych / (bez spacji, + ani #, i bez / na początku lub końcu).",
+      "base_topic_in_use": "Inny Powerwall już publikuje pod tym tematem bazowym."
     },
     "abort": {
       "no_sites": "Na tym koncie Tesla nie znaleziono żadnej Powerwall. Zaloguj się na konto Tesla, do którego należy Powerwall (to, które pokazuje ją w aplikacji Tesla).",
@@ -1324,6 +1338,10 @@
     "powerwall_follower_missing": {
       "title": "Brak jednego Powerwall 3 w odczytach",
       "description": "{count} Powerwall 3 z konfiguracji bramy nie pojawia się w odczytach. Sumy mocy, energii i pojemności obejmują już każdy Powerwall; brakuje tylko pakietów baterii, temperatur i wentylatorów brakujących jednostek.\n\nZgłoszenie zniknie samo, gdy się pojawią. Jeśli nie zniknie, pobierz diagnostykę i zgłoś problem."
+    },
+    "mqtt_unavailable": {
+      "title": "Publikowanie MQTT nie może się uruchomić",
+      "description": "Publikowanie MQTT jest włączone dla {name}, ale integracja MQTT Home Assistant nie jest skonfigurowana albo się nie uruchomiła. Skonfiguruj integrację MQTT albo wyłącz publikowanie w opcjach integracji (**Konfiguruj → MQTT**). Wszystko inne działa dalej."
     }
   },
   "selector": {

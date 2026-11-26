@@ -257,6 +257,7 @@
         "title": "Opções do Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Configurações",
+          "mqtt": "MQTT",
           "cloud_backup": "Backup na nuvem (Owner API, Fleet API)",
           "link_account": "Vincular uma conta Tesla (Owner API)",
           "fleet_signin": "Entrar no Tesla Fleet ou Teslemetry",
@@ -318,6 +319,17 @@
           }
         }
       },
+      "mqtt": {
+        "title": "MQTT",
+        "description": "Publica as leituras, configurações, estado e eventos deste Powerwall pela integração MQTT do Home Assistant, para ferramentas fora do Home Assistant. Desligado por padrão; precisa da integração MQTT. Tópicos e mensagens nunca incluem o identificador, números de série ou o endereço do gateway. Desligar remove as mensagens retidas.",
+        "data": {
+          "mqtt_publish": "Publicar no MQTT",
+          "mqtt_base_topic": "Tópico base"
+        },
+        "data_description": {
+          "mqtt_base_topic": "As mensagens vão para <base>/power, /battery, /energy, /settings, /status e /event/…. Letras, dígitos, _ e -, separados por /. Cada Powerwall precisa do seu."
+        }
+      },
       "cloud_backup": {
         "title": "Reserva na nuvem",
         "description": "Quando a conexão local não consegue ler ou alterar uma configuração, a nuvem da Tesla é usada. Dois backups podem ser usados, sozinhos ou um após o outro:\n\n- **Owner API**: uma conta Tesla vinculada aqui (*Vincular uma conta Tesla*). Atualmente: {owner}.\n- **Fleet API**: um login no Tesla Fleet ou Teslemetry feito aqui (*Entrar no Tesla Fleet ou Teslemetry*). Atualmente: {fleet}.\n\nCom os dois, as configurações são lidas do primeiro que responder, e uma alteração vai para o primeiro que a aceitar. Cada backup é verificado mais ou menos a cada hora; o que parar de funcionar recebe seu próprio reparo enquanto o outro continua.",
@@ -367,7 +379,9 @@
       "cloud_error": "O serviço da Tesla retornou um erro. Tente de novo em um minuto.",
       "owner_api_refused": "Você entrou, mas a Owner API da Tesla recusou o token (HTTP 403). Entre de novo; se continuar acontecendo, a Tesla pode ter mudado as regras de login outra vez: abra um issue.",
       "invalid_token": "A Tesla não aceitou esse refresh token. Ele pode ter expirado ou sido usado por outro app: pegue um novo no seu app de tokens. O link de login não mudou.",
-      "invalid_callback": "Esse não é um endereço de login do link acima. Cole o endereço completo `tesla://auth/callback?code=…` deste link (um link mais antigo não funciona mais), ou um refresh token. O link não mudou."
+      "invalid_callback": "Esse não é um endereço de login do link acima. Cole o endereço completo `tesla://auth/callback?code=…` deste link (um link mais antigo não funciona mais), ou um refresh token. O link não mudou.",
+      "invalid_base_topic": "Use letras, dígitos, _ e -, separados por / (sem espaços, + ou #, e sem / no início ou no fim).",
+      "base_topic_in_use": "Outro Powerwall já publica com este tópico base."
     },
     "abort": {
       "no_sites": "Nenhuma Powerwall foi encontrada nesta conta Tesla. Entre com a conta Tesla dona da Powerwall (a que a mostra no app da Tesla).",
@@ -1324,6 +1338,10 @@
     "powerwall_follower_missing": {
       "title": "Um Powerwall 3 está faltando nas leituras",
       "description": "{count} Powerwall 3 da configuração do gateway não aparecem nas leituras. Os totais de potência, energia e capacidade já incluem todos os Powerwall; faltam apenas as baterias, temperaturas e ventiladores das unidades ausentes.\n\nIsso some sozinho quando elas aparecerem. Se continuar, baixe o diagnóstico e abra uma issue."
+    },
+    "mqtt_unavailable": {
+      "title": "A publicação MQTT não consegue começar",
+      "description": "A publicação MQTT está ligada para {name}, mas a integração MQTT do Home Assistant não está configurada ou não iniciou. Configure a integração MQTT, ou desligue a publicação nas opções da integração (**Configurar → MQTT**). Todo o resto continua funcionando."
     }
   },
   "selector": {

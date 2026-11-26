@@ -15,6 +15,7 @@ Select **Configure** on the integration. The menu offers:
 | Menu item | What it does |
 |---|---|
 | **Settings** | The options below. |
+| **MQTT** | Publish the readings, settings, status and events to MQTT, through Home Assistant's MQTT integration. Off by default. See [MQTT](mqtt.md). |
 | **Cloud backup (Owner API, Fleet API)** | Choose which cloud backup to use, and in which order. See [Cloud backup](cloud-backup.md). |
 | **Link a Tesla account (Owner API)** | Add the Owner API backup without setting the Powerwall up again (refresh token or browser sign-in). Shown when no account is linked. |
 | **Sign in to Tesla Fleet or Teslemetry** | Add or renew the Fleet API backup. It continues as a reauthentication on the integration's card. |

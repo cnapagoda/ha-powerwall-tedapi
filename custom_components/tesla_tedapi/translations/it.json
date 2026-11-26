@@ -257,6 +257,7 @@
         "title": "Opzioni di Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Impostazioni",
+          "mqtt": "MQTT",
           "cloud_backup": "Backup cloud (Owner API, Fleet API)",
           "link_account": "Collega un account Tesla (Owner API)",
           "fleet_signin": "Accedi a Tesla Fleet o Teslemetry",
@@ -318,6 +319,17 @@
           }
         }
       },
+      "mqtt": {
+        "title": "MQTT",
+        "description": "Pubblica letture, impostazioni, stato ed eventi di questa Powerwall tramite l'integrazione MQTT di Home Assistant, per strumenti esterni a Home Assistant. Disattivato di default; serve l'integrazione MQTT. Argomenti e messaggi non contengono mai l'identificativo, i numeri di serie o l'indirizzo del gateway. Disattivandolo si rimuovono i messaggi conservati.",
+        "data": {
+          "mqtt_publish": "Pubblica su MQTT",
+          "mqtt_base_topic": "Argomento base"
+        },
+        "data_description": {
+          "mqtt_base_topic": "I messaggi vanno a <base>/power, /battery, /energy, /settings, /status e /event/…. Lettere, cifre, _ e -, separati da /. Ogni Powerwall ne serve uno proprio."
+        }
+      },
       "cloud_backup": {
         "title": "Riserva cloud",
         "description": "Quando la connessione locale non riesce a leggere o cambiare un'impostazione, si passa dal cloud Tesla. Si possono usare due backup, da soli o uno dopo l'altro:\n\n- **Owner API**: un account Tesla collegato qui (*Collega un account Tesla*). Attualmente {owner}.\n- **Fleet API**: un accesso a Tesla Fleet o Teslemetry fatto qui (*Accedi a Tesla Fleet o Teslemetry*). Attualmente {fleet}.\n\nCon entrambi, le impostazioni si leggono dal primo che risponde e una modifica va al primo che la accetta. Ogni backup viene verificato circa ogni ora; quello che smette di funzionare riceve una propria riparazione mentre l'altro continua.",
@@ -367,7 +379,9 @@
       "cloud_error": "Il servizio Tesla ha restituito un errore. Riprova tra un minuto.",
       "owner_api_refused": "Hai effettuato l'accesso, ma la Owner API di Tesla ha rifiutato il token (HTTP 403). Accedi di nuovo; se continua a succedere, Tesla potrebbe aver cambiato di nuovo le regole di accesso: apri una segnalazione (issue).",
       "invalid_token": "Tesla non ha accettato quel refresh token. Potrebbe essere scaduto o usato da un'altra app: ottienine uno nuovo dalla tua app per i token. Il link di accesso non è cambiato.",
-      "invalid_callback": "Questo non è un indirizzo di accesso del link qui sopra. Incolla l'indirizzo completo `tesla://auth/callback?code=…` di questo link (un link precedente non funziona più), oppure un refresh token. Il link non è cambiato."
+      "invalid_callback": "Questo non è un indirizzo di accesso del link qui sopra. Incolla l'indirizzo completo `tesla://auth/callback?code=…` di questo link (un link precedente non funziona più), oppure un refresh token. Il link non è cambiato.",
+      "invalid_base_topic": "Usa lettere, cifre, _ e -, separati da / (niente spazi, + o #, e nessuna / all'inizio o alla fine).",
+      "base_topic_in_use": "Un'altra Powerwall pubblica già con questo argomento base."
     },
     "abort": {
       "no_sites": "Nessuna Powerwall trovata su questo account Tesla. Accedi con l'account Tesla proprietario della Powerwall (quello che la mostra nell'app Tesla).",
@@ -1324,6 +1338,10 @@
     "powerwall_follower_missing": {
       "title": "Un Powerwall 3 manca dalle letture",
       "description": "{count} Powerwall 3 della configurazione del gateway non compaiono nelle letture. I totali di potenza, energia e capacità includono già tutti i Powerwall; mancano solo pacchi batteria, temperature e ventole delle unità mancanti.\n\nSi risolve da solo quando compaiono. Se persiste, scarica la diagnostica e apri una segnalazione."
+    },
+    "mqtt_unavailable": {
+      "title": "La pubblicazione MQTT non può partire",
+      "description": "La pubblicazione MQTT è attiva per {name}, ma l'integrazione MQTT di Home Assistant non è configurata o non è partita. Configura l'integrazione MQTT, oppure disattiva la pubblicazione nelle opzioni dell'integrazione (**Configura → MQTT**). Tutto il resto continua a funzionare."
     }
   },
   "selector": {

@@ -24,6 +24,7 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 - **Gateway network and site limits:** network connection and signal, site import and export limits, registered keys, and battery calibration delays.
 - **Keeps working when it can't reach the gateway:** an optional Tesla cloud backup (your Tesla account, Tesla Fleet or Teslemetry) keeps the settings usable, and can also show power and battery level.
 - **More from the cloud backup:** Wall Connector power and state, and Tesla's tariff as buy and sell price sensors and calendars.
+- **Optional MQTT:** readings, settings, status and events on your MQTT broker, for tools outside Home Assistant ([topics](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/mqtt.md)).
 - **A setup wizard:** it finds the Powerwall on your network and registers the access key for you. No command line.
 - **Works with energy planners:** [Predbat](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/predbat.md), [EMHASS](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/emhass.md), [HAEO](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/haeo.md) and [evcc](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/evcc.md) can control the battery locally.
 - **Ready-made blueprints** for cheap charging, price spikes, negative feed-in, time-of-use, reserve schedules, storms, outages, surplus solar and alerts.

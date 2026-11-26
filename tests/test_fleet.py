@@ -442,13 +442,13 @@ async def test_unlink_owner_api_keeps_fleet(hass: HomeAssistant, fake_powerwall,
 async def test_menu_offers_link_and_unlink_with_only_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
     entry = await _setup(hass, {**V1R, **TESLEMETRY})
     result = await _unlink(hass, entry, None)
-    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "fleet_signin",
+    assert result["menu_options"] == ["settings", "mqtt", "cloud_backup", "link_account", "fleet_signin",
                                       "unlink_account", "local_only", "new_key"]
     result = await _unlink(hass, entry, "tesla_fleet")
     assert result["offered"] == ["tesla_fleet"]
     assert entry.options["cloud_backends"] == "none"
     result = await _unlink(hass, entry, None)
-    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "fleet_signin", "new_key"]
+    assert result["menu_options"] == ["settings", "mqtt", "cloud_backup", "link_account", "fleet_signin", "new_key"]
 
 
 async def test_token_refresh_does_not_reload(hass: HomeAssistant, fake_powerwall, fleet) -> None:

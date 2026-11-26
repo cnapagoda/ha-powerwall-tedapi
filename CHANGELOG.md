@@ -2,6 +2,7 @@
 
 ## 2.9.0
 
+- **MQTT publishing (optional, off by default):** **Configure → MQTT** publishes the readings, settings, status and events through Home Assistant's MQTT integration, for tools outside Home Assistant ([MQTT](docs/mqtt.md)). Nothing in the topics or messages identifies the Powerwall. Without the MQTT integration, a repair says so and everything else keeps working.
 - **Local only.** After the key is registered, setup asks whether to keep the Tesla sign-in as the cloud backup or remove it. **Configure → Local only** removes the sign-ins later. With no sign-in kept, nothing the integration does reaches Tesla's servers.
 - When the gateway keeps refusing the key while the password works, the reauthentication says so and offers a new key first. On a local-only setup, the Tesla sign-in made to register the new key can be removed again afterwards (or kept as the cloud backup, which then turns it on).
 - **Connection path** sensor (diagnostic): how the latest reading came (signed connection, its Wi-Fi fallback, Wi-Fi password, cloud backup only, or none). It stays available when the other entities aren't and then shows when the gateway last answered and the settings it last reported.

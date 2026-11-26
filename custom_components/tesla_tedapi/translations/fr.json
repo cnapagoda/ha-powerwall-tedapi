@@ -257,6 +257,7 @@
         "title": "Options de Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Paramètres",
+          "mqtt": "MQTT",
           "cloud_backup": "Secours cloud (Owner API, Fleet API)",
           "link_account": "Lier un compte Tesla (Owner API)",
           "fleet_signin": "Se connecter à Tesla Fleet ou Teslemetry",
@@ -318,6 +319,17 @@
           }
         }
       },
+      "mqtt": {
+        "title": "MQTT",
+        "description": "Publier les mesures, réglages, état et événements de cette Powerwall via l'intégration MQTT de Home Assistant, pour des outils hors de Home Assistant. Désactivé par défaut ; nécessite l'intégration MQTT. Les sujets et messages ne contiennent jamais l'identifiant, les numéros de série ni l'adresse de la passerelle. Le désactiver retire les messages retenus.",
+        "data": {
+          "mqtt_publish": "Publier sur MQTT",
+          "mqtt_base_topic": "Sujet de base"
+        },
+        "data_description": {
+          "mqtt_base_topic": "Les messages vont vers <base>/power, /battery, /energy, /settings, /status et /event/…. Lettres, chiffres, _ et -, séparés par /. Chaque Powerwall a besoin du sien."
+        }
+      },
       "cloud_backup": {
         "title": "Secours cloud",
         "description": "Quand la connexion locale ne peut pas lire ou modifier un réglage, le cloud Tesla prend le relais. Deux secours peuvent servir, seuls ou l'un après l'autre :\n\n- **Owner API** : un compte Tesla lié ici (*Lier un compte Tesla*). Actuellement : {owner}.\n- **Fleet API** : une connexion Tesla Fleet ou Teslemetry faite ici (*Se connecter à Tesla Fleet ou Teslemetry*). Actuellement : {fleet}.\n\nAvec les deux, les réglages sont lus sur le premier qui répond, et une modification va au premier qui l'accepte. Chaque secours est vérifié environ toutes les heures ; celui qui cesse de fonctionner a sa propre réparation pendant que l'autre continue.",
@@ -367,7 +379,9 @@
       "cloud_error": "Le service Tesla a renvoyé une erreur. Réessayez dans une minute.",
       "owner_api_refused": "Vous êtes connecté, mais l'Owner API de Tesla a refusé le jeton (HTTP 403). Reconnectez-vous ; si cela se reproduit, Tesla a peut-être de nouveau changé ses règles de connexion : merci d'ouvrir un ticket (issue).",
       "invalid_token": "Tesla n'a pas accepté ce jeton d'actualisation. Il a peut-être expiré ou été utilisé par une autre application : obtenez-en un nouveau dans votre application de jetons. Le lien de connexion n'a pas changé.",
-      "invalid_callback": "Ce n'est pas une adresse de connexion issue du lien ci-dessus. Collez l'adresse complète `tesla://auth/callback?code=…` de ce lien (un lien plus ancien ne fonctionne plus), ou un jeton d'actualisation. Le lien n'a pas changé."
+      "invalid_callback": "Ce n'est pas une adresse de connexion issue du lien ci-dessus. Collez l'adresse complète `tesla://auth/callback?code=…` de ce lien (un lien plus ancien ne fonctionne plus), ou un jeton d'actualisation. Le lien n'a pas changé.",
+      "invalid_base_topic": "Utilisez des lettres, chiffres, _ et -, séparés par / (sans espaces, + ni #, ni / au début ou à la fin).",
+      "base_topic_in_use": "Une autre Powerwall publie déjà sous ce sujet de base."
     },
     "abort": {
       "no_sites": "Aucune Powerwall n'a été trouvée sur ce compte Tesla. Connectez-vous avec le compte Tesla propriétaire de la Powerwall (celui qui l'affiche dans l'application Tesla).",
@@ -1324,6 +1338,10 @@
     "powerwall_follower_missing": {
       "title": "Un Powerwall 3 manque dans les mesures",
       "description": "{count} Powerwall 3 de la configuration de la passerelle n'apparaissent pas dans les mesures. Les totaux de puissance, d'énergie et de capacité incluent déjà tous les Powerwall ; seuls les packs de batterie, températures et ventilateurs des unités manquantes sont absents.\n\nCe message disparaît de lui-même dès qu'elles apparaissent. S'il persiste, téléchargez les diagnostics et ouvrez un ticket."
+    },
+    "mqtt_unavailable": {
+      "title": "La publication MQTT ne peut pas démarrer",
+      "description": "La publication MQTT est activée pour {name}, mais l'intégration MQTT de Home Assistant n'est pas configurée ou n'a pas démarré. Configurez l'intégration MQTT, ou désactivez la publication dans les options de l'intégration (**Configurer → MQTT**). Tout le reste continue de fonctionner."
     }
   },
   "selector": {

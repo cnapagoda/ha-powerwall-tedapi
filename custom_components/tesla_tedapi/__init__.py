@@ -9,7 +9,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import Event, HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse, callback
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady, ServiceValidationError
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.storage import Store
@@ -41,6 +41,7 @@ from .const import (
     CALIBRATION_DELAY_MAX_HOURS,
     CONF_FLEET_SERVER,
     CONF_MACS,
+    CONF_MQTT_PUBLISH,
     CONF_OAUTH_TOKEN,
     DISPATCH_MAX_SECONDS,
     DISPATCH_MAX_WATTS,
@@ -377,6 +378,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
         coordinator.intentional_off_grid = lambda: off_grid.intentional
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
+    if entry.options.get(CONF_MQTT_PUBLISH):
+        # Imported only with the option on: no MQTT needed otherwise.
+        from .mqtt_bridge import MqttBridge  # noqa: PLC0415
+
+        entry.runtime_data.mqtt = bridge = MqttBridge(hass, entry, coordinator)
+        # In the background: waiting for the MQTT client mustn't hold up setup.
+        entry.async_create_background_task(hass, bridge.async_start(), "tesla_tedapi MQTT publishing")
+    else:
+        ir.async_delete_issue(hass, DOMAIN, f"mqtt_unavailable_{entry.entry_id}")
 
     async def _async_stop(_event: Event) -> None:
         # Home Assistant doesn't unload entries when it stops or restarts:
@@ -465,6 +475,8 @@ async def _async_options_updated(hass: HomeAssistant, entry: TedapiConfigEntry) 
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bool:
+    if entry.runtime_data.mqtt is not None:
+        await entry.runtime_data.mqtt.async_stop()
     if entry.runtime_data.dispatch is not None:
         await entry.runtime_data.dispatch.async_shutdown()
     if entry.runtime_data.off_grid is not None:
@@ -475,10 +487,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> b
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> None:
-    """Forget the saved alert times, export rule and off-grid run. The key and
-    the Tesla sign-in stay in the tesla_tedapi folder (another entry may use them)."""
+    """Forget the saved alert times, export rule and off-grid run, and clear
+    the retained MQTT messages. The key and the Tesla sign-in stay in the
+    tesla_tedapi folder (another entry may use them)."""
     await Store(hass, 1, f"{DOMAIN}.{entry.entry_id}").async_remove()
     await off_grid_store(hass, entry.entry_id).async_remove()
+    ir.async_delete_issue(hass, DOMAIN, f"mqtt_unavailable_{entry.entry_id}")
+    if entry.options.get(CONF_MQTT_PUBLISH):
+        from .mqtt_bridge import async_clear, base_topic  # noqa: PLC0415
+
+        await async_clear(hass, base_topic(entry))
 
 
 async def async_remove_config_entry_device(

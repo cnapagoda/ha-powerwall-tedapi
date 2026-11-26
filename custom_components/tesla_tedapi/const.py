@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import re
 from typing import Any
 
 DOMAIN = "tesla_tedapi"
@@ -36,6 +37,19 @@ CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
 CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
 # Which cloud backup to use and in what order (one of CLOUD_CHOICES).
 CONF_CLOUD_BACKENDS = "cloud_backends"
+# MQTT publishing (optional, off by default; 2.9.0): the readings, settings,
+# status and events go to Home Assistant's MQTT broker under the base topic.
+# Never the DIN, serials or addresses.
+CONF_MQTT_PUBLISH = "mqtt_publish"
+CONF_MQTT_BASE_TOPIC = "mqtt_base_topic"
+DEFAULT_MQTT_BASE_TOPIC = "tesla_tedapi/powerwall"
+# A base topic: segments of letters, digits, "_" and "-", joined by "/".
+MQTT_BASE_TOPIC_RE = re.compile(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*")
+MQTT_BASE_TOPIC_MAX = 200
+
+
+def valid_base_topic(topic: str) -> bool:
+    return len(topic) <= MQTT_BASE_TOPIC_MAX and MQTT_BASE_TOPIC_RE.fullmatch(topic) is not None
 # Options that take effect without reloading the integration (a reload would
 # end a running battery dispatch). Any other change reloads it.
 LIVE_OPTIONS = frozenset({

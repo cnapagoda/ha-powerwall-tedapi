@@ -474,6 +474,8 @@ class TedapiRuntimeData:
     # is applied in place when only LIVE_OPTIONS differ from these.
     applied_data: dict[str, Any] = field(default_factory=dict)
     applied_options: dict[str, Any] = field(default_factory=dict)
+    # MQTT publishing (mqtt_bridge.MqttBridge), while the option is on.
+    mqtt: Any = field(default=None)
 
 
 type TedapiConfigEntry = ConfigEntry[TedapiRuntimeData]

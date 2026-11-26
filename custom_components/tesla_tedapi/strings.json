@@ -257,6 +257,7 @@
         "title": "Tesla Powerwall TEDAPI options",
         "menu_options": {
           "settings": "Settings",
+          "mqtt": "MQTT",
           "cloud_backup": "Cloud backup (Owner API, Fleet API)",
           "link_account": "Link a Tesla account (Owner API)",
           "fleet_signin": "Sign in to Tesla Fleet or Teslemetry",
@@ -318,6 +319,17 @@
           }
         }
       },
+      "mqtt": {
+        "title": "MQTT",
+        "description": "Publish this Powerwall's readings, settings, status and events through Home Assistant's MQTT integration, for tools outside Home Assistant. Off by default; it needs the MQTT integration. Topics and messages never include the gateway's ID, serial numbers or address. Turning it off removes the retained messages.",
+        "data": {
+          "mqtt_publish": "Publish to MQTT",
+          "mqtt_base_topic": "Base topic"
+        },
+        "data_description": {
+          "mqtt_base_topic": "Messages go to <base>/power, /battery, /energy, /settings, /status and /event/…. Letters, digits, _ and -, separated by /. Each Powerwall needs its own."
+        }
+      },
       "cloud_backup": {
         "title": "Cloud backup",
         "description": "When the local connection can't read or change a setting, it goes through the Tesla cloud instead. Two backups can be used, alone or one after the other:\n\n- **Owner API**: a Tesla account linked here (*Link a Tesla account*). Currently {owner}.\n- **Fleet API**: a Tesla Fleet or Teslemetry sign-in made here (*Sign in to Tesla Fleet or Teslemetry*). Currently {fleet}.\n\nWith both, settings are read from the first one that answers, and a change goes to the first one that accepts it. Each backup is checked about once an hour; one that stops working gets its own repair while the other keeps going.",
@@ -367,7 +379,9 @@
       "cloud_error": "The Tesla service returned an error. Try again in a minute.",
       "owner_api_refused": "You signed in, but the Tesla Owner API refused the token (HTTP 403). Sign in again; if it keeps happening, Tesla may have changed its sign-in rules again: please open an issue.",
       "invalid_token": "Tesla did not accept that refresh token. It may have expired or been used by another app: get a new one from your token app. The sign-in link has not changed.",
-      "invalid_callback": "That is not a sign-in address from the link above. Paste the full `tesla://auth/callback?code=…` address from this link (an older link no longer works), or a refresh token. The link has not changed."
+      "invalid_callback": "That is not a sign-in address from the link above. Paste the full `tesla://auth/callback?code=…` address from this link (an older link no longer works), or a refresh token. The link has not changed.",
+      "invalid_base_topic": "Use letters, digits, _ and -, separated by / (no spaces, + or #, and no / at either end).",
+      "base_topic_in_use": "Another Powerwall already publishes under this base topic."
     },
     "abort": {
       "no_sites": "No Powerwall was found on this Tesla account. Sign in with the Tesla account that owns the Powerwall (the one that shows it in the Tesla app).",
@@ -1324,6 +1338,10 @@
     "powerwall_follower_missing": {
       "title": "A Powerwall 3 is missing from the readings",
       "description": "{count} Powerwall 3 unit(s) in the gateway's configuration don't appear in the readings. Power, energy and capacity totals already include every Powerwall; only the missing units' battery packs, temperatures and fans are absent.\n\nThis clears by itself once they appear. If it lasts, download the diagnostics and open an issue."
+    },
+    "mqtt_unavailable": {
+      "title": "MQTT publishing can't start",
+      "description": "MQTT publishing is on for {name}, but Home Assistant's MQTT integration isn't set up or didn't start. Set up the MQTT integration, or turn publishing off in the integration's options (**Configure → MQTT**). Everything else keeps working."
     }
   },
   "selector": {

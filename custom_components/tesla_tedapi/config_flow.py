@@ -75,6 +75,8 @@ from .const import (
     CONF_GW_PWD,
     CONF_HOST,
     CONF_MACS,
+    CONF_MQTT_BASE_TOPIC,
+    CONF_MQTT_PUBLISH,
     CONF_OWNERS_AUTHPATH,
     CONF_OWNERS_EMAIL,
     CONF_POWER_INTERVAL,
@@ -87,6 +89,7 @@ from .const import (
     CONF_TESLA_TARIFF,
     CONF_WIFI_HOST,
     DEFAULT_HOST_WIFI,
+    DEFAULT_MQTT_BASE_TOPIC,
     DEFAULT_PROBLEM_MINUTES,
     DEFAULT_SCAN_INTERVAL,
     DISPATCH_DEFAULT_WATTS,
@@ -104,6 +107,7 @@ from .const import (
     REAUTH_KEY_REFUSED,
     STORAGE_FOLDER,
     cloud_choice,
+    valid_base_topic,
 )
 from .privacy import scrub
 
@@ -1312,7 +1316,7 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                 if name != BACKEND_OWNER or self.config_entry.data.get(CONF_OWNERS_EMAIL)]
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        menu = ["settings", "cloud_backup"]
+        menu = ["settings", "mqtt", "cloud_backup"]
         if not self.config_entry.data.get(CONF_OWNERS_EMAIL):
             menu.append("link_account")
         menu.append("fleet_signin")
@@ -1404,6 +1408,50 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                 }), {"collapsed": False}),
                 vol.Required("advanced"): section(vol.Schema(advanced), {"collapsed": True}),
             }),
+        )
+
+    def _other_base_topics(self) -> set[str]:
+        """Base topics other entries publish under."""
+        return {entry.options.get(CONF_MQTT_BASE_TOPIC) or DEFAULT_MQTT_BASE_TOPIC
+                for entry in self.hass.config_entries.async_entries(DOMAIN)
+                if entry.entry_id != self.config_entry.entry_id and entry.options.get(CONF_MQTT_PUBLISH)}
+
+    async def async_step_mqtt(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """MQTT publishing (optional, off by default): through Home Assistant's
+        MQTT integration, under a base topic of its own per entry. Turning it
+        off, or moving it, clears the retained messages it left."""
+        opts = self.config_entry.options
+        errors: dict[str, str] = {}
+        others = self._other_base_topics()
+        if user_input is not None:
+            publish = bool(user_input[CONF_MQTT_PUBLISH])
+            base = str(user_input.get(CONF_MQTT_BASE_TOPIC) or "").strip()
+            if not valid_base_topic(base):
+                errors[CONF_MQTT_BASE_TOPIC] = "invalid_base_topic"
+            elif publish and base in others:
+                errors[CONF_MQTT_BASE_TOPIC] = "base_topic_in_use"
+            else:
+                old = opts.get(CONF_MQTT_BASE_TOPIC) or DEFAULT_MQTT_BASE_TOPIC
+                if opts.get(CONF_MQTT_PUBLISH) and (not publish or base != old) and old not in others:
+                    # Imported only when it was on.
+                    from .mqtt_bridge import async_clear  # noqa: PLC0415
+
+                    await async_clear(self.hass, old)
+                return self.async_create_entry(
+                    data={**opts, CONF_MQTT_PUBLISH: publish, CONF_MQTT_BASE_TOPIC: base})
+        base = opts.get(CONF_MQTT_BASE_TOPIC)
+        if not base:
+            base, n = DEFAULT_MQTT_BASE_TOPIC, 1
+            while base in others:
+                n += 1
+                base = f"{DEFAULT_MQTT_BASE_TOPIC}_{n}"
+        return self.async_show_form(
+            step_id="mqtt",
+            data_schema=vol.Schema({
+                vol.Required(CONF_MQTT_PUBLISH, default=bool(opts.get(CONF_MQTT_PUBLISH, False))): bool,
+                vol.Required(CONF_MQTT_BASE_TOPIC, default=base): str,
+            }),
+            errors=errors,
         )
 
     async def async_step_cloud_backup(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:

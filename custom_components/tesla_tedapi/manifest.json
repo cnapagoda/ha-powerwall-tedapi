@@ -2,6 +2,7 @@
   "domain": "tesla_tedapi",
   "name": "Tesla Powerwall TEDAPI",
   "after_dependencies": [
+    "mqtt",
     "recorder"
   ],
   "categories": [
