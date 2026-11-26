@@ -128,6 +128,16 @@
           "fleet_signin": "Se reconnecter à Tesla Fleet ou Teslemetry"
         }
       },
+      "reauth_key": {
+        "title": "La Powerwall n'accepte plus la clé",
+        "description": "La passerelle refuse sans cesse la clé de cette intégration, alors que le mot de passe fonctionne : la clé a peut-être été retirée dans l'application Tesla, ou supprimée par une mise à jour du firmware. Enregistrez une nouvelle clé (une connexion Tesla est nécessaire une fois ; elle peut être retirée ensuite), ou envoyez-en une enregistrée ailleurs. En attendant, les mesures passent par le Wi-Fi de la Powerwall, en lecture seule, si une adresse Wi-Fi de secours est définie, et les réglages par la sauvegarde cloud s'il y en a une.",
+        "menu_options": {
+          "register": "Enregistrer une nouvelle clé (recommandé)",
+          "key_upload": "Téléverser une clé déjà enregistrée",
+          "reauth_password": "Saisir à nouveau le mot de passe de la passerelle",
+          "fleet_signin": "Se reconnecter à Tesla Fleet ou Teslemetry"
+        }
+      },
       "reauth_password": {
         "title": "Mot de passe de la passerelle",
         "data": {

@@ -128,6 +128,16 @@
           "fleet_signin": "Opnieuw aanmelden bij Tesla Fleet of Teslemetry"
         }
       },
+      "reauth_key": {
+        "title": "De Powerwall accepteert de sleutel niet meer",
+        "description": "De gateway blijft de sleutel van deze integratie weigeren, terwijl het wachtwoord werkt: de sleutel is misschien verwijderd in de Tesla-app, of vervallen door een firmware-update. Registreer een nieuwe sleutel (daarvoor is één keer een Tesla-aanmelding nodig; die kan daarna weer weg) of upload een sleutel die elders is geregistreerd. Tot dan komen metingen via de eigen wifi van de Powerwall, alleen-lezen, als er een wifi-uitwijkadres is ingesteld, en gaan instellingen via de cloudback-up als die er is.",
+        "menu_options": {
+          "register": "Een nieuwe sleutel registreren (aanbevolen)",
+          "key_upload": "Een al geregistreerde sleutel uploaden",
+          "reauth_password": "Gateway-wachtwoord opnieuw invoeren",
+          "fleet_signin": "Opnieuw aanmelden bij Tesla Fleet of Teslemetry"
+        }
+      },
       "reauth_password": {
         "title": "Gateway-wachtwoord",
         "data": {

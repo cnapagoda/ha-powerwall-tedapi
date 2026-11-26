@@ -128,6 +128,16 @@
           "fleet_signin": "Erneut bei Tesla Fleet oder Teslemetry anmelden"
         }
       },
+      "reauth_key": {
+        "title": "Die Powerwall nimmt den Schlüssel nicht mehr an",
+        "description": "Das Gateway lehnt den Schlüssel dieser Integration immer wieder ab, das Passwort funktioniert aber: Der Schlüssel wurde vielleicht in der Tesla-App entfernt oder von einem Firmware-Update verworfen. Registriere einen neuen Schlüssel (dafür ist einmal eine Tesla-Anmeldung nötig; sie kann danach wieder entfernt werden) oder lade einen anderswo registrierten hoch. Bis dahin kommen Messwerte nur lesend über das eigene WLAN der Powerwall, wenn eine WLAN-Ausweichadresse eingetragen ist, und Einstellungen gehen über die Cloud-Sicherung, falls es eine gibt.",
+        "menu_options": {
+          "register": "Neuen Schlüssel registrieren (empfohlen)",
+          "key_upload": "Bereits registrierten Schlüssel hochladen",
+          "reauth_password": "Gateway-Passwort erneut eingeben",
+          "fleet_signin": "Erneut bei Tesla Fleet oder Teslemetry anmelden"
+        }
+      },
       "reauth_password": {
         "title": "Gateway-Passwort",
         "data": {

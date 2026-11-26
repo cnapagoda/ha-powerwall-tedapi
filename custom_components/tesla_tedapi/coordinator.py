@@ -83,6 +83,7 @@ from .const import (
     PATH_SIGNED,
     PATH_WIFI_FALLBACK,
     PATH_WIFI_PASSWORD,
+    REAUTH_KEY_REFUSED,
     RESTORE_MIN_SECONDS,
     SOLAR_CURTAILMENT_KEY,
     TARIFF_PENDING_MAX,
@@ -2178,12 +2179,14 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         elif reason == "key":
             self._key_refused += 1
         if self._password_refused >= PASSWORD_REFUSED_POLLS or self._key_refused >= KEY_REFUSED_POLLS:
+            key = self._password_refused < PASSWORD_REFUSED_POLLS
             _LOGGER.warning("The Powerwall keeps refusing the %s; asking to set up access again",
-                            "password" if self._password_refused >= PASSWORD_REFUSED_POLLS else "key")
+                            "key" if key else "password")
             self._reauth_started = True
             # Not ConfigEntryAuthFailed: that stops polling, and the cloud
-            # backup should keep the settings working meanwhile.
-            self.config_entry.async_start_reauth(self.hass)
+            # backup (or the read-only Wi-Fi readings) should keep going.
+            self.config_entry.async_start_reauth(
+                self.hass, data={**self.config_entry.data, REAUTH_KEY_REFUSED: True} if key else None)
 
     def _cloud_issue_id(self, backend: CloudBackend) -> str:
         prefix = "cloud_login" if backend.name == BACKEND_OWNER else "fleet_backup"

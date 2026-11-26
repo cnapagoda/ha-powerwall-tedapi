@@ -255,7 +255,8 @@ async def test_new_key_from_options_through_teslemetry(hass: HomeAssistant, tmp_
         assert result["type"] is FlowResultType.SHOW_PROGRESS
         assert entry.data["rsa_key_path"] == "/old.pem"  # not before it's confirmed
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(flow_id)
+        # The entry had no sign-in: whether to keep this one is asked (2.9.0).
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(flow_id))
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "reauth_successful"
     assert entry.data["rsa_key_path"].endswith("k.pem")
     assert entry.data["fleet_token"] == "tm-token"
@@ -451,7 +452,7 @@ async def test_a_new_key_is_a_new_key_in_its_own_file(hass: HomeAssistant, tmp_p
         assert new.read_bytes().startswith(b"-----BEGIN RSA PRIVATE KEY-----")
         assert old.read_bytes() == b"the key in use" and entry.data["rsa_key_path"] == str(old)
         await hass.async_block_till_done(wait_background_tasks=True)
-        result = await hass.config_entries.flow.async_configure(flow_id)
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(flow_id))
         await hass.async_block_till_done(wait_background_tasks=True)
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "reauth_successful"
     assert entry.data["rsa_key_path"] == str(new)
@@ -486,7 +487,7 @@ async def test_a_new_key_that_is_not_confirmed_is_removed(hass: HomeAssistant, t
           patch.object(config_flow, "VERIFY_POLL_SECONDS", 0), patch(SETUP, return_value=True)):
         flow_id, result = await _start_new_key(hass, entry)
         await hass.async_block_till_done(wait_background_tasks=True)
-        result = await hass.config_entries.flow.async_configure(flow_id)
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(flow_id))
         await hass.async_block_till_done(wait_background_tasks=True)
     assert result["reason"] == "reauth_successful" and entry.data["rsa_key_path"] == str(new)
     assert old.read_bytes() == b"the key in use"
@@ -565,7 +566,7 @@ async def test_new_key_kept_through_try_again(hass: HomeAssistant, tmp_path, fle
         await hass.async_block_till_done(wait_background_tasks=True)
         assert new.is_file() and entry.data["rsa_key_path"] == str(old)
         FakePowerwall.fail_local = False
-        result = await hass.config_entries.flow.async_configure(flow_id, {"next": "retry"})
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(flow_id, {"next": "retry"}))
         await hass.async_block_till_done(wait_background_tasks=True)
     assert result["reason"] == "reauth_successful" and entry.data["rsa_key_path"] == str(new)
     assert len(keys.added) == 1

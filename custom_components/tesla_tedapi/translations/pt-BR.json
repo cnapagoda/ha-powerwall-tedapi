@@ -128,6 +128,16 @@
           "fleet_signin": "Entrar novamente no Tesla Fleet ou Teslemetry"
         }
       },
+      "reauth_key": {
+        "title": "O Powerwall não aceita mais a chave",
+        "description": "O gateway continua recusando a chave desta integração, embora a senha funcione: a chave pode ter sido removida no app da Tesla ou descartada por uma atualização de firmware. Registre uma nova chave (é preciso um login da Tesla uma vez; ele pode ser removido depois) ou envie uma registrada em outro lugar. Até lá, as leituras chegam pelo Wi-Fi do próprio Powerwall, só leitura, se houver um endereço Wi-Fi reserva, e as configurações passam pelo backup na nuvem, se houver.",
+        "menu_options": {
+          "register": "Registrar uma nova chave (recomendado)",
+          "key_upload": "Enviar uma chave já registrada",
+          "reauth_password": "Digitar a senha do gateway de novo",
+          "fleet_signin": "Entrar novamente no Tesla Fleet ou Teslemetry"
+        }
+      },
       "reauth_password": {
         "title": "Senha do gateway",
         "data": {

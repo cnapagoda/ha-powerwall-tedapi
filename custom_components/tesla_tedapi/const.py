@@ -203,6 +203,9 @@ MAX_BACKUP_MAX_MINUTES = 2880
 # Consecutive failures before asking the user to sign in or re-register.
 CLOUD_AUTH_FAILURES = 3
 KEY_REFUSED_POLLS = 10
+# Reauth data flag: started because the gateway refuses the key (the password
+# still works), so the reauthentication says so and offers a new key first.
+REAUTH_KEY_REFUSED = "key_refused"
 PASSWORD_REFUSED_POLLS = 3
 # A lifetime energy counter that reads lower than before is a glitch, unless
 # it stays lower for this many readings in a row: then the counter was reset

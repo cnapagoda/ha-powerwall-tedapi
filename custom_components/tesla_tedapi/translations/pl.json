@@ -128,6 +128,16 @@
           "fleet_signin": "Zaloguj się ponownie do Tesla Fleet lub Teslemetry"
         }
       },
+      "reauth_key": {
+        "title": "Powerwall nie przyjmuje już klucza",
+        "description": "Brama ciągle odrzuca klucz tej integracji, choć hasło działa: klucz mógł zostać usunięty w aplikacji Tesla albo odrzucony przez aktualizację oprogramowania. Zarejestruj nowy klucz (raz potrzebne jest logowanie Tesla; potem można je usunąć) albo wgraj klucz zarejestrowany gdzie indziej. Do tego czasu odczyty przychodzą przez własne Wi-Fi Powerwalla, tylko do odczytu, jeśli ustawiono zapasowy adres Wi-Fi, a ustawienia idą przez kopię zapasową w chmurze, jeśli jest.",
+        "menu_options": {
+          "register": "Zarejestruj nowy klucz (zalecane)",
+          "key_upload": "Prześlij już zarejestrowany klucz",
+          "reauth_password": "Wpisz ponownie hasło bramy",
+          "fleet_signin": "Zaloguj się ponownie do Tesla Fleet lub Teslemetry"
+        }
+      },
       "reauth_password": {
         "title": "Hasło bramy",
         "data": {

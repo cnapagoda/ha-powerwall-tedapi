@@ -128,6 +128,16 @@
           "fleet_signin": "Sign in to Tesla Fleet or Teslemetry again"
         }
       },
+      "reauth_key": {
+        "title": "The Powerwall no longer accepts the key",
+        "description": "The gateway keeps refusing this integration's key, while the password still works: the key may have been removed in the Tesla app, or dropped by a firmware update. Register a new key (a Tesla sign-in is needed once; it can be removed again afterwards), or upload one registered elsewhere. Until then, readings come over the Powerwall's own Wi-Fi, read-only, if a Wi-Fi fallback address is set, and settings work through the cloud backup if there is one.",
+        "menu_options": {
+          "register": "Register a new key (recommended)",
+          "key_upload": "Upload a key that is already registered",
+          "reauth_password": "Enter the gateway password again",
+          "fleet_signin": "Sign in to Tesla Fleet or Teslemetry again"
+        }
+      },
       "reauth_password": {
         "title": "Gateway password",
         "data": {

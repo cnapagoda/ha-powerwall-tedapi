@@ -59,7 +59,7 @@ What stops working:
 
 - Storm Watch, the off-grid reserve, Wall Connectors and the Tesla tariff. Their entities are removed; their history is kept.
 - Changing settings while Home Assistant can't reach the gateway.
-- Registering a new key needs a Tesla sign-in again.
+- Registering a new key needs a Tesla sign-in again; you can remove it again afterwards ([below](#when-the-powerwall-stops-accepting-home-assistant)).
 
 To keep the sign-in but not use it, choose **Configure → Cloud backup → None** instead. To go back, **Link a Tesla account** or **Sign in to Tesla Fleet or Teslemetry**.
 
@@ -85,7 +85,9 @@ On a signed connection, if the gateway keeps refusing the password (3 polls in a
 - **Register the key again** (Tesla account, Tesla Fleet or Teslemetry sign-in), or
 - **Upload a different key**.
 
-Meanwhile the settings keep working through the cloud backup, if you have one.
+When it's the key that's refused (the password still works), the prompt says so and offers a new key first. Meanwhile the settings keep working through the cloud backup, if you have one, and with a **Wi-Fi fallback address** the readings come over the Powerwall's own Wi-Fi, read-only.
+
+On a [local only](#local-only) setup, registering a new key needs a Tesla sign-in once; afterwards you choose whether to keep it as the cloud backup or remove it again.
 
 On the Wi-Fi password connection there's no such prompt: the readings go *unavailable* (or come from the cloud backup, with **Cloud readings while the gateway is unreachable**). Enter the password again under [**Reconfigure**](#reconfigure).
 

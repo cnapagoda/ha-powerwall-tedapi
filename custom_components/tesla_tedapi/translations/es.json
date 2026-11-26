@@ -128,6 +128,16 @@
           "fleet_signin": "Volver a iniciar sesión en Tesla Fleet o Teslemetry"
         }
       },
+      "reauth_key": {
+        "title": "La Powerwall ya no acepta la clave",
+        "description": "La puerta de enlace sigue rechazando la clave de esta integración, aunque la contraseña funciona: puede que la clave se quitara en la app de Tesla o que una actualización de firmware la descartara. Registra una clave nueva (hace falta iniciar sesión en Tesla una vez; luego se puede quitar) o sube una registrada en otro sitio. Mientras tanto, las lecturas llegan por el Wi-Fi propio de la Powerwall, solo lectura, si hay una dirección Wi-Fi de respaldo, y los ajustes van por el respaldo en la nube si lo hay.",
+        "menu_options": {
+          "register": "Registrar una clave nueva (recomendado)",
+          "key_upload": "Subir una clave ya registrada",
+          "reauth_password": "Introducir de nuevo la contraseña de la pasarela",
+          "fleet_signin": "Volver a iniciar sesión en Tesla Fleet o Teslemetry"
+        }
+      },
       "reauth_password": {
         "title": "Contraseña de la pasarela",
         "data": {

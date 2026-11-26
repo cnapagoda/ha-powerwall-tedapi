@@ -101,6 +101,7 @@ from .const import (
     MODE_WIFI,
     PROVIDER_TESLA_FLEET,
     PROVIDER_TESLEMETRY,
+    REAUTH_KEY_REFUSED,
     STORAGE_FOLDER,
     cloud_choice,
 )
@@ -375,6 +376,15 @@ def _options_with_fleet(entry: ConfigEntry) -> dict[str, Any]:
     return options
 
 
+def _options_with_owner(entry: ConfigEntry) -> dict[str, Any]:
+    """The options once the entry has a Tesla account linked here: the cloud
+    backup choice gains the Owner API (an existing choice with it is kept)."""
+    options = dict(entry.options)
+    choice = cloud_choice(entry.data, entry.options)
+    options[CONF_CLOUD_BACKENDS] = CLOUD_WITH_OWNER.get(choice, choice)
+    return options
+
+
 def _mac(value: str) -> str:
     return value.replace(":", "").replace("-", "").lower()
 
@@ -544,6 +554,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         self._keep_signin: bool | None = None
         self._site: tesla_cloud.EnergySite | None = None
         self._public_der: bytes | None = None
+        # Reauth started because the gateway refuses the key.
+        self._key_refused = False
         # Options -> Register a new signed key: a key of its own is made, and
         # this is its file until the entry is switched to it (removed again
         # if the flow ends before that).
@@ -978,7 +990,10 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         self._din = din
         if self._token is None and self._fleet is None and self._cloud_wanted:
             return await self.async_step_signin()
-        if self._register and self.source != SOURCE_REAUTH and self._keep_signin is None:
+        if self._register and self._keep_signin is None and (
+                self.source != SOURCE_REAUTH or not fleet.has_signin(self._get_reauth_entry().data)):
+            # In a reauth too, for an entry without a sign-in (local only):
+            # the one made to register its new key isn't kept unless asked.
             return await self.async_step_keep_signin()
         return await self._async_finish()
 
@@ -996,7 +1011,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         (unless another entry uses the same Tesla account)."""
         self._keep_signin = False
         if self._token is not None:
-            await _async_forget_signin(self.hass, None, self._email, self._folder)
+            entry_id = self._get_reauth_entry().entry_id if self.source == SOURCE_REAUTH else None
+            await _async_forget_signin(self.hass, entry_id, self._email, self._folder)
         self._token = None
         self._fleet = self._fleet_api = None
         return await self._async_finish()
@@ -1024,6 +1040,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             return await self._async_connect()
         if self._new_key:
             return await self.async_step_new_key()
+        if self._key_refused:
+            return await self.async_step_reauth_key()
         return await self.async_step_reauth_confirm()
 
     async def _async_finish(self) -> ConfigFlowResult:
@@ -1047,6 +1065,11 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 return self._update_and_reload(
                     entry, data={**{k: v for k, v in entry.data.items() if k not in FLEET_DATA_KEYS}, **data},
                     options=_options_with_fleet(entry))
+            if self._keep_signin and self._token is not None:
+                # An entry without a sign-in kept the one made to register
+                # its new key: it's the cloud backup from now on.
+                return self._update_and_reload(entry, data={**entry.data, **data},
+                                               options=_options_with_owner(entry))
             return self._update_and_reload(entry, data={**entry.data, **data})
         data.setdefault(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         label = "v1r" if self._mode == MODE_V1R else "Wi-Fi"
@@ -1134,6 +1157,9 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         if entry_data.get(NEW_KEY):
             self._new_key = True
             return await self.async_step_new_key()
+        if entry_data.get(REAUTH_KEY_REFUSED):
+            self._key_refused = True
+            return await self.async_step_reauth_key()
         return await self.async_step_reauth_confirm()
 
     async def async_step_new_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -1142,6 +1168,16 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         own; the entry (and its key file) only change once the Powerwall has
         confirmed the new key and the connection check passes with it."""
         return self.async_show_menu(step_id="new_key", menu_options=["register", "key_upload"])
+
+    async def async_step_reauth_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The gateway refuses the key, while the password works: the key was
+        removed in the Tesla app, or dropped by a firmware update. A new key
+        first; for an entry without a sign-in, the one made to register it
+        can be removed again afterwards (keep_signin)."""
+        menu = ["register", "key_upload", "reauth_password"]
+        if fleet.signed_in(self._get_reauth_entry().data):
+            menu.append("fleet_signin")
+        return self.async_show_menu(step_id="reauth_key", menu_options=menu)
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         menu = ["reauth_password", "register", "key_upload"]
