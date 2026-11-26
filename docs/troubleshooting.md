@@ -42,7 +42,8 @@
 
 | Symptom | Try |
 |---|---|
-| All sensors *unavailable* | The gateway can't be reached. Check the network; settings keep working through the cloud backup if you have one. **Setup health** shows `gateway_reachable: false`. |
+| All sensors *unavailable* | The gateway can't be reached. Check the network; settings keep working through the cloud backup if you have one. **Connection path** shows *None* (or *Cloud backup only*), when the gateway last answered and the settings it last reported. |
+| Readings keep coming but settings can't be changed; **Connection path** says *Wi-Fi password* on a signed setup | The Powerwall refuses the key (for example it was removed in the Tesla app). Meanwhile readings come over the Powerwall's own Wi-Fi with its password, read-only; that needs the **Wi-Fi fallback address**. Set up access again from the reauthentication on the integration's card. |
 | Readings drop to *unknown* or *unavailable* every few minutes, or for hours | The gateway answers slowly or not at all, usually because its own link to the home network is weak (the log shows *Read timed out*). **Network connection** switching to *Cellular* points the same way. Restart the Wi-Fi access point nearest the gateway, or connect the gateway by Ethernet. Energy flows can't count across the gaps. The [Connection alert](automations.md) blueprint tells you when it happens. |
 | Power sensors *unknown* for a moment | The gateway's meters didn't answer that poll. The next reading fills it in; a missed reading is no longer recorded as 0 W. |
 | Readings stop now and then | Add the Powerwall's Wi-Fi as **Wi-Fi fallback address** if Home Assistant can reach it, or improve the network path (Ethernet for the gateway, a better access point). Try a longer **Polling interval** if another app also polls the gateway. |

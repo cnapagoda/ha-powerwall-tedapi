@@ -75,3 +75,21 @@ async def test_full_capacity_attributes_do_not_churn(hass: HomeAssistant, fake_p
     await hass.async_block_till_done()
     full = _eid(hass, "battery_full_capacity")
     assert hass.states.get(full).attributes["Powerwall 3"] == {"serial": PACK, "full_kwh": 13.9}
+
+
+async def test_last_known_settings_not_recorded(hass: HomeAssistant, fake_powerwall) -> None:
+    """2.9.0: while the gateway is down, the Connection path shows the settings
+    it last reported; they stay out of the recorder, the time doesn't."""
+    start = dt_util.utcnow()
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R, title="Powerwall")
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    fake_powerwall.fail_local = True
+    entry.runtime_data.coordinator._pw = None
+    await entry.runtime_data.coordinator.async_refresh()
+    await hass.async_block_till_done()
+    path = _eid(hass, "connection_path")
+    assert "last_known_settings" in hass.states.get(path).attributes
+    recorded = await _recorded(hass, path, start)
+    assert "last_known_settings" not in recorded and "last_local_read" in recorded

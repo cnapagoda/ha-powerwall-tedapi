@@ -105,6 +105,17 @@ def cloud_choice(data: Mapping[str, Any], options: Mapping[str, Any]) -> str:
 MODE_WIFI = "wifi"
 MODE_V1R = "v1r"
 
+# How the latest reading reached Home Assistant (the Connection path sensor):
+# the signed connection, its Wi-Fi fallback address, the Wi-Fi password
+# connection (also read-only while the gateway refuses the key), only the
+# cloud backup (the gateway can't be reached), or nothing.
+PATH_SIGNED = "signed"
+PATH_WIFI_FALLBACK = "wifi_fallback"
+PATH_WIFI_PASSWORD = "wifi_password"
+PATH_CLOUD = "cloud"
+PATH_NONE = "none"
+CONNECTION_PATHS = [PATH_SIGNED, PATH_WIFI_FALLBACK, PATH_WIFI_PASSWORD, PATH_CLOUD, PATH_NONE]
+
 # Defaults
 DEFAULT_HOST_WIFI = "192.168.91.1"
 DEFAULT_SCAN_INTERVAL = 30

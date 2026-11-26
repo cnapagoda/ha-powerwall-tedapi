@@ -3,6 +3,8 @@
 ## 2.9.0
 
 - **Local only.** After the key is registered, setup asks whether to keep the Tesla sign-in as the cloud backup or remove it. **Configure → Local only** removes the sign-ins later. With no sign-in kept, nothing the integration does reaches Tesla's servers.
+- **Connection path** sensor (diagnostic): how the latest reading came (signed connection, its Wi-Fi fallback, Wi-Fi password, cloud backup only, or none). It stays available when the other entities aren't and then shows when the gateway last answered and the settings it last reported.
+- While the Powerwall refuses the key, readings continue over its own Wi-Fi with the gateway password, read-only, when a **Wi-Fi fallback address** is set. Settings can't be changed over it; the reauthentication to set up access again is unchanged.
 - Entities that need a cloud backup (Storm Watch, the off-grid reserve, Wall Connectors), the Tesla tariff's, and over the Wi-Fi password connection the settings, are now removed when the backup or the tariff is turned off, rather than left unavailable. They come back when it's turned on again.
 - Fix: **Unlink a cloud backup** removed the Tesla account from the integration, but its saved sign-in tokens stayed in the integration's folder. They're now removed too, unless another Powerwall entry uses the same account.
 

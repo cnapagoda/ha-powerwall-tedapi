@@ -567,6 +567,24 @@
           "wifi": "WLAN-Passwort"
         }
       },
+      "connection_path": {
+        "name": "Verbindungsweg",
+        "state": {
+          "signed": "Signierte Verbindung",
+          "wifi_fallback": "Signiert, über das WLAN-Ausweichnetz",
+          "wifi_password": "WLAN-Passwort",
+          "cloud": "Nur Cloud-Sicherung",
+          "none": "Keiner"
+        },
+        "state_attributes": {
+          "last_local_read": {
+            "name": "Gateway zuletzt erreicht"
+          },
+          "last_known_settings": {
+            "name": "Zuletzt bekannte Einstellungen"
+          }
+        }
+      },
       "pack_capacity": {
         "name": "{pack} Kapazität"
       },

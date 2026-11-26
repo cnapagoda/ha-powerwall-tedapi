@@ -567,6 +567,24 @@
           "wifi": "Hasło Wi-Fi"
         }
       },
+      "connection_path": {
+        "name": "Droga połączenia",
+        "state": {
+          "signed": "Połączenie podpisane",
+          "wifi_fallback": "Podpisane, przez zapasowe Wi-Fi",
+          "wifi_password": "Hasło Wi-Fi",
+          "cloud": "Tylko kopia zapasowa w chmurze",
+          "none": "Brak"
+        },
+        "state_attributes": {
+          "last_local_read": {
+            "name": "Ostatnia odpowiedź bramy"
+          },
+          "last_known_settings": {
+            "name": "Ostatnie znane ustawienia"
+          }
+        }
+      },
       "pack_capacity": {
         "name": "Pojemność {pack}"
       },

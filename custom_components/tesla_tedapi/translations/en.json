@@ -567,6 +567,24 @@
           "wifi": "Wi-Fi password"
         }
       },
+      "connection_path": {
+        "name": "Connection path",
+        "state": {
+          "signed": "Signed connection",
+          "wifi_fallback": "Signed, over the Wi-Fi fallback",
+          "wifi_password": "Wi-Fi password",
+          "cloud": "Cloud backup only",
+          "none": "None"
+        },
+        "state_attributes": {
+          "last_local_read": {
+            "name": "Gateway last answered"
+          },
+          "last_known_settings": {
+            "name": "Last known settings"
+          }
+        }
+      },
       "pack_capacity": {
         "name": "{pack} capacity"
       },

@@ -40,6 +40,11 @@ class FakePowerwall:
 
     instances: list[FakePowerwall] = []
     fail_local = False
+    # Only the signed (v1r) client fails: the gateway refuses the key, while
+    # the Wi-Fi password client still works (2.9.0).
+    fail_signed = False
+    # pypowerwall's signed client has failed over to the Wi-Fi fallback address.
+    lan_failed = False
     soe = 52.5  # raw gateway scale -> 50.0 on the app scale
     tedapi_mode = "v1r"
     alert_list = ["SystemConnectedToGrid"]
@@ -88,10 +93,13 @@ class FakePowerwall:
                                       pwcachetime={})
         if FakePowerwall.v1r_flags is not None:
             self.client.tedapi.v1r_transport = SimpleNamespace(**FakePowerwall.v1r_flags)
+        self.client.tedapi.lan_failed = FakePowerwall.lan_failed
         self.tedapi_mode = None if cloudmode else (
             "v1r" if kwargs.get("rsa_key_path") else "wifi")
         if not cloudmode and FakePowerwall.fail_local:
             raise ConnectionError("unreachable")
+        if not cloudmode and FakePowerwall.fail_signed and kwargs.get("rsa_key_path"):
+            raise ConnectionError("key refused")
         self.settings = {"mode": "self_consumption", "reserve": 20.0,
                          "grid_charging": False, "grid_export": "never"}
         self.dispatches: list[tuple[float, int]] = []
@@ -339,6 +347,8 @@ def no_tariff_readback_waits():
 def fake_powerwall():
     FakePowerwall.instances = []
     FakePowerwall.fail_local = False
+    FakePowerwall.fail_signed = False
+    FakePowerwall.lan_failed = False
     FakePowerwall.soe = 52.5
     FakePowerwall.alert_list = ["SystemConnectedToGrid"]
     FakePowerwall.export_rule = "pv_only"

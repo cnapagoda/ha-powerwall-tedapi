@@ -567,6 +567,24 @@
           "wifi": "Password Wi-Fi"
         }
       },
+      "connection_path": {
+        "name": "Percorso di connessione",
+        "state": {
+          "signed": "Connessione firmata",
+          "wifi_fallback": "Firmata, tramite il Wi-Fi di riserva",
+          "wifi_password": "Password Wi-Fi",
+          "cloud": "Solo backup cloud",
+          "none": "Nessuno"
+        },
+        "state_attributes": {
+          "last_local_read": {
+            "name": "Ultima risposta del gateway"
+          },
+          "last_known_settings": {
+            "name": "Ultime impostazioni note"
+          }
+        }
+      },
       "pack_capacity": {
         "name": "Capacità {pack}"
       },

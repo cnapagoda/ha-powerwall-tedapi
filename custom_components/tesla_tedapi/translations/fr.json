@@ -567,6 +567,24 @@
           "wifi": "Mot de passe Wi-Fi"
         }
       },
+      "connection_path": {
+        "name": "Voie de connexion",
+        "state": {
+          "signed": "Connexion signée",
+          "wifi_fallback": "Signée, par le Wi-Fi de secours",
+          "wifi_password": "Mot de passe Wi-Fi",
+          "cloud": "Sauvegarde cloud seulement",
+          "none": "Aucune"
+        },
+        "state_attributes": {
+          "last_local_read": {
+            "name": "Dernière réponse de la passerelle"
+          },
+          "last_known_settings": {
+            "name": "Derniers réglages connus"
+          }
+        }
+      },
       "pack_capacity": {
         "name": "Capacité {pack}"
       },

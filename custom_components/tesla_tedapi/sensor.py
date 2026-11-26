@@ -33,7 +33,7 @@ from homeassistant.util import dt as dt_util
 from . import phases
 from .alerts import LEVELS
 from .cloud import LIVE_READINGS
-from .const import DOMAIN
+from .const import CONNECTION_PATHS, DOMAIN, PATH_CLOUD, PATH_NONE
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .daily import day_start
 from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
@@ -911,6 +911,7 @@ async def async_setup_entry(
 ) -> None:
     coordinator = entry.runtime_data.coordinator
     async_add_entities(TedapiSensor(coordinator, d) for d in SENSORS)
+    async_add_entities([ConnectionPathSensor(coordinator)])
     if coordinator.din:
         await _async_remove_unused_inputs(hass, entry, coordinator.din)
     registry = er.async_get(hass)
@@ -1068,6 +1069,40 @@ class TedapiSensor(TedapiEntity, SensorEntity):
             # Says so while the reading isn't the gateway's own.
             return {"source": "cloud", "last_updated": self.data.get("readings_updated")}
         return None
+
+
+class ConnectionPathSensor(TedapiEntity, SensorEntity):
+    """How the latest reading reached Home Assistant: the signed connection,
+    its Wi-Fi fallback address, the Wi-Fi password connection (also read-only
+    while the gateway refuses the key), only the cloud backup, or nothing.
+    Always available: it says why the other entities aren't. While the
+    gateway can't be reached it shows when it last answered and the settings
+    it last reported (those are kept out of the recorder)."""
+
+    _attr_translation_key = "connection_path"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = CONNECTION_PATHS
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _unrecorded_attributes = frozenset({"last_known_settings"})
+
+    def __init__(self, coordinator: TedapiCoordinator) -> None:
+        super().__init__(coordinator, "connection_path")
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def native_value(self) -> str | None:
+        return self.coordinator.connection_path
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        coordinator = self.coordinator
+        if coordinator.connection_path not in (PATH_CLOUD, PATH_NONE):
+            return None  # the gateway answers: its entities show all of it
+        return {"last_local_read": _iso(coordinator.last_local_read),
+                "last_known_settings": coordinator.last_known_settings}
 
 
 @dataclass(frozen=True, kw_only=True)

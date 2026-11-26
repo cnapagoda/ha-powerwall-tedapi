@@ -567,6 +567,24 @@
           "wifi": "Contraseña Wi-Fi"
         }
       },
+      "connection_path": {
+        "name": "Vía de conexión",
+        "state": {
+          "signed": "Conexión firmada",
+          "wifi_fallback": "Firmada, por el Wi-Fi de respaldo",
+          "wifi_password": "Contraseña Wi-Fi",
+          "cloud": "Solo respaldo en la nube",
+          "none": "Ninguna"
+        },
+        "state_attributes": {
+          "last_local_read": {
+            "name": "Última respuesta de la puerta de enlace"
+          },
+          "last_known_settings": {
+            "name": "Últimos ajustes conocidos"
+          }
+        }
+      },
       "pack_capacity": {
         "name": "Capacidad de {pack}"
       },

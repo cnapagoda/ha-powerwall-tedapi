@@ -13,7 +13,7 @@ All entities belong to one device per gateway, **Powerwall TEDAPI**. Entity IDs 
 | 🚫 | Disabled by default: enable it on the entity's settings page. |
 | 🩺 | Diagnostic: shown in the device page's *Diagnostic* section. |
 
-**When the gateway can't be reached,** readings show *unavailable* (never stale values); with the **Cloud readings while the gateway is unreachable** option, power and battery level come from the cloud backup instead (attribute `source: cloud`, and `last_updated` for when the cloud took the reading). Settings stay usable through the cloud backup if you have one. Outage history and **Setup health** stay available.
+**When the gateway can't be reached,** readings show *unavailable* (never stale values); with the **Cloud readings while the gateway is unreachable** option, power and battery level come from the cloud backup instead (attribute `source: cloud`, and `last_updated` for when the cloud took the reading). Settings stay usable through the cloud backup if you have one. Outage history and **Setup health** stay available, and **Connection path** says how readings arrive, also when none do.
 
 - [Power](#power)
 - [Battery](#battery)
@@ -303,6 +303,7 @@ Read from the gateway every 5 minutes (the site limits with each full read where
 |---|---|---|
 | **Setup health** 🩺 | `sensor.powerwall_tedapi_setup_health` | *OK* or *Needs attention*. Stays available while the gateway is down. See below. |
 | Connection 🩺🚫 | `sensor.powerwall_tedapi_connection` | *Signed (v1r)* or *Wi-Fi password*: the connection actually in use. |
+| **Connection path** 🩺 | `sensor.powerwall_tedapi_connection_path` | How the latest reading came: *Signed connection*, *Signed, over the Wi-Fi fallback*, *Wi-Fi password*, *Cloud backup only* or *None*. Stays available when the other entities aren't. While the gateway can't be reached: `last_local_read` (when it last answered) and `last_known_settings` (the settings it last reported, with `read_at`; not recorded). |
 
 **Setup health attributes:**
 

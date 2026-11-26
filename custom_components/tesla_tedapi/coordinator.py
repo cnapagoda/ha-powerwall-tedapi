@@ -75,8 +75,14 @@ from .const import (
     KEY_REFUSED_POLLS,
     MIN_POWER_INTERVAL,
     MODE_V1R,
+    MODE_WIFI,
     OWNER_EXTRAS_SECONDS,
     PASSWORD_REFUSED_POLLS,
+    PATH_CLOUD,
+    PATH_NONE,
+    PATH_SIGNED,
+    PATH_WIFI_FALLBACK,
+    PATH_WIFI_PASSWORD,
     RESTORE_MIN_SECONDS,
     SOLAR_CURTAILMENT_KEY,
     TARIFF_PENDING_MAX,
@@ -306,6 +312,12 @@ def _key_refused(pw: Any) -> bool | None:
     if transport is None:
         return None
     return bool(getattr(transport, "key_unknown", False) or getattr(transport, "pending_verification", False))
+
+
+def _lan_failed(pw: Any) -> bool:
+    """Whether pypowerwall's signed client has failed over to the Wi-Fi
+    fallback address (the home-network address stopped answering)."""
+    return bool(getattr(getattr(getattr(pw, "client", None), "tedapi", None), "lan_failed", False))
 
 
 def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
@@ -592,6 +604,17 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._key_refused = 0
         self._client_error_logged = False
         self._reauth_started = False
+        # The last failed signed read was a refused key (password fine): then
+        # readings come over the Powerwall's Wi-Fi with its password instead,
+        # read-only, through a client of their own (writes never use it).
+        self._key_refused_now = False
+        self._readonly_pw = None
+        self._readonly = False
+        # How the latest reading came (CONNECTION_PATHS); when the gateway
+        # last answered; and the settings it last reported, with when.
+        self.connection_path: str | None = None
+        self.last_local_read: datetime | None = None
+        self.last_known_settings: dict[str, Any] | None = None
         # Gateway down while the cloud backup keeps the settings: logged once.
         self._gateway_down = False
         self._token_expiry: tuple[float, float | None] | None = None
@@ -725,6 +748,18 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                       getattr(pw, "tedapi_mode", None))
         return pw
 
+    def _init_readonly(self):
+        """A Wi-Fi password client for the Powerwall's own Wi-Fi: readings
+        while the gateway refuses the key. It can't change settings."""
+        import pypowerwall  # noqa: PLC0415
+
+        pw = pypowerwall.Powerwall(**local_kwargs(
+            MODE_WIFI, self.follower_host, self._gw_pwd, "", str(self.hass.config.time_zone),
+            cache_seconds=min(5, max(1, int(self._scan_interval(self.config_entry).total_seconds()) - 1))))
+        if pw.mode != "local":
+            raise RuntimeError(f"pypowerwall picked {pw.mode} mode, not local")
+        return pw
+
     def _init_cloud(self):
         import pypowerwall  # noqa: PLC0415
 
@@ -782,10 +817,24 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "battery_soe": soe_value,
             "battery_level": app_soc(soe_value),
             "grid_status": pw.grid_status(),
+            "lan_failed": _lan_failed(pw),
         }
 
-    def _fetch_full(self) -> dict[str, Any]:
-        pw = self._pw
+    def _fetch_readonly(self) -> dict[str, Any] | None:
+        """The gateway refuses the key: a full read over the Powerwall's own
+        Wi-Fi with its password, read-only (dropped settings aren't written
+        back). None when that fails too."""
+        try:
+            if self._readonly_pw is None:
+                self._readonly_pw = self._init_readonly()
+            return {**self._fetch_full(self._readonly_pw, readonly=True), "readonly": True}
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Read-only Wi-Fi read failed: %s", scrub(err))
+            self._readonly_pw = None
+            return None
+
+    def _fetch_full(self, pw: Any = None, *, readonly: bool = False) -> dict[str, Any]:
+        pw = self._pw if pw is None else pw
         # power() fails when the gateway can't be reached (the local read then
         # fails as before); its values aren't used, see _instant_power.
         pw.power()
@@ -818,7 +867,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         control = self._read_control(pw) if self.control_enabled else {}
         site_info = self._read_site_info(pw) if self.control_enabled else None
-        missing = self._check_dropped(pw, control, site_info) if site_info is not None else {}
+        missing = self._check_dropped(pw, control, site_info) if site_info is not None and not readonly else {}
         soe_value = round(soe, 1) if isinstance(soe, (int, float)) else None
 
         return {
@@ -838,6 +887,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "phases": phases_mod.extract(vitals),
             "full_read": True,
             "tedapi_mode": getattr(pw, "tedapi_mode", None),
+            "lan_failed": _lan_failed(pw),
             "backup_event": self._read_backup_event(pw),
             **self._fetch_extras(pw, vitals, aggregates),
             "local_ok": True,
@@ -1617,25 +1667,49 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     self._note_client_error(err)
                 else:
                     await self._async_note_local_failure(key_refused)
-                if not (self.cloud_enabled and self.din):
-                    raise
-                data = await self.hass.async_add_executor_job(self._fetch_cloud_only)
-                if data.get("control_source") is None:
-                    raise
-                if not self._gateway_down:
-                    self._gateway_down = True
-                    _LOGGER.warning("%s: the gateway can't be reached (%s); readings are unavailable "
-                                    "and settings use the cloud backup", self._log_name, scrub(err))
+                readonly = (await self.hass.async_add_executor_job(self._fetch_readonly)
+                            if self._readonly_wanted() else None)
+                if readonly is not None:
+                    data = readonly
+                    if not self._readonly:
+                        self._readonly = True
+                        _LOGGER.warning("%s: the Powerwall refuses the key; readings come over its Wi-Fi "
+                                        "(read-only) until access is set up again", self._log_name)
+                else:
+                    if not (self.cloud_enabled and self.din):
+                        raise
+                    data = await self.hass.async_add_executor_job(self._fetch_cloud_only)
+                    if data.get("control_source") is None:
+                        raise
+                    if not self._gateway_down:
+                        self._gateway_down = True
+                        _LOGGER.warning("%s: the gateway can't be reached (%s); readings are unavailable "
+                                        "and settings use the cloud backup", self._log_name, scrub(err))
             else:
                 self._password_refused = self._key_refused = 0
+                self._key_refused_now = False
+                self._readonly_pw = None
+                if self._readonly:
+                    self._readonly = False
+                    _LOGGER.info("%s: the Powerwall accepts the key again", self._log_name)
                 if self._gateway_down:
                     self._gateway_down = False
                     _LOGGER.info("%s: the gateway answers again", self._log_name)
         except Exception as err:
             self._pw = None
             self._full_at = None
+            self.connection_path = PATH_NONE
             self._sync_cloud_issue()
             raise UpdateFailed(f"Powerwall update failed: {scrub(err)}") from err
+
+        self.connection_path = self._connection_path(data)
+        if data.get("local_ok"):
+            self.last_local_read = dt_util.utcnow()
+            if data.get("full_read", True) and data.get("control_source") == "local":
+                self.last_known_settings = {
+                    "operation_mode": data.get("operation_mode"), "backup_reserve": data.get("reserve"),
+                    "grid_charging": data.get("grid_charging"), "grid_export": data.get("grid_export"),
+                    "read_at": self.last_local_read.isoformat()}
 
         if data.get("din"):
             self.din = data["din"]
@@ -1692,7 +1766,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         poll doesn't read the gateway's config) site limits: read every
         EXTRAS_SECONDS while the gateway answers; the last values otherwise."""
         extras = self.extras
-        if data.get("local_ok") and extras.due():
+        # Not over the read-only Wi-Fi client: these reads need the key.
+        if data.get("local_ok") and not data.get("readonly") and extras.due():
             try:
                 await extras.async_read(limits=data.get("site_limits") is None)
             except Exception as err:  # noqa: BLE001
@@ -2079,10 +2154,25 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return "network"
         return "stalled" if key_refused is False else "key"
 
+    def _readonly_wanted(self) -> bool:
+        """Read over the Powerwall's Wi-Fi with its password: only while the
+        gateway refuses the key, on a signed connection with an address on
+        the Powerwall's Wi-Fi."""
+        return (self._conn_mode == MODE_V1R and self._key_refused_now and bool(self._gw_pwd)
+                and bool(self.follower_host))
+
+    def _connection_path(self, data: dict[str, Any]) -> str:
+        if not data.get("local_ok"):
+            return PATH_CLOUD
+        if data.get("readonly") or self._conn_mode != MODE_V1R:
+            return PATH_WIFI_PASSWORD
+        return PATH_WIFI_FALLBACK if data.get("lan_failed") else PATH_SIGNED
+
     async def _async_note_local_failure(self, key_refused: bool | None = None) -> None:
         if self._conn_mode != MODE_V1R or self._reauth_started:
             return
         reason = await self.hass.async_add_executor_job(self._classify_failure, key_refused)
+        self._key_refused_now = reason == "key"
         if reason == "password":
             self._password_refused += 1
         elif reason == "key":
