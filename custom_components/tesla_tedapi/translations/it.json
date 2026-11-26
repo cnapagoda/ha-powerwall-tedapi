@@ -324,10 +324,16 @@
         "description": "Pubblica letture, impostazioni, stato ed eventi di questa Powerwall tramite l'integrazione MQTT di Home Assistant, per strumenti esterni a Home Assistant. Disattivato di default; serve l'integrazione MQTT. Argomenti e messaggi non contengono mai l'identificativo, i numeri di serie o l'indirizzo del gateway. Disattivandolo si rimuovono i messaggi conservati.",
         "data": {
           "mqtt_publish": "Pubblica su MQTT",
-          "mqtt_base_topic": "Argomento base"
+          "mqtt_base_topic": "Argomento base",
+          "mqtt_commands": "Accetta comandi per le impostazioni",
+          "mqtt_battery_commands": "Accetta comandi di controllo della batteria",
+          "mqtt_secret": "Segreto dei comandi (facoltativo)"
         },
         "data_description": {
-          "mqtt_base_topic": "I messaggi vanno a <base>/power, /battery, /energy, /settings, /status e /event/…. Lettere, cifre, _ e -, separati da /. Ogni Powerwall ne serve uno proprio."
+          "mqtt_base_topic": "I messaggi vanno a <base>/power, /battery, /energy, /settings, /status e /event/…. Lettere, cifre, _ e -, separati da /. Ogni Powerwall ne serve uno proprio.",
+          "mqtt_commands": "Modalità operativa, riserva di backup, ricarica dalla rete ed esportazione, da <base>/cmd/…, con gli stessi controlli delle entità. Richiede la pubblicazione attiva. Chiunque possa pubblicare sul tuo broker può usarli: limitalo con le regole di accesso del broker o imposta un segreto.",
+          "mqtt_battery_commands": "Controllo della batteria, carica e scarica fino a un livello, ripresa e backup massimo, con tutti i limiti delle azioni. Solo con i comandi per le impostazioni attivi. Leggi prima Sicurezza.",
+          "mqtt_secret": "Se impostato, un comando viene eseguito solo se il suo campo token corrisponde."
         }
       },
       "cloud_backup": {

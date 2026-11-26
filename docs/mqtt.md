@@ -5,6 +5,7 @@ The integration can publish the Powerwall's readings, settings, status and event
 - [Turning it on](#turning-it-on)
 - [Topics](#topics)
 - [Payloads](#payloads)
+- [Commands](#commands)
 - [Examples](#examples)
 - [Notes](#notes)
 
@@ -50,6 +51,43 @@ JSON. Every payload has `schema` (1), `ts` (when it was sent, UTC) and, except e
 **event/alert**: `kind` (`raised` or `cleared`), `alert`, `severity`, `description`. The other events carry the same data as the [Home Assistant events](events.md).
 
 Nothing in the topics or payloads identifies your Powerwall or network: no gateway ID, serial numbers, pack names or addresses.
+
+## Commands
+
+Off by default, with two switches in **Configure → MQTT** (publishing must be on too):
+
+- **Accept setting commands**: `set_mode`, `set_reserve`, `set_grid_charging`, `set_grid_export`.
+- **Accept battery control commands** (only with setting commands on): `dispatch`, `charge_to`, `discharge_to`, `resume`, `start_max_backup`, `cancel_max_backup`. Read [Safety](safety.md) first.
+
+Publish a JSON object to `<base>/cmd/<command>`. Each runs the same code as the entity or [action](actions.md) it stands for, so every check and limit applies (largest dispatch power, discharges stop at the backup reserve, a battery level that's too old stops a dispatch, settings need the signed connection or a cloud backup). Going off-grid and site limits aren't offered over MQTT.
+
+| Command | Fields |
+|---|---|
+| `set_mode` | `mode`: `self_consumption`, `autonomous` or `backup` |
+| `set_reserve` | `percent`: 0–100 |
+| `set_grid_charging` | `enabled`: `true` or `false` |
+| `set_grid_export` | `rule`: `battery_ok`, `pv_only` or `never` |
+| `dispatch` | as [`dispatch_battery_power`](actions.md): `power_watts`, `duration_seconds`, optional `min_soc`, `max_soc` |
+| `charge_to`, `discharge_to` | as the actions: `target_soc`, `power_watts`, `max_minutes` |
+| `resume`, `cancel_max_backup` | none |
+| `start_max_backup` | `duration_minutes` |
+
+Optional in every command: `id` (sent back in the answer) and `token` (see below). The answer goes to `<base>/cmd/result` (not retained):
+
+```json
+{"id": "a1", "action": "set_reserve", "ok": false, "error": "invalid_arguments",
+ "message": "value must be at most 100 for dictionary value @ data['percent']", "schema": 1, "ts": "…"}
+```
+
+`error` is `null` when it worked; otherwise `invalid_json`, `unknown_action`, `not_enabled`, `unauthorized`, `retained`, `invalid_arguments`, or the reason the integration gives (for example `settings_need_control`).
+
+**Who can send them:** anyone who can publish to your broker. Limit that with the broker's access rules (for example only your Home Assistant and your automation user may publish to `<base>/cmd/#`), and set a **Command secret**: then a command runs only with `"token": "<secret>"`. A retained command is never run: it would run again at every restart.
+
+Example, from the command line:
+```bash
+mosquitto_pub -h <broker> -u <user> -P <password> -t 'tesla_tedapi/powerwall/cmd/set_reserve' \
+  -m '{"id": "1", "percent": 30, "token": "<secret>"}'
+```
 
 ## Examples
 

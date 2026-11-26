@@ -76,7 +76,10 @@ from .const import (
     CONF_HOST,
     CONF_MACS,
     CONF_MQTT_BASE_TOPIC,
+    CONF_MQTT_BATTERY_COMMANDS,
+    CONF_MQTT_COMMANDS,
     CONF_MQTT_PUBLISH,
+    CONF_MQTT_SECRET,
     CONF_OWNERS_AUTHPATH,
     CONF_OWNERS_EMAIL,
     CONF_POWER_INTERVAL,
@@ -1437,8 +1440,15 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                     from .mqtt_bridge import async_clear  # noqa: PLC0415
 
                     await async_clear(self.hass, old)
-                return self.async_create_entry(
-                    data={**opts, CONF_MQTT_PUBLISH: publish, CONF_MQTT_BASE_TOPIC: base})
+                commands = bool(user_input.get(CONF_MQTT_COMMANDS))
+                options = {**opts, CONF_MQTT_PUBLISH: publish, CONF_MQTT_BASE_TOPIC: base,
+                           CONF_MQTT_COMMANDS: commands,
+                           CONF_MQTT_BATTERY_COMMANDS: commands and bool(user_input.get(CONF_MQTT_BATTERY_COMMANDS))}
+                secret = str(user_input.get(CONF_MQTT_SECRET) or "").strip()
+                options.pop(CONF_MQTT_SECRET, None)
+                if secret:
+                    options[CONF_MQTT_SECRET] = secret
+                return self.async_create_entry(data=options)
         base = opts.get(CONF_MQTT_BASE_TOPIC)
         if not base:
             base, n = DEFAULT_MQTT_BASE_TOPIC, 1
@@ -1450,6 +1460,12 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             data_schema=vol.Schema({
                 vol.Required(CONF_MQTT_PUBLISH, default=bool(opts.get(CONF_MQTT_PUBLISH, False))): bool,
                 vol.Required(CONF_MQTT_BASE_TOPIC, default=base): str,
+                vol.Required(CONF_MQTT_COMMANDS, default=bool(opts.get(CONF_MQTT_COMMANDS, False))): bool,
+                vol.Required(CONF_MQTT_BATTERY_COMMANDS,
+                             default=bool(opts.get(CONF_MQTT_BATTERY_COMMANDS, False))): bool,
+                # Suggested, so it stays unless changed; clearing it removes it.
+                vol.Optional(CONF_MQTT_SECRET, description={
+                    "suggested_value": opts.get(CONF_MQTT_SECRET) or ""}): PASSWORD,
             }),
             errors=errors,
         )

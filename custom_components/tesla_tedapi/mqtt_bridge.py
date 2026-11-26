@@ -7,7 +7,9 @@ the integration loads and works without MQTT.
 
 Topics under the base topic (default tesla_tedapi/powerwall): availability,
 power, battery, energy, settings and status (retained), and event/<name>
-(not retained). JSON payloads carry "schema", "ts" (UTC) and "source" (the
+(not retained). With commands on, <base>/cmd/<action> runs the same code as
+the entities and actions (every limit applies) and answers on
+<base>/cmd/result. JSON payloads carry "schema", "ts" (UTC) and "source" (the
 connection path). Units and signs are the entities' own: W, kWh, % on the
 Tesla app's scale; grid + is importing, battery + is discharging. Nothing
 identifies the Powerwall: no DIN, serials, pack names or addresses.
@@ -15,6 +17,7 @@ identifies the Powerwall: no DIN, serials, pack names or addresses.
 from __future__ import annotations
 
 from collections.abc import Callable
+import hmac
 import json
 import logging
 from typing import TYPE_CHECKING, Any
@@ -24,15 +27,28 @@ from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
+import voluptuous as vol
 
 from .const import (
+    ATTR_CONFIG_ENTRY_ID,
     CONF_MQTT_BASE_TOPIC,
+    CONF_MQTT_BATTERY_COMMANDS,
+    CONF_MQTT_COMMANDS,
+    CONF_MQTT_SECRET,
     DEFAULT_MQTT_BASE_TOPIC,
     DOMAIN,
     EVENT_DISPATCH_ENDED,
     EVENT_FIRMWARE_UPDATED,
     EVENT_GRID_OUTAGE,
     EVENT_OFF_GRID_ENDED,
+    GRID_EXPORT_MODES,
+    OPERATION_MODES,
+    SERVICE_CANCEL_MAX_BACKUP,
+    SERVICE_CHARGE_TO,
+    SERVICE_DISCHARGE_TO,
+    SERVICE_DISPATCH,
+    SERVICE_RESUME,
+    SERVICE_START_MAX_BACKUP,
 )
 from .firmware import split_version
 from .privacy import scrub
@@ -55,6 +71,26 @@ EVENTS = {
     EVENT_GRID_OUTAGE: "grid_outage",
     EVENT_FIRMWARE_UPDATED: "firmware_updated",
 }
+
+# Commands: settings (the first switch), and battery control (the second,
+# on top of the first), run as the integration's own actions. Going off-grid
+# and site limits aren't offered over MQTT.
+SETTINGS_COMMANDS: dict[str, vol.Schema] = {
+    "set_mode": vol.Schema({vol.Required("mode"): vol.In(OPERATION_MODES)}),
+    "set_reserve": vol.Schema({vol.Required("percent"): vol.All(vol.Coerce(float), vol.Range(min=0, max=100))}),
+    "set_grid_charging": vol.Schema({vol.Required("enabled"): bool}),
+    "set_grid_export": vol.Schema({vol.Required("rule"): vol.In(GRID_EXPORT_MODES)}),
+}
+BATTERY_COMMANDS = {
+    "dispatch": SERVICE_DISPATCH,
+    "charge_to": SERVICE_CHARGE_TO,
+    "discharge_to": SERVICE_DISCHARGE_TO,
+    "resume": SERVICE_RESUME,
+    "start_max_backup": SERVICE_START_MAX_BACKUP,
+    "cancel_max_backup": SERVICE_CANCEL_MAX_BACKUP,
+}
+RESULT = "result"
+MAX_COMMAND_BYTES = 2048
 
 
 def issue_id(entry_id: str) -> str:
@@ -180,6 +216,10 @@ class MqttBridge:
         # unchanged one isn't sent again.
         self._last: dict[str, str] = {}
         self._fired_alerts: Any = None
+        options = entry.options
+        self.commands = bool(options.get(CONF_MQTT_COMMANDS))
+        self.battery_commands = self.commands and bool(options.get(CONF_MQTT_BATTERY_COMMANDS))
+        self._secret = str(options.get(CONF_MQTT_SECRET) or "")
 
     async def async_start(self) -> bool:
         """Start publishing once Home Assistant's MQTT client is there. False,
@@ -198,7 +238,9 @@ class MqttBridge:
         self._unsubs.append(self.coordinator.async_add_listener(self._on_update))
         for event_type in EVENTS:
             self._unsubs.append(self.hass.bus.async_listen(event_type, self._on_event))
-        _LOGGER.debug("Publishing to MQTT under %s", self.base)
+        if self.commands:
+            self._unsubs.append(await mqtt.async_subscribe(self.hass, f"{self.base}/cmd/+", self._on_command))
+        _LOGGER.debug("Publishing to MQTT under %s%s", self.base, " (with commands)" if self.commands else "")
         self._on_update()
         return True
 
@@ -222,6 +264,73 @@ class MqttBridge:
         payload = {**event_payload(dict(event.data)), "schema": SCHEMA, "ts": dt_util.utcnow().isoformat()}
         self.hass.async_create_task(
             self._async_send(f"event/{EVENTS[event.event_type]}", _json(payload), retain=False), eager_start=True)
+
+    # ---- commands ----
+
+    @callback
+    def _on_command(self, msg: Any) -> None:
+        action = str(msg.topic).rsplit("/", 1)[-1]
+        if action == RESULT:
+            return  # our own answers
+        self.hass.async_create_task(self._async_command(action, msg.payload, bool(msg.retain)), eager_start=True)
+
+    async def _async_command(self, action: str, raw: Any, retained: bool) -> None:
+        """Run one command and answer on cmd/result. A retained command is
+        never run: it would run again at every restart."""
+        body: Any = None
+        if isinstance(raw, bytes):
+            raw = raw.decode("utf-8", "replace")
+        if isinstance(raw, str) and len(raw) <= MAX_COMMAND_BYTES:
+            try:
+                body = json.loads(raw) if raw.strip() else {}
+            except ValueError:
+                body = None
+        request_id = body.get("id") if isinstance(body, dict) else None
+        if not isinstance(request_id, (str, int)) or isinstance(request_id, bool):
+            request_id = None
+        error, message = None, None
+        if retained:
+            error = "retained"
+        elif not isinstance(body, dict):
+            error = "invalid_json"
+        elif self._secret and not hmac.compare_digest(str(body.get("token") or "").encode(), self._secret.encode()):
+            error = "unauthorized"
+        elif action not in SETTINGS_COMMANDS and action not in BATTERY_COMMANDS:
+            error = "unknown_action"
+        elif action in BATTERY_COMMANDS and not self.battery_commands:
+            error = "not_enabled"
+        else:
+            params = {key: value for key, value in body.items() if key not in ("id", "token")}
+            try:
+                await self._async_run(action, params)
+            except vol.Invalid as err:
+                error, message = "invalid_arguments", scrub(err)
+            except HomeAssistantError as err:
+                error, message = err.translation_key or "failed", scrub(err)
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("MQTT command %s failed: %s", action, scrub(err))
+                error, message = "failed", scrub(err)
+        _LOGGER.info("MQTT command %s: %s", action, error or "done")
+        result = {"id": str(request_id)[:64] if request_id is not None else None, "action": action[:64],
+                  "ok": error is None, "error": error, "message": message,
+                  "schema": SCHEMA, "ts": dt_util.utcnow().isoformat()}
+        await self._async_send(f"cmd/{RESULT}", _json(result), retain=False)
+
+    async def _async_run(self, action: str, params: dict[str, Any]) -> None:
+        coordinator = self.coordinator
+        if action in SETTINGS_COMMANDS:
+            args = SETTINGS_COMMANDS[action](params)
+            if action == "set_mode":
+                await coordinator.async_set_mode(args["mode"])
+            elif action == "set_reserve":
+                await coordinator.async_set_reserve(args["percent"])
+            elif action == "set_grid_charging":
+                await coordinator.async_set_grid_charging(args["enabled"])
+            else:
+                await coordinator.async_set_grid_export(args["rule"])
+            return
+        await self.hass.services.async_call(
+            DOMAIN, BATTERY_COMMANDS[action], {**params, ATTR_CONFIG_ENTRY_ID: self.entry.entry_id}, blocking=True)
 
     async def _async_publish_all(self) -> None:
         coordinator = self.coordinator

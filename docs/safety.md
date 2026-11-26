@@ -53,6 +53,10 @@ The integration helps:
 
 `start_max_backup` charges the battery to full, from the grid if needed, and holds it. It's the same command Storm Watch uses. Grid charging during a max backup may cost money on your tariff.
 
+## MQTT commands
+
+[MQTT commands](mqtt.md#commands) are off by default. With them on, anyone who can publish to your MQTT broker can change settings, and with battery control on also dispatch the battery, within the same limits as the actions here. Restrict publishing to `<base>/cmd/#` with the broker's access rules, and set a command secret.
+
 ## The key and your Tesla sign-in
 
 - The RSA private key and the Tesla sign-in are stored in `config/tesla_tedapi/` with owner-only permissions. **Anyone with the key and access to your network can control the Powerwall.** Treat both like passwords.

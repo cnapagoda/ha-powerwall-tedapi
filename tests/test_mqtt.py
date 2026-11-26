@@ -265,3 +265,144 @@ async def test_clearing_without_mqtt_does_nothing(hass: HomeAssistant) -> None:
     from custom_components.tesla_tedapi import mqtt_bridge  # noqa: PLC0415
 
     await mqtt_bridge.async_clear(hass, BASE)  # no MQTT integration: returns at once
+
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+COMMANDS = {**ON, "mqtt_commands": True}
+BATTERY = {**COMMANDS, "mqtt_battery_commands": True}
+
+
+async def _command(hass: HomeAssistant, mqtt_mock, action: str, payload: Any, retain: bool = False
+                   ) -> dict[str, Any] | None:
+    """Send a command; its answer on cmd/result (None without one)."""
+    from pytest_homeassistant_custom_component.common import async_fire_mqtt_message  # noqa: PLC0415
+
+    before = _count(mqtt_mock, "cmd/result")
+    body = payload if isinstance(payload, str) else json.dumps(payload)
+    async_fire_mqtt_message(hass, f"{BASE}/cmd/{action}", body, retain=retain)
+    await hass.async_block_till_done()
+    if _count(mqtt_mock, "cmd/result") == before:
+        return None
+    return _last(mqtt_mock, "cmd/result")
+
+
+def _local(fake_powerwall):
+    return [p for p in fake_powerwall.instances if p.mode == "local"][-1]
+
+
+async def test_commands_are_off_unless_turned_on(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    await _setup(hass, ON)
+    assert await _command(hass, mqtt_mock, "set_mode", {"mode": "backup"}) is None
+    assert ("mode", "backup") not in _local(fake_powerwall).writes
+
+
+async def test_setting_commands(hass: HomeAssistant, fake_powerwall, mqtt_mock, caplog) -> None:
+    await _setup(hass, COMMANDS)
+    result = await _command(hass, mqtt_mock, "set_mode", {"id": "a1", "mode": "backup"})
+    assert result["ok"] is True and result["id"] == "a1" and result["action"] == "set_mode"
+    assert ("mode", "backup") in _local(fake_powerwall).writes
+    assert (await _command(hass, mqtt_mock, "set_reserve", {"percent": 30}))["ok"] is True
+    assert (await _command(hass, mqtt_mock, "set_grid_charging", {"enabled": True}))["ok"] is True
+    assert (await _command(hass, mqtt_mock, "set_grid_export", {"rule": "battery_ok"}))["ok"] is True
+    result = await _command(hass, mqtt_mock, "set_reserve", {"percent": 150})
+    assert result["ok"] is False and result["error"] == "invalid_arguments"
+    result = await _command(hass, mqtt_mock, "set_mode", {"mode": "party"})
+    assert result["error"] == "invalid_arguments"
+    assert "MQTT command set_mode: done" in caplog.text
+
+
+async def test_battery_commands_need_their_own_switch(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    await _setup(hass, COMMANDS)
+    result = await _command(hass, mqtt_mock, "dispatch", {"power_watts": 1000, "duration_seconds": 60})
+    assert result["error"] == "not_enabled"
+    assert _local(fake_powerwall).dispatches == []
+
+
+async def test_battery_commands(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    await _setup(hass, BATTERY)
+    result = await _command(hass, mqtt_mock, "dispatch", {"power_watts": 1000, "duration_seconds": 60})
+    assert result["ok"] is True
+    assert _local(fake_powerwall).dispatches
+    assert (await _command(hass, mqtt_mock, "resume", {}))["ok"] is True
+    # The action's own limits apply.
+    result = await _command(hass, mqtt_mock, "dispatch", {"power_watts": 99999, "duration_seconds": 60})
+    assert result["error"] == "invalid_arguments"
+    result = await _command(hass, mqtt_mock, "start_max_backup", {"duration_minutes": 60})
+    assert result["ok"] is True
+    assert (await _command(hass, mqtt_mock, "cancel_max_backup", ""))["ok"] is True
+    # Going off-grid isn't offered over MQTT.
+    assert (await _command(hass, mqtt_mock, "go_off_grid", {"confirm": True}))["error"] == "unknown_action"
+
+
+async def test_a_refused_command_says_why(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    """Wi-Fi password connection without a cloud backup: settings can't be
+    changed, and the answer says so."""
+    await _setup(hass, COMMANDS, data={"connection_mode": "wifi", "host": "192.168.91.1",
+                                       "gw_pwd": "ABCDE12345", "scan_interval": 30})
+    result = await _command(hass, mqtt_mock, "set_mode", {"mode": "backup"})
+    assert result["ok"] is False and result["error"] == "settings_need_control"
+
+
+async def test_command_secret(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    await _setup(hass, {**COMMANDS, "mqtt_secret": "s3cret"})
+    result = await _command(hass, mqtt_mock, "set_mode", {"mode": "backup", "token": "wrong"})
+    assert result["error"] == "unauthorized" and result["message"] is None
+    assert ("mode", "backup") not in _local(fake_powerwall).writes
+    assert (await _command(hass, mqtt_mock, "set_mode", {"mode": "backup"}))["error"] == "unauthorized"
+    result = await _command(hass, mqtt_mock, "set_mode", {"mode": "backup", "token": "s3cret"})
+    assert result["ok"] is True
+    assert all("s3cret" not in payload for _, payload, _ in _messages(mqtt_mock))
+
+
+async def test_bad_commands(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    await _setup(hass, BATTERY)
+    # Retained: never run (it would run again at every restart).
+    result = await _command(hass, mqtt_mock, "set_mode", {"mode": "backup"}, retain=True)
+    assert result["error"] == "retained"
+    assert ("mode", "backup") not in _local(fake_powerwall).writes
+    assert (await _command(hass, mqtt_mock, "set_mode", "{not json"))["error"] == "invalid_json"
+    assert (await _command(hass, mqtt_mock, "set_mode", "[1, 2]"))["error"] == "invalid_json"
+    assert (await _command(hass, mqtt_mock, "set_mode", json.dumps({"mode": "x" * 3000})))["error"] == "invalid_json"
+    result = await _command(hass, mqtt_mock, "reboot", {"id": True})
+    assert result["error"] == "unknown_action" and result["id"] is None
+    # Our own answers aren't commands.
+    assert await _command(hass, mqtt_mock, "result", {"ok": True}) is None
+
+
+async def test_unexpected_failure_is_answered(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    entry = await _setup(hass, COMMANDS)
+    with patch.object(entry.runtime_data.coordinator, "async_set_mode", side_effect=RuntimeError("boom")):
+        result = await _command(hass, mqtt_mock, "set_mode", {"mode": "backup"})
+    assert result["ok"] is False and result["error"] == "failed"
+
+
+async def test_options_commands_and_secret(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    from custom_components.tesla_tedapi.diagnostics import async_get_config_entry_diagnostics  # noqa: PLC0415
+
+    entry = await _setup(hass)
+    result = await _mqtt_step(hass, entry)
+    assert _default(result, "mqtt_commands") is False and _default(result, "mqtt_battery_commands") is False
+    # Battery control needs setting commands on.
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {
+        "mqtt_publish": True, "mqtt_base_topic": BASE, "mqtt_commands": False, "mqtt_battery_commands": True,
+        "mqtt_secret": " s3cret "})
+    await hass.async_block_till_done()
+    assert entry.options["mqtt_battery_commands"] is False and entry.options["mqtt_secret"] == "s3cret"
+    assert "s3cret" not in json.dumps(await async_get_config_entry_diagnostics(hass, entry), default=str)
+    result = await _mqtt_step(hass, entry)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {
+        "mqtt_publish": True, "mqtt_base_topic": BASE, "mqtt_commands": True, "mqtt_battery_commands": True,
+        "mqtt_secret": ""})
+    await hass.async_block_till_done()
+    assert entry.options["mqtt_commands"] and entry.options["mqtt_battery_commands"]
+    assert "mqtt_secret" not in entry.options
+
+
+async def test_a_command_as_bytes(hass: HomeAssistant, fake_powerwall, mqtt_mock) -> None:
+    entry = await _setup(hass, COMMANDS)
+    await entry.runtime_data.mqtt._async_command("set_mode", b'{"mode": "backup"}', False)
+    await hass.async_block_till_done()
+    assert _last(mqtt_mock, "cmd/result")["ok"] is True

@@ -43,6 +43,11 @@ CONF_CLOUD_BACKENDS = "cloud_backends"
 CONF_MQTT_PUBLISH = "mqtt_publish"
 CONF_MQTT_BASE_TOPIC = "mqtt_base_topic"
 DEFAULT_MQTT_BASE_TOPIC = "tesla_tedapi/powerwall"
+# Commands over MQTT (<base>/cmd/<action>), each off by default: settings,
+# and battery control on top of them; with an optional shared secret.
+CONF_MQTT_COMMANDS = "mqtt_commands"
+CONF_MQTT_BATTERY_COMMANDS = "mqtt_battery_commands"
+CONF_MQTT_SECRET = "mqtt_secret"
 # A base topic: segments of letters, digits, "_" and "-", joined by "/".
 MQTT_BASE_TOPIC_RE = re.compile(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*")
 MQTT_BASE_TOPIC_MAX = 200

@@ -324,10 +324,16 @@
         "description": "Messwerte, Einstellungen, Status und Ereignisse dieser Powerwall über die MQTT-Integration von Home Assistant veröffentlichen, für Werkzeuge außerhalb von Home Assistant. Standardmäßig aus; braucht die MQTT-Integration. Themen und Nachrichten enthalten nie die Kennung, Seriennummern oder Adresse des Gateways. Beim Ausschalten werden die gespeicherten (retained) Nachrichten entfernt.",
         "data": {
           "mqtt_publish": "An MQTT veröffentlichen",
-          "mqtt_base_topic": "Basisthema"
+          "mqtt_base_topic": "Basisthema",
+          "mqtt_commands": "Einstellungsbefehle annehmen",
+          "mqtt_battery_commands": "Befehle zur Batteriesteuerung annehmen",
+          "mqtt_secret": "Befehlsgeheimnis (optional)"
         },
         "data_description": {
-          "mqtt_base_topic": "Nachrichten gehen an <Basis>/power, /battery, /energy, /settings, /status und /event/…. Buchstaben, Ziffern, _ und -, getrennt durch /. Jede Powerwall braucht ein eigenes."
+          "mqtt_base_topic": "Nachrichten gehen an <Basis>/power, /battery, /energy, /settings, /status und /event/…. Buchstaben, Ziffern, _ und -, getrennt durch /. Jede Powerwall braucht ein eigenes.",
+          "mqtt_commands": "Betriebsmodus, Notstromreserve, Netzladen und Netzeinspeisung, über <Basis>/cmd/…, mit denselben Prüfungen wie die Entitäten. Braucht eingeschaltete Veröffentlichung. Jeder, der an deinen Broker veröffentlichen kann, kann sie nutzen: schränke das mit den Zugriffsregeln des Brokers ein oder setze ein Geheimnis.",
+          "mqtt_battery_commands": "Batteriesteuerung, Laden und Entladen auf einen Stand, Fortsetzen und maximale Reserve, mit allen Grenzen der Aktionen. Nur mit eingeschalteten Einstellungsbefehlen. Lies zuerst „Sicherheit“.",
+          "mqtt_secret": "Wenn gesetzt, läuft ein Befehl nur, wenn sein Feld token übereinstimmt."
         }
       },
       "cloud_backup": {

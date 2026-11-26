@@ -324,10 +324,16 @@
         "description": "Publish this Powerwall's readings, settings, status and events through Home Assistant's MQTT integration, for tools outside Home Assistant. Off by default; it needs the MQTT integration. Topics and messages never include the gateway's ID, serial numbers or address. Turning it off removes the retained messages.",
         "data": {
           "mqtt_publish": "Publish to MQTT",
-          "mqtt_base_topic": "Base topic"
+          "mqtt_base_topic": "Base topic",
+          "mqtt_commands": "Accept setting commands",
+          "mqtt_battery_commands": "Accept battery control commands",
+          "mqtt_secret": "Command secret (optional)"
         },
         "data_description": {
-          "mqtt_base_topic": "Messages go to <base>/power, /battery, /energy, /settings, /status and /event/…. Letters, digits, _ and -, separated by /. Each Powerwall needs its own."
+          "mqtt_base_topic": "Messages go to <base>/power, /battery, /energy, /settings, /status and /event/…. Letters, digits, _ and -, separated by /. Each Powerwall needs its own.",
+          "mqtt_commands": "Operation mode, backup reserve, grid charging and grid export, from <base>/cmd/…, with the same checks as the entities. Needs publishing on. Anyone who can publish to your broker can use them: restrict it with the broker's access rules, or set a secret.",
+          "mqtt_battery_commands": "Battery dispatch, charge to and discharge to a level, resume, and max backup, with every limit of the actions. Only with setting commands on. Read Safety first.",
+          "mqtt_secret": "When set, a command runs only if its token field matches."
         }
       },
       "cloud_backup": {
