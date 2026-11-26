@@ -251,6 +251,9 @@ DISPATCH_MAX_FAILURES = 3
 # later), the session ends.
 DISPATCH_STALE_SECONDS = 120
 DISPATCH_STALE_POLLS = 2.5
+# Before a dispatch stops renewing (or refuses to start) on a battery level
+# that's too old: one extra read of the level, given at most this long (s).
+DISPATCH_FRESH_READ_SECONDS = 20
 
 EVENT_DISPATCH_ENDED = f"{DOMAIN}_dispatch_ended"
 

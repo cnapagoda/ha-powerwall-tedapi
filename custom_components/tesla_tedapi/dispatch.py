@@ -26,6 +26,7 @@ from .const import (
     CONF_DISPATCH_MAX_WATTS,
     DISPATCH_CHUNK_SECONDS,
     DISPATCH_DEFAULT_WATTS,
+    DISPATCH_FRESH_READ_SECONDS,
     DISPATCH_MAX_FAILURES,
     DISPATCH_RENEW_SECONDS,
     DISPATCH_STALE_POLLS,
@@ -176,7 +177,8 @@ class DispatchSession:
         # dispatch every few minutes: a re-send can't keep a blind session
         # going (a 0 W hold moves no energy, so it may).
         age = self._level_age()
-        if power_watts != 0 and (age is None or age > self._stale_limit()):
+        if (power_watts != 0 and (age is None or age > self._stale_limit())
+                and not await self._async_fresh_level(DISPATCH_FRESH_READ_SECONDS)):
             raise ServiceValidationError(
                 "The battery level hasn't been read recently, so the dispatch limits can't be checked",
                 translation_domain=DOMAIN, translation_key="dispatch_battery_level_unknown",
@@ -316,6 +318,19 @@ class DispatchSession:
         polls = interval.total_seconds() * DISPATCH_STALE_POLLS if interval else 0
         return max(DISPATCH_STALE_SECONDS, polls)
 
+    async def _async_fresh_level(self, window: float) -> bool:
+        """One extra read when the battery level is too old to go on: True if
+        it's fresh now. At most DISPATCH_FRESH_READ_SECONDS, and never past
+        the window left before the session would end."""
+        timeout = max(1.0, min(float(DISPATCH_FRESH_READ_SECONDS), window))
+        if not await self.coordinator.async_read_battery_level(timeout):
+            return False
+        age = self._level_age()
+        fresh = age is not None and age <= self._stale_limit()
+        if fresh:
+            _LOGGER.debug("Battery dispatch: an extra reading gave a fresh battery level")
+        return fresh
+
     def _stale_for(self, state: DispatchState) -> float | None:
         """Seconds since the last battery level, if it's too old to renew on;
         None while it's fresh, and always for a 0 W hold."""
@@ -355,6 +370,13 @@ class DispatchSession:
         if (state.ends - dt_util.utcnow()).total_seconds() < 1:
             return  # the end timer handles it
         stale = self._stale_for(state)
+        if stale is not None:
+            # One extra read first: a late poll shouldn't end the session.
+            window = self._stale_limit() + DISPATCH_CHUNK_SECONDS - stale
+            if window > 0 and await self._async_fresh_level(window):
+                if self.state is not state or await self._async_stop_at_limit(state):
+                    return
+                stale = self._stale_for(state)
         if stale is not None:
             # Without a fresh battery level the limits can't be checked, and
             # the Powerwall ignores its backup reserve during a dispatch: don't

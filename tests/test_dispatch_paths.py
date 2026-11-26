@@ -453,7 +453,9 @@ async def test_only_a_real_reading_counts_as_fresh(hass: HomeAssistant, fake_pow
     coordinator._apply_extras(site_limits={"import_limit_kw": None, "export_limit_kw": 5})
     coordinator.async_update_listeners()
     assert coordinator.battery_level_at == read_at
-    with pytest.raises(ServiceValidationError):
+    # (The extra read a stale start tries fails here: 2.9.0.)
+    with patch.object(local(fake_powerwall), "level", side_effect=ConnectionError("slow")), \
+            pytest.raises(ServiceValidationError):
         await _dispatch(hass, -2000, 600)
     # A real reading makes it fresh again.
     await coordinator.async_refresh()

@@ -622,6 +622,11 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._reauth_started = False
         # The gateway at the address is another Powerwall (repair up).
         self._wrong_gateway = False
+        # A poll is running: an extra battery level read waits for it
+        # instead (set when none is).
+        self._polling = False
+        self._poll_done = asyncio.Event()
+        self._poll_done.set()
         # The last failed signed read was a refused key (password fine): then
         # readings come over the Powerwall's Wi-Fi with its password instead,
         # read-only, through a client of their own (writes never use it).
@@ -1673,6 +1678,47 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "wifi_fallback_answered": self._fallback_answered}
 
     async def _async_update_data(self) -> dict[str, Any]:
+        self._polling = True
+        self._poll_done.clear()
+        try:
+            return await self._async_poll()
+        finally:
+            self._polling = False
+            self._poll_done.set()
+
+    async def async_read_battery_level(self, timeout: float) -> bool:
+        """One extra read of the battery level on the gateway connection in
+        use, for a battery dispatch that would otherwise stop on an old one.
+        A poll already running is waited for instead (no second read beside
+        it). Only while the gateway answers (the last poll read it); never a
+        new login. True when it gave a level: battery_level_at is then now,
+        and listeners (the dispatch's limit check) see it."""
+        if self._polling:
+            before = self.battery_level_at
+            try:
+                async with asyncio.timeout(timeout):
+                    await self._poll_done.wait()
+            except TimeoutError:
+                return False
+            return self.battery_level_at is not None and self.battery_level_at != before
+        pw = self._pw
+        if pw is None or not self.last_update_success or not (self.data or {}).get("local_ok"):
+            return False
+        try:
+            async with asyncio.timeout(timeout):
+                soe = await self.hass.async_add_executor_job(pw.level)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Extra battery level read failed: %s", scrub(err))
+            return False
+        if not isinstance(soe, (int, float)) or isinstance(soe, bool):
+            return False
+        soe_value = round(soe, 1)
+        self.battery_level_at = dt_util.utcnow()
+        self.data = {**(self.data or {}), "battery_soe": soe_value, "battery_level": app_soc(soe_value)}
+        self.async_update_listeners()
+        return True
+
+    async def _async_poll(self) -> dict[str, Any]:
         try:
             try:
                 if self._pw is None:
