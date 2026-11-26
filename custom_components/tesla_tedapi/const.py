@@ -248,9 +248,11 @@ DISPATCH_DEFAULT_WATTS = 10000
 DISPATCH_MAX_SECONDS = 86400
 # Each command to the Powerwall covers at most this long and is renewed while a
 # session runs, so the battery returns to normal within this time if Home
-# Assistant stops.
-DISPATCH_CHUNK_SECONDS = 300
-DISPATCH_RENEW_SECONDS = 60
+# Assistant stops or hangs (2.9.0: 2 minutes, was 5). Renewed often enough that
+# DISPATCH_MAX_FAILURES renewals in a row can fail before the last command
+# runs out.
+DISPATCH_CHUNK_SECONDS = 120
+DISPATCH_RENEW_SECONDS = 30
 DISPATCH_MAX_FAILURES = 3
 # A dispatch is only renewed while the battery level is fresher than this (s),
 # or than 2.5 polling intervals if that's longer: its limits are checked

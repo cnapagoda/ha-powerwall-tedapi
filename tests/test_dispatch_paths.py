@@ -360,19 +360,21 @@ async def test_stale_battery_level_stops_renewals_then_ends(hass: HomeAssistant,
     await _dispatch(hass, -2000, 3600)
     pw = local(fake_powerwall)
     sent = len(pw.dispatches)
-    # 2 minutes without a battery level: still running, renewals still sent.
-    await _gateway_silent(hass, entry, freezer, 120)
+    # 2 minutes without a battery level: still running, renewals still sent
+    # (the one at exactly 2 minutes too).
+    await _gateway_silent(hass, entry, freezer, 150)
     assert entry.runtime_data.dispatch.active
     renewed_while_fresh = len(pw.dispatches)
     assert renewed_while_fresh > sent
-    # Past 2 minutes: no more renewals, one warning, still not ended.
-    await _gateway_silent(hass, entry, freezer, 180)
+    # Past 2 minutes: no more renewals, one warning, still not ended (the
+    # last 2-minute command is still running).
+    await _gateway_silent(hass, entry, freezer, 60)
     assert len(pw.dispatches) == renewed_while_fresh
     assert entry.runtime_data.dispatch.active
     assert caplog.text.count("Battery dispatch not renewed") == 1
     # The last command has run out: the session ends and hands the battery back.
     resumes = pw.resumes
-    await _gateway_silent(hass, entry, freezer, 210)
+    await _gateway_silent(hass, entry, freezer, 60)
     assert not entry.runtime_data.dispatch.active
     assert [e.data["reason"] for e in ended] == ["battery_level_unknown"]
     assert pw.resumes == resumes + 1

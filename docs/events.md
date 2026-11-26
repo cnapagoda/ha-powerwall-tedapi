@@ -59,8 +59,8 @@ The **[Grid outage alert](automations.md#blueprints)** blueprint does this for y
 | `min_soc` | A discharge reached `min_soc` (or the backup reserve). |
 | `max_soc` | A charge reached `max_soc`. |
 | `stopped` | `resume_battery_operation` was called, or **Stop battery dispatch** was pressed. (A new dispatch that replaces a running one doesn't fire this event.) |
-| `connection_lost` | Three renewals in a row failed. The Powerwall returns to normal by itself within 5 minutes. |
-| `battery_level_unknown` | The gateway stopped giving a battery level, so the limits couldn't be checked. A charge or discharge isn't renewed once the level is 2 minutes old (or 2½ polling intervals, if longer), and ends when its last command has run out, 5 minutes later. A 0 W hold doesn't end this way. |
+| `connection_lost` | Three renewals in a row failed. The Powerwall returns to normal by itself within 2 minutes. |
+| `battery_level_unknown` | The gateway stopped giving a battery level, so the limits couldn't be checked. A charge or discharge isn't renewed once the level is 2 minutes old (or 2½ polling intervals, if longer), and ends when its last command has run out, 2 minutes later. A 0 W hold doesn't end this way. |
 | `unloaded` | The integration was unloaded or reloaded, for example after changing the Tesla tariff option, the cloud backup or the connection, or Home Assistant stopped or restarted. |
 
 ---
