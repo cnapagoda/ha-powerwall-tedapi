@@ -1410,7 +1410,9 @@
         "batterycomms": "La passerelle ne peut pas communiquer avec une batterie",
         "gridcodeswrite": "La passerelle écrit ses paramètres de code réseau",
         "podcommissiontime": "Une batterie enregistre sa date de mise en service",
-        "solarmetercomms": "Communication perdue avec le compteur solaire (les coupures brèves sont courantes)"
+        "solarmetercomms": "Communication perdue avec le compteur solaire (les coupures brèves sont courantes)",
+        "pws_a082_powerlimits": "La Powerwall a maintenu sa puissance à une limite un instant (vu en exportant à la limite d'export du site)",
+        "highcontrolloopjitter": "La cadence de contrôle de la passerelle a été brièvement irrégulière (vu lors d'un export à pleine puissance)"
       }
     },
     "alert_short": {
@@ -1448,7 +1450,9 @@
         "batterycomms": "Batterie injoignable",
         "gridcodeswrite": "Écriture des paramètres réseau",
         "podcommissiontime": "Mise en service batterie",
-        "solarmetercomms": "Compteur solaire injoignable"
+        "solarmetercomms": "Compteur solaire injoignable",
+        "pws_a082_powerlimits": "Puissance à une limite",
+        "highcontrolloopjitter": "Cadence de contrôle irrégulière"
       }
     },
     "logbook": {

@@ -1410,7 +1410,9 @@
         "batterycomms": "The gateway can't communicate with a battery",
         "gridcodeswrite": "The gateway is writing its grid-code settings",
         "podcommissiontime": "A battery is recording its commissioning time",
-        "solarmetercomms": "Lost communication with the solar meter (brief dropouts are common)"
+        "solarmetercomms": "Lost communication with the solar meter (brief dropouts are common)",
+        "pws_a082_powerlimits": "The Powerwall held its power at a limit for a moment (seen while exporting at the site's export limit)",
+        "highcontrolloopjitter": "The gateway's control timing was briefly irregular (seen during full-power export)"
       }
     },
     "alert_short": {
@@ -1448,7 +1450,9 @@
         "batterycomms": "Battery comms lost",
         "gridcodeswrite": "Writing grid settings",
         "podcommissiontime": "Battery commissioning",
-        "solarmetercomms": "Solar meter comms lost"
+        "solarmetercomms": "Solar meter comms lost",
+        "pws_a082_powerlimits": "Power held at a limit",
+        "highcontrolloopjitter": "Control timing irregular"
       }
     },
     "logbook": {

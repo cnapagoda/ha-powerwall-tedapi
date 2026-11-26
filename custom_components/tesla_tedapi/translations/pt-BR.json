@@ -1410,7 +1410,9 @@
         "batterycomms": "O gateway não consegue se comunicar com uma bateria",
         "gridcodeswrite": "O gateway está gravando as configurações de código de rede",
         "podcommissiontime": "Uma bateria está registrando a data de comissionamento",
-        "solarmetercomms": "Comunicação perdida com o medidor solar (quedas breves são comuns)"
+        "solarmetercomms": "Comunicação perdida com o medidor solar (quedas breves são comuns)",
+        "pws_a082_powerlimits": "O Powerwall manteve a potência num limite por um momento (visto ao exportar no limite de exportação do local)",
+        "highcontrolloopjitter": "O tempo de controle do gateway ficou irregular por um momento (visto durante exportação a plena potência)"
       }
     },
     "alert_short": {
@@ -1448,7 +1450,9 @@
         "batterycomms": "Sem comunicação com a bateria",
         "gridcodeswrite": "Gravando ajustes de rede",
         "podcommissiontime": "Comissionamento da bateria",
-        "solarmetercomms": "Medidor solar sem comunicação"
+        "solarmetercomms": "Medidor solar sem comunicação",
+        "pws_a082_powerlimits": "Potência num limite",
+        "highcontrolloopjitter": "Tempo de controle irregular"
       }
     },
     "logbook": {

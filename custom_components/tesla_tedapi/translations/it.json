@@ -1410,7 +1410,9 @@
         "batterycomms": "Il gateway non riesce a comunicare con una batteria",
         "gridcodeswrite": "Il gateway sta scrivendo le impostazioni del codice di rete",
         "podcommissiontime": "Una batteria sta registrando la data di messa in servizio",
-        "solarmetercomms": "Comunicazione persa con il contatore solare (brevi interruzioni sono comuni)"
+        "solarmetercomms": "Comunicazione persa con il contatore solare (brevi interruzioni sono comuni)",
+        "pws_a082_powerlimits": "La Powerwall ha tenuto la potenza a un limite per un momento (visto esportando al limite di esportazione del sito)",
+        "highcontrolloopjitter": "La temporizzazione del controllo del gateway è stata brevemente irregolare (visto durante l'esportazione a piena potenza)"
       }
     },
     "alert_short": {
@@ -1448,7 +1450,9 @@
         "batterycomms": "Batteria non raggiungibile",
         "gridcodeswrite": "Scrittura impostazioni di rete",
         "podcommissiontime": "Messa in servizio batteria",
-        "solarmetercomms": "Contatore solare non raggiungibile"
+        "solarmetercomms": "Contatore solare non raggiungibile",
+        "pws_a082_powerlimits": "Potenza a un limite",
+        "highcontrolloopjitter": "Temporizzazione irregolare"
       }
     },
     "logbook": {

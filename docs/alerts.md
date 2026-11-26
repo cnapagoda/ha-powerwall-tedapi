@@ -81,6 +81,8 @@ More cards in [Dashboards](dashboards.md).
 | `UserEVSEMIA` | notice | EV charger not responding (user alert) | The gateway can't reach an EV charger (Wall Connector), user-facing alert |
 | `EVSENotChargingWhenAllowed` | notice | EV charger not charging | An EV charger (Wall Connector) is not charging although it is allowed to |
 | `BMS_a023_SW_Assertion` | notice | Battery software error | Battery management software reported an internal error |
+| `PWS_a082_PowerLimits` | notice | Power held at a limit | The Powerwall held its power at a limit for a moment (seen while exporting at the site's export limit) |
+| `HighControlLoopJitter` | notice | Control timing irregular | The gateway's control timing was briefly irregular (seen during full-power export) |
 | `IslandChecksFailed` | warning | Backup check failed | Backup readiness check failed (normal for a few minutes when the battery fills or after a restart) |
 | `BatteryComms` | warning | Battery comms lost | The gateway can't communicate with a battery |
 | `PVInverterComms` | warning | Solar inverter comms lost | Lost communication with the solar inverter |

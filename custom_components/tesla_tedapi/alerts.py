@@ -56,6 +56,16 @@ CATALOGUE: dict[str, tuple[str, str]] = {
     # Pack reported it for days after a firmware update, so it isn't a problem
     # on its own.
     "BMS_a023_SW_Assertion": (SEVERITY_NOTICE, "Battery management software reported an internal error"),
+    # Seen for about 30 s at a time, each while exporting at full power up to
+    # a site export limit (#37): notices.
+    "PWS_a082_PowerLimits": (
+        SEVERITY_NOTICE,
+        "The Powerwall held its power at a limit for a moment (seen while exporting at the site's export limit)",
+    ),
+    "HighControlLoopJitter": (
+        SEVERITY_NOTICE,
+        "The gateway's control timing was briefly irregular (seen during full-power export)",
+    ),
     # Warnings: expected during restarts or switch toggles, a problem if they last
     "IslandChecksFailed": (
         SEVERITY_WARNING,
@@ -114,6 +124,8 @@ SHORT: dict[str, str] = {
     "BAGGR_a005_NumBatteriesExpectedMismatch": "Battery packs missing",
     "BMS_a037_SW_NVRAM_Config_Error": "Battery settings error",
     "BMS_a023_SW_Assertion": "Battery software error",
+    "PWS_a082_PowerLimits": "Power held at a limit",
+    "HighControlLoopJitter": "Control timing irregular",
     "PWS_a009_Rsd": "Rapid shutdown active",
     "PWS_a014_HvpFault": "Battery controller fault",
     "PWS_a044_HvpRsdFault": "Rapid-shutdown fault",

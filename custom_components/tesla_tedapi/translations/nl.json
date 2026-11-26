@@ -1410,7 +1410,9 @@
         "batterycomms": "De gateway kan niet communiceren met een batterij",
         "gridcodeswrite": "De gateway schrijft zijn netcode-instellingen",
         "podcommissiontime": "Een batterij legt haar inbedrijfstellingstijd vast",
-        "solarmetercomms": "Verbinding met de zonnemeter verbroken (korte onderbrekingen komen vaak voor)"
+        "solarmetercomms": "Verbinding met de zonnemeter verbroken (korte onderbrekingen komen vaak voor)",
+        "pws_a082_powerlimits": "De Powerwall hield zijn vermogen even op een grens (gezien bij teruglevering op de terugleveringsgrens van de locatie)",
+        "highcontrolloopjitter": "De regeltiming van de gateway was even onregelmatig (gezien bij teruglevering op vol vermogen)"
       }
     },
     "alert_short": {
@@ -1448,7 +1450,9 @@
         "batterycomms": "Batterij onbereikbaar",
         "gridcodeswrite": "Netinstellingen schrijven",
         "podcommissiontime": "Inbedrijfstelling batterij",
-        "solarmetercomms": "Zonnemeter onbereikbaar"
+        "solarmetercomms": "Zonnemeter onbereikbaar",
+        "pws_a082_powerlimits": "Vermogen op een grens",
+        "highcontrolloopjitter": "Regeltiming onregelmatig"
       }
     },
     "logbook": {
