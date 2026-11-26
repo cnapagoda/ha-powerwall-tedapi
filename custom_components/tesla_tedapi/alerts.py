@@ -32,6 +32,13 @@ CATALOGUE: dict[str, tuple[str, str]] = {
     "BAGGR_a007_EndOfCharge": (SEVERITY_STATUS, "Battery is full"),
     "BackfeedLimited": (SEVERITY_STATUS, "Export to the grid is being limited (export setting or export limit)"),
     "ChargeOnlyFromSolarOverride": (SEVERITY_STATUS, "Charging from the grid is not allowed; charging from solar only"),
+    # Seen on a Powerwall 3 while a charge was asked for (a charging dispatch,
+    # max backup) with grid charging off at night, cleared when it ended
+    # (2.9.0; also on #36's Powerwall 3).
+    "SolarChargeOnlyLimited": (
+        SEVERITY_STATUS,
+        "A charge was asked for, but only solar may charge the battery (grid charging off)",
+    ),
     "SelfConsumptionReservedLimit": (SEVERITY_STATUS, "Battery is at the backup reserve"),
     "PCH_a054_pwsDisabledMpptEnableLine": (
         SEVERITY_STATUS,
@@ -109,6 +116,7 @@ SHORT: dict[str, str] = {
     "FWUpdateSucceeded": "Firmware update succeeded",
     "BackfeedLimited": "Export limited",
     "ChargeOnlyFromSolarOverride": "Solar-only charging",
+    "SolarChargeOnlyLimited": "Charge limited to solar",
     "SelfConsumptionReservedLimit": "At backup reserve",
     "PCH_a054_pwsDisabledMpptEnableLine": "Built-in solar inputs off",
     "BMS_a045_SW_SOC_Change": "Charge level recalibrated",

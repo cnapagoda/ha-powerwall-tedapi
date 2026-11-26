@@ -1420,7 +1420,8 @@
         "pws_a082_powerlimits": "La Powerwall ha tenuto la potenza a un limite per un momento (visto esportando al limite di esportazione del sito)",
         "highcontrolloopjitter": "La temporizzazione del controllo del gateway è stata brevemente irregolare (visto durante l'esportazione a piena potenza)",
         "bms_a083_nvram_filecache": "La gestione della batteria ha segnalato un problema con la cache dei dati salvati (visto dopo un aggiornamento del firmware)",
-        "pws_a091_nvmmmigratestuck": "Una migrazione della memoria nella Powerwall non è terminata (visto dopo un aggiornamento del firmware)"
+        "pws_a091_nvmmmigratestuck": "Una migrazione della memoria nella Powerwall non è terminata (visto dopo un aggiornamento del firmware)",
+        "solarchargeonlylimited": "È stata richiesta una ricarica, ma solo il fotovoltaico può caricare la batteria (ricarica dalla rete disattivata)"
       }
     },
     "alert_short": {
@@ -1462,7 +1463,8 @@
         "pws_a082_powerlimits": "Potenza a un limite",
         "highcontrolloopjitter": "Temporizzazione irregolare",
         "bms_a083_nvram_filecache": "Problema nella cache dati della batteria",
-        "pws_a091_nvmmmigratestuck": "Migrazione della memoria incompleta"
+        "pws_a091_nvmmmigratestuck": "Migrazione della memoria incompleta",
+        "solarchargeonlylimited": "Ricarica limitata al solare"
       }
     },
     "logbook": {

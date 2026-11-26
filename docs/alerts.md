@@ -67,6 +67,7 @@ More cards in [Dashboards](dashboards.md).
 | `BAGGR_a007_EndOfCharge` | status | Battery is full | Battery is full |
 | `BackfeedLimited` | status | Export limited | Export to the grid is being limited (export setting or export limit) |
 | `ChargeOnlyFromSolarOverride` | status | Solar-only charging | Charging from the grid is not allowed; charging from solar only |
+| `SolarChargeOnlyLimited` | status | Charge limited to solar | A charge was asked for, but only solar may charge the battery (grid charging off) |
 | `SelfConsumptionReservedLimit` | status | At backup reserve | Battery is at the backup reserve |
 | `PCH_a054_pwsDisabledMpptEnableLine` | status | Built-in solar inputs off | The Powerwall's built-in solar inputs (MPPT) are off, normal when solar uses a separate inverter |
 | `BMS_a045_SW_SOC_Change` | status | Charge level recalibrated | Battery recalibrated its state of charge |
