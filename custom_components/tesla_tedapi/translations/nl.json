@@ -278,11 +278,13 @@
             "data": {
               "scan_interval": "Pollinginterval",
               "power_interval": "Snel pollinginterval voor vermogen",
-              "restore_export": "Instellingen herstellen als de Powerwall ze kwijtraakt"
+              "restore_export": "Instellingen herstellen als de Powerwall ze kwijtraakt",
+              "unit_devices": "Eén apparaat per Powerwall"
             },
             "data_description": {
               "power_interval": "Hoe vaak vermogen, batterijniveau en netstatus worden gelezen. `0` = uit: ze worden met al het andere gelezen, op het pollinginterval. 5 tot 60 s, en alleen gebruikt als het korter is dan het pollinginterval. Korter geeft vloeiendere grafieken en snellere dispatchgrenzen, maar meer belasting van de gateway en een grotere database. Wijzigen herlaadt de integratie.",
-              "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding)."
+              "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding).",
+              "unit_devices": "Elke Powerwall en elk Expansion Pack krijgt een eigen apparaat, gekoppeld aan dit apparaat, met zijn sensoren voor batterij, ventilatoren, zonne-ingangen en omvormertemperatuur. Handig bij meerdere Powerwalls. Entiteit-ID's en geschiedenis blijven; wijzigen herlaadt de integratie."
             }
           },
           "alerts": {
@@ -643,8 +645,14 @@
       "pack_capacity": {
         "name": "{pack} capaciteit"
       },
+      "unit_pack_capacity": {
+        "name": "Batterijcapaciteit"
+      },
       "pack_temperature": {
         "name": "{pack} temperatuur"
+      },
+      "unit_pack_temperature": {
+        "name": "Batterijtemperatuur"
       },
       "alert_level": {
         "name": "Waarschuwingsniveau",
@@ -677,6 +685,9 @@
       "fan_speed": {
         "name": "Ventilator {fan} toerental"
       },
+      "unit_fan_speed": {
+        "name": "Ventilatortoerental"
+      },
       "last_grid_outage": {
         "name": "Laatste netstoring",
         "state_attributes": {
@@ -708,11 +719,36 @@
           }
         }
       },
+      "unit_pack_health": {
+        "name": "Batterijgezondheid",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Nominale capaciteit"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrens"
+          }
+        }
+      },
       "pack_discharged": {
         "name": "{pack} totale ontlading"
       },
+      "unit_pack_discharged": {
+        "name": "Totale ontlading batterij"
+      },
       "pack_cycles": {
         "name": "{pack} cycli",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Volle cycli (batterij)"
+          },
+          "over_discharges": {
+            "name": "Diepontladingen"
+          }
+        }
+      },
+      "unit_pack_cycles": {
+        "name": "Batterijcycli",
         "state_attributes": {
           "bms_full_cycles": {
             "name": "Volle cycli (batterij)"

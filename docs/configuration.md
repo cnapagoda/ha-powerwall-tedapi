@@ -41,6 +41,7 @@ The form is in four sections: **General** (polling, fast polling, restore), **Al
 | **Polling interval** | 30 s | 10–300 s | How often the gateway is read. See [How it works](how-it-works.md#data-updates). |
 | **Fast polling interval for power** | Off (0) | 0, or 5–60 s | Reads power, battery level and grid status this often, between the full reads at the polling interval. Only used when shorter than the polling interval. Smoother power graphs and quicker dispatch limits, at the cost of more load on the gateway and a bigger database. *Reloads the integration.* See [How it works](how-it-works.md#data-updates). |
 | **Restore settings when the Powerwall drops them** | On | | Writes back your grid export rule and grid charging setting when the Powerwall loses them. Signed connection only. See [Dropped settings](dropped-settings.md). Turn it off if another app is meant to manage these settings. |
+| **One device per Powerwall** | Off | | Each Powerwall and Expansion Pack gets a device of its own, linked to the gateway's, with its battery pack, fan, solar input and inverter temperature sensors. Entity IDs and history stay. *Reloads the integration.* See [Several Powerwalls](setup.md#one-device-per-powerwall). |
 | **Alert events for status alerts too** | Off | | By default only notices, warnings and faults create **Alert** events. Status alerts such as *Export limited* come and go every few minutes. See [Alerts](alerts.md). |
 | **Problem delay** | 10 min | 1–240 min | How long a warning or fault must last before **Problem** turns on and a repair is raised. *Backup check failed* always waits at least 30 minutes. |
 | **Discharges stop at the backup reserve** | On | | A discharge dispatch started without `min_soc` stops at the backup reserve. See [Safety](safety.md). |
@@ -52,7 +53,7 @@ The form is in four sections: **General** (polling, fast polling, restore), **Al
 | **Gateway configuration in diagnostics** | Off | | Adds the gateway's own configuration to diagnostics downloads, with serial numbers, MAC addresses, location (the country, grid code and time zone stay), names, the tariff's plan and retailer, and credentials removed. Useful for bug reports. |
 
 > [!NOTE]
-> The settings above apply straight away, except **Fast polling interval for power** and **Tesla tariff (cloud)**. Changing either of those, the cloud backup, a linked account or the connection (**Reconfigure**) reloads the integration: **a battery dispatch that is running ends** (reason `unloaded`) and the battery goes back to normal. An off-grid run continues: it's saved and picked up again.
+> The settings above apply straight away, except **Fast polling interval for power**, **One device per Powerwall** and **Tesla tariff (cloud)**. Changing either of those, the cloud backup, a linked account or the connection (**Reconfigure**) reloads the integration: **a battery dispatch that is running ends** (reason `unloaded`) and the battery goes back to normal. An off-grid run continues: it's saved and picked up again.
 
 ## Local only
 

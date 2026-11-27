@@ -278,11 +278,13 @@
             "data": {
               "scan_interval": "Interwał odpytywania",
               "power_interval": "Szybki interwał odpytywania mocy",
-              "restore_export": "Przywracaj ustawienia, gdy Powerwall je utraci"
+              "restore_export": "Przywracaj ustawienia, gdy Powerwall je utraci",
+              "unit_devices": "Jedno urządzenie na Powerwall"
             },
             "data_description": {
               "power_interval": "Jak często odczytywane są moc, poziom baterii i stan sieci. `0` = wyłączone: są odczytywane razem z resztą, w interwale odpytywania. Od 5 do 60 s, i używane tylko wtedy, gdy jest krótsze niż interwał odpytywania. Krótszy daje gładsze wykresy i szybsze limity dispatchu, ale większe obciążenie bramy i większą bazę danych. Zmiana przeładowuje integrację.",
-              "restore_export": "Powerwall czasem gubi swoją regułę oddawania do sieci i ustawienie ładowania z sieci (co godzinę na Powerwall 3); ładowanie z sieci się wtedy włącza. Gdy włączone, wybrane ustawienie jest zapisywane z powrotem w ciągu minuty lub dwóch (tylko połączenie podpisane)."
+              "restore_export": "Powerwall czasem gubi swoją regułę oddawania do sieci i ustawienie ładowania z sieci (co godzinę na Powerwall 3); ładowanie z sieci się wtedy włącza. Gdy włączone, wybrane ustawienie jest zapisywane z powrotem w ciągu minuty lub dwóch (tylko połączenie podpisane).",
+              "unit_devices": "Każdy Powerwall i Expansion Pack dostaje własne urządzenie, powiązane z tym, z czujnikami baterii, wentylatorów, wejść solarnych i temperatury falownika. Przydatne przy kilku Powerwallach. Identyfikatory encji i historia zostają; zmiana przeładowuje integrację."
             }
           },
           "alerts": {
@@ -643,8 +645,14 @@
       "pack_capacity": {
         "name": "Pojemność {pack}"
       },
+      "unit_pack_capacity": {
+        "name": "Pojemność baterii"
+      },
       "pack_temperature": {
         "name": "Temperatura {pack}"
+      },
+      "unit_pack_temperature": {
+        "name": "Temperatura baterii"
       },
       "alert_level": {
         "name": "Poziom alertu",
@@ -677,6 +685,9 @@
       "fan_speed": {
         "name": "Obroty wentylatora {fan}"
       },
+      "unit_fan_speed": {
+        "name": "Obroty wentylatora"
+      },
       "last_grid_outage": {
         "name": "Ostatnia awaria sieci",
         "state_attributes": {
@@ -708,11 +719,36 @@
           }
         }
       },
+      "unit_pack_health": {
+        "name": "Kondycja baterii",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Pojemność znamionowa"
+          },
+          "warranty_kwh": {
+            "name": "Próg gwarancji"
+          }
+        }
+      },
       "pack_discharged": {
         "name": "{pack} rozładowanie łączne"
       },
+      "unit_pack_discharged": {
+        "name": "Rozładowanie łączne baterii"
+      },
       "pack_cycles": {
         "name": "{pack} cykle",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Pełne cykle (bateria)"
+          },
+          "over_discharges": {
+            "name": "Nadmierne rozładowania"
+          }
+        }
+      },
+      "unit_pack_cycles": {
+        "name": "Cykle baterii",
         "state_attributes": {
           "bms_full_cycles": {
             "name": "Pełne cykle (bateria)"

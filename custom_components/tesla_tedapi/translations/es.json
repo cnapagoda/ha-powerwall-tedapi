@@ -278,11 +278,13 @@
             "data": {
               "scan_interval": "Intervalo de sondeo",
               "power_interval": "Intervalo de sondeo rápido para la potencia",
-              "restore_export": "Restaurar los ajustes cuando la Powerwall los pierda"
+              "restore_export": "Restaurar los ajustes cuando la Powerwall los pierda",
+              "unit_devices": "Un dispositivo por Powerwall"
             },
             "data_description": {
               "power_interval": "Con qué frecuencia se leen la potencia, el nivel de la batería y el estado de la red. `0` = desactivado: se leen con todo lo demás, en el intervalo de sondeo. De 5 a 60 s, y solo se usa si es más corto que el intervalo de sondeo. Más corto da gráficas más suaves y límites de despacho más rápidos, pero más carga en el gateway y una base de datos más grande. Cambiarlo recarga la integración.",
-              "restore_export": "La Powerwall a veces pierde su regla de exportación a la red y su ajuste de carga desde la red (visto cada hora en una Powerwall 3); entonces se activa la carga desde la red. Si está activado, el ajuste elegido se vuelve a escribir en uno o dos minutos (solo conexión firmada)."
+              "restore_export": "La Powerwall a veces pierde su regla de exportación a la red y su ajuste de carga desde la red (visto cada hora en una Powerwall 3); entonces se activa la carga desde la red. Si está activado, el ajuste elegido se vuelve a escribir en uno o dos minutos (solo conexión firmada).",
+              "unit_devices": "Cada Powerwall y Expansion Pack tiene su propio dispositivo, vinculado a este, con sus sensores de batería, ventiladores, entradas solares y temperatura del inversor. Útil con varias Powerwall. Los ID de entidad y el historial se mantienen; cambiarlo recarga la integración."
             }
           },
           "alerts": {
@@ -643,8 +645,14 @@
       "pack_capacity": {
         "name": "Capacidad de {pack}"
       },
+      "unit_pack_capacity": {
+        "name": "Capacidad de la batería"
+      },
       "pack_temperature": {
         "name": "Temperatura de {pack}"
+      },
+      "unit_pack_temperature": {
+        "name": "Temperatura de la batería"
       },
       "alert_level": {
         "name": "Nivel de alerta",
@@ -677,6 +685,9 @@
       "fan_speed": {
         "name": "Velocidad del ventilador {fan}"
       },
+      "unit_fan_speed": {
+        "name": "Velocidad del ventilador"
+      },
       "last_grid_outage": {
         "name": "Último corte de red",
         "state_attributes": {
@@ -708,11 +719,36 @@
           }
         }
       },
+      "unit_pack_health": {
+        "name": "Salud de la batería",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Capacidad nominal"
+          },
+          "warranty_kwh": {
+            "name": "Umbral de garantía"
+          }
+        }
+      },
       "pack_discharged": {
         "name": "Descarga total de {pack}"
       },
+      "unit_pack_discharged": {
+        "name": "Descarga total de la batería"
+      },
       "pack_cycles": {
         "name": "Ciclos de {pack}",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Ciclos completos (batería)"
+          },
+          "over_discharges": {
+            "name": "Sobredescargas"
+          }
+        }
+      },
+      "unit_pack_cycles": {
+        "name": "Ciclos de la batería",
         "state_attributes": {
           "bms_full_cycles": {
             "name": "Ciclos completos (batería)"

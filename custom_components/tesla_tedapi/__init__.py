@@ -9,7 +9,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import Event, HomeAssistant, ServiceCall, ServiceResponse, SupportsResponse, callback
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady, ServiceValidationError
-from homeassistant.helpers import entity_registry as er, issue_registry as ir
+from homeassistant.helpers import device_registry as dr, entity_registry as er, issue_registry as ir
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.storage import Store
@@ -397,6 +397,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TedapiConfigEntry) -> bo
 
     coordinator.async_sync_signin_issue()
     _async_remove_unmade_entities(hass, entry, coordinator)
+    _async_remove_unit_devices(hass, entry, coordinator)
     entry.runtime_data = TedapiRuntimeData(
         coordinator=coordinator,
         dispatch=DispatchSession(hass, coordinator) if coordinator.dispatch_supported else None,
@@ -466,6 +467,36 @@ def _async_remove_unmade_entities(hass: HomeAssistant, entry: TedapiConfigEntry,
     if removed:
         _LOGGER.info("Removed %d entities that need a cloud backup, the Tesla tariff or settings control, "
                      "which this Powerwall's setup no longer has", removed)
+
+
+@callback
+def _async_remove_unit_devices(hass: HomeAssistant, entry: TedapiConfigEntry,
+                               coordinator: TedapiCoordinator) -> None:
+    """With one device per Powerwall off (#24): put the entities of each
+    Powerwall's or Expansion Pack's device back on the gateway's device, then
+    remove those devices. In that order: removing a device removes the
+    entities still on it. Unique ids and entity ids don't change; Home
+    Assistant keeps the removed devices' ids, so switching the option on
+    again brings back the same devices."""
+    din = coordinator.din
+    if coordinator.unit_devices or not din:
+        return
+    devices = dr.async_get(hass)
+    prefix = f"{din}_"
+    units = [device for device in dr.async_entries_for_config_entry(devices, entry.entry_id)
+             if any(domain == DOMAIN and str(value).startswith(prefix) for domain, value in device.identifiers)]
+    if not units:
+        return
+    # The gateway's device (it can't be removed while the entry is loaded;
+    # its entities fill in the rest when they're added).
+    gateway = devices.async_get_or_create(config_entry_id=entry.entry_id, identifiers={(DOMAIN, din)})
+    entities = er.async_get(hass)
+    for unit in units:
+        for entity in er.async_entries_for_device(entities, unit.id, include_disabled_entities=True):
+            entities.async_update_entity(entity.entity_id, device_id=gateway.id)
+        devices.async_remove_device(unit.id)
+    _LOGGER.info("One device per Powerwall is off: %d Powerwall and Expansion Pack devices removed, "
+                 "their entities are on the gateway's device again", len(units))
 
 
 # Entry data updated by the integration itself (a refreshed token, the

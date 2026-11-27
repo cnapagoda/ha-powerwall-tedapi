@@ -239,6 +239,14 @@ Add the integration once per **gateway**. Expansion packs and the batteries behi
 - Actions need `config_entry_id` when more than one Powerwall is set up. In the action editor, pick the Powerwall from the list.
 - Each entry keeps its own energy site for the cloud backup, so several Powerwalls on one Tesla account work.
 
+### One device per Powerwall
+
+By default everything is on one device per gateway. With **Configure → Settings → One device per Powerwall**, each Powerwall and Expansion Pack gets a device of its own, linked to the gateway's, with its battery pack sensors, fans, solar inputs and inverter temperatures. Totals, settings and everything else stay on the gateway's device.
+
+- Entity IDs, history and statistics don't change. On the units' devices the names are shorter, because the device name says which unit it is: *Powerwall 3 (2) Fan A speed* rather than *Powerwall TEDAPI Fan 2A speed*. Set up with the option on, new entities get IDs from the unit's name, such as `sensor.powerwall_3_battery_health`.
+- Use entity IDs in automations. Device triggers, device conditions and device cards that use a unit's device stop working when the option is turned off: the units' devices are removed then, and their entities go back to the gateway's device. Turned on again, the same devices come back, with the names and areas you gave them.
+- A fan or solar input whose Powerwall has no battery pack in the readings (a follower Powerwall 3 not read yet) stays on the gateway's device until the integration reloads.
+
 ## Next steps
 
 - [Configuration](configuration.md): polling interval, alert options, dispatch limits, cloud backup.

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 import logging
 from typing import Any
@@ -36,7 +36,7 @@ from .cloud import LIVE_READINGS
 from .const import CONNECTION_PATHS, DOMAIN, PATH_CLOUD, PATH_NONE
 from .coordinator import TedapiConfigEntry, TedapiCoordinator
 from .daily import day_start
-from .entity import AddConfigEntryEntitiesCallback, TedapiEntity
+from .entity import AddConfigEntryEntitiesCallback, TedapiEntity, unit_device
 from .firmware import split_version
 from .flows import FLOWS
 from .outages import month_start
@@ -905,6 +905,27 @@ def _pack_sensors(serial: str, name: str) -> list[TedapiSensorEntityDescription]
     ]
 
 
+def _unit_named(description: TedapiSensorEntityDescription) -> TedapiSensorEntityDescription:
+    """The name of a per-unit sensor on its unit's device (#24): the device
+    name says which Powerwall it is, so the entity name drops the pack name
+    and the inverter number ("Powerwall 3 (2) Battery health", "Powerwall 3
+    (2) Fan A speed" rather than "Powerwall 3 (2) health", "Fan 2A speed")."""
+    key = description.translation_key or ""
+    placeholders = dict(description.translation_placeholders or {})
+    if key.startswith("pack_"):
+        return replace(description, translation_key=f"unit_{key}", translation_placeholders=None)
+    if key.startswith("inverter_n_"):
+        return replace(description, translation_key=key.replace("inverter_n_", "inverter_"),
+                       translation_placeholders=None)
+    for name in ("string", "fan"):
+        if name in placeholders:
+            letter = str(placeholders[name]).lstrip("0123456789")
+            if not letter:  # a Powerwall 2 inverter's only fan
+                return replace(description, translation_key=f"unit_{key}", translation_placeholders=None)
+            return replace(description, translation_placeholders={name: letter})
+    return description
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: TedapiConfigEntry,
@@ -931,6 +952,18 @@ async def async_setup_entry(
         if not data.get("local_ok"):
             return
         new: list[TedapiSensorEntityDescription] = []
+        # Sensors of one Powerwall or Expansion Pack: on its own device with
+        # one device per Powerwall on (#24), else with the others.
+        units: dict[str, str] = {}
+        serials = data.get("unit_serials") or {}
+
+        def of_unit(descriptions: list[TedapiSensorEntityDescription],
+                    serial: str | None) -> list[TedapiSensorEntityDescription]:
+            if unit_device(coordinator, serial) is None:
+                return descriptions
+            named = [_unit_named(d) for d in descriptions]
+            units.update({d.key: str(serial) for d in named})
+            return named
         for name, values in (data.get("strings") or {}).items():
             # In use now, or set up before (an input in use reads as standby
             # at night: keep providing its sensors after a restart then).
@@ -938,7 +971,7 @@ async def async_setup_entry(
                 "sensor", DOMAIN, f"{coordinator.din}_string_{name}_power") is not None
             if f"string_{name}" not in known and (_input_in_use(values) or registered):
                 known.add(f"string_{name}")
-                new += _string_sensors(name)
+                new += of_unit(_string_sensors(name), serials.get(f"string_{name}"))
         # Phases and current transformers in use now, or set up before (like
         # the solar inputs: a circuit that is idle now keeps its sensors).
         for side in ("grid", "home"):
@@ -956,7 +989,7 @@ async def async_setup_entry(
         for description in INVERTER_TEMPERATURES:
             if description.key not in known and description.value_fn(data) is not None:
                 known.add(description.key)
-                new.append(description)
+                new += of_unit([description], serials.get("inverter"))
         for description, reported in EXTRA_SENSORS:
             if description.key not in known and reported(data):
                 known.add(description.key)
@@ -964,20 +997,20 @@ async def async_setup_entry(
         for inverter in data.get("inverter_temps") or {}:
             if f"inverter_{inverter}_temps" not in known:
                 known.add(f"inverter_{inverter}_temps")
-                new += _inverter_temp_sensors(inverter)
+                new += of_unit(_inverter_temp_sensors(inverter), serials.get(f"inverter_{inverter}"))
         for name in data.get("fans") or {}:
             if f"fan_{name}" not in known:
                 known.add(f"fan_{name}")
-                new.append(_fan_sensor(name))
+                new += of_unit([_fan_sensor(name)], serials.get(f"fan_{name}"))
         for serial, pack in (data.get("packs") or {}).items():
             if f"pack_{serial}" not in known:
                 known.add(f"pack_{serial}")
-                new += _pack_sensors(serial, pack["name"])
+                new += of_unit(_pack_sensors(serial, pack["name"]), serial)
             if f"pack_{serial}_wear" not in known and pack.get("discharged_kwh") is not None:
                 known.add(f"pack_{serial}_wear")
-                new += _pack_wear_sensors(serial, pack["name"])
+                new += of_unit(_pack_wear_sensors(serial, pack["name"]), serial)
         if new:
-            async_add_entities(TedapiSensor(coordinator, d) for d in new)
+            async_add_entities(TedapiSensor(coordinator, d, units.get(d.key)) for d in new)
 
     add_new()
     entry.async_on_unload(coordinator.async_add_listener(add_new))
@@ -1032,8 +1065,9 @@ class TedapiSensor(TedapiEntity, SensorEntity):
         "interfaces", "keys",
     })
 
-    def __init__(self, coordinator: TedapiCoordinator, description: TedapiSensorEntityDescription) -> None:
-        super().__init__(coordinator, description.key)
+    def __init__(self, coordinator: TedapiCoordinator, description: TedapiSensorEntityDescription,
+                 unit: str | None = None) -> None:
+        super().__init__(coordinator, description.key, unit)
         self.entity_description = description
 
     @property

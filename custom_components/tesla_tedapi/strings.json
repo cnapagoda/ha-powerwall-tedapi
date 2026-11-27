@@ -278,11 +278,13 @@
             "data": {
               "scan_interval": "Polling interval",
               "power_interval": "Fast polling interval for power",
-              "restore_export": "Restore settings when the Powerwall drops them"
+              "restore_export": "Restore settings when the Powerwall drops them",
+              "unit_devices": "One device per Powerwall"
             },
             "data_description": {
               "power_interval": "How often power, battery level and grid status are read. `0` = off: they are read with everything else, at the polling interval. 5 to 60 s, and only used when shorter than the polling interval. Shorter gives smoother graphs and quicker dispatch limits, but more load on the gateway and a bigger database. Changing it reloads the integration.",
-              "restore_export": "The Powerwall sometimes loses its grid export rule and its grid charging setting from its own settings (seen hourly on a Powerwall 3); grid charging then turns on. When on, the setting you chose is written back within a minute or two (signed connection only)."
+              "restore_export": "The Powerwall sometimes loses its grid export rule and its grid charging setting from its own settings (seen hourly on a Powerwall 3); grid charging then turns on. When on, the setting you chose is written back within a minute or two (signed connection only).",
+              "unit_devices": "Each Powerwall and Expansion Pack gets a device of its own, linked to this one, with its battery, fan, solar input and inverter temperature sensors. Useful with several Powerwalls. Entity IDs and history stay; changing it reloads the integration."
             }
           },
           "alerts": {
@@ -643,8 +645,14 @@
       "pack_capacity": {
         "name": "{pack} capacity"
       },
+      "unit_pack_capacity": {
+        "name": "Battery capacity"
+      },
       "pack_temperature": {
         "name": "{pack} temperature"
+      },
+      "unit_pack_temperature": {
+        "name": "Battery temperature"
       },
       "alert_level": {
         "name": "Alert level",
@@ -677,6 +685,9 @@
       "fan_speed": {
         "name": "Fan {fan} speed"
       },
+      "unit_fan_speed": {
+        "name": "Fan speed"
+      },
       "last_grid_outage": {
         "name": "Last grid outage",
         "state_attributes": {
@@ -708,11 +719,36 @@
           }
         }
       },
+      "unit_pack_health": {
+        "name": "Battery health",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Rated capacity"
+          },
+          "warranty_kwh": {
+            "name": "Warranty level"
+          }
+        }
+      },
       "pack_discharged": {
         "name": "{pack} lifetime discharge"
       },
+      "unit_pack_discharged": {
+        "name": "Battery lifetime discharge"
+      },
       "pack_cycles": {
         "name": "{pack} cycles",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Full cycles (battery)"
+          },
+          "over_discharges": {
+            "name": "Over-discharges"
+          }
+        }
+      },
+      "unit_pack_cycles": {
+        "name": "Battery cycles",
         "state_attributes": {
           "bms_full_cycles": {
             "name": "Full cycles (battery)"

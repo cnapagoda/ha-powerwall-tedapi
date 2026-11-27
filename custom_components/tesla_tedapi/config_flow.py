@@ -92,6 +92,7 @@ from .const import (
     CONF_SITE_ID,
     CONF_STATUS_EVENTS,
     CONF_TESLA_TARIFF,
+    CONF_UNIT_DEVICES,
     CONF_WIFI_HOST,
     DEFAULT_HOST_WIFI,
     DEFAULT_MQTT_BASE_TOPIC,
@@ -1425,6 +1426,7 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                     vol.Required(CONF_POWER_INTERVAL, default=opts.get(CONF_POWER_INTERVAL, 0)): vol.All(
                         box(0, MAX_POWER_INTERVAL, 1, "s"), vol.Coerce(int)),
                     vol.Required(CONF_RESTORE_EXPORT, default=opts.get(CONF_RESTORE_EXPORT, True)): bool,
+                    vol.Required(CONF_UNIT_DEVICES, default=opts.get(CONF_UNIT_DEVICES, False)): bool,
                 }), {"collapsed": False}),
                 vol.Required("alerts"): section(vol.Schema({
                     vol.Required(CONF_STATUS_EVENTS, default=opts.get(CONF_STATUS_EVENTS, False)): bool,

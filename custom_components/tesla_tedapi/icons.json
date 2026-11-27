@@ -145,6 +145,9 @@
       "pack_capacity": {
         "default": "mdi:battery-high"
       },
+      "unit_pack_capacity": {
+        "default": "mdi:battery-high"
+      },
       "alert_level": {
         "default": "mdi:shield-check-outline",
         "state": {
@@ -186,6 +189,9 @@
       "fan_speed": {
         "default": "mdi:fan"
       },
+      "unit_fan_speed": {
+        "default": "mdi:fan"
+      },
       "last_grid_outage": {
         "default": "mdi:transmission-tower-off"
       },
@@ -201,10 +207,19 @@
       "pack_health": {
         "default": "mdi:battery-heart-variant"
       },
+      "unit_pack_health": {
+        "default": "mdi:battery-heart-variant"
+      },
       "pack_discharged": {
         "default": "mdi:battery-arrow-down-outline"
       },
+      "unit_pack_discharged": {
+        "default": "mdi:battery-arrow-down-outline"
+      },
       "pack_cycles": {
+        "default": "mdi:battery-sync-outline"
+      },
+      "unit_pack_cycles": {
         "default": "mdi:battery-sync-outline"
       },
       "network_connection": {

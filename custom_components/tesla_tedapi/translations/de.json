@@ -278,11 +278,13 @@
             "data": {
               "scan_interval": "Abfrageintervall",
               "power_interval": "Schnelles Abfrageintervall für Leistung",
-              "restore_export": "Einstellungen wiederherstellen, wenn die Powerwall sie verliert"
+              "restore_export": "Einstellungen wiederherstellen, wenn die Powerwall sie verliert",
+              "unit_devices": "Ein Gerät pro Powerwall"
             },
             "data_description": {
               "power_interval": "Wie oft Leistung, Batteriestand und Netzstatus gelesen werden. `0` = aus: sie werden mit allem anderen im Abfrageintervall gelesen. 5 bis 60 s, und nur wirksam, wenn kürzer als das Abfrageintervall. Kürzer ergibt glattere Diagramme und schnellere Dispatch-Grenzen, aber mehr Last auf dem Gateway und eine größere Datenbank. Eine Änderung lädt die Integration neu.",
-              "restore_export": "Die Powerwall verliert manchmal ihre Netzeinspeiseregel und ihre Einstellung zum Laden aus dem Netz (stündlich bei einer Powerwall 3 beobachtet); das Laden aus dem Netz schaltet sich dann ein. Wenn aktiv, wird die gewählte Einstellung innerhalb von ein bis zwei Minuten zurückgeschrieben (nur signierte Verbindung)."
+              "restore_export": "Die Powerwall verliert manchmal ihre Netzeinspeiseregel und ihre Einstellung zum Laden aus dem Netz (stündlich bei einer Powerwall 3 beobachtet); das Laden aus dem Netz schaltet sich dann ein. Wenn aktiv, wird die gewählte Einstellung innerhalb von ein bis zwei Minuten zurückgeschrieben (nur signierte Verbindung).",
+              "unit_devices": "Jede Powerwall und jedes Expansion Pack bekommt ein eigenes Gerät, verknüpft mit diesem, mit seinen Sensoren für Batterie, Lüfter, Solareingänge und Wechselrichtertemperatur. Nützlich bei mehreren Powerwalls. Entitäts-IDs und Verlauf bleiben; eine Änderung lädt die Integration neu."
             }
           },
           "alerts": {
@@ -643,8 +645,14 @@
       "pack_capacity": {
         "name": "{pack} Kapazität"
       },
+      "unit_pack_capacity": {
+        "name": "Batteriekapazität"
+      },
       "pack_temperature": {
         "name": "{pack} Temperatur"
+      },
+      "unit_pack_temperature": {
+        "name": "Batterietemperatur"
       },
       "alert_level": {
         "name": "Alarmstufe",
@@ -677,6 +685,9 @@
       "fan_speed": {
         "name": "Lüfter {fan} Drehzahl"
       },
+      "unit_fan_speed": {
+        "name": "Lüfterdrehzahl"
+      },
       "last_grid_outage": {
         "name": "Letzter Netzausfall",
         "state_attributes": {
@@ -708,11 +719,36 @@
           }
         }
       },
+      "unit_pack_health": {
+        "name": "Batteriezustand",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Nennkapazität"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrenze"
+          }
+        }
+      },
       "pack_discharged": {
         "name": "{pack} Entladung gesamt"
       },
+      "unit_pack_discharged": {
+        "name": "Batterie Entladung gesamt"
+      },
       "pack_cycles": {
         "name": "{pack} Zyklen",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Vollzyklen (Akku)"
+          },
+          "over_discharges": {
+            "name": "Tiefentladungen"
+          }
+        }
+      },
+      "unit_pack_cycles": {
+        "name": "Batteriezyklen",
         "state_attributes": {
           "bms_full_cycles": {
             "name": "Vollzyklen (Akku)"

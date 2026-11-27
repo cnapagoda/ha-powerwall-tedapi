@@ -25,6 +25,10 @@ CONF_PROBLEM_MINUTES = "problem_minutes"
 CONF_TESLA_TARIFF = "tesla_tariff"
 # Diagnostics include the gateway's own configuration (redacted). Off by default.
 CONF_DIAGNOSTICS_GATEWAY = "diagnostics_gateway_config"
+# One device per Powerwall (and Expansion Pack): the battery packs, fans,
+# solar inputs and inverter temperatures of each unit on a device of its own,
+# linked to the gateway. Off by default. Changing it reloads the entry.
+CONF_UNIT_DEVICES = "unit_devices"
 # Fast polling for power, battery level and grid status (seconds; 0 = off:
 # everything is read at the polling interval). Changing it reloads the entry.
 CONF_POWER_INTERVAL = "power_interval"

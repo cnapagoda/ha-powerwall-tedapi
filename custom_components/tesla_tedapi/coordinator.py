@@ -63,6 +63,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SITE_ID,
     CONF_TESLA_TARIFF,
+    CONF_UNIT_DEVICES,
     CONF_WIFI_HOST,
     DEFAULT_HOST_WIFI,
     DEFAULT_PROBLEM_MINUTES,
@@ -304,6 +305,32 @@ def _extract_fans(vitals: dict, din: str | None = None) -> dict[str, dict[str, A
         if rpm is not None:
             fans[str(index)] = {"rpm": rpm, "target_rpm": num(d.get("PVAC_Fan_Speed_Target_RPM"))}
     return fans
+
+
+def unit_serials(vitals: dict, din: str | None = None) -> dict[str, str]:
+    """The serial number of the Powerwall each per-unit reading comes from,
+    keyed like the entities that show it: "string_2A", "fan_A", "fan_2",
+    "inverter" (the leader's temperatures) and "inverter_2". Numbered exactly
+    as _extract_strings, _extract_fans and _extract_follower_inverter_temps
+    number them. A Powerwall 3's inverter, solar and pack blocks share its
+    serial number, so this puts them on the same unit (#24)."""
+
+    def names(prefix: str) -> list[str]:
+        return _leader_first(
+            [k for k in sorted(vitals or {}) if k.split("--")[0] == prefix and isinstance(vitals[k], dict)], din)
+
+    serials: dict[str, str] = {}
+    for index, name in enumerate(names("PVAC"), start=1):
+        serial = name.split("--")[-1]
+        for letter in STRING_LETTERS:
+            serials[f"string_{letter if index == 1 else f'{index}{letter}'}"] = serial
+        serials[f"fan_{index}"] = serial  # a Powerwall 2 inverter's fan
+    for index, name in enumerate(names("TEPINV"), start=1):
+        serial = name.split("--")[-1]
+        for letter in "AB":
+            serials[f"fan_{letter if index == 1 else f'{index}{letter}'}"] = serial
+        serials["inverter" if index == 1 else f"inverter_{index}"] = serial
+    return serials
 
 
 def _client_mismatch(err: Exception) -> bool:
@@ -561,6 +588,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Tesla tariff (optional, cloud only): raw tariff, the backup it came
         # from, and when it was last read (monotonic).
         self.tariff_enabled: bool = self.cloud_enabled and bool(options.get(CONF_TESLA_TARIFF, False))
+        # One device per Powerwall (#24): read once, a change reloads.
+        self.unit_devices: bool = bool(options.get(CONF_UNIT_DEVICES, False))
         self.tariff: dict[str, Any] | None = None
         self.tariff_backend: str | None = None
         self._tariff_at: float | None = None
@@ -946,6 +975,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "firmware_version": version,
             "strings": _extract_strings(vitals, din),
             "fans": _extract_fans(vitals, din),
+            "unit_serials": unit_serials(vitals, din),
             "phases": phases_mod.extract(vitals),
             "full_read": True,
             "tedapi_mode": getattr(pw, "tedapi_mode", None),
