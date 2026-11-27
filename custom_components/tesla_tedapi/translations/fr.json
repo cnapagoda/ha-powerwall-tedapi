@@ -1483,7 +1483,9 @@
         "highcontrolloopjitter": "La cadence de contrôle de la passerelle a été brièvement irrégulière (vu lors d'un export à pleine puissance)",
         "bms_a083_nvram_filecache": "La gestion de la batterie a signalé un problème avec son cache de données enregistrées (vu après une mise à jour du firmware)",
         "pws_a091_nvmmmigratestuck": "Une migration de mémoire dans la Powerwall n'est pas terminée (vu après une mise à jour du firmware)",
-        "solarchargeonlylimited": "Une charge a été demandée, mais seul le solaire peut charger la batterie (charge depuis le réseau désactivée)"
+        "solarchargeonlylimited": "Une charge a été demandée, mais seul le solaire peut charger la batterie (charge depuis le réseau désactivée)",
+        "rampratelimited": "La vitesse à laquelle la puissance peut varier est limitée (vu souvent pendant la charge)",
+        "pws_a007_mcipvirrationalabc": "Le Powerwall a jugé invraisemblables les mesures de ses entrées solaires (A–C) (vu au lever du soleil)"
       }
     },
     "alert_short": {
@@ -1526,7 +1528,9 @@
         "highcontrolloopjitter": "Cadence de contrôle irrégulière",
         "bms_a083_nvram_filecache": "Problème de cache de données batterie",
         "pws_a091_nvmmmigratestuck": "Migration de mémoire inachevée",
-        "solarchargeonlylimited": "Charge limitée au solaire"
+        "solarchargeonlylimited": "Charge limitée au solaire",
+        "rampratelimited": "Rampe de puissance limitée",
+        "pws_a007_mcipvirrationalabc": "Mesures solaires invraisemblables"
       }
     },
     "logbook": {

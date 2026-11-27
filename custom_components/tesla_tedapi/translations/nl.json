@@ -1483,7 +1483,9 @@
         "highcontrolloopjitter": "De regeltiming van de gateway was even onregelmatig (gezien bij teruglevering op vol vermogen)",
         "bms_a083_nvram_filecache": "Het batterijbeheer meldde een probleem met zijn cache van opgeslagen gegevens (gezien na een firmware-update)",
         "pws_a091_nvmmmigratestuck": "Een geheugenmigratie in de Powerwall is niet afgerond (gezien na een firmware-update)",
-        "solarchargeonlylimited": "Er is om laden gevraagd, maar alleen zonne-energie mag de batterij laden (laden van het net uit)"
+        "solarchargeonlylimited": "Er is om laden gevraagd, maar alleen zonne-energie mag de batterij laden (laden van het net uit)",
+        "rampratelimited": "Hoe snel het vermogen mag veranderen wordt begrensd (vaak gezien tijdens het laden)",
+        "pws_a007_mcipvirrationalabc": "De Powerwall vond de metingen van zijn zonne-ingangen (A–C) onwaarschijnlijk (gezien rond zonsopgang)"
       }
     },
     "alert_short": {
@@ -1526,7 +1528,9 @@
         "highcontrolloopjitter": "Regeltiming onregelmatig",
         "bms_a083_nvram_filecache": "Probleem met batterijgegevenscache",
         "pws_a091_nvmmmigratestuck": "Geheugenmigratie niet afgerond",
-        "solarchargeonlylimited": "Laden beperkt tot zonne-energie"
+        "solarchargeonlylimited": "Laden beperkt tot zonne-energie",
+        "rampratelimited": "Vermogensramp begrensd",
+        "pws_a007_mcipvirrationalabc": "Zonnemetingen onwaarschijnlijk"
       }
     },
     "logbook": {

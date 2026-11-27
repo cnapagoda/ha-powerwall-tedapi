@@ -481,6 +481,17 @@ def _current_backup_event(events: dict[str, Any], now: float) -> dict[str, Any]:
     return found
 
 
+def _continue_backup_event(previous: dict[str, Any] | None, current: dict[str, Any]) -> dict[str, Any]:
+    """The gateway can replace a running event with one of the same kind
+    that starts later, for example when a weather warning is updated (#40):
+    while it carries on, keep the time it first began."""
+    if (previous and previous.get("active") and current.get("active")
+            and previous.get("kind") == current.get("kind")
+            and previous["start"] < current["start"] < previous["end"]):
+        return {**current, "start": previous["start"]}
+    return current
+
+
 @dataclass
 class TedapiRuntimeData:
     """Stored on the config entry while it is loaded."""
@@ -659,6 +670,10 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._token_expiry: tuple[float, float | None] | None = None
         # Backup events from the gateway: (monotonic time read, raw result).
         self._backup_events: tuple[float, dict[str, Any]] | None = None
+        # The backup event last reported (see _continue_backup_event), and the
+        # cloud's Storm Watch flag last seen.
+        self._backup_event: dict[str, Any] | None = None
+        self._storm_active: bool | None = None
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
         # Network status, site limits, calibration delay and registered keys
         # (aiopytedapi, async).
@@ -1137,7 +1152,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     return None
             else:
                 self._backup_events = (now, events)
-        return _current_backup_event(self._backup_events[1], time.time())
+        event = _continue_backup_event(self._backup_event, _current_backup_event(self._backup_events[1], time.time()))
+        self._backup_event = event
+        return event
 
     def _fetch_cloud_only(self) -> dict[str, Any]:
         """Gateway unreachable: keep the settings entities alive from the cloud.
@@ -1867,6 +1884,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 backend.check_at = time.monotonic()
             await self.hass.async_add_executor_job(self._check_cloud, due)
         data["cloud_extras"] = await self.hass.async_add_executor_job(self._cloud_extras) if self.backends else {}
+        storm = data["cloud_extras"].get("storm_active")
+        if storm is not None:
+            # Storm Watch started or ended: read the gateway's backup events
+            # on the next poll, not up to 5 minutes later. The last list
+            # stays in use if that read fails.
+            if (self._storm_active is not None and storm != self._storm_active
+                    and self._backup_events is not None):
+                self._backup_events = (float("-inf"), self._backup_events[1])
+            self._storm_active = storm
         await self._async_cloud_live(data)
         now = time.monotonic()
         check_due = self._tariff_check_at is not None and now >= self._tariff_check_at

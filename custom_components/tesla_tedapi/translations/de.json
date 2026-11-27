@@ -1483,7 +1483,9 @@
         "highcontrolloopjitter": "Das Regel-Timing des Gateways war kurz unregelmäßig (beobachtet bei Einspeisung mit voller Leistung)",
         "bms_a083_nvram_filecache": "Das Batteriemanagement hat ein Problem mit seinem Cache für gespeicherte Daten gemeldet (beobachtet nach einem Firmware-Update)",
         "pws_a091_nvmmmigratestuck": "Eine Speichermigration in der Powerwall ist nicht abgeschlossen (beobachtet nach einem Firmware-Update)",
-        "solarchargeonlylimited": "Laden wurde angefordert, aber nur Solarstrom darf die Batterie laden (Netzladen aus)"
+        "solarchargeonlylimited": "Laden wurde angefordert, aber nur Solarstrom darf die Batterie laden (Netzladen aus)",
+        "rampratelimited": "Wie schnell sich die Leistung ändern darf, wird begrenzt (oft beim Laden beobachtet)",
+        "pws_a007_mcipvirrationalabc": "Die Powerwall hat ihre Messwerte der Solareingänge (A–C) als unplausibel erkannt (bei Sonnenaufgang beobachtet)"
       }
     },
     "alert_short": {
@@ -1526,7 +1528,9 @@
         "highcontrolloopjitter": "Regel-Timing unregelmäßig",
         "bms_a083_nvram_filecache": "Problem im Batterie-Datencache",
         "pws_a091_nvmmmigratestuck": "Speichermigration nicht abgeschlossen",
-        "solarchargeonlylimited": "Laden auf Solar begrenzt"
+        "solarchargeonlylimited": "Laden auf Solar begrenzt",
+        "rampratelimited": "Leistungsrampe begrenzt",
+        "pws_a007_mcipvirrationalabc": "Solarmesswerte unplausibel"
       }
     },
     "logbook": {

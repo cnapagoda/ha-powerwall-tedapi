@@ -1483,7 +1483,9 @@
         "highcontrolloopjitter": "The gateway's control timing was briefly irregular (seen during full-power export)",
         "bms_a083_nvram_filecache": "Battery management reported a problem with its stored-data cache (seen after a firmware update)",
         "pws_a091_nvmmmigratestuck": "A memory migration in the Powerwall hasn't finished (seen after a firmware update)",
-        "solarchargeonlylimited": "A charge was asked for, but only solar may charge the battery (grid charging off)"
+        "solarchargeonlylimited": "A charge was asked for, but only solar may charge the battery (grid charging off)",
+        "rampratelimited": "How fast the power may change is being limited (seen often while charging)",
+        "pws_a007_mcipvirrationalabc": "The Powerwall found its solar input readings (A–C) implausible (seen around sunrise)"
       }
     },
     "alert_short": {
@@ -1526,7 +1528,9 @@
         "highcontrolloopjitter": "Control timing irregular",
         "bms_a083_nvram_filecache": "Battery data cache problem",
         "pws_a091_nvmmmigratestuck": "Memory migration unfinished",
-        "solarchargeonlylimited": "Charge limited to solar"
+        "solarchargeonlylimited": "Charge limited to solar",
+        "rampratelimited": "Power ramp limited",
+        "pws_a007_mcipvirrationalabc": "Solar readings implausible"
       }
     },
     "logbook": {

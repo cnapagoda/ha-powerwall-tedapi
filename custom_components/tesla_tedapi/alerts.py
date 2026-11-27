@@ -40,6 +40,13 @@ CATALOGUE: dict[str, tuple[str, str]] = {
         "A charge was asked for, but only solar may charge the battery (grid charging off)",
     ),
     "SelfConsumptionReservedLimit": (SEVERITY_STATUS, "Battery is at the backup reserve"),
+    # Came and went about 50 times while a Powerwall 3 charged from the grid
+    # in a Storm Watch event on firmware 26.42.1 (#40). Tesla doesn't say what
+    # it means: the description only restates the code.
+    "RampRateLimited": (
+        SEVERITY_STATUS,
+        "How fast the power may change is being limited (seen often while charging)",
+    ),
     "PCH_a054_pwsDisabledMpptEnableLine": (
         SEVERITY_STATUS,
         "The Powerwall's built-in solar inputs (MPPT) are off, normal when solar uses a separate inverter",
@@ -84,6 +91,13 @@ CATALOGUE: dict[str, tuple[str, str]] = {
         SEVERITY_NOTICE,
         "A memory migration in the Powerwall hasn't finished (seen after a firmware update)",
     ),
+    # Around sunrise on a Powerwall 3 on firmware 26.42.1, for half an hour
+    # (#40). Tesla doesn't say what it means: the description only restates
+    # the code.
+    "PWS_a007_MciPvIrrationalABC": (
+        SEVERITY_NOTICE,
+        "The Powerwall found its solar input readings (A–C) implausible (seen around sunrise)",
+    ),
     # Warnings: expected during restarts or switch toggles, a problem if they last
     "IslandChecksFailed": (
         SEVERITY_WARNING,
@@ -118,6 +132,7 @@ SHORT: dict[str, str] = {
     "ChargeOnlyFromSolarOverride": "Solar-only charging",
     "SolarChargeOnlyLimited": "Charge limited to solar",
     "SelfConsumptionReservedLimit": "At backup reserve",
+    "RampRateLimited": "Power ramp limited",
     "PCH_a054_pwsDisabledMpptEnableLine": "Built-in solar inputs off",
     "BMS_a045_SW_SOC_Change": "Charge level recalibrated",
     "BatteryCalibration": "Battery calibrating",
@@ -147,6 +162,7 @@ SHORT: dict[str, str] = {
     "HighControlLoopJitter": "Control timing irregular",
     "BMS_a083_Nvram_Filecache": "Battery data cache problem",
     "PWS_a091_NvmmMigrateStuck": "Memory migration unfinished",
+    "PWS_a007_MciPvIrrationalABC": "Solar readings implausible",
     "PWS_a009_Rsd": "Rapid shutdown active",
     "PWS_a014_HvpFault": "Battery controller fault",
     "PWS_a044_HvpRsdFault": "Rapid-shutdown fault",

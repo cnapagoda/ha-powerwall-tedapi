@@ -42,7 +42,7 @@ The integration polls the gateway every 30 seconds by default (**Polling interva
 
 | What | How often |
 |---|---|
-| Backup events (signed connection) | Every 5 minutes, and straight after a max backup is started or cancelled |
+| Backup events (signed connection) | Every 5 minutes, straight after a max backup is started or cancelled, and at the next poll after the cloud's **Storm Watch active** changes |
 | Network status, registered keys and calibration delay status | Every 5 minutes, and straight after an action changes them |
 | Settings from the cloud backup, when the gateway can't give them | Cached for 5 minutes |
 | Storm Watch, grid services, off-grid vehicle charging reserve | Every 30 minutes |

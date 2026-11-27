@@ -24,6 +24,7 @@ This integration uses interfaces Tesla doesn't document, so what works depends o
 | Settings over a signed connection | ✅ | 🟡 firmware dependent; operation mode, backup reserve, grid charging, export and Storm Watch tested on 26.34.2 |
 | Battery dispatch, `charge_to` / `discharge_to` | ✅ | 🟡 firmware dependent; every dispatch mode tested on 26.34.2 |
 | Max backup | ✅ | 🟡 tested on 26.34.2 |
+| Storm Watch events (**Backup event**) | ✅ a real Storm Watch event seen on 26.42.1 (thanks [@shaggyblue](https://github.com/shaggyblue)) | 🟡 the Storm Watch setting tested on 26.34.2; events ❓ |
 | Go off-grid / reconnect | ✅ | 🟡 tested on 26.34.2 (timed and manual reconnect) |
 | Solar input *A–F* sensors | ✅ built-in inverter | ❓ a Powerwall+ solar inverter may report them; reports welcome |
 | Fan speeds | ✅ inverter fans A/B, with duty | 🟡 Powerwall+ only: one fan per solar inverter, with target speed. ❌ Powerwall 2 without the solar inverter: none |
@@ -73,7 +74,7 @@ Tesla updates firmware on its own schedule. When the gateway reports a new versi
 
 | Firmware | Model | Status | Reported by |
 |---|---|---|---|
-| 26.42.1 | Powerwall 3 + Expansion Pack, Backup Gateway 3, DC-coupled solar (US) | ✅ Works (signed connection, readings, solar inputs, operation mode, reserve and export; site export limit and network status read) | [@shaggyblue](https://github.com/shaggyblue) |
+| 26.42.1 | Powerwall 3 + Expansion Pack, Backup Gateway 3, DC-coupled solar (US) | ✅ Works (signed connection, readings, solar inputs, operation mode, reserve, export and grid charging; Storm Watch through the Owner API, with a real Storm Watch event and a max backup from the Tesla app shown by **Backup event**; site export limit and network status read) | [@shaggyblue](https://github.com/shaggyblue) |
 | 26.34.3 | Powerwall 3 | ✅ Works (signed connection, settings, battery dispatch) | Maintainer |
 | 26.34.3 | 4 × Powerwall 3, Backup Gateway 2 (26.34.1) | ✅ Works (signed connection, readings, battery dispatch within the site limits) | [@acbcarneiro](https://github.com/acbcarneiro) |
 | 26.34.3 | Powerwall 3 + Expansion Pack, Backup Gateway 3, DC-coupled solar (US) | ✅ Works (key registration, readings, solar inputs, operation mode, reserve and export; site export limit and network status read) | [@shaggyblue](https://github.com/shaggyblue) |

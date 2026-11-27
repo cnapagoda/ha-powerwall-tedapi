@@ -69,6 +69,7 @@ More cards in [Dashboards](dashboards.md).
 | `ChargeOnlyFromSolarOverride` | status | Solar-only charging | Charging from the grid is not allowed; charging from solar only |
 | `SolarChargeOnlyLimited` | status | Charge limited to solar | A charge was asked for, but only solar may charge the battery (grid charging off) |
 | `SelfConsumptionReservedLimit` | status | At backup reserve | Battery is at the backup reserve |
+| `RampRateLimited` | status | Power ramp limited | How fast the power may change is being limited (seen often while charging) |
 | `PCH_a054_pwsDisabledMpptEnableLine` | status | Built-in solar inputs off | The Powerwall's built-in solar inputs (MPPT) are off, normal when solar uses a separate inverter |
 | `BMS_a045_SW_SOC_Change` | status | Charge level recalibrated | Battery recalibrated its state of charge |
 | `BatteryCalibration` | status | Battery calibrating | Battery is calibrating its charge level (also **Battery calibrating**) |
@@ -86,6 +87,7 @@ More cards in [Dashboards](dashboards.md).
 | `HighControlLoopJitter` | notice | Control timing irregular | The gateway's control timing was briefly irregular (seen during full-power export) |
 | `BMS_a083_Nvram_Filecache` | notice | Battery data cache problem | Battery management reported a problem with its stored-data cache (seen after a firmware update) |
 | `PWS_a091_NvmmMigrateStuck` | notice | Memory migration unfinished | A memory migration in the Powerwall hasn't finished (seen after a firmware update) |
+| `PWS_a007_MciPvIrrationalABC` | notice | Solar readings implausible | The Powerwall found its solar input readings (A–C) implausible (seen around sunrise) |
 | `IslandChecksFailed` | warning | Backup check failed | Backup readiness check failed (normal for a few minutes when the battery fills or after a restart) |
 | `BatteryComms` | warning | Battery comms lost | The gateway can't communicate with a battery |
 | `PVInverterComms` | warning | Solar inverter comms lost | Lost communication with the solar inverter |
