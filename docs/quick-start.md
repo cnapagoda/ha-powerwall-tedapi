@@ -55,6 +55,8 @@ Go to **Settings → Devices & services**. If Home Assistant has already found t
 
 4. **Keep the Tesla sign-in?** *Keep it as a cloud backup* is the usual choice. *Remove it: local only* keeps no Tesla sign-in at all ([what that means](configuration.md#local-only)).
 
+   <img src="images/setup-06a-keep-sign-in.png" alt="Keep the Tesla sign-in?" width="560">
+
 That's it. You now have a **Powerwall TEDAPI** device with its sensors and controls.
 
 <img src="images/setup-07-done.png" alt="Setup complete" width="560">

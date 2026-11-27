@@ -116,13 +116,15 @@ Any of the [three sign-ins](#which-connection-and-which-sign-in) can send the re
 4. **Keep the sign-in, or not.** Keep it as the [cloud backup](cloud-backup.md) (a Tesla account in `config/tesla_tedapi/.pypowerwall.auth`, a Fleet API sign-in in the integration's entry), or remove it: [local only](configuration.md#local-only).
 
 <details>
-<summary>Screenshots: Tesla sign-in, confirmation, done</summary>
+<summary>Screenshots: Tesla sign-in, confirmation, keeping the sign-in, done</summary>
 
 <img src="images/setup-05a-sign-in-choice.png" alt="Choose how to sign in: Tesla account, Tesla Fleet or Teslemetry" width="640">
 
 <img src="images/setup-05-tesla-sign-in.png" alt="Tesla sign-in step" width="640">
 
 <img src="images/setup-06-confirm-key.png" alt="Waiting for the switch toggle at the Powerwall" width="640">
+
+<img src="images/setup-06a-keep-sign-in.png" alt="Keep the Tesla sign-in as a cloud backup, or local only" width="640">
 
 <img src="images/setup-07-done.png" alt="Setup complete" width="640">
 
