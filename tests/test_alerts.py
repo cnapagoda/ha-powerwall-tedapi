@@ -154,6 +154,15 @@ def test_calibration_comms_and_power_limit_alerts() -> None:
     assert summary(["BatteryCalibration"]) == "Battery calibrating"
 
 
+def test_calibration_requested_is_a_status() -> None:
+    severity, text = describe("CalibrationRequested")
+    assert severity == SEVERITY_STATUS
+    assert "calibrate" in text
+    # Listed for hours before a calibration: it must not raise the level.
+    assert level(["SystemConnectedToGrid", "CalibrationRequested"]) == "ok"
+    assert summary(["CalibrationRequested"]) == "Calibration requested"
+
+
 def test_grid_codes_commissioning_and_solar_meter_alerts() -> None:
     assert describe("GridCodesWrite")[0] == SEVERITY_STATUS
     assert describe("PodCommissionTime")[0] == SEVERITY_STATUS

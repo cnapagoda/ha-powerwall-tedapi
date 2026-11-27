@@ -53,6 +53,14 @@ CATALOGUE: dict[str, tuple[str, str]] = {
     ),
     "BMS_a045_SW_SOC_Change": (SEVERITY_STATUS, "Battery recalibrated its state of charge"),
     "BatteryCalibration": (SEVERITY_STATUS, "Battery is calibrating its charge level"),
+    # Raised all day before a calibration on a Powerwall 3 (26.34.3) and while
+    # it ran; BatteryCalibration was never reported. The calibration exported
+    # at full power whatever the operation mode and export settings.
+    "CalibrationRequested": (
+        SEVERITY_STATUS,
+        "The Powerwall has asked to calibrate its charge level: it may run the battery almost empty, "
+        "exporting whatever the settings, then charge it to full (seen before and during a calibration)",
+    ),
     "RealPowerConfigLimited": (SEVERITY_STATUS, "Power is held below a configured limit"),
     "GridCodesWrite": (SEVERITY_STATUS, "The gateway is writing its grid-code settings"),
     "PodCommissionTime": (SEVERITY_STATUS, "A battery is recording its commissioning time"),
@@ -136,6 +144,7 @@ SHORT: dict[str, str] = {
     "PCH_a054_pwsDisabledMpptEnableLine": "Built-in solar inputs off",
     "BMS_a045_SW_SOC_Change": "Charge level recalibrated",
     "BatteryCalibration": "Battery calibrating",
+    "CalibrationRequested": "Calibration requested",
     "RealPowerConfigLimited": "Power limited by settings",
     "GridCodesWrite": "Writing grid settings",
     "PodCommissionTime": "Battery commissioning",

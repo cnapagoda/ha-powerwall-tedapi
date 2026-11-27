@@ -190,7 +190,8 @@
         "description": "The sign-in is the cloud backup for changing settings (Tesla's Fleet API).",
         "menu_options": {
           "fleet_oauth": "Tesla Fleet (your own Tesla developer app)",
-          "teslemetry": "Teslemetry (access token)"
+          "teslemetry": "Teslemetry (access token)",
+          "fleet_cancel": "Cancel: change nothing"
         }
       },
       "teslemetry": {
@@ -250,7 +251,8 @@
       "oauth_implementation_unavailable": "The Tesla developer app isn't available. Check the application credentials.",
       "fleet_not_registered": "Tesla refused the developer app (HTTP 412): its domain isn't registered with Tesla for your account's region. Register it as described in the [setup guide]({docs_url}), then sign in again.",
       "pypowerwall_too_old": "pypowerwall {found} is loaded in Home Assistant, but this integration needs {required} or newer. Another custom integration that uses an older pypowerwall loaded it first (for example ha-pypowerwall). Remove that integration (disabling it isn't enough), restart Home Assistant and start the setup again.",
-      "new_key_cancelled": "Nothing changed: the current key keeps working."
+      "new_key_cancelled": "Nothing changed: the current key keeps working.",
+      "fleet_signin_cancelled": "Nothing changed: the Tesla sign-ins kept here are as they were."
     }
   },
   "options": {
@@ -397,6 +399,10 @@
       "new_key": {
         "title": "Register a new key",
         "description": "This Powerwall already has a working key. A new key needs a Tesla sign-in and the Powerwall's On/Off switch at the unit; the current key keeps working until the new one is confirmed.\n\nSubmit to start. Close this window to keep the current key: nothing changes."
+      },
+      "fleet_signin": {
+        "title": "Sign in to Tesla Fleet or Teslemetry",
+        "description": "Sign in to Tesla Fleet (your own developer app) or Teslemetry (an access token) for the cloud backup. It continues as a Reauthenticate prompt on this Powerwall's card; a sign-in already kept here stays until the new one works.\n\nSubmit to start. Close this window to change nothing."
       }
     },
     "error": {
@@ -1474,6 +1480,7 @@
         "pws_a044_hvprsdfault": "Battery rapid-shutdown fault",
         "pws_a045_battvrationality": "Battery voltage reading is implausible",
         "batterycalibration": "Battery is calibrating its charge level",
+        "calibrationrequested": "The Powerwall has asked to calibrate its charge level: it may run the battery almost empty, exporting whatever the settings, then charge it to full (seen before and during a calibration)",
         "realpowerconfiglimited": "Power is held below a configured limit",
         "batterycomms": "The gateway can't communicate with a battery",
         "gridcodeswrite": "The gateway is writing its grid-code settings",
@@ -1519,6 +1526,7 @@
         "pws_a045_battvrationality": "Battery voltage implausible",
         "no_alerts": "None",
         "batterycalibration": "Battery calibrating",
+        "calibrationrequested": "Calibration requested",
         "realpowerconfiglimited": "Power limited by settings",
         "batterycomms": "Battery comms lost",
         "gridcodeswrite": "Writing grid settings",

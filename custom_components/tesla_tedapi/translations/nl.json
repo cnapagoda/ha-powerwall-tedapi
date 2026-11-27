@@ -190,7 +190,8 @@
         "description": "De aanmelding is de cloudback-up voor het wijzigen van instellingen (Tesla's Fleet API).",
         "menu_options": {
           "fleet_oauth": "Tesla Fleet (je eigen Tesla-ontwikkelaarsapp)",
-          "teslemetry": "Teslemetry (toegangstoken)"
+          "teslemetry": "Teslemetry (toegangstoken)",
+          "fleet_cancel": "Annuleren: niets wijzigen"
         }
       },
       "teslemetry": {
@@ -250,7 +251,8 @@
       "oauth_implementation_unavailable": "De Tesla-ontwikkelaarsapp is niet beschikbaar. Controleer de applicatiegegevens.",
       "fleet_not_registered": "Tesla weigerde de ontwikkelaarsapp (HTTP 412): het domein is voor de regio van je account niet bij Tesla geregistreerd. Registreer het zoals beschreven in de [installatiehandleiding]({docs_url}) en meld je daarna opnieuw aan.",
       "pypowerwall_too_old": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie met een oudere pypowerwall heeft die eerst geladen (bijvoorbeeld ha-pypowerwall). Verwijder die integratie (uitschakelen is niet genoeg), herstart Home Assistant en begin de installatie opnieuw.",
-      "new_key_cancelled": "Niets gewijzigd: de huidige sleutel blijft werken."
+      "new_key_cancelled": "Niets gewijzigd: de huidige sleutel blijft werken.",
+      "fleet_signin_cancelled": "Niets gewijzigd: de hier bewaarde Tesla-aanmeldingen blijven zoals ze waren."
     }
   },
   "options": {
@@ -397,6 +399,10 @@
       "new_key": {
         "title": "Nieuwe sleutel registreren",
         "description": "Deze Powerwall heeft al een werkende sleutel. Een nieuwe sleutel vraagt een Tesla-aanmelding en de aan/uit-schakelaar van de Powerwall; de huidige sleutel blijft werken tot de nieuwe is bevestigd.\n\nVerzend om te beginnen. Sluit dit venster om de huidige sleutel te houden: er verandert niets."
+      },
+      "fleet_signin": {
+        "title": "Aanmelden bij Tesla Fleet of Teslemetry",
+        "description": "Meld je aan bij Tesla Fleet (je eigen ontwikkelaarsapp) of Teslemetry (een toegangstoken) voor de cloudback-up. Het gaat verder als een verzoek om opnieuw te verifiëren op de kaart van deze Powerwall; een hier bewaarde aanmelding blijft tot de nieuwe werkt.\n\nVerzend om te beginnen. Sluit dit venster om niets te wijzigen."
       }
     },
     "error": {
@@ -1474,6 +1480,7 @@
         "pws_a044_hvprsdfault": "Storing in de snelle uitschakeling van de batterij",
         "pws_a045_battvrationality": "Batterijspanning is onwaarschijnlijk",
         "batterycalibration": "De batterij kalibreert haar laadniveau",
+        "calibrationrequested": "De Powerwall heeft gevraagd haar laadniveau te kalibreren: ze kan de batterij bijna leeg laten lopen, met teruglevering ongeacht de instellingen, en daarna volledig laden (gezien voor en tijdens een kalibratie)",
         "realpowerconfiglimited": "Het vermogen blijft onder een ingestelde limiet",
         "batterycomms": "De gateway kan niet communiceren met een batterij",
         "gridcodeswrite": "De gateway schrijft zijn netcode-instellingen",
@@ -1519,6 +1526,7 @@
         "pws_a045_battvrationality": "Batterijspanning onwaarschijnlijk",
         "no_alerts": "Geen",
         "batterycalibration": "Batterij kalibreert",
+        "calibrationrequested": "Kalibratie aangevraagd",
         "realpowerconfiglimited": "Vermogen begrensd door instelling",
         "batterycomms": "Batterij onbereikbaar",
         "gridcodeswrite": "Netinstellingen schrijven",

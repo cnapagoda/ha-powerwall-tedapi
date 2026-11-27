@@ -73,6 +73,7 @@ More cards in [Dashboards](dashboards.md).
 | `PCH_a054_pwsDisabledMpptEnableLine` | status | Built-in solar inputs off | The Powerwall's built-in solar inputs (MPPT) are off, normal when solar uses a separate inverter |
 | `BMS_a045_SW_SOC_Change` | status | Charge level recalibrated | Battery recalibrated its state of charge |
 | `BatteryCalibration` | status | Battery calibrating | Battery is calibrating its charge level (also **Battery calibrating**) |
+| `CalibrationRequested` | status | Calibration requested | The Powerwall has asked to calibrate its charge level: it may run the battery almost empty, exporting whatever the settings, then charge it to full (seen before and during a calibration) |
 | `RealPowerConfigLimited` | status | Power limited by settings | Power is held below a configured limit |
 | `GridCodesWrite` | status | Writing grid settings | The gateway is writing its grid-code settings |
 | `PodCommissionTime` | status | Battery commissioning | A battery is recording its commissioning time |

@@ -190,7 +190,8 @@
         "description": "La connexion est le secours cloud pour modifier les réglages (Fleet API de Tesla).",
         "menu_options": {
           "fleet_oauth": "Tesla Fleet (votre propre app développeur Tesla)",
-          "teslemetry": "Teslemetry (jeton d'accès)"
+          "teslemetry": "Teslemetry (jeton d'accès)",
+          "fleet_cancel": "Annuler : ne rien changer"
         }
       },
       "teslemetry": {
@@ -250,7 +251,8 @@
       "oauth_implementation_unavailable": "L'app développeur Tesla n'est pas disponible. Vérifiez les identifiants d'application.",
       "fleet_not_registered": "Tesla a refusé l'app développeur (HTTP 412) : son domaine n'est pas enregistré auprès de Tesla pour la région de votre compte. Enregistrez-le comme décrit dans le [guide d'installation]({docs_url}), puis reconnectez-vous.",
       "pypowerwall_too_old": "pypowerwall {found} est chargé dans Home Assistant, mais cette intégration nécessite la version {required} ou une version plus récente. Une autre intégration personnalisée utilisant un pypowerwall plus ancien l'a chargé en premier (par exemple ha-pypowerwall). Supprimez cette intégration (la désactiver ne suffit pas), redémarrez Home Assistant et recommencez la configuration.",
-      "new_key_cancelled": "Rien n'a changé : la clé actuelle continue de fonctionner."
+      "new_key_cancelled": "Rien n'a changé : la clé actuelle continue de fonctionner.",
+      "fleet_signin_cancelled": "Rien n'a changé : les connexions Tesla enregistrées ici restent telles quelles."
     }
   },
   "options": {
@@ -397,6 +399,10 @@
       "new_key": {
         "title": "Enregistrer une nouvelle clé",
         "description": "Cette Powerwall a déjà une clé qui fonctionne. Une nouvelle clé demande une connexion Tesla et l'interrupteur marche/arrêt de la Powerwall ; la clé actuelle continue de fonctionner jusqu'à ce que la nouvelle soit confirmée.\n\nValidez pour commencer. Fermez cette fenêtre pour garder la clé actuelle : rien ne change."
+      },
+      "fleet_signin": {
+        "title": "Se connecter à Tesla Fleet ou Teslemetry",
+        "description": "Connectez-vous à Tesla Fleet (votre propre application de développeur) ou Teslemetry (un jeton d'accès) pour le secours cloud. La suite se fait dans une demande de réauthentification sur la carte de ce Powerwall ; une connexion déjà enregistrée ici reste en place jusqu'à ce que la nouvelle fonctionne.\n\nValidez pour commencer. Fermez cette fenêtre pour ne rien changer."
       }
     },
     "error": {
@@ -1474,6 +1480,7 @@
         "pws_a044_hvprsdfault": "Défaut d'arrêt rapide de la batterie",
         "pws_a045_battvrationality": "La mesure de tension de la batterie est improbable",
         "batterycalibration": "La batterie calibre son niveau de charge",
+        "calibrationrequested": "Le Powerwall a demandé à calibrer son niveau de charge : il peut vider presque entièrement la batterie, en injectant quels que soient les réglages, puis la recharger complètement (vu avant et pendant un calibrage)",
         "realpowerconfiglimited": "La puissance est maintenue sous une limite configurée",
         "batterycomms": "La passerelle ne peut pas communiquer avec une batterie",
         "gridcodeswrite": "La passerelle écrit ses paramètres de code réseau",
@@ -1519,6 +1526,7 @@
         "pws_a045_battvrationality": "Tension batterie improbable",
         "no_alerts": "Aucune",
         "batterycalibration": "Batterie en calibrage",
+        "calibrationrequested": "Calibrage demandé",
         "realpowerconfiglimited": "Puissance limitée par réglage",
         "batterycomms": "Batterie injoignable",
         "gridcodeswrite": "Écriture des paramètres réseau",

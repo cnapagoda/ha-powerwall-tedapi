@@ -190,7 +190,8 @@
         "description": "O login é o backup na nuvem para alterar configurações (Fleet API da Tesla).",
         "menu_options": {
           "fleet_oauth": "Tesla Fleet (seu próprio app de desenvolvedor Tesla)",
-          "teslemetry": "Teslemetry (token de acesso)"
+          "teslemetry": "Teslemetry (token de acesso)",
+          "fleet_cancel": "Cancelar: não mudar nada"
         }
       },
       "teslemetry": {
@@ -250,7 +251,8 @@
       "oauth_implementation_unavailable": "O app de desenvolvedor Tesla não está disponível. Verifique as credenciais do aplicativo.",
       "fleet_not_registered": "A Tesla recusou o app de desenvolvedor (HTTP 412): o domínio dele não está registrado na Tesla para a região da sua conta. Registre-o como descrito no [guia de configuração]({docs_url}) e entre novamente.",
       "pypowerwall_too_old": "O pypowerwall {found} está carregado no Home Assistant, mas esta integração precisa da versão {required} ou mais recente. Outra integração personalizada que usa um pypowerwall mais antigo o carregou primeiro (por exemplo, ha-pypowerwall). Remova essa integração (desativar não basta), reinicie o Home Assistant e comece a configuração de novo.",
-      "new_key_cancelled": "Nada mudou: a chave atual continua funcionando."
+      "new_key_cancelled": "Nada mudou: a chave atual continua funcionando.",
+      "fleet_signin_cancelled": "Nada mudou: os logins Tesla salvos aqui continuam como estavam."
     }
   },
   "options": {
@@ -397,6 +399,10 @@
       "new_key": {
         "title": "Registrar uma nova chave",
         "description": "Esta Powerwall já tem uma chave funcionando. Uma nova chave precisa de um login da Tesla e do interruptor liga/desliga da Powerwall; a chave atual continua funcionando até a nova ser confirmada.\n\nEnvie para começar. Feche esta janela para manter a chave atual: nada muda."
+      },
+      "fleet_signin": {
+        "title": "Entrar no Tesla Fleet ou Teslemetry",
+        "description": "Entre no Tesla Fleet (seu próprio app de desenvolvedor) ou Teslemetry (um token de acesso) para o backup na nuvem. Continua como um pedido de nova autenticação no cartão deste Powerwall; um login já salvo aqui fica até o novo funcionar.\n\nEnvie para começar. Feche esta janela para não mudar nada."
       }
     },
     "error": {
@@ -1474,6 +1480,7 @@
         "pws_a044_hvprsdfault": "Falha do desligamento rápido da bateria",
         "pws_a045_battvrationality": "A leitura de tensão da bateria é implausível",
         "batterycalibration": "A bateria está calibrando o nível de carga",
+        "calibrationrequested": "O Powerwall pediu para calibrar o nível de carga: pode esvaziar quase toda a bateria, exportando independentemente das configurações, e depois carregá-la por completo (visto antes e durante uma calibração)",
         "realpowerconfiglimited": "A potência é mantida abaixo de um limite configurado",
         "batterycomms": "O gateway não consegue se comunicar com uma bateria",
         "gridcodeswrite": "O gateway está gravando as configurações de código de rede",
@@ -1519,6 +1526,7 @@
         "pws_a045_battvrationality": "Tensão da bateria implausível",
         "no_alerts": "Nenhum",
         "batterycalibration": "Bateria calibrando",
+        "calibrationrequested": "Calibração solicitada",
         "realpowerconfiglimited": "Potência limitada por configuração",
         "batterycomms": "Sem comunicação com a bateria",
         "gridcodeswrite": "Gravando ajustes de rede",

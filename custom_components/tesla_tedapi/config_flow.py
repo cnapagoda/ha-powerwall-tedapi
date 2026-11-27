@@ -574,6 +574,9 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         # this is its file until the entry is switched to it (removed again
         # if the flow ends before that).
         self._new_key = False
+        # A Fleet API sign-in started on its own (options or a repair): its
+        # menu can be cancelled.
+        self._fleet_cancel = False
         self._made_key: str | None = None
         self._key_state: int | None = None
         self._verify_task: asyncio.Task | None = None
@@ -750,7 +753,15 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         """A Fleet API sign-in only (reauth from the options, a repair, or
         Home Assistant asking after Tesla refused the refresh token)."""
         self._fleet_only = True
-        return self.async_show_menu(step_id="fleet_signin", menu_options=["fleet_oauth", "teslemetry"])
+        menu = ["fleet_oauth", "teslemetry"]
+        if self._fleet_cancel:
+            menu.append("fleet_cancel")
+        return self.async_show_menu(step_id="fleet_signin", menu_options=menu)
+
+    async def async_step_fleet_cancel(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Cancel a Fleet API sign-in started from the options or a repair:
+        nothing changes, and the Reauthenticate prompt goes."""
+        return self.async_abort(reason="fleet_signin_cancelled")
 
     async def async_step_fleet_oauth(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Tesla Fleet: the user's own developer app. Without application
@@ -1166,7 +1177,7 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         self._din = entry.unique_id
         self._mode = entry.data.get(CONF_CONNECTION_MODE, MODE_V1R)
         if entry_data.get(FLEET_SIGNIN):
-            self._fleet_only = True
+            self._fleet_only = self._fleet_cancel = True
             return await self.async_step_fleet_signin()
         if entry_data.get(NEW_KEY):
             self._new_key = True
@@ -1369,7 +1380,10 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
 
     async def async_step_fleet_signin(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Sign in to Tesla Fleet or Teslemetry (again). It goes on as a
-        reauthentication: Tesla Fleet's OAuth can only finish there."""
+        reauthentication: Tesla Fleet's OAuth can only finish there. Asks
+        first, so a click by mistake starts nothing."""
+        if user_input is None:
+            return self.async_show_form(step_id="fleet_signin", data_schema=vol.Schema({}))
         self.config_entry.async_start_reauth(self.hass, data={**self.config_entry.data, FLEET_SIGNIN: True})
         return self.async_abort(reason="fleet_signin_started")
 

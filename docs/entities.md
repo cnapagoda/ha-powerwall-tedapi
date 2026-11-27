@@ -244,7 +244,7 @@ See [Alerts](alerts.md) for what they mean.
 | Entity | Entity ID | Notes |
 |---|---|---|
 | **Problem** | `binary_sensor.powerwall_tedapi_problem` | On when a warning or fault has lasted the problem delay (10 minutes by default). Attributes: `problems` (each with `alert`, `description`, `severity`), `minutes_before_problem`. |
-| **Battery calibrating** | `binary_sensor.powerwall_tedapi_battery_calibrating` | On while the Powerwall calibrates its charge level (the gateway's `BatteryCalibration` alert). |
+| **Battery calibrating** | `binary_sensor.powerwall_tedapi_battery_calibrating` | On while the Powerwall calibrates its charge level (the gateway's `BatteryCalibration` alert). On a Powerwall 3 on firmware 26.34.3 a calibration ran with only `CalibrationRequested` listed in **Alerts**, so this stayed off. |
 | Alert level 🩺 | `sensor.powerwall_tedapi_alert_level` | *OK*, *Notice*, *Warning* or *Fault*: the most serious active alert. |
 | Active alerts 🩺 | `sensor.powerwall_tedapi_active_alerts` | Short readable list, most serious first. Attribute `details`. |
 | Alerts 🩺 | `sensor.powerwall_tedapi_alerts` | Number of alerts. Attributes: `alerts` (raw codes), `pack_alerts`, `details` (each with `alert`, `severity`, `description`, `since`, `sources`). |

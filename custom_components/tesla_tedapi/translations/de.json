@@ -190,7 +190,8 @@
         "description": "Die Anmeldung ist das Cloud-Backup zum Ändern von Einstellungen (Teslas Fleet API).",
         "menu_options": {
           "fleet_oauth": "Tesla Fleet (eigene Tesla-Entwickler-App)",
-          "teslemetry": "Teslemetry (Zugriffstoken)"
+          "teslemetry": "Teslemetry (Zugriffstoken)",
+          "fleet_cancel": "Abbrechen: nichts ändern"
         }
       },
       "teslemetry": {
@@ -250,7 +251,8 @@
       "oauth_implementation_unavailable": "Die Tesla-Entwickler-App ist nicht verfügbar. Prüfe die Anwendungs-Anmeldedaten.",
       "fleet_not_registered": "Tesla hat die Entwickler-App abgelehnt (HTTP 412): Ihre Domain ist für die Region deines Kontos nicht bei Tesla registriert. Registriere sie wie in der [Einrichtungsanleitung]({docs_url}) beschrieben und melde dich dann erneut an.",
       "pypowerwall_too_old": "In Home Assistant ist pypowerwall {found} geladen, diese Integration braucht aber {required} oder neuer. Eine andere benutzerdefinierte Integration mit einem älteren pypowerwall hat es zuerst geladen (zum Beispiel ha-pypowerwall). Entferne diese Integration (Deaktivieren reicht nicht), starte Home Assistant neu und beginne die Einrichtung erneut.",
-      "new_key_cancelled": "Nichts geändert: Der aktuelle Schlüssel funktioniert weiter."
+      "new_key_cancelled": "Nichts geändert: Der aktuelle Schlüssel funktioniert weiter.",
+      "fleet_signin_cancelled": "Nichts geändert: Die hier gespeicherten Tesla-Anmeldungen bleiben, wie sie waren."
     }
   },
   "options": {
@@ -397,6 +399,10 @@
       "new_key": {
         "title": "Neuen Schlüssel registrieren",
         "description": "Diese Powerwall hat bereits einen funktionierenden Schlüssel. Ein neuer Schlüssel braucht eine Tesla-Anmeldung und den Ein/Aus-Schalter an der Powerwall; der aktuelle Schlüssel funktioniert weiter, bis der neue bestätigt ist.\n\nMit Absenden starten. Schließe dieses Fenster, um den aktuellen Schlüssel zu behalten: Es ändert sich nichts."
+      },
+      "fleet_signin": {
+        "title": "Bei Tesla Fleet oder Teslemetry anmelden",
+        "description": "Melde dich bei Tesla Fleet (deine eigene Entwickler-App) oder Teslemetry (ein Zugriffstoken) für das Cloud-Backup an. Es geht als Aufforderung zur erneuten Authentifizierung auf der Karte dieser Powerwall weiter; eine hier gespeicherte Anmeldung bleibt, bis die neue funktioniert.\n\nMit Absenden starten. Schließe dieses Fenster, damit sich nichts ändert."
       }
     },
     "error": {
@@ -1474,6 +1480,7 @@
         "pws_a044_hvprsdfault": "Störung der Schnellabschaltung der Batterie",
         "pws_a045_battvrationality": "Batteriespannung ist unplausibel",
         "batterycalibration": "Die Batterie kalibriert ihren Ladestand",
+        "calibrationrequested": "Die Powerwall hat eine Kalibrierung ihres Ladestands angefordert: Sie kann die Batterie fast leeren, mit Einspeisung unabhängig von den Einstellungen, und dann voll laden (vor und während einer Kalibrierung beobachtet)",
         "realpowerconfiglimited": "Die Leistung wird unter einer eingestellten Grenze gehalten",
         "batterycomms": "Das Gateway kann nicht mit einer Batterie kommunizieren",
         "gridcodeswrite": "Das Gateway schreibt seine Netzcode-Einstellungen",
@@ -1519,6 +1526,7 @@
         "pws_a045_battvrationality": "Batteriespannung unplausibel",
         "no_alerts": "Keine",
         "batterycalibration": "Batterie kalibriert",
+        "calibrationrequested": "Kalibrierung angefordert",
         "realpowerconfiglimited": "Leistung durch Einstellung begrenzt",
         "batterycomms": "Batterie nicht erreichbar",
         "gridcodeswrite": "Netzeinstellungen werden geschrieben",
