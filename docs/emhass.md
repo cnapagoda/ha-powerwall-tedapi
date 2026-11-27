@@ -34,4 +34,4 @@ Use the Powerwall in **Self-Powered** mode, and turn off other automations that 
 | Imports while the battery is idle | Holds the battery at 0 W, keeping it for later |
 | Anything else, or no current plan | Normal operation, following the real solar and load |
 
-The dispatch is re-sent every 5 minutes and lasts 10, so the Powerwall returns to normal on its own if Home Assistant stops. A discharge stops at the backup reserve (option **Discharges stop at the backup reserve**).
+The blueprint re-sends the dispatch every 5 minutes. If Home Assistant stops, the Powerwall returns to normal on its own within 2 minutes. A discharge stops at the backup reserve (option **Discharges stop at the backup reserve**).

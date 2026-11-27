@@ -24,4 +24,4 @@ Use the Powerwall in **Self-Powered** mode, and turn off other automations that 
 
 The Powerwall can't limit its discharge in normal operation, so a plan that imports while the battery covers part of the house runs as normal operation. A plan that exports solar without discharging the battery also runs as normal operation, where the Powerwall charges the battery before it exports. While the battery is held at 0 W, solar above the forecast is exported instead of charging it.
 
-The dispatch is re-sent every 5 minutes and lasts 10, so the Powerwall returns to normal on its own if Home Assistant stops.
+The blueprint re-sends the dispatch every 5 minutes. If Home Assistant stops, the Powerwall returns to normal on its own within 2 minutes.

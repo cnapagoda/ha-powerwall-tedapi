@@ -16,13 +16,14 @@ Local monitoring and control of a Tesla Powerwall from Home Assistant, through t
 - **Live readings every 30 seconds, without the cloud:** solar, battery, grid and home power, battery level, lifetime and daily energy for the Energy dashboard, battery health per pack, temperatures, fans, grid voltage and frequency, per-input solar on a Powerwall 3. Optional fast polling reads power as often as every 5 seconds.
 - **Where your energy goes:** solar, battery and grid flows in kWh, battery round-trip efficiency and a long-term capacity trend.
 - **Phase and meter detail:** voltage per phase and the gateway's meter readings, where the gateway reports them.
+- **Several Powerwalls:** optionally one device per Powerwall and Expansion Pack, linked to the gateway.
 - **Control from your local network:** operation mode, backup reserve, grid charging and grid export.
 - **Battery dispatch:** charge or discharge at a set power, to a target level, or one way only, for price-based automations. Use the actions [`tesla_tedapi.dispatch_battery_power`, `freeze_battery`, `charge_to` and `discharge_to`](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/actions.md#battery-dispatch-start-here).
 - **Backup tools:** start a max backup, follow Storm Watch, test your backup by going off-grid with an automatic reconnect.
 - **Dashboard buttons:** stop a battery dispatch, cancel a max backup or reconnect to the grid with one press.
 - **Knows when something is wrong:** Tesla's alert codes in plain language, a **Problem** sensor, repairs, grid outage history and firmware update notices.
 - **Gateway network and site limits:** network connection and signal, site import and export limits, registered keys, and battery calibration delays.
-- **Keeps working when it can't reach the gateway:** an optional Tesla cloud backup (your Tesla account, Tesla Fleet or Teslemetry) keeps the settings usable, and can also show power and battery level.
+- **Keeps working when it can't reach the gateway:** an optional Tesla cloud backup (your Tesla account, Tesla Fleet or Teslemetry) keeps the settings usable, and can also show power, battery level and energy remaining. Or none at all: with **Local only**, nothing the integration does reaches Tesla's servers.
 - **More from the cloud backup:** Wall Connector power and state, and Tesla's tariff as buy and sell price sensors and calendars.
 - **Optional MQTT:** readings, settings, status and events on your MQTT broker, and optional commands, for tools outside Home Assistant ([topics](https://github.com/cnapagoda/ha-powerwall-tedapi/blob/main/docs/mqtt.md)).
 - **A setup wizard:** it finds the Powerwall on your network and registers the access key for you. No command line.

@@ -13,7 +13,7 @@ All entities belong to one device per gateway, **Powerwall TEDAPI**. Entity IDs 
 | 🚫 | Disabled by default: enable it on the entity's settings page. |
 | 🩺 | Diagnostic: shown in the device page's *Diagnostic* section. |
 
-**When the gateway can't be reached,** readings show *unavailable* (never stale values); with the **Cloud readings while the gateway is unreachable** option, power, battery level and battery energy come from the cloud backup instead (attribute `source: cloud`, and `last_updated` for when the cloud took the reading). Settings stay usable through the cloud backup if you have one. Outage history and **Setup health** stay available, and **Connection path** says how readings arrive, also when none do.
+**When the gateway can't be reached,** readings show *unavailable* (never stale values); with the **Cloud readings while the gateway is unreachable** option, power, battery level, **Battery energy remaining** and **Battery full capacity** come from the cloud backup instead (attribute `source: cloud`, and `last_updated` for when the cloud took the reading). Settings stay usable through the cloud backup if you have one. Outage history and **Setup health** stay available, and **Connection path** says how readings arrive, also when none do.
 
 - [Power](#power)
 - [Battery](#battery)

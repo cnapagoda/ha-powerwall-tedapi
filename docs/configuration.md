@@ -34,7 +34,7 @@ Select **Configure** on the integration. The menu offers:
 
 ### Settings
 
-The form is in four sections: **General** (polling, fast polling, restore), **Alerts**, **Battery dispatch** and **Advanced** (Tesla tariff, cloud readings, diagnostics; collapsed).
+The form is in four sections: **General** (polling, fast polling, restore, one device per Powerwall), **Alerts**, **Battery dispatch** and **Advanced** (Tesla tariff, cloud readings, diagnostics; collapsed).
 
 | Option | Default | Range | What it does |
 |---|---|---|---|
@@ -49,7 +49,7 @@ The form is in four sections: **General** (polling, fast polling, restore), **Al
 | **Battery level may be this old** | 2 min | 1–5 min | A charge or discharge is only started or renewed on a battery level at most this old (never less than 2½ polling intervals). During a dispatch the Powerwall ignores its backup reserve: each extra minute lets a 10 kW dispatch run about 0.17 kWh further past a limit. Raise it only if a slow connection keeps pausing dispatches. Applies without a reload. |
 | **Turn on grid charging for a charge** | Off | | A charge dispatch (also `charge_to`) turns on **Grid charging** if it's off, so it can draw from the grid, and turns it off again when the dispatch ends (after a restart, if Home Assistant stopped first), unless it was changed meanwhile. Charging from the grid may cost money on your tariff. |
 | **Tesla tariff (cloud)** | Off | | Adds the **Tesla tariff** sensor, the **Tariff buy price** / **Tariff sell price** sensors, the **Buy tariff** / **Sell tariff** calendars and the `get_tariff` / `set_tariff` actions. In the **Advanced** section (collapsed), and only there once a cloud backup is set up: first **Link a Tesla account** or **Sign in to Tesla Fleet or Teslemetry** from the **Configure** menu. See [Tesla tariff](tesla-tariff.md). |
-| **Cloud readings while the gateway is unreachable** | Off | | While the gateway can't be reached, power, battery level and battery energy come from the cloud backup instead (attribute `source: cloud`, with `last_updated` for when the cloud took the reading: up to 1–5 minutes ago). Energy counters and everything else stay *unavailable*. In the **Advanced** section, once a cloud backup is set up. |
+| **Cloud readings while the gateway is unreachable** | Off | | While the gateway can't be reached, power, battery level, **Battery energy remaining** and **Battery full capacity** come from the cloud backup instead (attribute `source: cloud`, with `last_updated` for when the cloud took the reading: up to 1–5 minutes ago). Energy counters and everything else stay *unavailable*. In the **Advanced** section, once a cloud backup is set up. |
 | **Gateway configuration in diagnostics** | Off | | Adds the gateway's own configuration to diagnostics downloads, with serial numbers, MAC addresses, location (the country, grid code and time zone stay), names, the tariff's plan and retailer, and credentials removed. Useful for bug reports. |
 
 > [!NOTE]
