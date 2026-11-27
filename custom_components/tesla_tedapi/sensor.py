@@ -946,6 +946,20 @@ async def async_setup_entry(
     def _registered(key: str) -> bool:
         return registry.async_get_entity_id("sensor", DOMAIN, f"{coordinator.din}_{key}") is not None
 
+    # One device per Powerwall (#24): a fan, solar input or inverter
+    # temperature added while its Powerwall's battery pack wasn't in the
+    # readings yet (a follower read after the leader) goes on the gateway's
+    # device. It waits here, by its unit_serials key, and moves to its
+    # Powerwall's device as soon as that pack is read, without a reload.
+    waiting: dict[str, list[TedapiSensor]] = {}
+
+    async def _async_move(entities: list[TedapiSensor], serial: str) -> None:
+        for entity in entities:
+            if entity.hass is not None:  # a disabled entity was never added
+                await entity.async_remove()
+        async_add_entities(TedapiSensor(coordinator, _unit_named(entity.entity_description), serial)
+                           for entity in entities)
+
     @callback
     def add_new() -> None:
         data = coordinator.data or {}
@@ -955,11 +969,16 @@ async def async_setup_entry(
         # Sensors of one Powerwall or Expansion Pack: on its own device with
         # one device per Powerwall on (#24), else with the others.
         units: dict[str, str] = {}
+        later: dict[str, str] = {}  # description key -> unit_serials key
         serials = data.get("unit_serials") or {}
+        for group in [group for group in waiting if unit_device(coordinator, serials.get(group))]:
+            entry.async_create_task(hass, _async_move(waiting.pop(group), str(serials[group])))
 
-        def of_unit(descriptions: list[TedapiSensorEntityDescription],
-                    serial: str | None) -> list[TedapiSensorEntityDescription]:
+        def of_unit(descriptions: list[TedapiSensorEntityDescription], serial: str | None,
+                    group: str | None = None) -> list[TedapiSensorEntityDescription]:
             if unit_device(coordinator, serial) is None:
+                if coordinator.unit_devices and group:
+                    later.update({d.key: group for d in descriptions})
                 return descriptions
             named = [_unit_named(d) for d in descriptions]
             units.update({d.key: str(serial) for d in named})
@@ -971,7 +990,7 @@ async def async_setup_entry(
                 "sensor", DOMAIN, f"{coordinator.din}_string_{name}_power") is not None
             if f"string_{name}" not in known and (_input_in_use(values) or registered):
                 known.add(f"string_{name}")
-                new += of_unit(_string_sensors(name), serials.get(f"string_{name}"))
+                new += of_unit(_string_sensors(name), serials.get(f"string_{name}"), f"string_{name}")
         # Phases and current transformers in use now, or set up before (like
         # the solar inputs: a circuit that is idle now keeps its sensors).
         for side in ("grid", "home"):
@@ -989,7 +1008,7 @@ async def async_setup_entry(
         for description in INVERTER_TEMPERATURES:
             if description.key not in known and description.value_fn(data) is not None:
                 known.add(description.key)
-                new += of_unit([description], serials.get("inverter"))
+                new += of_unit([description], serials.get("inverter"), "inverter")
         for description, reported in EXTRA_SENSORS:
             if description.key not in known and reported(data):
                 known.add(description.key)
@@ -997,11 +1016,12 @@ async def async_setup_entry(
         for inverter in data.get("inverter_temps") or {}:
             if f"inverter_{inverter}_temps" not in known:
                 known.add(f"inverter_{inverter}_temps")
-                new += of_unit(_inverter_temp_sensors(inverter), serials.get(f"inverter_{inverter}"))
+                group = f"inverter_{inverter}"
+                new += of_unit(_inverter_temp_sensors(inverter), serials.get(group), group)
         for name in data.get("fans") or {}:
             if f"fan_{name}" not in known:
                 known.add(f"fan_{name}")
-                new += of_unit([_fan_sensor(name)], serials.get(f"fan_{name}"))
+                new += of_unit([_fan_sensor(name)], serials.get(f"fan_{name}"), f"fan_{name}")
         for serial, pack in (data.get("packs") or {}).items():
             if f"pack_{serial}" not in known:
                 known.add(f"pack_{serial}")
@@ -1010,7 +1030,11 @@ async def async_setup_entry(
                 known.add(f"pack_{serial}_wear")
                 new += of_unit(_pack_wear_sensors(serial, pack["name"]), serial)
         if new:
-            async_add_entities(TedapiSensor(coordinator, d, units.get(d.key)) for d in new)
+            entities = [TedapiSensor(coordinator, d, units.get(d.key)) for d in new]
+            for entity in entities:
+                if entity.entity_description.key in later:
+                    waiting.setdefault(later[entity.entity_description.key], []).append(entity)
+            async_add_entities(entities)
 
     add_new()
     entry.async_on_unload(coordinator.async_add_listener(add_new))

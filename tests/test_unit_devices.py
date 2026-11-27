@@ -12,7 +12,7 @@ from custom_components.tesla_tedapi.const import DOMAIN
 from custom_components.tesla_tedapi.coordinator import unit_serials
 
 from .conftest import DIN, FakePowerwall
-from .test_storm import V1R, _setup
+from .test_storm import V1R, _refresh, _setup
 
 LEADER = DIN.rsplit("--", 1)[-1]
 FOLLOWER_DIN = "1707000-11-J--TG9876543210ZZ"
@@ -144,17 +144,39 @@ async def test_on_off_on(hass: HomeAssistant, fake_powerwall) -> None:
     assert _entity(hass, "fan_2A_speed").device_id == follower.id
 
 
-async def test_a_pack_missing_from_the_readings_stays_on_the_gateway(hass: HomeAssistant, fake_powerwall) -> None:
+async def test_a_pack_read_later_moves_its_sensors(hass: HomeAssistant, fake_powerwall) -> None:
     """A fan or solar input whose Powerwall has no battery pack in the
-    readings has no unit device to go to: it stays on the gateway's."""
+    readings yet (a follower read after the leader) has no unit device to go
+    to: it starts on the gateway's, and moves to its Powerwall's device when
+    the pack is read, without a reload. A disabled sensor moves too."""
     FakePowerwall.battery_blocks = BLOCKS
     FakePowerwall.extra_packs = {k: v for k, v in FOLLOWER_VITALS.items() if not k.startswith("TEPOD--1707")}
-    await _setup(hass, V1R, {"unit_devices": True})
+    entry = await _setup(hass, V1R, {"unit_devices": True})
     gateway = _device(hass, DIN)
-    assert _entity(hass, "fan_2A_speed").device_id == gateway.id
-    assert (hass.states.get(_entity(hass, "fan_2A_speed").entity_id).attributes["friendly_name"]
-            == "Powerwall TEDAPI Fan 2A speed")
+    entity_ids = {key: _entity(hass, key).entity_id for key in FOLLOWER_KEYS[1:] + ["fan_2B_speed"]}
+    for key in entity_ids:
+        assert _entity(hass, key).device_id == gateway.id, key
+    assert hass.states.get(entity_ids["fan_2A_speed"]).attributes["friendly_name"] == "Powerwall TEDAPI Fan 2A speed"
     assert _entity(hass, "fan_A_speed").device_id == _device(hass, f"{DIN}_{LEADER}").id
+    er.async_get(hass).async_update_entity(entity_ids["fan_2B_speed"], disabled_by=er.RegistryEntryDisabler.USER)
+    await hass.async_block_till_done()
+
+    FakePowerwall.extra_packs = FOLLOWER_VITALS
+    await _refresh(hass, entry)
+    follower = _device(hass, f"{DIN}_{FOLLOWER}")
+    for key, entity_id in entity_ids.items():
+        assert _entity(hass, key).device_id == follower.id, key
+        assert _entity(hass, key).entity_id == entity_id
+    assert _entity(hass, "fan_2B_speed").disabled_by is er.RegistryEntryDisabler.USER
+    state = hass.states.get(entity_ids["fan_2A_speed"])
+    assert state.attributes["friendly_name"] == "Powerwall 3 (2) Fan A speed"
+    assert state.state == "1200.0"
+    assert (hass.states.get(entity_ids["string_2A_power"]).attributes["friendly_name"]
+            == "Powerwall 3 (2) Solar input A power")
+    # Nothing waits any more: the next reading changes nothing.
+    await _refresh(hass, entry)
+    assert hass.states.get(entity_ids["fan_2A_speed"]).state == "1200.0"
+    assert _entity(hass, "fan_2A_speed").device_id == follower.id
 
 
 async def test_new_install_with_the_option_on(hass: HomeAssistant, fake_powerwall) -> None:
