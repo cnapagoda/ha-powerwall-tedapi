@@ -9,13 +9,13 @@ This integration controls real electrical equipment through interfaces Tesla doe
 
 ## Battery dispatch
 
-Applies to `dispatch_battery_power`, `charge_to` and `discharge_to`.
+Applies to `dispatch_battery_power`, `freeze_battery`, `charge_to` and `discharge_to`.
 
 - **A dispatch ignores your grid export setting, and the Powerwall ignores the backup reserve during one.** On a Powerwall 3, a discharge exported to the grid with export set to *never*. The site import and export limits your installer set still apply (reported on Powerwall 3, firmware 26.34.3). The integration stops a discharge at the backup reserve unless you pass `min_soc` (option **Discharges stop at the backup reserve**), and refuses calls above **Largest dispatch power**.
 - **Dispatching may affect your warranty.** Tesla's warranty may cover unlimited cycles only for self-consumption, time-based control and backup, and limit other use to a total energy throughput (37.8 MWh is quoted for some units). Dispatching may count as other use. Check your own warranty.
-- **A charge uses the grid only while Grid charging is on.** Turn it on before a dispatch that should charge from the grid; it may cost money on your tariff.
-- **If Home Assistant stops, the dispatch stops.** When it stops or restarts normally, the battery is handed back straight away. If it crashes or loses power, the Powerwall returns to normal within 5 minutes: commands are sent in steps of at most 5 minutes.
-- **If the battery level can't be read, the dispatch stops.** Its limits are checked against the battery level, so a charge or discharge isn't started or renewed once the level is 2 minutes old (or 2½ polling intervals, if longer): a new one is refused with an error, also when a planner re-sends it, and a running one ends when its last command has run out, 5 minutes later (event reason `battery_level_unknown`). A 0 W hold is still allowed, since it moves no energy.
+- **A charge uses the grid only while Grid charging is on.** Turn it on before a dispatch that should charge from the grid, or turn on the option **Turn on grid charging for a charge** to have each charge turn it on and off again; it may cost money on your tariff.
+- **If Home Assistant stops, the dispatch stops.** When it stops or restarts normally, the battery is handed back straight away. If it crashes, hangs or loses power, the Powerwall returns to normal within 2 minutes: commands are sent in steps of at most 2 minutes.
+- **If the battery level can't be read, the dispatch stops.** Its limits are checked against the battery level, so a charge or discharge isn't started or renewed once the level is 2 minutes old (the **Battery level may be this old** option, 1–5 minutes; or 2½ polling intervals, if longer) and one extra read of it doesn't bring a fresh one: a new one is refused with an error, also when a planner re-sends it, and a running one ends when its last command has run out, 2 minutes later (event reason `battery_level_unknown`). A 0 W hold is still allowed, since it moves no energy; a freeze holds the battery (0 W) until a fresh reading arrives.
 - **Your retailer or VPP may also control the Powerwall.** They can change modes or grid charging from the cloud, and their changes can fight yours.
 - **Limits use the Tesla app scale** (**Battery level**).
 
@@ -41,6 +41,7 @@ The Powerwall refuses what it can't deliver, but it doesn't know your wiring or 
 - **The automatic reconnect needs Home Assistant running.** If Home Assistant (or the host, or the network) is down when the time is up, nothing reconnects; the Powerwall stays off-grid until you reconnect it here or in the Tesla app.
 - Solar stops for about 30 seconds while the contactor switches.
 - Don't use it for long periods unattended. It's meant for testing your backup, with you nearby.
+- **Going off-grid to limit solar** (`curtailment: true`, or the last resort in the negative feed-in blueprint) switches the grid contactor each time it runs. That wears the contactor, and Tesla's warranty may not cover it. Use it only where Grid export *never* doesn't stop the export. Such runs reconnect at 40 % (or the backup reserve), after 6 hours a day by default, and at midnight.
 
 The integration helps:
 
@@ -52,6 +53,10 @@ The integration helps:
 ## Max backup
 
 `start_max_backup` charges the battery to full, from the grid if needed, and holds it. It's the same command Storm Watch uses. Grid charging during a max backup may cost money on your tariff.
+
+## MQTT commands
+
+[MQTT commands](mqtt.md#commands) are off by default. With them on, anyone who can publish to your MQTT broker can change settings, and with battery control on also dispatch the battery, within the same limits as the actions here. Restrict publishing to `<base>/cmd/#` with the broker's access rules, and set a command secret.
 
 ## The key and your Tesla sign-in
 

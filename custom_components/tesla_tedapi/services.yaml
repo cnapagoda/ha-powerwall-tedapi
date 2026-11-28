@@ -42,6 +42,59 @@ dispatch_battery_power:
           max: 100
           unit_of_measurement: "%"
           mode: box
+freeze_battery:
+  fields:
+    config_entry_id:
+      required: false
+      selector:
+        config_entry:
+          integration: tesla_tedapi
+    direction:
+      required: true
+      example: discharge_only
+      selector:
+        select:
+          options:
+            - charge_only
+            - discharge_only
+          translation_key: freeze_direction
+    duration_seconds:
+      required: true
+      example: 1800
+      selector:
+        number:
+          min: 1
+          max: 86400
+          unit_of_measurement: s
+          mode: box
+    max_power_watts:
+      required: false
+      example: 5000
+      selector:
+        number:
+          min: 100
+          max: 30000
+          step: 100
+          unit_of_measurement: W
+          mode: box
+    min_soc:
+      required: false
+      example: 20
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+          mode: box
+    max_soc:
+      required: false
+      example: 95
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+          mode: box
 charge_to:
   fields:
     config_entry_id:
@@ -172,6 +225,20 @@ go_off_grid:
           max: 100
           unit_of_measurement: "%"
           mode: box
+    curtailment:
+      required: false
+      default: false
+      selector:
+        boolean:
+    daily_limit_minutes:
+      required: false
+      example: 360
+      selector:
+        number:
+          min: 1
+          max: 1440
+          unit_of_measurement: min
+          mode: box
 reconnect_grid:
   fields:
     config_entry_id:
@@ -179,6 +246,11 @@ reconnect_grid:
       selector:
         config_entry:
           integration: tesla_tedapi
+    curtailment_only:
+      required: false
+      default: false
+      selector:
+        boolean:
 get_tariff:
   fields:
     config_entry_id:

@@ -414,7 +414,7 @@ async def test_option_offered_only_with_cloud(hass: HomeAssistant, fake_powerwal
     entry = await _setup(hass, data)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})
-    advanced = result["data_schema"].schema["advanced"].schema.schema
+    advanced = result["data_schema"].schema["advanced" if offered else "advanced_no_cloud"].schema.schema
     assert ("tesla_tariff" in advanced) is offered
 
 

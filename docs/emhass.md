@@ -21,7 +21,7 @@
    When you run an optimisation, pass the battery level as `soc_init`: `{{ states('sensor.powerwall_tedapi_battery_level') | float / 100 }}`.
 3. **Keep the published plan current:** turn on `continual_publish` in EMHASS's configuration, or run `publish-data` every optimisation time step (30 minutes by default). `sensor.p_batt_forecast` and `sensor.p_grid_forecast` then hold the plan for the current time step. Published only after an optimisation, they keep the first time step's value until the next one.
 4. **Import the blueprint** [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fcnapagoda%2Fha-powerwall-tedapi%2Fblob%2Fv2.8.0%2Fblueprints%2Fautomation%2Ftesla_tedapi%2Ffollow_energy_plan.yaml) and create an automation from it: **Planned battery power** `sensor.p_batt_forecast`, **Planned grid power** `sensor.p_grid_forecast`, and **Plan too old after** a little longer than the time between two publishes (for example 45 minutes when publishing every 30).
-5. **Turn on Grid charging**, so a planned charge can draw from the grid, and check **Largest dispatch power** in the integration options (**Configure → Settings → Battery dispatch**) is at least the blueprint's **Largest battery power**.
+5. **Turn on Grid charging** (or the option **Turn on grid charging for a charge**), so a planned charge can draw from the grid, and check **Largest dispatch power** in the integration options (**Configure → Settings → Battery dispatch**) is at least the blueprint's **Largest battery power**.
 
 Use the Powerwall in **Self-Powered** mode, and turn off other automations that dispatch the battery or change its mode.
 
@@ -34,4 +34,4 @@ Use the Powerwall in **Self-Powered** mode, and turn off other automations that 
 | Imports while the battery is idle | Holds the battery at 0 W, keeping it for later |
 | Anything else, or no current plan | Normal operation, following the real solar and load |
 
-The dispatch is re-sent every 5 minutes and lasts 10, so the Powerwall returns to normal on its own if Home Assistant stops. A discharge stops at the backup reserve (option **Discharges stop at the backup reserve**).
+The blueprint re-sends the dispatch every 5 minutes. If Home Assistant stops, the Powerwall returns to normal on its own within 2 minutes. A discharge stops at the backup reserve (option **Discharges stop at the backup reserve**).

@@ -13,7 +13,7 @@ All entities belong to one device per gateway, **Powerwall TEDAPI**. Entity IDs 
 | 🚫 | Disabled by default: enable it on the entity's settings page. |
 | 🩺 | Diagnostic: shown in the device page's *Diagnostic* section. |
 
-**When the gateway can't be reached,** readings show *unavailable* (never stale values); with the **Cloud readings while the gateway is unreachable** option, power and battery level come from the cloud backup instead (attribute `source: cloud`, and `last_updated` for when the cloud took the reading). Settings stay usable through the cloud backup if you have one. Outage history and **Setup health** stay available.
+**When the gateway can't be reached,** readings show *unavailable* (never stale values); with the **Cloud readings while the gateway is unreachable** option, power, battery level, **Battery energy remaining** and **Battery full capacity** come from the cloud backup instead (attribute `source: cloud`, and `last_updated` for when the cloud took the reading). Settings stay usable through the cloud backup if you have one. Outage history and **Setup health** stay available, and **Connection path** says how readings arrive, also when none do.
 
 - [Power](#power)
 - [Battery](#battery)
@@ -40,7 +40,7 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 | Solar power | `sensor.powerwall_tedapi_solar_power` | W | |
 | Battery power | `sensor.powerwall_tedapi_battery_power` | W | + discharging, − charging. |
 | Grid power | `sensor.powerwall_tedapi_grid_power` | W | + importing, − exporting. |
-| Home power | `sensor.powerwall_tedapi_home_power` | W | |
+| Home power | `sensor.powerwall_tedapi_home_power` | W | Never below 0. |
 | Grid import power | `sensor.powerwall_tedapi_grid_import_power` | W | Never negative: 0 while exporting. |
 | Grid export power | `sensor.powerwall_tedapi_grid_export_power` | W | Never negative: 0 while importing. |
 | Battery discharge power | `sensor.powerwall_tedapi_battery_discharge_power` | W | Never negative: 0 while charging. |
@@ -64,7 +64,7 @@ Signs follow Home Assistant's convention: **battery + discharging / − charging
 
 ### Per battery pack 🔍
 
-One set per Powerwall and expansion pack, named after the pack (*Powerwall 3*, *Expansion Pack*, or *Battery 1234*). With more than one of a model, the further ones are numbered (*Powerwall 3 (2)*, *Expansion Pack (2)*): the leader's first, and a pack keeps its name.
+One set per Powerwall and expansion pack, named after the pack (*Powerwall 3*, *Expansion Pack*, or *Battery 1234*). With more than one of a model, the further ones are numbered (*Powerwall 3 (2)*, *Expansion Pack (2)*): the leader's first, and a pack keeps its name. With [One device per Powerwall](setup.md#one-device-per-powerwall) they're on each unit's own device instead, named *Battery capacity*, *Battery health* and so on, together with that unit's fans, solar inputs and inverter temperatures.
 
 | Entity | Example entity ID | Unit | Notes |
 |---|---|---|---|
@@ -107,7 +107,7 @@ They're meant for cards and automations. For the Energy dashboard, use the lifet
 
 ### Energy flows
 
-Where the energy went, in kWh (`total_increasing`). The gateway meters four things (solar, battery, grid, home), not the flows between them, so these are **attributed** from the power readings: solar charges the battery first (as Tesla's own counters do), then feeds the home, then the grid; the battery feeds what the home still needs, then the grid; the grid feeds the rest. So while the home draws from the grid and the battery charges at the same time (for example time-based control storing solar off-peak, or grid charging with the sun up), solar counts as going into the battery and the grid as running the home. They count from when you install this version, need no cloud, and miss the time the gateway couldn't be read (a gap of more than 5 minutes isn't counted, or of more than 2½ polls with a longer polling interval).
+Where the energy went, in kWh (`total_increasing`). The gateway meters four things (solar, battery, grid, home), not the flows between them, so these are **attributed** from the power readings: solar charges the battery first (as Tesla's own counters do), then feeds the home, then the grid; the battery feeds what the home still needs, then the grid; the grid feeds the rest. So while the home draws from the grid and the battery charges at the same time (for example time-based control storing solar off-peak, or grid charging with the sun up), solar counts as going into the battery and the grid as running the home. They count from when you install this version and need no cloud. Time the gateway couldn't be read (more than 5 minutes between readings, or 2½ polls with a longer polling interval, also a Home Assistant restart) is filled in at the next full reading from the gateway's lifetime counters, split the same way and never more than the counters show; gaps over 24 hours aren't.
 
 | Entity | Entity ID |
 |---|---|
@@ -127,7 +127,7 @@ The flows are the energy delivered at the gateway. **Home energy consumed** and 
 
 | Entity | Entity ID | Notes |
 |---|---|---|
-| **Grid connected** | `binary_sensor.powerwall_tedapi_grid_connected` | On while the Powerwall is on the grid. Off during an outage, *Go off-grid*, and while it syncs to reconnect. Attribute `grid_status`: `UP`, `DOWN` or `SYNCING`. With a signed connection it also shows an [off-grid run](actions.md#tesla_tedapigo_off_grid) started here: `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below`, `last_end_reason`. |
+| **Grid connected** | `binary_sensor.powerwall_tedapi_grid_connected` | On while the Powerwall is on the grid. Off during an outage, *Go off-grid*, and while it syncs to reconnect. Attribute `grid_status`: `UP`, `DOWN` or `SYNCING`. With a signed connection it also shows an [off-grid run](actions.md#tesla_tedapigo_off_grid) started here: `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below`, `curtailment` (a run started to limit solar), `last_end_reason`. |
 | Grid status | `sensor.powerwall_tedapi_grid_status` | `up`, `down` or `syncing` (shown as *Up*, *Down*, *Syncing* in your language). Before 2.5.1 the states were upper case. |
 | Grid frequency 🩺 | `sensor.powerwall_tedapi_grid_frequency` | Hz. |
 | Grid voltage 🩺 | `sensor.powerwall_tedapi_grid_voltage` | V. |
@@ -209,8 +209,8 @@ The experimental **On-grid solar curtailment** switch works the same way (`switc
 
 | Entity | Entity ID | Notes |
 |---|---|---|
-| **Dispatch active** 🔑 | `binary_sensor.powerwall_tedapi_dispatch_active` | On while a [battery dispatch](actions.md#tesla_tedapidispatch_battery_power) started here runs. Attributes: `power_watts`, `started`, `ends`, `min_soc`, `max_soc`, `target_soc` (for `charge_to` / `discharge_to`), and `last_end_reason` when idle. |
-| **Backup event** 🔑 | `binary_sensor.powerwall_tedapi_backup_event` | On while a backup event runs: a [max backup](actions.md#tesla_tedapistart_max_backup) started here or in the Tesla app, or one Storm Watch scheduled. The Powerwall then charges to full and holds it. Attributes: `kind` (`manual` or the event's name), `start`, `end`; when none is running, the next scheduled one. Read every 5 minutes. |
+| **Dispatch active** 🔑 | `binary_sensor.powerwall_tedapi_dispatch_active` | On while a [battery dispatch](actions.md#tesla_tedapidispatch_battery_power) started here runs. Attributes: `power_watts`, `started`, `ends`, `min_soc`, `max_soc`, `target_soc` (for `charge_to` / `discharge_to`), `freeze` and `max_power_watts` (for [`freeze_battery`](actions.md#tesla_tedapifreeze_battery)), and `last_end_reason` when idle. |
+| **Backup event** 🔑 | `binary_sensor.powerwall_tedapi_backup_event` | On while a backup event runs: a [max backup](actions.md#tesla_tedapistart_max_backup) started here or in the Tesla app, or one Storm Watch scheduled. The Powerwall then charges to full and holds it. Attributes: `kind` (`manual` or the event's name), `start`, `end`; when none is running, the next scheduled one. When the gateway replaces a running event with one of the same kind (for example an updated weather warning), `start` keeps the time it first began. Read every 5 minutes, and at the next poll after **Storm Watch active** changes. |
 | Storm Watch active ☁️ | `binary_sensor.powerwall_tedapi_storm_watch_active` | Tesla's Storm Watch is preparing for severe weather. |
 | Grid services active ☁️ | `binary_sensor.powerwall_tedapi_grid_services_active` | Tesla reports grid services (for example a virtual power plant) as active on the site. Only on sites enrolled in grid services. |
 | Tesla tariff 🩺 | `sensor.powerwall_tedapi_tesla_tariff` | Only with the **Tesla tariff (cloud)** option. See [Tesla tariff](tesla-tariff.md). |
@@ -244,7 +244,7 @@ See [Alerts](alerts.md) for what they mean.
 | Entity | Entity ID | Notes |
 |---|---|---|
 | **Problem** | `binary_sensor.powerwall_tedapi_problem` | On when a warning or fault has lasted the problem delay (10 minutes by default). Attributes: `problems` (each with `alert`, `description`, `severity`), `minutes_before_problem`. |
-| **Battery calibrating** | `binary_sensor.powerwall_tedapi_battery_calibrating` | On while the Powerwall calibrates its charge level (the gateway's `BatteryCalibration` alert). |
+| **Battery calibrating** | `binary_sensor.powerwall_tedapi_battery_calibrating` | On while the Powerwall calibrates its charge level (the gateway's `BatteryCalibration` alert). On a Powerwall 3 on firmware 26.34.3 a calibration ran with only `CalibrationRequested` listed in **Alerts**, so this stayed off. |
 | Alert level 🩺 | `sensor.powerwall_tedapi_alert_level` | *OK*, *Notice*, *Warning* or *Fault*: the most serious active alert. |
 | Active alerts 🩺 | `sensor.powerwall_tedapi_active_alerts` | Short readable list, most serious first. Attribute `details`. |
 | Alerts 🩺 | `sensor.powerwall_tedapi_alerts` | Number of alerts. Attributes: `alerts` (raw codes), `pack_alerts`, `details` (each with `alert`, `severity`, `description`, `since`, `sources`). |
@@ -303,6 +303,7 @@ Read from the gateway every 5 minutes (the site limits with each full read where
 |---|---|---|
 | **Setup health** 🩺 | `sensor.powerwall_tedapi_setup_health` | *OK* or *Needs attention*. Stays available while the gateway is down. See below. |
 | Connection 🩺🚫 | `sensor.powerwall_tedapi_connection` | *Signed (v1r)* or *Wi-Fi password*: the connection actually in use. |
+| **Connection path** 🩺 | `sensor.powerwall_tedapi_connection_path` | How the latest reading came: *Signed connection*, *Signed, over the Wi-Fi fallback*, *Wi-Fi password*, *Cloud backup only* or *None*. Stays available when the other entities aren't. While the gateway can't be reached: `last_local_read` (when it last answered) and `last_known_settings` (the settings it last reported, with `read_at`; not recorded). |
 
 **Setup health attributes:**
 
@@ -316,5 +317,6 @@ Read from the gateway every 5 minutes (the site limits with each full read where
 | `cloud_backends` | Per backup: `ok`, `starting`, `can_change_settings`, `failures`, `last_ok`. |
 | `cloud_token_expires` | When the Owner API access token expires (it's renewed automatically). |
 | `cloud_last_ok` | The last successful cloud read. |
+| `read_times` | How the gateway answered in the last hour, for full and power-only reads: `count`, `median_s`, `slowest_s`, `failed`, `timeouts` and the connection `paths` used; `loop_delay_ms` (how late Home Assistant ran a task: high values mean Home Assistant was busy, not the gateway slow); and `dispatch_level_age_s` (how old the battery level was at battery dispatch renewals). Not recorded. |
 
 *Needs attention* about the cloud only appears when **no** backup can change settings; a single failing backup gets its own repair instead.

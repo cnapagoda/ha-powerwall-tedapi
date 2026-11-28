@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import os
 import re
+import time
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
-from . import tesla_cloud
+from . import fleet, tesla_cloud
 from .const import (
     AUTH_FILE,
     CONF_CUSTOMER_PASSWORD,
@@ -18,6 +19,7 @@ from .const import (
     CONF_GW_PWD,
     CONF_HOST,
     CONF_MACS,
+    CONF_MQTT_SECRET,
     CONF_OAUTH_IMPLEMENTATION,
     CONF_OAUTH_TOKEN,
     CONF_OWNERS_AUTHPATH,
@@ -28,7 +30,8 @@ from .const import (
 )
 from .coordinator import TedapiConfigEntry
 
-TO_REDACT = {CONF_GW_PWD, CONF_CUSTOMER_PASSWORD, CONF_OWNERS_EMAIL, CONF_SITE_ID, CONF_FLEET_SITE_ID, CONF_FLEET_TOKEN,
+TO_REDACT = {CONF_MQTT_SECRET, CONF_GW_PWD, CONF_CUSTOMER_PASSWORD, CONF_OWNERS_EMAIL, CONF_SITE_ID,
+             CONF_FLEET_SITE_ID, CONF_FLEET_TOKEN,
              CONF_OAUTH_TOKEN, CONF_OAUTH_IMPLEMENTATION, CONF_MACS, CONF_HOST, CONF_WIFI_HOST,
              CONF_RSA_KEY_PATH, "din", "serial", "unique_id", "title", "fingerprint"}
 REDACTED = "**REDACTED**"
@@ -170,6 +173,11 @@ async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: TedapiC
         "control_enabled": coordinator.control_enabled,
         "cloud_enabled": coordinator.cloud_enabled,
         "cloud_backends": [backend.name for backend in coordinator.backends],
+        # No Tesla sign-in kept for this entry (2.9.0).
+        "local_only": not fleet.has_signin(entry.data),
+        "connection_path": coordinator.connection_path,
+        "read_times": coordinator.read_times.summary(time.monotonic()),
+        "flows_filled": {"gaps": coordinator.flows.filled_gaps, "kwh": round(coordinator.flows.filled_kwh, 3)},
         "token_cache": token,
         "dispatch": runtime.dispatch.as_dict() if runtime.dispatch else None,
         "data": redact_values(async_redact_data(data, TO_REDACT), secrets),

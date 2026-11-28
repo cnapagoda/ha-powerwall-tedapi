@@ -3,7 +3,7 @@
 ## Getting started
 
 **Do I need a Tesla account?**
-For the signed connection, you need **one** Tesla sign-in, once, to register the access key with your Powerwall: your Tesla account, a Teslemetry token or your own Tesla Fleet developer app ([which one](setup.md#which-connection-and-which-sign-in)). The Wi-Fi password connection needs none. After the key is registered, local control never uses the sign-in. Keeping it linked gives you a [cloud backup](cloud-backup.md) for when Home Assistant can't reach the gateway, and access to Storm Watch and the tariff.
+For the signed connection, you need **one** Tesla sign-in, once, to register the access key with your Powerwall: your Tesla account, a Teslemetry token or your own Tesla Fleet developer app ([which one](setup.md#which-connection-and-which-sign-in)). The Wi-Fi password connection needs none. After the key is registered, local control never uses the sign-in. Keeping it linked gives you a [cloud backup](cloud-backup.md) for when Home Assistant can't reach the gateway, and access to Storm Watch and the tariff. Or remove it at the end of setup: [local only](configuration.md#local-only).
 
 **Why can't the key be registered locally, with just the gateway password?**
 The Powerwall accepts a key sent over its own Wi-Fi, but in testing such a key never verified. Keys only verify when the registration comes through Tesla's cloud.
@@ -61,7 +61,7 @@ When the change goes through Tesla's cloud, Tesla caps it at 80 %. Over the sign
 Changing the mode or reserve is what the Tesla app does: the Powerwall still decides how to run. A dispatch tells it exactly what power to charge or discharge at, overriding the export setting. Dispatching may affect your warranty; see [Safety](safety.md).
 
 **What happens to a dispatch if Home Assistant restarts or crashes?**
-A normal stop or restart ends the dispatch straight away and hands the battery back. After a crash or power loss, the Powerwall returns to normal within 5 minutes, because commands are sent in steps of at most 5 minutes. A dispatch isn't resumed after a restart.
+A normal stop or restart ends the dispatch straight away and hands the battery back. After a crash or power loss, the Powerwall returns to normal within 2 minutes, because commands are sent in steps of at most 2 minutes. A dispatch isn't resumed after a restart.
 
 **What happens to an off-grid run if Home Assistant restarts?**
 The run is saved and picked up again, so it still reconnects on time. If Home Assistant stays down, nothing reconnects: reconnect in the Tesla app.

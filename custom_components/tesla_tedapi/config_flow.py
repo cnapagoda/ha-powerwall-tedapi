@@ -66,7 +66,9 @@ from .const import (
     CONF_CUSTOMER_PASSWORD,
     CONF_DIAGNOSTICS_GATEWAY,
     CONF_DISPATCH_FLOOR_RESERVE,
+    CONF_DISPATCH_GRID_CHARGING,
     CONF_DISPATCH_MAX_WATTS,
+    CONF_DISPATCH_STALE_MINUTES,
     CONF_FLEET_PROVIDER,
     CONF_FLEET_SERVER,
     CONF_FLEET_SITE_ID,
@@ -75,6 +77,11 @@ from .const import (
     CONF_GW_PWD,
     CONF_HOST,
     CONF_MACS,
+    CONF_MQTT_BASE_TOPIC,
+    CONF_MQTT_BATTERY_COMMANDS,
+    CONF_MQTT_COMMANDS,
+    CONF_MQTT_PUBLISH,
+    CONF_MQTT_SECRET,
     CONF_OWNERS_AUTHPATH,
     CONF_OWNERS_EMAIL,
     CONF_POWER_INTERVAL,
@@ -85,12 +92,17 @@ from .const import (
     CONF_SITE_ID,
     CONF_STATUS_EVENTS,
     CONF_TESLA_TARIFF,
+    CONF_UNIT_DEVICES,
     CONF_WIFI_HOST,
     DEFAULT_HOST_WIFI,
+    DEFAULT_MQTT_BASE_TOPIC,
     DEFAULT_PROBLEM_MINUTES,
     DEFAULT_SCAN_INTERVAL,
     DISPATCH_DEFAULT_WATTS,
     DISPATCH_MAX_WATTS,
+    DISPATCH_STALE_MINUTES_MAX,
+    DISPATCH_STALE_MINUTES_MIN,
+    DISPATCH_STALE_SECONDS,
     DOMAIN,
     FLEET_DATA_KEYS,
     MAX_POWER_INTERVAL,
@@ -101,8 +113,10 @@ from .const import (
     MODE_WIFI,
     PROVIDER_TESLA_FLEET,
     PROVIDER_TESLEMETRY,
+    REAUTH_KEY_REFUSED,
     STORAGE_FOLDER,
     cloud_choice,
+    valid_base_topic,
 )
 from .privacy import scrub
 
@@ -117,7 +131,9 @@ CONF_BACKUP = "backup"
 CONF_ACCESS_TOKEN = "access_token"
 MANUAL = "manual"
 # Sections of the Settings form (strings.json: options.step.settings.sections).
-SETTINGS_SECTIONS = ("general", "alerts", "dispatch", "advanced")
+# "advanced_no_cloud" is the Advanced section without a cloud backup: its
+# description says how to get the cloud-only options.
+SETTINGS_SECTIONS = ("general", "alerts", "dispatch", "advanced", "advanced_no_cloud")
 
 PASSWORD = TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))
 KEY_FILE = FileSelector(FileSelectorConfig(accept=".pem,.key,.txt"))
@@ -375,6 +391,15 @@ def _options_with_fleet(entry: ConfigEntry) -> dict[str, Any]:
     return options
 
 
+def _options_with_owner(entry: ConfigEntry) -> dict[str, Any]:
+    """The options once the entry has a Tesla account linked here: the cloud
+    backup choice gains the Owner API (an existing choice with it is kept)."""
+    options = dict(entry.options)
+    choice = cloud_choice(entry.data, entry.options)
+    options[CONF_CLOUD_BACKENDS] = CLOUD_WITH_OWNER.get(choice, choice)
+    return options
+
+
 def _mac(value: str) -> str:
     return value.replace(":", "").replace("-", "").lower()
 
@@ -385,6 +410,26 @@ def _remember_mac(hass: HomeAssistant, entry: ConfigEntry, mac: str) -> None:
     macs = list(entry.data.get(CONF_MACS) or [])
     if mac and mac not in macs:
         hass.config_entries.async_update_entry(entry, data={**entry.data, CONF_MACS: [*macs, mac]})
+
+
+async def _async_forget_signin(hass: HomeAssistant, entry_id: str | None, email: str, authpath: str) -> None:
+    """Remove a Tesla account's saved tokens from the token cache, keeping an
+    account another entry uses. Only in this integration's own folder, where
+    setup saves them: a cache elsewhere (an entry from an older version) may be
+    shared with other integrations that use pypowerwall. entry_id: the entry
+    the sign-in belongs to (None in setup, before there is one)."""
+    if not (email and authpath) or not tesla_cloud.same_folder(authpath, hass.config.path(STORAGE_FOLDER)):
+        return
+    others = [(entry.data.get(CONF_OWNERS_AUTHPATH) or hass.config.config_dir, entry.data[CONF_OWNERS_EMAIL])
+              for entry in hass.config_entries.async_entries(DOMAIN)
+              if entry.entry_id != entry_id and entry.data.get(CONF_OWNERS_EMAIL)]
+    try:
+        removed = await hass.async_add_executor_job(tesla_cloud.forget_account, authpath, email, others)
+    except OSError as err:
+        _LOGGER.warning("The Tesla sign-in's saved tokens couldn't be removed: %s", scrub(err))
+        return
+    if removed:
+        _LOGGER.info("The Tesla sign-in's saved tokens were removed")
 
 
 class TeslaLoginMixin:
@@ -519,12 +564,20 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         # Reauth started only to sign in to the Fleet API.
         self._fleet_only = False
         self._cloud_wanted = False
+        # A sign-in made only to register the key: kept as the cloud backup
+        # (True) or forgotten, local only (False). None: not asked yet.
+        self._keep_signin: bool | None = None
         self._site: tesla_cloud.EnergySite | None = None
         self._public_der: bytes | None = None
+        # Reauth started because the gateway refuses the key.
+        self._key_refused = False
         # Options -> Register a new signed key: a key of its own is made, and
         # this is its file until the entry is switched to it (removed again
         # if the flow ends before that).
         self._new_key = False
+        # A Fleet API sign-in started on its own (options or a repair): its
+        # menu can be cancelled.
+        self._fleet_cancel = False
         self._made_key: str | None = None
         self._key_state: int | None = None
         self._verify_task: asyncio.Task | None = None
@@ -701,7 +754,15 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         """A Fleet API sign-in only (reauth from the options, a repair, or
         Home Assistant asking after Tesla refused the refresh token)."""
         self._fleet_only = True
-        return self.async_show_menu(step_id="fleet_signin", menu_options=["fleet_oauth", "teslemetry"])
+        menu = ["fleet_oauth", "teslemetry"]
+        if self._fleet_cancel:
+            menu.append("fleet_cancel")
+        return self.async_show_menu(step_id="fleet_signin", menu_options=menu)
+
+    async def async_step_fleet_cancel(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Cancel a Fleet API sign-in started from the options or a repair:
+        nothing changes, and the Reauthenticate prompt goes."""
+        return self.async_abort(reason="fleet_signin_cancelled")
 
     async def async_step_fleet_oauth(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Tesla Fleet: the user's own developer app. Without application
@@ -955,6 +1016,31 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         self._din = din
         if self._token is None and self._fleet is None and self._cloud_wanted:
             return await self.async_step_signin()
+        if self._register and self._keep_signin is None and (
+                self.source != SOURCE_REAUTH or not fleet.has_signin(self._get_reauth_entry().data)):
+            # In a reauth too, for an entry without a sign-in (local only):
+            # the one made to register its new key isn't kept unless asked.
+            return await self.async_step_keep_signin()
+        return await self._async_finish()
+
+    async def async_step_keep_signin(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The key works. The sign-in was made to register it: keep it as the
+        cloud backup, or forget it and stay local only."""
+        return self.async_show_menu(step_id="keep_signin", menu_options=["keep_cloud", "local_only"])
+
+    async def async_step_keep_cloud(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        self._keep_signin = True
+        return await self._async_finish()
+
+    async def async_step_local_only(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Local only: the sign-in isn't kept, and its saved tokens are removed
+        (unless another entry uses the same Tesla account)."""
+        self._keep_signin = False
+        if self._token is not None:
+            entry_id = self._get_reauth_entry().entry_id if self.source == SOURCE_REAUTH else None
+            await _async_forget_signin(self.hass, entry_id, self._email, self._folder)
+        self._token = None
+        self._fleet = self._fleet_api = None
         return await self._async_finish()
 
     async def async_step_connect_failed(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -980,6 +1066,8 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
             return await self._async_connect()
         if self._new_key:
             return await self.async_step_new_key()
+        if self._key_refused:
+            return await self.async_step_reauth_key()
         return await self.async_step_reauth_confirm()
 
     async def _async_finish(self) -> ConfigFlowResult:
@@ -1003,6 +1091,11 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
                 return self._update_and_reload(
                     entry, data={**{k: v for k, v in entry.data.items() if k not in FLEET_DATA_KEYS}, **data},
                     options=_options_with_fleet(entry))
+            if self._keep_signin and self._token is not None:
+                # An entry without a sign-in kept the one made to register
+                # its new key: it's the cloud backup from now on.
+                return self._update_and_reload(entry, data={**entry.data, **data},
+                                               options=_options_with_owner(entry))
             return self._update_and_reload(entry, data={**entry.data, **data})
         data.setdefault(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         label = "v1r" if self._mode == MODE_V1R else "Wi-Fi"
@@ -1085,11 +1178,14 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         self._din = entry.unique_id
         self._mode = entry.data.get(CONF_CONNECTION_MODE, MODE_V1R)
         if entry_data.get(FLEET_SIGNIN):
-            self._fleet_only = True
+            self._fleet_only = self._fleet_cancel = True
             return await self.async_step_fleet_signin()
         if entry_data.get(NEW_KEY):
             self._new_key = True
             return await self.async_step_new_key()
+        if entry_data.get(REAUTH_KEY_REFUSED):
+            self._key_refused = True
+            return await self.async_step_reauth_key()
         return await self.async_step_reauth_confirm()
 
     async def async_step_new_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -1097,7 +1193,22 @@ class TedapiConfigFlow(TeslaLoginMixin, config_entry_oauth2_flow.AbstractOAuth2F
         one still works. The new key is made or uploaded into a file of its
         own; the entry (and its key file) only change once the Powerwall has
         confirmed the new key and the connection check passes with it."""
-        return self.async_show_menu(step_id="new_key", menu_options=["register", "key_upload"])
+        return self.async_show_menu(step_id="new_key", menu_options=["register", "key_upload", "keep_key"])
+
+    async def async_step_keep_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Cancel a new key asked for in the options: the current key stays,
+        and the Reauthenticate prompt goes."""
+        return self.async_abort(reason="new_key_cancelled")
+
+    async def async_step_reauth_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """The gateway refuses the key, while the password works: the key was
+        removed in the Tesla app, or dropped by a firmware update. A new key
+        first; for an entry without a sign-in, the one made to register it
+        can be removed again afterwards (keep_signin)."""
+        menu = ["register", "key_upload", "reauth_password"]
+        if fleet.signed_in(self._get_reauth_entry().data):
+            menu.append("fleet_signin")
+        return self.async_show_menu(step_id="reauth_key", menu_options=menu)
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         menu = ["reauth_password", "register", "key_upload"]
@@ -1232,25 +1343,48 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                 if name != BACKEND_OWNER or self.config_entry.data.get(CONF_OWNERS_EMAIL)]
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        menu = ["settings", "cloud_backup"]
+        menu = ["settings", "mqtt", "cloud_backup"]
         if not self.config_entry.data.get(CONF_OWNERS_EMAIL):
             menu.append("link_account")
         menu.append("fleet_signin")
         if self._backups_in_use():
             menu.append("unlink_account")
-        if self.config_entry.data.get(CONF_CONNECTION_MODE, MODE_V1R) == MODE_V1R:
+        signed = self.config_entry.data.get(CONF_CONNECTION_MODE, MODE_V1R) == MODE_V1R
+        if signed and fleet.has_signin(self.config_entry.data):
+            # Over the Wi-Fi password connection, the cloud is the only way
+            # to change settings: Unlink is there for that.
+            menu.append("local_only")
+        if signed:
             menu.append("new_key")
         return self.async_show_menu(step_id="init", menu_options=menu)
 
+    async def async_step_local_only(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """Local only: every Tesla sign-in kept here is removed (the Owner API
+        account's saved tokens too) and the cloud backup is turned off. The
+        signed key keeps working; the cloud-only entities go."""
+        if user_input is not None:
+            await self._async_forget_owner_account()
+            data = {k: v for k, v in self.config_entry.data.items()
+                    if k not in (*FLEET_DATA_KEYS, CONF_OWNERS_EMAIL, CONF_OWNERS_AUTHPATH, CONF_SITE_ID)}
+            _LOGGER.info("Local only: the Tesla sign-ins kept for this Powerwall were removed")
+            return self._save(data=data, options={**self.config_entry.options, CONF_CLOUD_BACKENDS: CLOUD_NONE})
+        return self.async_show_form(step_id="local_only", data_schema=vol.Schema({}))
+
     async def async_step_new_key(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Register another signed key (e.g. through Tesla Fleet). It goes on as
-        a reauthentication, which Home Assistant shows on the integration."""
+        a reauthentication, which Home Assistant shows on the integration.
+        Asks first, so a click by mistake starts nothing."""
+        if user_input is None:
+            return self.async_show_form(step_id="new_key", data_schema=vol.Schema({}))
         self.config_entry.async_start_reauth(self.hass, data={**self.config_entry.data, NEW_KEY: True})
         return self.async_abort(reason="new_key_started")
 
     async def async_step_fleet_signin(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Sign in to Tesla Fleet or Teslemetry (again). It goes on as a
-        reauthentication: Tesla Fleet's OAuth can only finish there."""
+        reauthentication: Tesla Fleet's OAuth can only finish there. Asks
+        first, so a click by mistake starts nothing."""
+        if user_input is None:
+            return self.async_show_form(step_id="fleet_signin", data_schema=vol.Schema({}))
         self.config_entry.async_start_reauth(self.hass, data={**self.config_entry.data, FLEET_SIGNIN: True})
         return self.async_abort(reason="fleet_signin_started")
 
@@ -1274,12 +1408,13 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             return NumberSelector(NumberSelectorConfig(
                 min=lo, max=hi, step=step, unit_of_measurement=unit, mode=NumberSelectorMode.BOX))
 
+        # Tesla tariff and cloud readings (cloud only): offered once a cloud
+        # backup is set up. Without one, the section says how to set it up.
+        cloud = cloud_choice(self.config_entry.data, opts) != CLOUD_NONE
         advanced: dict[Any, Any] = {
-            # Tesla tariff and cloud readings (cloud only): offered once a
-            # cloud backup is set up.
             **({vol.Required(CONF_TESLA_TARIFF, default=opts.get(CONF_TESLA_TARIFF, False)): bool,
                 vol.Required(CONF_CLOUD_READINGS, default=opts.get(CONF_CLOUD_READINGS, False)): bool}
-               if cloud_choice(self.config_entry.data, opts) != CLOUD_NONE else {}),
+               if cloud else {}),
             vol.Required(CONF_DIAGNOSTICS_GATEWAY, default=opts.get(CONF_DIAGNOSTICS_GATEWAY, False)): bool,
         }
         return self.async_show_form(
@@ -1291,6 +1426,7 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                     vol.Required(CONF_POWER_INTERVAL, default=opts.get(CONF_POWER_INTERVAL, 0)): vol.All(
                         box(0, MAX_POWER_INTERVAL, 1, "s"), vol.Coerce(int)),
                     vol.Required(CONF_RESTORE_EXPORT, default=opts.get(CONF_RESTORE_EXPORT, True)): bool,
+                    vol.Required(CONF_UNIT_DEVICES, default=opts.get(CONF_UNIT_DEVICES, False)): bool,
                 }), {"collapsed": False}),
                 vol.Required("alerts"): section(vol.Schema({
                     vol.Required(CONF_STATUS_EVENTS, default=opts.get(CONF_STATUS_EVENTS, False)): bool,
@@ -1304,9 +1440,72 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
                     vol.Required(CONF_DISPATCH_MAX_WATTS, default=opts.get(
                         CONF_DISPATCH_MAX_WATTS, DISPATCH_DEFAULT_WATTS)): vol.All(
                             box(100, DISPATCH_MAX_WATTS, 100, "W"), vol.Coerce(int)),
+                    vol.Required(CONF_DISPATCH_STALE_MINUTES, default=opts.get(
+                        CONF_DISPATCH_STALE_MINUTES, DISPATCH_STALE_SECONDS // 60)): vol.All(
+                            box(DISPATCH_STALE_MINUTES_MIN, DISPATCH_STALE_MINUTES_MAX, 1, "min"), vol.Coerce(int)),
+                    vol.Required(CONF_DISPATCH_GRID_CHARGING, default=opts.get(
+                        CONF_DISPATCH_GRID_CHARGING, False)): bool,
                 }), {"collapsed": False}),
-                vol.Required("advanced"): section(vol.Schema(advanced), {"collapsed": True}),
+                vol.Required("advanced" if cloud else "advanced_no_cloud"): section(
+                    vol.Schema(advanced), {"collapsed": True}),
             }),
+        )
+
+    def _other_base_topics(self) -> set[str]:
+        """Base topics other entries publish under."""
+        return {entry.options.get(CONF_MQTT_BASE_TOPIC) or DEFAULT_MQTT_BASE_TOPIC
+                for entry in self.hass.config_entries.async_entries(DOMAIN)
+                if entry.entry_id != self.config_entry.entry_id and entry.options.get(CONF_MQTT_PUBLISH)}
+
+    async def async_step_mqtt(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        """MQTT publishing (optional, off by default): through Home Assistant's
+        MQTT integration, under a base topic of its own per entry. Turning it
+        off, or moving it, clears the retained messages it left."""
+        opts = self.config_entry.options
+        errors: dict[str, str] = {}
+        others = self._other_base_topics()
+        if user_input is not None:
+            publish = bool(user_input[CONF_MQTT_PUBLISH])
+            base = str(user_input.get(CONF_MQTT_BASE_TOPIC) or "").strip()
+            if not valid_base_topic(base):
+                errors[CONF_MQTT_BASE_TOPIC] = "invalid_base_topic"
+            elif publish and base in others:
+                errors[CONF_MQTT_BASE_TOPIC] = "base_topic_in_use"
+            else:
+                old = opts.get(CONF_MQTT_BASE_TOPIC) or DEFAULT_MQTT_BASE_TOPIC
+                if opts.get(CONF_MQTT_PUBLISH) and (not publish or base != old) and old not in others:
+                    # Imported only when it was on.
+                    from .mqtt_bridge import async_clear  # noqa: PLC0415
+
+                    await async_clear(self.hass, old)
+                commands = bool(user_input.get(CONF_MQTT_COMMANDS))
+                options = {**opts, CONF_MQTT_PUBLISH: publish, CONF_MQTT_BASE_TOPIC: base,
+                           CONF_MQTT_COMMANDS: commands,
+                           CONF_MQTT_BATTERY_COMMANDS: commands and bool(user_input.get(CONF_MQTT_BATTERY_COMMANDS))}
+                secret = str(user_input.get(CONF_MQTT_SECRET) or "").strip()
+                options.pop(CONF_MQTT_SECRET, None)
+                if secret:
+                    options[CONF_MQTT_SECRET] = secret
+                return self.async_create_entry(data=options)
+        base = opts.get(CONF_MQTT_BASE_TOPIC)
+        if not base:
+            base, n = DEFAULT_MQTT_BASE_TOPIC, 1
+            while base in others:
+                n += 1
+                base = f"{DEFAULT_MQTT_BASE_TOPIC}_{n}"
+        return self.async_show_form(
+            step_id="mqtt",
+            data_schema=vol.Schema({
+                vol.Required(CONF_MQTT_PUBLISH, default=bool(opts.get(CONF_MQTT_PUBLISH, False))): bool,
+                vol.Required(CONF_MQTT_BASE_TOPIC, default=base): str,
+                vol.Required(CONF_MQTT_COMMANDS, default=bool(opts.get(CONF_MQTT_COMMANDS, False))): bool,
+                vol.Required(CONF_MQTT_BATTERY_COMMANDS,
+                             default=bool(opts.get(CONF_MQTT_BATTERY_COMMANDS, False))): bool,
+                # Suggested, so it stays unless changed; clearing it removes it.
+                vol.Optional(CONF_MQTT_SECRET, description={
+                    "suggested_value": opts.get(CONF_MQTT_SECRET) or ""}): PASSWORD,
+            }),
+            errors=errors,
         )
 
     async def async_step_cloud_backup(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -1360,6 +1559,12 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
         self.hass.config_entries.async_update_entry(self.config_entry, data=data, options=options)
         return self.async_create_entry(data=options)
 
+    async def _async_forget_owner_account(self) -> None:
+        """Remove the saved tokens of the Tesla account linked to this entry."""
+        data = self.config_entry.data
+        await _async_forget_signin(self.hass, self.config_entry.entry_id, data.get(CONF_OWNERS_EMAIL) or "",
+                                   data.get(CONF_OWNERS_AUTHPATH) or "")
+
     async def async_step_unlink_account(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Stop using one cloud backup: the Owner API (the Tesla account linked
         here is removed) or the Fleet API (its sign-in here is removed)."""
@@ -1368,6 +1573,7 @@ class TedapiOptionsFlow(TeslaLoginMixin, OptionsFlow):
             if user_input[CONF_BACKUP] == BACKEND_FLEET:
                 data = {k: v for k, v in self.config_entry.data.items() if k not in FLEET_DATA_KEYS}
                 return self._save(data=data, options=self._options_with(CLOUD_WITHOUT_FLEET))
+            await self._async_forget_owner_account()
             data = {k: v for k, v in self.config_entry.data.items()
                     if k not in (CONF_OWNERS_EMAIL, CONF_OWNERS_AUTHPATH, CONF_SITE_ID)}
             return self._save(data=data, options=self._options_with(CLOUD_WITHOUT_OWNER))

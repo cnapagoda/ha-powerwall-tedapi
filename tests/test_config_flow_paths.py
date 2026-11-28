@@ -18,7 +18,7 @@ from custom_components.tesla_tedapi import config_flow, gateway, tesla_cloud
 from custom_components.tesla_tedapi.const import DOMAIN
 
 from .conftest import DIN, FakePowerwall
-from .test_config_flow import CLOUD, PWD, SETUP, DhcpServiceInfo, _gateway
+from .test_config_flow import CLOUD, PWD, SETUP, DhcpServiceInfo, _gateway, _keep_signin
 
 # The real check (conftest stands in for it in every other test).
 REAL_ANSWERS = gateway.answers
@@ -262,6 +262,7 @@ async def _register(hass: HomeAssistant, tmp_path, **extra):
 
 async def test_register_already_verified(hass: HomeAssistant, tmp_path) -> None:
     patched, result = await _register(hass, tmp_path, register_key={"return_value": tesla_cloud.KEY_VERIFIED})
+    result = await _keep_signin(hass, result)
     patched.__exit__()
     # No confirmation wait: straight to the connection check and the entry.
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -274,7 +275,7 @@ async def test_confirmation_survives_a_failed_check(hass: HomeAssistant, tmp_pat
         key_state={"side_effect": [tesla_cloud.TeslaCloudError("offline", 408), tesla_cloud.KEY_VERIFIED]})
     with patch(SETUP, return_value=True):
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(result["flow_id"]))
     patched.__exit__()
     assert result["type"] is FlowResultType.CREATE_ENTRY
 

@@ -18,7 +18,7 @@ from custom_components.tesla_tedapi import config_flow, fleet as fleet_mod, tesl
 from custom_components.tesla_tedapi.const import DOMAIN
 
 from .conftest import DIN, TESLEMETRY, FakePowerwall
-from .test_config_flow import CLOUD, SETUP, _gateway
+from .test_config_flow import CLOUD, SETUP, _gateway, _keep_signin
 
 PUB = b"our public key"
 OTHER = b"the Tesla app key"
@@ -103,7 +103,7 @@ async def test_register_through_teslemetry(hass: HomeAssistant, tmp_path, fleet)
         result = await _teslemetry(hass, await _to_signin(hass))
         assert result["type"] is FlowResultType.SHOW_PROGRESS
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(result["flow_id"]))
     assert result["type"] is FlowResultType.CREATE_ENTRY
     # Teslemetry's own endpoint, with an RSA customer key.
     assert keys.added == [("add_authorized_client", {"key_type": 1, "public_key": _b64(PUB),
@@ -123,7 +123,7 @@ async def test_teslemetry_uses_the_account_region(hass: HomeAssistant, tmp_path,
     with KeyServer(fleet, [3]).patch, _key(tmp_path), patch(SETUP, return_value=True):
         result = await _teslemetry(hass, await _to_signin(hass))
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(result["flow_id"]))
     assert result["data"]["fleet_server"] == "https://eu.teslemetry.com"
 
 
@@ -155,7 +155,7 @@ async def test_site_chosen_among_several(hass: HomeAssistant, tmp_path, fleet) -
         assert result["step_id"] == "site"
         result = await hass.config_entries.flow.async_configure(result["flow_id"], {"site": "42"})
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(result["flow_id"]))
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"]["fleet_site_id"] == 42
 
@@ -245,6 +245,8 @@ async def test_new_key_from_options_through_teslemetry(hass: HomeAssistant, tmp_
           patch(SETUP, return_value=True)):
         result = await hass.config_entries.options.async_init(entry.entry_id)
         result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+        assert result["type"] is FlowResultType.FORM  # asks first (2.9.0)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {})
         assert result["reason"] == "new_key_started"
         await hass.async_block_till_done()
         flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
@@ -255,7 +257,8 @@ async def test_new_key_from_options_through_teslemetry(hass: HomeAssistant, tmp_
         assert result["type"] is FlowResultType.SHOW_PROGRESS
         assert entry.data["rsa_key_path"] == "/old.pem"  # not before it's confirmed
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(flow_id)
+        # The entry had no sign-in: whether to keep this one is asked (2.9.0).
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(flow_id))
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "reauth_successful"
     assert entry.data["rsa_key_path"].endswith("k.pem")
     assert entry.data["fleet_token"] == "tm-token"
@@ -341,7 +344,7 @@ async def test_register_through_tesla_fleet(hass: HomeAssistant, tmp_path, fleet
         result = await _to_signin(hass)
         result = await _oauth(hass, aioclient_mock, result["flow_id"])
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(result["flow_id"]))
     assert result["type"] is FlowResultType.CREATE_ENTRY
     data = result["data"]
     assert data["fleet_provider"] == "tesla_fleet" and data["fleet_site_id"] == 42
@@ -416,7 +419,8 @@ async def test_credentials_description(hass: HomeAssistant) -> None:
 
 async def _start_new_key(hass: HomeAssistant, entry: MockConfigEntry) -> tuple[str, dict]:
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+    await hass.config_entries.options.async_configure(result["flow_id"], {})
     await hass.async_block_till_done()
     flow_id = hass.config_entries.flow.async_progress_by_handler(DOMAIN)[0]["flow_id"]
     result = await hass.config_entries.flow.async_configure(flow_id, {"next_step_id": "register"})
@@ -451,7 +455,7 @@ async def test_a_new_key_is_a_new_key_in_its_own_file(hass: HomeAssistant, tmp_p
         assert new.read_bytes().startswith(b"-----BEGIN RSA PRIVATE KEY-----")
         assert old.read_bytes() == b"the key in use" and entry.data["rsa_key_path"] == str(old)
         await hass.async_block_till_done(wait_background_tasks=True)
-        result = await hass.config_entries.flow.async_configure(flow_id)
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(flow_id))
         await hass.async_block_till_done(wait_background_tasks=True)
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "reauth_successful"
     assert entry.data["rsa_key_path"] == str(new)
@@ -486,7 +490,7 @@ async def test_a_new_key_that_is_not_confirmed_is_removed(hass: HomeAssistant, t
           patch.object(config_flow, "VERIFY_POLL_SECONDS", 0), patch(SETUP, return_value=True)):
         flow_id, result = await _start_new_key(hass, entry)
         await hass.async_block_till_done(wait_background_tasks=True)
-        result = await hass.config_entries.flow.async_configure(flow_id)
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(flow_id))
         await hass.async_block_till_done(wait_background_tasks=True)
     assert result["reason"] == "reauth_successful" and entry.data["rsa_key_path"] == str(new)
     assert old.read_bytes() == b"the key in use"
@@ -565,7 +569,7 @@ async def test_new_key_kept_through_try_again(hass: HomeAssistant, tmp_path, fle
         await hass.async_block_till_done(wait_background_tasks=True)
         assert new.is_file() and entry.data["rsa_key_path"] == str(old)
         FakePowerwall.fail_local = False
-        result = await hass.config_entries.flow.async_configure(flow_id, {"next": "retry"})
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(flow_id, {"next": "retry"}))
         await hass.async_block_till_done(wait_background_tasks=True)
     assert result["reason"] == "reauth_successful" and entry.data["rsa_key_path"] == str(new)
     assert len(keys.added) == 1
@@ -621,3 +625,28 @@ async def test_reauth_with_the_same_key_removes_nothing(hass: HomeAssistant, tmp
         await hass.async_block_till_done(wait_background_tasks=True)
     remove.assert_not_called()
     assert old.read_bytes() == b"the key in use"
+
+
+async def test_new_key_by_mistake(hass: HomeAssistant) -> None:
+    """Register a new signed key, clicked by mistake (2.9.0): closing the
+    question starts nothing, and a reauth already started can be cancelled
+    from its menu, which keeps the current key."""
+    entry = MockConfigEntry(domain=DOMAIN, unique_id=DIN, data=V1R)
+    entry.add_to_hass(hass)
+    with patch(SETUP, return_value=True):
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+        assert result["type"] is FlowResultType.FORM and result["step_id"] == "new_key"
+        hass.config_entries.options.async_abort(result["flow_id"])  # the window closed
+        await hass.async_block_till_done()
+        assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+        result = await hass.config_entries.options.async_init(entry.entry_id)
+        result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "new_key"})
+        await hass.config_entries.options.async_configure(result["flow_id"], {})
+        await hass.async_block_till_done()
+        flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+        assert flows[0]["step_id"] == "new_key"
+        result = await hass.config_entries.flow.async_configure(flows[0]["flow_id"], {"next_step_id": "keep_key"})
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "new_key_cancelled"
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+    assert entry.data == V1R

@@ -40,7 +40,7 @@ async def test_charge_to_target(hass: HomeAssistant, fake_powerwall) -> None:
     assert resp["target_soc"] == 80
     assert resp["max_soc"] == 80 and resp["min_soc"] is None
     pw = local(fake_powerwall)
-    assert pw.dispatches == [(-3000.0, 300)]
+    assert pw.dispatches == [(-3000.0, 120)]
     sensor = hass.states.get(_eid(hass, "binary_sensor", "dispatch_active"))
     assert sensor.state == "on" and sensor.attributes["target_soc"] == 80
 
@@ -58,7 +58,7 @@ async def test_discharge_to_target(hass: HomeAssistant, fake_powerwall) -> None:
     resp = await _call(hass, "discharge_to", target_soc=30, power_watts=5000, max_minutes=60)
     assert resp["power_watts"] == 5000
     assert resp["min_soc"] == 30 and resp["max_soc"] is None and resp["target_soc"] == 30
-    assert local(fake_powerwall).dispatches == [(5000.0, 300)]
+    assert local(fake_powerwall).dispatches == [(5000.0, 120)]
 
     # Not yet: renewed.
     fake_powerwall.soe = _soe(40)
@@ -90,7 +90,7 @@ async def test_target_stops_on_the_reading(hass: HomeAssistant, fake_powerwall) 
     assert pw.resumes == 1
     assert ended[-1].data["reason"] == "target_reached"
     assert len(ended) == 1
-    assert pw.dispatches == [(-3000.0, 300)]  # no renewal was sent
+    assert pw.dispatches == [(-3000.0, 120)]  # no renewal was sent
 
     await _tick(hass, 61)  # the old renewal tick finds nothing to do
     assert pw.resumes == 1 and len(ended) == 1
@@ -139,7 +139,7 @@ async def test_unknown_level_still_starts(hass: HomeAssistant, fake_powerwall) -
     entry = await _setup(hass, V1R)
     entry.runtime_data.coordinator.data["battery_level"] = None
     await _call(hass, "charge_to", target_soc=90, power_watts=2000, max_minutes=30)
-    assert local(fake_powerwall).dispatches == [(-2000.0, 300)]
+    assert local(fake_powerwall).dispatches == [(-2000.0, 120)]
 
 
 @pytest.mark.parametrize("data", [

@@ -28,7 +28,7 @@
 └──────────────────────────────────┘
 ```
 
-- **Readings** come from the gateway on your network. With the **Cloud readings while the gateway is unreachable** option, power and battery level come from the cloud backup while the gateway can't be reached.
+- **Readings** come from the gateway on your network. With the **Cloud readings while the gateway is unreachable** option, power, battery level and battery energy come from the cloud backup while the gateway can't be reached.
 - **Wall Connectors** come from the cloud backup.
 - **Two libraries talk to the gateway:** [pypowerwall](https://github.com/jasonacox/pypowerwall) for readings, settings and commands, and [aiopytedapi](https://pypi.org/project/aiopytedapi/) for the network status, site limits, calibration delay and registered keys. aiopytedapi uses Home Assistant's own connection pool, so it doesn't block Home Assistant.
 - **Settings** are written to the gateway over the signed connection. The [cloud backup](cloud-backup.md) is only used when that fails, or on a Wi-Fi password connection.
@@ -42,7 +42,7 @@ The integration polls the gateway every 30 seconds by default (**Polling interva
 
 | What | How often |
 |---|---|
-| Backup events (signed connection) | Every 5 minutes, and straight after a max backup is started or cancelled |
+| Backup events (signed connection) | Every 5 minutes, straight after a max backup is started or cancelled, and at the next poll after the cloud's **Storm Watch active** changes |
 | Network status, registered keys and calibration delay status | Every 5 minutes, and straight after an action changes them |
 | Settings from the cloud backup, when the gateway can't give them | Cached for 5 minutes |
 | Storm Watch, grid services, off-grid vehicle charging reserve | Every 30 minutes |
@@ -54,7 +54,7 @@ The integration polls the gateway every 30 seconds by default (**Polling interva
 
 After you change a setting, the integration reads the Powerwall again straight away, so the entity shows the new value within seconds. A change made through the cloud is read back for up to 5 minutes.
 
-If the gateway can't be reached, readings show *unavailable* until it answers again (or, with the **Cloud readings** option, power and battery level come from the cloud backup). Nothing is filled in for the missed time, except that the lifetime energy counters catch up.
+If the gateway can't be reached, readings show *unavailable* until it answers again (or, with the **Cloud readings** option, power, battery level and battery energy come from the cloud backup). Nothing is filled in for the missed time, except that the lifetime energy counters catch up.
 
 **Choosing a polling interval:** 30 s suits most people. Shorter intervals give smoother power graphs and quicker dispatch limits, but more load on the gateway and a bigger database. If you also run Powerwall-Dashboard or another poller, consider a longer interval. For smooth power graphs, set **Fast polling interval for power** (5–60 s) and keep the polling interval for everything else.
 
@@ -64,8 +64,8 @@ If the gateway can't be reached, readings show *unavailable* until it answers ag
 |---|---|
 | Config entry | Gateway address and password, key path, connection type, Tesla account email and site (if linked), options. |
 | `config/tesla_tedapi/` | `tedapi_rsa_private.pem` (the key), `tedapi_rsa_public.der`, `.pypowerwall.auth` (Owner API tokens). Owner-only permissions. A key registered or uploaded later is kept beside it as `tedapi_rsa_private_<start of its fingerprint>.pem`: a key file is never written over. The entry's **RSA private key file** (under **Reconfigure**) says which one is in use. |
-| `.storage/tesla_tedapi.<entry>` | Alert start times, the settings to restore, outage history, firmware history, today's energy baselines, grid counter check, energy flow totals, battery capacity samples. Removed when you delete the entry. |
-| `.storage/tesla_tedapi.<entry>.off_grid` | A running off-grid run, so the reconnect survives a restart. |
+| `.storage/tesla_tedapi.<entry>` | Alert start times, the settings to restore, whether a charge turned on grid charging, outage history, firmware history, today's energy baselines, grid counter check, energy flow totals, battery capacity samples. Removed when you delete the entry. |
+| `.storage/tesla_tedapi.<entry>.off_grid` | A running off-grid run, so the reconnect survives a restart, and today's off-grid time for curtailment. |
 | Recorder | States, and the attributes that matter in history. Attributes that change on nearly every reading or are only detail (pack temperatures and remaining energy, the grid counter check figures, Setup health checks, fan duty, alert details) are shown live but not recorded. |
 
 ## Privacy and security

@@ -67,10 +67,13 @@ More cards in [Dashboards](dashboards.md).
 | `BAGGR_a007_EndOfCharge` | status | Battery is full | Battery is full |
 | `BackfeedLimited` | status | Export limited | Export to the grid is being limited (export setting or export limit) |
 | `ChargeOnlyFromSolarOverride` | status | Solar-only charging | Charging from the grid is not allowed; charging from solar only |
+| `SolarChargeOnlyLimited` | status | Charge limited to solar | A charge was asked for, but only solar may charge the battery (grid charging off) |
 | `SelfConsumptionReservedLimit` | status | At backup reserve | Battery is at the backup reserve |
+| `RampRateLimited` | status | Power ramp limited | How fast the power may change is being limited (seen often while charging) |
 | `PCH_a054_pwsDisabledMpptEnableLine` | status | Built-in solar inputs off | The Powerwall's built-in solar inputs (MPPT) are off, normal when solar uses a separate inverter |
 | `BMS_a045_SW_SOC_Change` | status | Charge level recalibrated | Battery recalibrated its state of charge |
 | `BatteryCalibration` | status | Battery calibrating | Battery is calibrating its charge level (also **Battery calibrating**) |
+| `CalibrationRequested` | status | Calibration requested | The Powerwall has asked to calibrate its charge level: it may run the battery almost empty, exporting whatever the settings, then charge it to full (seen before and during a calibration) |
 | `RealPowerConfigLimited` | status | Power limited by settings | Power is held below a configured limit |
 | `GridCodesWrite` | status | Writing grid settings | The gateway is writing its grid-code settings |
 | `PodCommissionTime` | status | Battery commissioning | A battery is recording its commissioning time |
@@ -81,6 +84,11 @@ More cards in [Dashboards](dashboards.md).
 | `UserEVSEMIA` | notice | EV charger not responding (user alert) | The gateway can't reach an EV charger (Wall Connector), user-facing alert |
 | `EVSENotChargingWhenAllowed` | notice | EV charger not charging | An EV charger (Wall Connector) is not charging although it is allowed to |
 | `BMS_a023_SW_Assertion` | notice | Battery software error | Battery management software reported an internal error |
+| `PWS_a082_PowerLimits` | notice | Power held at a limit | The Powerwall held its power at a limit for a moment (seen while exporting at the site's export limit) |
+| `HighControlLoopJitter` | notice | Control timing irregular | The gateway's control timing was briefly irregular (seen during full-power export) |
+| `BMS_a083_Nvram_Filecache` | notice | Battery data cache problem | Battery management reported a problem with its stored-data cache (seen after a firmware update) |
+| `PWS_a091_NvmmMigrateStuck` | notice | Memory migration unfinished | A memory migration in the Powerwall hasn't finished (seen after a firmware update) |
+| `PWS_a007_MciPvIrrationalABC` | notice | Solar readings implausible | The Powerwall found its solar input readings (A–C) implausible (seen around sunrise) |
 | `IslandChecksFailed` | warning | Backup check failed | Backup readiness check failed (normal for a few minutes when the battery fills or after a restart) |
 | `BatteryComms` | warning | Battery comms lost | The gateway can't communicate with a battery |
 | `PVInverterComms` | warning | Solar inverter comms lost | Lost communication with the solar inverter |

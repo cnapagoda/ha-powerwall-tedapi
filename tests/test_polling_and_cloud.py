@@ -108,7 +108,14 @@ async def test_cloud_readings_not_offered_without_a_cloud_backup(hass: HomeAssis
     entry = await _setup(hass, V1R)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "settings"})
-    assert "cloud_readings" not in result["data_schema"].schema["advanced"].schema.schema
+    # The Advanced section of its own, which says how to set a backup up.
+    assert "advanced" not in result["data_schema"].schema
+    assert "cloud_readings" not in result["data_schema"].schema["advanced_no_cloud"].schema.schema
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {
+        "general": {}, "alerts": {}, "dispatch": {},
+        "advanced_no_cloud": {"diagnostics_gateway_config": True}})
+    assert entry.options["diagnostics_gateway_config"] is True
+    assert "advanced_no_cloud" not in entry.options
 
 
 # -- the cloud backup's live status ------------------------------------------
@@ -226,6 +233,33 @@ async def test_cloud_readings_while_the_gateway_is_down(hass: HomeAssistant, fak
         assert hass.states.get(_eid(hass, "sensor", "battery_soe")).state == "unavailable"
         # The flows are the gateway's readings only.
         assert coordinator.flows.last is None
+
+
+async def test_cloud_readings_include_the_battery_energy(hass: HomeAssistant, fake_powerwall) -> None:
+    """2.9.0: Battery energy remaining and Battery full capacity (the pair
+    Predbat reads) come from the live status too, on the gateway's scale."""
+    live = {"response": {**LIVE["response"], "energy_left": 16321.5, "total_pack_energy": 27000}}
+    with patch.object(FakePowerwall, "_site_power", lambda self, force=False: live):
+        entry = await _setup(hass, {**V1R, **ACCOUNT}, {"cloud_readings": True})
+        fake_powerwall.fail_local = True
+        local(fake_powerwall).power = _down
+        await _refresh(hass, entry)
+    remaining = hass.states.get(_eid(hass, "sensor", "battery_energy_remaining"))
+    assert remaining.state == "16.32" and remaining.attributes["source"] == "cloud"
+    assert remaining.attributes["usable_kwh"] == round(16.32 - 27.0 * 0.05, 2)
+    full = hass.states.get(_eid(hass, "sensor", "battery_full_capacity"))
+    assert full.state == "27.0" and full.attributes["source"] == "cloud"
+    assert hass.states.get(_eid(hass, "sensor", "battery_health")).state == "unavailable"
+
+
+def test_live_battery_energy() -> None:
+    from custom_components.tesla_tedapi.cloud import live_readings  # noqa: PLC0415
+
+    readings = live_readings({"energy_left": 0, "total_pack_energy": 0})
+    assert readings == {"battery_remaining_kwh": 0.0}  # an empty battery, but no capacity of 0
+    assert "battery_usable_kwh" not in readings
+    assert live_readings({"energy_left": 1000, "total_pack_energy": 27000})["battery_usable_kwh"] == 0.0
+    assert live_readings({"energy_left": "x", "total_pack_energy": None}) == {}
 
 
 async def test_no_cloud_readings_unless_the_option_is_on(hass: HomeAssistant, fake_powerwall) -> None:

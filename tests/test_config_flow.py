@@ -32,6 +32,14 @@ async def _gateway(hass: HomeAssistant, host: str = "192.168.1.50", pwd: str = P
         result["flow_id"], {"host": host, "gw_pwd": pwd, "wifi_host": wifi_host})
 
 
+async def _keep_signin(hass: HomeAssistant, result, choice: str = "keep_cloud"):
+    """After a key registered in setup: keep the sign-in as the cloud backup,
+    or forget it (local only, 2.9.0)."""
+    assert result["type"] is FlowResultType.MENU and result["step_id"] == "keep_signin"
+    assert result["menu_options"] == ["keep_cloud", "local_only"]
+    return await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": choice})
+
+
 async def test_gateway_password_checked_first(hass: HomeAssistant, fake_gateway) -> None:
     result = await _gateway(hass, pwd="WRONGWRONG")
     assert result["errors"] == {"gw_pwd": "invalid_gw_pwd"}
@@ -161,7 +169,7 @@ async def test_register_new_key(hass: HomeAssistant, tmp_path) -> None:
         exchange.assert_called_once_with("abc", "verifier")
         assert result["type"] is FlowResultType.SHOW_PROGRESS
         await hass.async_block_till_done()
-        result = await hass.config_entries.flow.async_configure(result["flow_id"])
+        result = await _keep_signin(hass, await hass.config_entries.flow.async_configure(result["flow_id"]))
     assert result["type"] is FlowResultType.CREATE_ENTRY
     data = result["data"]
     assert data["owners_email"] == "owner@example.com"

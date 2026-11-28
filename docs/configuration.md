@@ -3,6 +3,7 @@
 Everything here is done in the UI: **Settings → Devices & services → Tesla Powerwall TEDAPI**.
 
 - [Options (Configure)](#options-configure)
+- [Local only](#local-only)
 - [Reconfigure](#reconfigure)
 - [When the Powerwall stops accepting Home Assistant](#when-the-powerwall-stops-accepting-home-assistant)
 - [Removing the integration](#removing-the-integration)
@@ -14,11 +15,13 @@ Select **Configure** on the integration. The menu offers:
 | Menu item | What it does |
 |---|---|
 | **Settings** | The options below. |
+| **MQTT** | Publish the readings, settings, status and events to MQTT, through Home Assistant's MQTT integration. Off by default. See [MQTT](mqtt.md). |
 | **Cloud backup (Owner API, Fleet API)** | Choose which cloud backup to use, and in which order. See [Cloud backup](cloud-backup.md). |
 | **Link a Tesla account (Owner API)** | Add the Owner API backup without setting the Powerwall up again (refresh token or browser sign-in). Shown when no account is linked. |
-| **Sign in to Tesla Fleet or Teslemetry** | Add or renew the Fleet API backup. It continues as a reauthentication on the integration's card. |
-| **Unlink a cloud backup** | Stop using one backup and keep the other. Its sign-in here is removed. |
-| **Register a new signed key** | Make and register another key (Tesla account, Tesla Fleet or Teslemetry sign-in), or upload one. Signed connections only. It continues as a reauthentication on the integration's card. The key in use keeps working: the new one is kept in a file of its own, and the entry switches to it only once the Powerwall has confirmed it (the switch step at the unit) and the connection works with it. The old key file is then removed, unless another Powerwall set up here uses it. |
+| **Sign in to Tesla Fleet or Teslemetry** | Add or renew the Fleet API backup. It asks first, then continues as a reauthentication on the integration's card; its menu has **Cancel: change nothing** if it was started by mistake. |
+| **Unlink a cloud backup** | Stop using one backup and keep the other. Its sign-in here is removed, including the saved Tesla tokens. |
+| **Local only (remove the Tesla sign-ins)** | Remove every Tesla sign-in kept here, including the saved Tesla tokens, and turn the cloud backup off. Signed connections with a sign-in only. See [Local only](#local-only). |
+| **Register a new signed key** | Make and register another key (Tesla account, Tesla Fleet or Teslemetry sign-in), or upload one. Signed connections only. It asks first, then continues as a reauthentication on the integration's card; its menu has **Cancel: keep the current key** if it was started by mistake. The key in use keeps working: the new one is kept in a file of its own, and the entry switches to it only once the Powerwall has confirmed it (the switch step at the unit) and the connection works with it. The old key file is then removed, unless another Powerwall set up here uses it. |
 
 <details>
 <summary>Screenshots: options</summary>
@@ -31,23 +34,38 @@ Select **Configure** on the integration. The menu offers:
 
 ### Settings
 
-The form is in four sections: **General** (polling, fast polling, restore), **Alerts**, **Battery dispatch** and **Advanced** (Tesla tariff, cloud readings, diagnostics; collapsed).
+The form is in four sections: **General** (polling, fast polling, restore, one device per Powerwall), **Alerts**, **Battery dispatch** and **Advanced** (Tesla tariff, cloud readings, diagnostics; collapsed).
 
 | Option | Default | Range | What it does |
 |---|---|---|---|
 | **Polling interval** | 30 s | 10–300 s | How often the gateway is read. See [How it works](how-it-works.md#data-updates). |
 | **Fast polling interval for power** | Off (0) | 0, or 5–60 s | Reads power, battery level and grid status this often, between the full reads at the polling interval. Only used when shorter than the polling interval. Smoother power graphs and quicker dispatch limits, at the cost of more load on the gateway and a bigger database. *Reloads the integration.* See [How it works](how-it-works.md#data-updates). |
 | **Restore settings when the Powerwall drops them** | On | | Writes back your grid export rule and grid charging setting when the Powerwall loses them. Signed connection only. See [Dropped settings](dropped-settings.md). Turn it off if another app is meant to manage these settings. |
+| **One device per Powerwall** | Off | | Each Powerwall and Expansion Pack gets a device of its own, linked to the gateway's, with its battery pack, fan, solar input and inverter temperature sensors. Entity IDs and history stay. *Reloads the integration.* See [Several Powerwalls](setup.md#one-device-per-powerwall). |
 | **Alert events for status alerts too** | Off | | By default only notices, warnings and faults create **Alert** events. Status alerts such as *Export limited* come and go every few minutes. See [Alerts](alerts.md). |
 | **Problem delay** | 10 min | 1–240 min | How long a warning or fault must last before **Problem** turns on and a repair is raised. *Backup check failed* always waits at least 30 minutes. |
 | **Discharges stop at the backup reserve** | On | | A discharge dispatch started without `min_soc` stops at the backup reserve. See [Safety](safety.md). |
 | **Largest dispatch power** | 10,000 W | 100–30,000 W | Dispatch calls above this power are refused. Raise it only to what your installation can safely carry: number of Powerwalls, wiring and breakers, gateway and backup switch ratings, and your grid connection and export limit. See [Safety](safety.md#battery-dispatch). Within it the Powerwall decides: one Powerwall 3 refuses more than 10,000 W. |
+| **Battery level may be this old** | 2 min | 1–5 min | A charge or discharge is only started or renewed on a battery level at most this old (never less than 2½ polling intervals). During a dispatch the Powerwall ignores its backup reserve: each extra minute lets a 10 kW dispatch run about 0.17 kWh further past a limit. Raise it only if a slow connection keeps pausing dispatches. Applies without a reload. |
+| **Turn on grid charging for a charge** | Off | | A charge dispatch (also `charge_to`) turns on **Grid charging** if it's off, so it can draw from the grid, and turns it off again when the dispatch ends (after a restart, if Home Assistant stopped first), unless it was changed meanwhile. Charging from the grid may cost money on your tariff. |
 | **Tesla tariff (cloud)** | Off | | Adds the **Tesla tariff** sensor, the **Tariff buy price** / **Tariff sell price** sensors, the **Buy tariff** / **Sell tariff** calendars and the `get_tariff` / `set_tariff` actions. In the **Advanced** section (collapsed), and only there once a cloud backup is set up: first **Link a Tesla account** or **Sign in to Tesla Fleet or Teslemetry** from the **Configure** menu. See [Tesla tariff](tesla-tariff.md). |
-| **Cloud readings while the gateway is unreachable** | Off | | While the gateway can't be reached, power and battery level come from the cloud backup instead (attribute `source: cloud`, with `last_updated` for when the cloud took the reading: up to 1–5 minutes ago). Energy counters and everything else stay *unavailable*. In the **Advanced** section, once a cloud backup is set up. |
+| **Cloud readings while the gateway is unreachable** | Off | | While the gateway can't be reached, power, battery level, **Battery energy remaining** and **Battery full capacity** come from the cloud backup instead (attribute `source: cloud`, with `last_updated` for when the cloud took the reading: up to 1–5 minutes ago). Energy counters and everything else stay *unavailable*. In the **Advanced** section, once a cloud backup is set up. |
 | **Gateway configuration in diagnostics** | Off | | Adds the gateway's own configuration to diagnostics downloads, with serial numbers, MAC addresses, location (the country, grid code and time zone stay), names, the tariff's plan and retailer, and credentials removed. Useful for bug reports. |
 
 > [!NOTE]
-> The settings above apply straight away, except **Fast polling interval for power** and **Tesla tariff (cloud)**. Changing either of those, the cloud backup, a linked account or the connection (**Reconfigure**) reloads the integration: **a battery dispatch that is running ends** (reason `unloaded`) and the battery goes back to normal. An off-grid run continues: it's saved and picked up again.
+> The settings above apply straight away, except **Fast polling interval for power**, **One device per Powerwall** and **Tesla tariff (cloud)**. Changing either of those, the cloud backup, a linked account or the connection (**Reconfigure**) reloads the integration: **a battery dispatch that is running ends** (reason `unloaded`) and the battery goes back to normal. An off-grid run continues: it's saved and picked up again.
+
+## Local only
+
+A signed connection needs a Tesla sign-in once, to register its key. After that it can run with no Tesla sign-in kept: choose *Remove it: local only* at the end of setup, or **Configure → Local only** later. Nothing the integration does then reaches Tesla's servers.
+
+What stops working:
+
+- Storm Watch, the off-grid reserve, Wall Connectors and the Tesla tariff. Their entities are removed; their history is kept.
+- Changing settings while Home Assistant can't reach the gateway.
+- Registering a new key needs a Tesla sign-in again; you can remove it again afterwards ([below](#when-the-powerwall-stops-accepting-home-assistant)).
+
+To keep the sign-in but not use it, choose **Configure → Cloud backup → None** instead. To go back, **Link a Tesla account** or **Sign in to Tesla Fleet or Teslemetry**.
 
 ## Reconfigure
 
@@ -71,7 +89,9 @@ On a signed connection, if the gateway keeps refusing the password (3 polls in a
 - **Register the key again** (Tesla account, Tesla Fleet or Teslemetry sign-in), or
 - **Upload a different key**.
 
-Meanwhile the settings keep working through the cloud backup, if you have one.
+When it's the key that's refused (the password still works), the prompt says so and offers a new key first. Meanwhile the settings keep working through the cloud backup, if you have one, and with a **Wi-Fi fallback address** the readings come over the Powerwall's own Wi-Fi, read-only.
+
+On a [local only](#local-only) setup, registering a new key needs a Tesla sign-in once; afterwards you choose whether to keep it as the cloud backup or remove it again.
 
 On the Wi-Fi password connection there's no such prompt: the readings go *unavailable* (or come from the cloud backup, with **Cloud readings while the gateway is unreachable**). Enter the password again under [**Reconfigure**](#reconfigure).
 

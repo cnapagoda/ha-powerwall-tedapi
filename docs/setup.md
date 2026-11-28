@@ -113,16 +113,18 @@ Any of the [three sign-ins](#which-connection-and-which-sign-in) can send the re
 
    The wizard checks every 10 seconds and continues by itself once the Powerwall confirms. It shows the start of the key's fingerprint so you can tell keys apart. If the 10-minute window closes, it registers the key again once by itself; after that it asks you to try again.
 
-The sign-in is kept (a Tesla account in `config/tesla_tedapi/.pypowerwall.auth`, a Fleet API sign-in in the integration's entry) and used as the [cloud backup](cloud-backup.md).
+4. **Keep the sign-in, or not.** Keep it as the [cloud backup](cloud-backup.md) (a Tesla account in `config/tesla_tedapi/.pypowerwall.auth`, a Fleet API sign-in in the integration's entry), or remove it: [local only](configuration.md#local-only).
 
 <details>
-<summary>Screenshots: Tesla sign-in, confirmation, done</summary>
+<summary>Screenshots: Tesla sign-in, confirmation, keeping the sign-in, done</summary>
 
 <img src="images/setup-05a-sign-in-choice.png" alt="Choose how to sign in: Tesla account, Tesla Fleet or Teslemetry" width="640">
 
 <img src="images/setup-05-tesla-sign-in.png" alt="Tesla sign-in step" width="640">
 
 <img src="images/setup-06-confirm-key.png" alt="Waiting for the switch toggle at the Powerwall" width="640">
+
+<img src="images/setup-06a-keep-sign-in.png" alt="Keep the Tesla sign-in as a cloud backup, or local only" width="640">
 
 <img src="images/setup-07-done.png" alt="Setup complete" width="640">
 
@@ -236,6 +238,16 @@ Add the integration once per **gateway**. Expansion packs and the batteries behi
 - The second entry's entity IDs end in `_2` (both devices are called *Powerwall TEDAPI*). Rename the device to tell them apart.
 - Actions need `config_entry_id` when more than one Powerwall is set up. In the action editor, pick the Powerwall from the list.
 - Each entry keeps its own energy site for the cloud backup, so several Powerwalls on one Tesla account work.
+
+### One device per Powerwall
+
+By default everything is on one device per gateway. With **Configure → Settings → One device per Powerwall**, each Powerwall and Expansion Pack gets a device of its own, linked to the gateway's, with its battery pack sensors, fans, solar inputs and inverter temperatures. Totals, settings and everything else stay on the gateway's device.
+
+<img src="images/setup-13-unit-device.png" alt="A Powerwall's own device, connected via the gateway's" width="640">
+
+- Entity IDs, history and statistics don't change. On the units' devices the names are shorter, because the device name says which unit it is: *Powerwall 3 (2) Fan A speed* rather than *Powerwall TEDAPI Fan 2A speed*. Set up with the option on, new entities get IDs from the unit's name, such as `sensor.powerwall_3_battery_health`.
+- Use entity IDs in automations. Device triggers, device conditions and device cards that use a unit's device stop working when the option is turned off: the units' devices are removed then, and their entities go back to the gateway's device. Turned on again, the same devices come back, with the names and areas you gave them.
+- A fan or solar input whose Powerwall has no battery pack in the readings yet (a follower Powerwall 3 not read yet) starts on the gateway's device and moves to its Powerwall's device when the pack is read.
 
 ## Next steps
 

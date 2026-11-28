@@ -364,10 +364,36 @@ async def test_options_start_the_fleet_sign_in(hass: HomeAssistant, fake_powerwa
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert "fleet_signin" in result["menu_options"]
     result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "fleet_signin"})
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "fleet_signin"  # asks first (2.9.0)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {})
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "fleet_signin_started"
     await hass.async_block_till_done()
     flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
     assert [f["step_id"] for f in flows] == ["fleet_signin"]
+
+
+async def test_fleet_sign_in_by_mistake(hass: HomeAssistant, fake_powerwall) -> None:
+    """Sign in to Tesla Fleet or Teslemetry, clicked by mistake (2.9.0):
+    closing the question starts nothing, and a reauth already started can be
+    cancelled from its menu, which changes nothing."""
+    entry = await _setup(hass, V1R, None)
+    data = dict(entry.data)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "fleet_signin"})
+    hass.config_entries.options.async_abort(result["flow_id"])  # the window closed
+    await hass.async_block_till_done()
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {"next_step_id": "fleet_signin"})
+    await hass.config_entries.options.async_configure(result["flow_id"], {})
+    await hass.async_block_till_done()
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    result = await hass.config_entries.flow.async_configure(flows[0]["flow_id"])
+    assert result["menu_options"] == ["fleet_oauth", "teslemetry", "fleet_cancel"]
+    result = await hass.config_entries.flow.async_configure(flows[0]["flow_id"], {"next_step_id": "fleet_cancel"})
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "fleet_signin_cancelled"
+    assert hass.config_entries.flow.async_progress_by_handler(DOMAIN) == []
+    assert dict(entry.data) == data
 
 
 async def test_unlink_keeps_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
@@ -442,13 +468,13 @@ async def test_unlink_owner_api_keeps_fleet(hass: HomeAssistant, fake_powerwall,
 async def test_menu_offers_link_and_unlink_with_only_fleet(hass: HomeAssistant, fake_powerwall, fleet) -> None:
     entry = await _setup(hass, {**V1R, **TESLEMETRY})
     result = await _unlink(hass, entry, None)
-    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "fleet_signin",
-                                      "unlink_account", "new_key"]
+    assert result["menu_options"] == ["settings", "mqtt", "cloud_backup", "link_account", "fleet_signin",
+                                      "unlink_account", "local_only", "new_key"]
     result = await _unlink(hass, entry, "tesla_fleet")
     assert result["offered"] == ["tesla_fleet"]
     assert entry.options["cloud_backends"] == "none"
     result = await _unlink(hass, entry, None)
-    assert result["menu_options"] == ["settings", "cloud_backup", "link_account", "fleet_signin", "new_key"]
+    assert result["menu_options"] == ["settings", "mqtt", "cloud_backup", "link_account", "fleet_signin", "new_key"]
 
 
 async def test_token_refresh_does_not_reload(hass: HomeAssistant, fake_powerwall, fleet) -> None:

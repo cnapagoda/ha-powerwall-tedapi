@@ -81,6 +81,69 @@ async def test_negative_feed_in(hass: HomeAssistant, blueprint_dir) -> None:
     assert [c.data["option"] for c in calls["select_option"]] == ["never", "pv_only"]
 
 
+async def test_negative_feed_in_last_resort_off_grid(hass: HomeAssistant, blueprint_dir) -> None:
+    """2.9.0: still exporting with export never: off-grid for curtailment, and
+    back on the grid (only that run) when the price recovers."""
+    calls = {**_calls(hass, "select", "select_option"), **_calls(hass, DOMAIN, "go_off_grid", "reconnect_grid")}
+    hass.states.async_set(EXPORT, "never")
+    hass.states.async_set(FEED_IN, "-0.05")
+    hass.states.async_set(GRID_POWER, "0")
+    await _automation(hass, "negative_feed_in.yaml", {
+        "feed_in_price": FEED_IN, "export_select": EXPORT, "off_grid": True, "grid_power": GRID_POWER,
+        "export_watts": 200, "off_grid_minutes": 10, "min_soc": 45, "daily_limit": 120})
+
+    hass.states.async_set(GRID_POWER, "-1500")
+    await hass.async_block_till_done()
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=11))
+    await hass.async_block_till_done()
+    assert len(calls["go_off_grid"]) == 1
+    data = dict(calls["go_off_grid"][0].data)
+    assert data.pop("config_entry_id", None) is None  # a state without a registry entry here
+    assert data == {"confirm": True, "curtailment": True, "min_soc": 45, "daily_limit_minutes": 120}
+
+    hass.states.async_set(GRID_POWER, "0")
+    hass.states.async_set(FEED_IN, "0.03")
+    await hass.async_block_till_done()
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=17))
+    await hass.async_block_till_done()
+    assert [c.data["curtailment_only"] for c in calls["reconnect_grid"]] == [True]
+    assert [c.data["option"] for c in calls["select_option"]] == ["battery_ok"]
+
+
+async def test_negative_feed_in_off_grid_needs_the_option_and_a_low_price(hass: HomeAssistant,
+                                                                         blueprint_dir) -> None:
+    calls = _calls(hass, DOMAIN, "go_off_grid", "reconnect_grid")
+    hass.states.async_set(EXPORT, "never")
+    hass.states.async_set(FEED_IN, "-0.05")
+    hass.states.async_set(GRID_POWER, "0")
+    # Off by default: exporting changes nothing, nor does the price recovering.
+    await _automation(hass, "negative_feed_in.yaml", {
+        "feed_in_price": FEED_IN, "export_select": EXPORT, "grid_power": GRID_POWER})
+    hass.states.async_set(GRID_POWER, "-1500")
+    await hass.async_block_till_done()
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=11))
+    await hass.async_block_till_done()
+    hass.states.async_set(FEED_IN, "0.03")
+    await hass.async_block_till_done()
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=17))
+    await hass.async_block_till_done()
+    assert calls["go_off_grid"] == [] and calls["reconnect_grid"] == []
+
+
+async def test_negative_feed_in_off_grid_only_below_the_price(hass: HomeAssistant, blueprint_dir) -> None:
+    calls = _calls(hass, DOMAIN, "go_off_grid")
+    hass.states.async_set(EXPORT, "never")  # e.g. set by hand
+    hass.states.async_set(FEED_IN, "0.05")
+    hass.states.async_set(GRID_POWER, "0")
+    await _automation(hass, "negative_feed_in.yaml", {
+        "feed_in_price": FEED_IN, "export_select": EXPORT, "off_grid": True, "grid_power": GRID_POWER})
+    hass.states.async_set(GRID_POWER, "-1500")
+    await hass.async_block_till_done()
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=11))
+    await hass.async_block_till_done()
+    assert calls["go_off_grid"] == []
+
+
 async def test_negative_feed_in_leaves_never_alone(hass: HomeAssistant, blueprint_dir) -> None:
     """Export already never: nothing to change when the price goes negative."""
     calls = _calls(hass, "select", "select_option")

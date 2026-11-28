@@ -63,6 +63,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SITE_ID,
     CONF_TESLA_TARIFF,
+    CONF_UNIT_DEVICES,
     CONF_WIFI_HOST,
     DEFAULT_HOST_WIFI,
     DEFAULT_PROBLEM_MINUTES,
@@ -75,8 +76,15 @@ from .const import (
     KEY_REFUSED_POLLS,
     MIN_POWER_INTERVAL,
     MODE_V1R,
+    MODE_WIFI,
     OWNER_EXTRAS_SECONDS,
     PASSWORD_REFUSED_POLLS,
+    PATH_CLOUD,
+    PATH_NONE,
+    PATH_SIGNED,
+    PATH_WIFI_FALLBACK,
+    PATH_WIFI_PASSWORD,
+    REAUTH_KEY_REFUSED,
     RESTORE_MIN_SECONDS,
     SOLAR_CURTAILMENT_KEY,
     TARIFF_PENDING_MAX,
@@ -94,6 +102,7 @@ from .fleet import FleetBackup, FleetTimeout, entry_api, provider_label
 from .flows import EnergyFlows
 from .outages import OutageTracker
 from .privacy import scrub
+from .readtimes import ReadTimes, is_timeout
 from .texts import texts as shared_texts
 from .wear import CapacityTrend
 
@@ -232,6 +241,14 @@ def _instant_power(aggregates: dict, section: str) -> float | None:
     return round(float(measured["instant_power"]), 1)
 
 
+def _home_power(aggregates: dict) -> float | None:
+    """Home power, never below 0 W: the gateway's load reading dips below
+    zero for a moment now and then, and a home can't use negative power
+    (the energy flows already took it as 0)."""
+    value = _instant_power(aggregates, "load")
+    return max(0.0, value) if value is not None else None
+
+
 STRING_LETTERS = "ABCDEF"
 
 
@@ -290,6 +307,32 @@ def _extract_fans(vitals: dict, din: str | None = None) -> dict[str, dict[str, A
     return fans
 
 
+def unit_serials(vitals: dict, din: str | None = None) -> dict[str, str]:
+    """The serial number of the Powerwall each per-unit reading comes from,
+    keyed like the entities that show it: "string_2A", "fan_A", "fan_2",
+    "inverter" (the leader's temperatures) and "inverter_2". Numbered exactly
+    as _extract_strings, _extract_fans and _extract_follower_inverter_temps
+    number them. A Powerwall 3's inverter, solar and pack blocks share its
+    serial number, so this puts them on the same unit (#24)."""
+
+    def names(prefix: str) -> list[str]:
+        return _leader_first(
+            [k for k in sorted(vitals or {}) if k.split("--")[0] == prefix and isinstance(vitals[k], dict)], din)
+
+    serials: dict[str, str] = {}
+    for index, name in enumerate(names("PVAC"), start=1):
+        serial = name.split("--")[-1]
+        for letter in STRING_LETTERS:
+            serials[f"string_{letter if index == 1 else f'{index}{letter}'}"] = serial
+        serials[f"fan_{index}"] = serial  # a Powerwall 2 inverter's fan
+    for index, name in enumerate(names("TEPINV"), start=1):
+        serial = name.split("--")[-1]
+        for letter in "AB":
+            serials[f"fan_{letter if index == 1 else f'{index}{letter}'}"] = serial
+        serials["inverter" if index == 1 else f"inverter_{index}"] = serial
+    return serials
+
+
 def _client_mismatch(err: Exception) -> bool:
     """Whether the client refused its own arguments: a pypowerwall that
     doesn't match this integration, not a gateway that refuses or doesn't
@@ -306,6 +349,21 @@ def _key_refused(pw: Any) -> bool | None:
     if transport is None:
         return None
     return bool(getattr(transport, "key_unknown", False) or getattr(transport, "pending_verification", False))
+
+
+# The settings the gateway last reported, kept for the Connection path sensor.
+LAST_KNOWN_SETTINGS = ("operation_mode", "backup_reserve", "grid_charging", "grid_export", "read_at")
+
+
+class WrongGateway(Exception):
+    """The gateway at the entry's address is another Powerwall (its DIN isn't
+    the entry's): a second site, or an address handed to another device."""
+
+
+def _lan_failed(pw: Any) -> bool:
+    """Whether pypowerwall's signed client has failed over to the Wi-Fi
+    fallback address (the home-network address stopped answering)."""
+    return bool(getattr(getattr(getattr(pw, "client", None), "tedapi", None), "lan_failed", False))
 
 
 def _extract_packs(vitals: dict) -> dict[str, dict[str, Any]]:
@@ -450,6 +508,17 @@ def _current_backup_event(events: dict[str, Any], now: float) -> dict[str, Any]:
     return found
 
 
+def _continue_backup_event(previous: dict[str, Any] | None, current: dict[str, Any]) -> dict[str, Any]:
+    """The gateway can replace a running event with one of the same kind
+    that starts later, for example when a weather warning is updated (#40):
+    while it carries on, keep the time it first began."""
+    if (previous and previous.get("active") and current.get("active")
+            and previous.get("kind") == current.get("kind")
+            and previous["start"] < current["start"] < previous["end"]):
+        return {**current, "start": previous["start"]}
+    return current
+
+
 @dataclass
 class TedapiRuntimeData:
     """Stored on the config entry while it is loaded."""
@@ -461,6 +530,8 @@ class TedapiRuntimeData:
     # is applied in place when only LIVE_OPTIONS differ from these.
     applied_data: dict[str, Any] = field(default_factory=dict)
     applied_options: dict[str, Any] = field(default_factory=dict)
+    # MQTT publishing (mqtt_bridge.MqttBridge), while the option is on.
+    mqtt: Any = field(default=None)
 
 
 type TedapiConfigEntry = ConfigEntry[TedapiRuntimeData]
@@ -517,6 +588,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Tesla tariff (optional, cloud only): raw tariff, the backup it came
         # from, and when it was last read (monotonic).
         self.tariff_enabled: bool = self.cloud_enabled and bool(options.get(CONF_TESLA_TARIFF, False))
+        # One device per Powerwall (#24): read once, a change reloads.
+        self.unit_devices: bool = bool(options.get(CONF_UNIT_DEVICES, False))
         self.tariff: dict[str, Any] | None = None
         self.tariff_backend: str | None = None
         self._tariff_at: float | None = None
@@ -554,6 +627,14 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # Settings the gateway drops from its config now and then (export rule,
         # grid charging): the last value set or seen, written back when missing.
         self.wanted: dict[str, Any] = dict.fromkeys(DROPPABLE_SETTINGS)
+        # A charge dispatch turned Grid charging on (option "Turn on grid
+        # charging for a charge", 2.9.0): it's turned off again when the
+        # dispatch ends, also after a restart. Cleared when anyone else
+        # changes the setting.
+        self.grid_charging_by_dispatch = False
+        # The last Grid charging value written from Home Assistant, and when
+        # (monotonic): a reading can lag a write by a few seconds.
+        self._grid_charging_written: tuple[bool, float] | None = None
         self.restores: dict[str, int] = dict.fromkeys(DROPPABLE_SETTINGS, 0)
         self.last_restored: dict[str, datetime | None] = dict.fromkeys(DROPPABLE_SETTINGS)
         self._restore_at: dict[str, float] = {}
@@ -592,11 +673,36 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._key_refused = 0
         self._client_error_logged = False
         self._reauth_started = False
+        # The gateway at the address is another Powerwall (repair up).
+        self._wrong_gateway = False
+        # A poll is running: an extra battery level read waits for it
+        # instead (set when none is).
+        self._polling = False
+        self._poll_done = asyncio.Event()
+        self._poll_done.set()
+        # How long the gateway takes to answer, and how late the event loop
+        # runs (Setup health, diagnostics).
+        self.read_times = ReadTimes()
+        # The last failed signed read was a refused key (password fine): then
+        # readings come over the Powerwall's Wi-Fi with its password instead,
+        # read-only, through a client of their own (writes never use it).
+        self._key_refused_now = False
+        self._readonly_pw = None
+        self._readonly = False
+        # How the latest reading came (CONNECTION_PATHS); when the gateway
+        # last answered; and the settings it last reported, with when.
+        self.connection_path: str | None = None
+        self.last_local_read: datetime | None = None
+        self.last_known_settings: dict[str, Any] | None = None
         # Gateway down while the cloud backup keeps the settings: logged once.
         self._gateway_down = False
         self._token_expiry: tuple[float, float | None] | None = None
         # Backup events from the gateway: (monotonic time read, raw result).
         self._backup_events: tuple[float, dict[str, Any]] | None = None
+        # The backup event last reported (see _continue_backup_event), and the
+        # cloud's Storm Watch flag last seen.
+        self._backup_event: dict[str, Any] | None = None
+        self._storm_active: bool | None = None
         self._store: Store[dict[str, Any]] = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
         # Network status, site limits, calibration delay and registered keys
         # (aiopytedapi, async).
@@ -725,6 +831,18 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                       getattr(pw, "tedapi_mode", None))
         return pw
 
+    def _init_readonly(self):
+        """A Wi-Fi password client for the Powerwall's own Wi-Fi: readings
+        while the gateway refuses the key. It can't change settings."""
+        import pypowerwall  # noqa: PLC0415
+
+        pw = pypowerwall.Powerwall(**local_kwargs(
+            MODE_WIFI, self.follower_host, self._gw_pwd, "", str(self.hass.config.time_zone),
+            cache_seconds=min(5, max(1, int(self._scan_interval(self.config_entry).total_seconds()) - 1))))
+        if pw.mode != "local":
+            raise RuntimeError(f"pypowerwall picked {pw.mode} mode, not local")
+        return pw
+
     def _init_cloud(self):
         import pypowerwall  # noqa: PLC0415
 
@@ -753,17 +871,22 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # Reads (executor)
     # ------------------------------------------------------------------
 
+    def _full_due(self) -> bool:
+        """Whether this poll is a full read (else only the live readings, laid
+        over the last full read: fast polling)."""
+        full, read_at = self._full, self._full_at
+        full_seconds = self._full_seconds(self.config_entry)
+        return not (full is not None and read_at is not None and self.update_interval is not None
+                    and self.update_interval.total_seconds() < full_seconds
+                    # A second early: timers drift, and a full read a poll
+                    # late would stretch the polling interval.
+                    and time.monotonic() - read_at < full_seconds - 1)
+
     def _fetch_all(self) -> dict[str, Any]:
         """A full read, or between two of them (fast polling) only the live
         readings laid over the last full read."""
-        full, read_at = self._full, self._full_at
-        full_seconds = self._full_seconds(self.config_entry)
-        if (full is not None and read_at is not None and self.update_interval is not None
-                and self.update_interval.total_seconds() < full_seconds
-                # A second early: timers drift, and a full read a poll late
-                # would stretch the polling interval.
-                and time.monotonic() - read_at < full_seconds - 1):
-            return {**full, **self._fetch_live(self._pw), "full_read": False}
+        if not self._full_due():
+            return {**(self._full or {}), **self._fetch_live(self._pw), "full_read": False}
         data = self._fetch_full()
         self._full, self._full_at = dict(data), time.monotonic()
         return data
@@ -778,14 +901,28 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "solar_power": _instant_power(aggregates, "solar"),
             "battery_power": _instant_power(aggregates, "battery"),
             "grid_power": _instant_power(aggregates, "site"),
-            "home_power": _instant_power(aggregates, "load"),
+            "home_power": _home_power(aggregates),
             "battery_soe": soe_value,
             "battery_level": app_soc(soe_value),
             "grid_status": pw.grid_status(),
+            "lan_failed": _lan_failed(pw),
         }
 
-    def _fetch_full(self) -> dict[str, Any]:
-        pw = self._pw
+    def _fetch_readonly(self) -> dict[str, Any] | None:
+        """The gateway refuses the key: a full read over the Powerwall's own
+        Wi-Fi with its password, read-only (dropped settings aren't written
+        back). None when that fails too."""
+        try:
+            if self._readonly_pw is None:
+                self._readonly_pw = self._init_readonly()
+            return {**self._fetch_full(self._readonly_pw, readonly=True), "readonly": True}
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Read-only Wi-Fi read failed: %s", scrub(err))
+            self._readonly_pw = None
+            return None
+
+    def _fetch_full(self, pw: Any = None, *, readonly: bool = False) -> dict[str, Any]:
+        pw = self._pw if pw is None else pw
         # power() fails when the gateway can't be reached (the local read then
         # fails as before); its values aren't used, see _instant_power.
         pw.power()
@@ -815,17 +952,20 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # pypowerwall keeps the cached login. An empty DIN is the tell:
             # raise so a fresh client (new login) is built on the next poll.
             raise RuntimeError("no DIN from the gateway, reconnecting")
+        if not self._same_gateway(din):
+            # Before any setting is read or written back.
+            raise WrongGateway("the gateway at this address is a different Powerwall")
 
         control = self._read_control(pw) if self.control_enabled else {}
         site_info = self._read_site_info(pw) if self.control_enabled else None
-        missing = self._check_dropped(pw, control, site_info) if site_info is not None else {}
+        missing = self._check_dropped(pw, control, site_info) if site_info is not None and not readonly else {}
         soe_value = round(soe, 1) if isinstance(soe, (int, float)) else None
 
         return {
             "solar_power": _instant_power(aggregates, "solar"),
             "battery_power": _instant_power(aggregates, "battery"),
             "grid_power": _instant_power(aggregates, "site"),
-            "home_power": _instant_power(aggregates, "load"),
+            "home_power": _home_power(aggregates),
             "battery_soe": soe_value,
             "battery_level": app_soc(soe_value),
             "grid_status": grid_status,
@@ -835,9 +975,11 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "firmware_version": version,
             "strings": _extract_strings(vitals, din),
             "fans": _extract_fans(vitals, din),
+            "unit_serials": unit_serials(vitals, din),
             "phases": phases_mod.extract(vitals),
             "full_read": True,
             "tedapi_mode": getattr(pw, "tedapi_mode", None),
+            "lan_failed": _lan_failed(pw),
             "backup_event": self._read_backup_event(pw),
             **self._fetch_extras(pw, vitals, aggregates),
             "local_ok": True,
@@ -1040,7 +1182,9 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     return None
             else:
                 self._backup_events = (now, events)
-        return _current_backup_event(self._backup_events[1], time.time())
+        event = _continue_backup_event(self._backup_event, _current_backup_event(self._backup_events[1], time.time()))
+        self._backup_event = event
+        return event
 
     def _fetch_cloud_only(self) -> dict[str, Any]:
         """Gateway unreachable: keep the settings entities alive from the cloud.
@@ -1550,9 +1694,28 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self.hass.async_add_executor_job(self._set_reserve, reserve)
         await self.async_request_refresh()
 
-    async def async_set_grid_charging(self, enabled: bool) -> None:
+    async def async_set_grid_charging(self, enabled: bool, *, by_dispatch: bool = False) -> None:
+        if not by_dispatch and self.grid_charging_by_dispatch:
+            self.set_grid_charging_by_dispatch(False)  # the user's setting from now on
         await self.hass.async_add_executor_job(self._set_grid_charging, enabled)
+        self._grid_charging_written = (bool(enabled), time.monotonic())
+        if by_dispatch:
+            self.set_grid_charging_by_dispatch(bool(enabled))
         await self.async_request_refresh()
+
+    def grid_charging_now(self) -> bool | None:
+        """Grid charging as last written here if that was in the last
+        minute (the reading may not show it yet), else as last read."""
+        written = self._grid_charging_written
+        if written is not None and time.monotonic() - written[1] < 60:
+            return written[0]
+        return (self.data or {}).get("grid_charging")
+
+    @callback
+    def set_grid_charging_by_dispatch(self, value: bool) -> None:
+        if self.grid_charging_by_dispatch != value:
+            self.grid_charging_by_dispatch = value
+            self._store.async_delay_save(self._state_to_save, 1)
 
     async def async_set_grid_export(self, mode: str) -> None:
         await self.hass.async_add_executor_job(self._set_grid_export, mode)
@@ -1567,6 +1730,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         stored = await self._store.async_load() or {}
         self.wanted["grid_export"] = stored.get("export_wanted")
         self.wanted["grid_charging"] = stored.get("grid_charging_wanted")
+        self.grid_charging_by_dispatch = stored.get("grid_charging_by_dispatch") is True
         self.alerts.restore(stored.get("alerts") or {})
         self.outages.restore(stored.get("outages") or {})
         self.firmware.restore(stored.get("firmware") or {})
@@ -1579,6 +1743,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._fallback_answered = answered if isinstance(answered, str) else None
         names = stored.get("pack_names")
         self._pack_names = {str(k): str(v) for k, v in names.items()} if isinstance(names, dict) else {}
+        # When the gateway last answered and the settings it gave (2.9.0):
+        # shown while it can't be reached, also right after a restart.
+        read_at = dt_util.parse_datetime(str(stored.get("last_local_read") or ""))
+        self.last_local_read = read_at if read_at is not None and read_at.tzinfo is not None else None
+        settings = stored.get("last_known_settings")
+        if isinstance(settings, dict):
+            self.last_known_settings = {key: settings.get(key) for key in LAST_KNOWN_SETTINGS if key in settings}
 
     async def async_save_state(self) -> None:
         """Save now, when the entry unloads or Home Assistant stops. The
@@ -1590,6 +1761,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _state_to_save(self) -> dict[str, Any]:
         return {"export_wanted": self.wanted["grid_export"],
                 "grid_charging_wanted": self.wanted["grid_charging"],
+                "grid_charging_by_dispatch": self.grid_charging_by_dispatch,
                 "alerts": self.alerts.as_dict(),
                 "outages": self.outages.as_dict(),
                 "firmware": self.firmware.as_dict(),
@@ -1599,43 +1771,131 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "flows": self.flows.as_dict(),
                 "capacity_trend": self.capacity_trend.as_dict(),
                 "pack_names": dict(self._pack_names),
-                "wifi_fallback_answered": self._fallback_answered}
+                "wifi_fallback_answered": self._fallback_answered,
+                "last_local_read": self.last_local_read.isoformat() if self.last_local_read else None,
+                "last_known_settings": self.last_known_settings}
 
     async def _async_update_data(self) -> dict[str, Any]:
+        self._polling = True
+        self._poll_done.clear()
         try:
+            return await self._async_poll()
+        finally:
+            self._polling = False
+            self._poll_done.set()
+
+    async def async_read_battery_level(self, timeout: float) -> bool:
+        """One extra read of the battery level on the gateway connection in
+        use, for a battery dispatch that would otherwise stop on an old one.
+        A poll already running is waited for instead (no second read beside
+        it). Only while the gateway answers (the last poll read it); never a
+        new login. True when it gave a level: battery_level_at is then now,
+        and listeners (the dispatch's limit check) see it."""
+        if self._polling:
+            before = self.battery_level_at
+            try:
+                async with asyncio.timeout(timeout):
+                    await self._poll_done.wait()
+            except TimeoutError:
+                return False
+            return self.battery_level_at is not None and self.battery_level_at != before
+        pw = self._pw
+        if pw is None or not self.last_update_success or not (self.data or {}).get("local_ok"):
+            return False
+        try:
+            async with asyncio.timeout(timeout):
+                soe = await self.hass.async_add_executor_job(pw.level)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Extra battery level read failed: %s", scrub(err))
+            return False
+        if not isinstance(soe, (int, float)) or isinstance(soe, bool):
+            return False
+        soe_value = round(soe, 1)
+        self.battery_level_at = dt_util.utcnow()
+        self.data = {**(self.data or {}), "battery_soe": soe_value, "battery_level": app_soc(soe_value)}
+        self.async_update_listeners()
+        return True
+
+    @callback
+    def sample_loop_lag(self) -> None:
+        """How late the event loop runs a callback asked for now: a busy Home
+        Assistant, told apart from a slow gateway."""
+        loop = self.hass.loop
+        asked = loop.time()
+        loop.call_soon(lambda: self.read_times.loop_lag(time.monotonic(), loop.time() - asked))
+
+    async def _async_poll(self) -> dict[str, Any]:
+        try:
+            kind = "full" if self._full_due() else "fast"
+            started = time.monotonic()
+            self.sample_loop_lag()
             try:
                 if self._pw is None:
                     self._pw = await self.hass.async_add_executor_job(self._init_powerwall)
                 data = await self.hass.async_add_executor_job(self._fetch_all)
             except Exception as err:
+                self.read_times.read(time.monotonic(), kind, time.monotonic() - started, ok=False,
+                                     timeout=is_timeout(err))
                 key_refused = _key_refused(self._pw)
                 self._pw = None
                 self._full_at = None  # a full read first once it answers again
-                if _client_mismatch(err):
+                wrong = isinstance(err, WrongGateway)
+                if wrong:
+                    # Not this Powerwall: its answers say nothing about our
+                    # password or key, and nothing is read from it.
+                    self._sync_wrong_gateway(True)
+                elif _client_mismatch(err):
                     # Not an answer from the gateway: don't count it as a
                     # refused password or key (that would ask for new access).
                     self._note_client_error(err)
                 else:
                     await self._async_note_local_failure(key_refused)
-                if not (self.cloud_enabled and self.din):
-                    raise
-                data = await self.hass.async_add_executor_job(self._fetch_cloud_only)
-                if data.get("control_source") is None:
-                    raise
-                if not self._gateway_down:
-                    self._gateway_down = True
-                    _LOGGER.warning("%s: the gateway can't be reached (%s); readings are unavailable "
-                                    "and settings use the cloud backup", self._log_name, scrub(err))
+                readonly = (await self.hass.async_add_executor_job(self._fetch_readonly)
+                            if self._readonly_wanted() and not wrong else None)
+                if readonly is not None:
+                    data = readonly
+                    if not self._readonly:
+                        self._readonly = True
+                        _LOGGER.warning("%s: the Powerwall refuses the key; readings come over its Wi-Fi "
+                                        "(read-only) until access is set up again", self._log_name)
+                else:
+                    if not (self.cloud_enabled and self.din):
+                        raise
+                    data = await self.hass.async_add_executor_job(self._fetch_cloud_only)
+                    if data.get("control_source") is None:
+                        raise
+                    if not self._gateway_down:
+                        self._gateway_down = True
+                        _LOGGER.warning("%s: the gateway can't be reached (%s); readings are unavailable "
+                                        "and settings use the cloud backup", self._log_name, scrub(err))
             else:
+                self.read_times.read(time.monotonic(), "full" if data.get("full_read", True) else "fast",
+                                     time.monotonic() - started, ok=True, path=self._connection_path(data))
+                self._sync_wrong_gateway(False)
                 self._password_refused = self._key_refused = 0
+                self._key_refused_now = False
+                self._readonly_pw = None
+                if self._readonly:
+                    self._readonly = False
+                    _LOGGER.info("%s: the Powerwall accepts the key again", self._log_name)
                 if self._gateway_down:
                     self._gateway_down = False
                     _LOGGER.info("%s: the gateway answers again", self._log_name)
         except Exception as err:
             self._pw = None
             self._full_at = None
+            self.connection_path = PATH_NONE
             self._sync_cloud_issue()
             raise UpdateFailed(f"Powerwall update failed: {scrub(err)}") from err
+
+        self.connection_path = self._connection_path(data)
+        if data.get("local_ok"):
+            self.last_local_read = dt_util.utcnow()
+            if data.get("full_read", True) and data.get("control_source") == "local":
+                self.last_known_settings = {
+                    "operation_mode": data.get("operation_mode"), "backup_reserve": data.get("reserve"),
+                    "grid_charging": data.get("grid_charging"), "grid_export": data.get("grid_export"),
+                    "read_at": self.last_local_read.isoformat()}
 
         if data.get("din"):
             self.din = data["din"]
@@ -1654,6 +1914,15 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 backend.check_at = time.monotonic()
             await self.hass.async_add_executor_job(self._check_cloud, due)
         data["cloud_extras"] = await self.hass.async_add_executor_job(self._cloud_extras) if self.backends else {}
+        storm = data["cloud_extras"].get("storm_active")
+        if storm is not None:
+            # Storm Watch started or ended: read the gateway's backup events
+            # on the next poll, not up to 5 minutes later. The last list
+            # stays in use if that read fails.
+            if (self._storm_active is not None and storm != self._storm_active
+                    and self._backup_events is not None):
+                self._backup_events = (float("-inf"), self._backup_events[1])
+            self._storm_active = storm
         await self._async_cloud_live(data)
         now = time.monotonic()
         check_due = self._tariff_check_at is not None and now >= self._tariff_check_at
@@ -1692,7 +1961,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         poll doesn't read the gateway's config) site limits: read every
         EXTRAS_SECONDS while the gateway answers; the last values otherwise."""
         extras = self.extras
-        if data.get("local_ok") and extras.due():
+        # Not over the read-only Wi-Fi client: these reads need the key.
+        if data.get("local_ok") and not data.get("readonly") and extras.due():
             try:
                 await extras.async_read(limits=data.get("site_limits") is None)
             except Exception as err:  # noqa: BLE001
@@ -1796,8 +2066,13 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _track_flows(self, data: dict[str, Any]) -> None:
         """Energy flows from the gateway's power readings (never the cloud's)."""
         if data.get("local_ok"):
-            self.flows.update(dt_util.utcnow(), data.get("solar_power"), data.get("battery_power"),
-                              data.get("grid_power"), data.get("home_power"))
+            # The lifetime counters on full reads only: fast polls carry the
+            # last full read's.
+            counters = data.get("energy") if data.get("full_read", True) else None
+            filled = self.flows.update(dt_util.utcnow(), data.get("solar_power"), data.get("battery_power"),
+                                       data.get("grid_power"), data.get("home_power"), counters=counters)
+            if filled > 0:
+                _LOGGER.info("Energy flows: %.2f kWh filled in from the lifetime counters after a gap", filled)
         else:
             self.flows.pause()
         data["flows"] = self.flows.summary()
@@ -2079,21 +2354,63 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return "network"
         return "stalled" if key_refused is False else "key"
 
+    def _same_gateway(self, din: str) -> bool:
+        """Whether the gateway that answered is this entry's (its DIN). An
+        entry whose id isn't a DIN has nothing to compare with."""
+        expected = self.config_entry.unique_id or ""
+        return "--" not in expected or din.strip().upper() == expected.strip().upper()
+
+    @callback
+    def _sync_wrong_gateway(self, wrong: bool) -> None:
+        """A repair while the address reaches another Powerwall; gone once
+        this one answers there again."""
+        if wrong == self._wrong_gateway:
+            return
+        self._wrong_gateway = wrong
+        issue_id = f"wrong_gateway_{self.config_entry.entry_id}"
+        if not wrong:
+            _LOGGER.info("%s: its own gateway answers at the address again", self._log_name)
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        _LOGGER.warning("%s: the gateway at its address is a different Powerwall; nothing is read from it "
+                        "or sent to it", self._log_name)
+        ir.async_create_issue(
+            self.hass, DOMAIN, issue_id, is_fixable=False, is_persistent=False,
+            severity=ir.IssueSeverity.ERROR, translation_key="wrong_gateway",
+            translation_placeholders={"name": self._log_name})
+
+    def _readonly_wanted(self) -> bool:
+        """Read over the Powerwall's Wi-Fi with its password: only while the
+        gateway refuses the key, on a signed connection with an address on
+        the Powerwall's Wi-Fi."""
+        return (self._conn_mode == MODE_V1R and self._key_refused_now and bool(self._gw_pwd)
+                and bool(self.follower_host))
+
+    def _connection_path(self, data: dict[str, Any]) -> str:
+        if not data.get("local_ok"):
+            return PATH_CLOUD
+        if data.get("readonly") or self._conn_mode != MODE_V1R:
+            return PATH_WIFI_PASSWORD
+        return PATH_WIFI_FALLBACK if data.get("lan_failed") else PATH_SIGNED
+
     async def _async_note_local_failure(self, key_refused: bool | None = None) -> None:
         if self._conn_mode != MODE_V1R or self._reauth_started:
             return
         reason = await self.hass.async_add_executor_job(self._classify_failure, key_refused)
+        self._key_refused_now = reason == "key"
         if reason == "password":
             self._password_refused += 1
         elif reason == "key":
             self._key_refused += 1
         if self._password_refused >= PASSWORD_REFUSED_POLLS or self._key_refused >= KEY_REFUSED_POLLS:
+            key = self._password_refused < PASSWORD_REFUSED_POLLS
             _LOGGER.warning("The Powerwall keeps refusing the %s; asking to set up access again",
-                            "password" if self._password_refused >= PASSWORD_REFUSED_POLLS else "key")
+                            "key" if key else "password")
             self._reauth_started = True
             # Not ConfigEntryAuthFailed: that stops polling, and the cloud
-            # backup should keep the settings working meanwhile.
-            self.config_entry.async_start_reauth(self.hass)
+            # backup (or the read-only Wi-Fi readings) should keep going.
+            self.config_entry.async_start_reauth(
+                self.hass, data={**self.config_entry.data, REAUTH_KEY_REFUSED: True} if key else None)
 
     def _cloud_issue_id(self, backend: CloudBackend) -> str:
         prefix = "cloud_login" if backend.name == BACKEND_OWNER else "fleet_backup"
@@ -2184,6 +2501,7 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             },
             "cloud_token_expires": token_expires,
             "cloud_last_ok": max(last_oks).isoformat() if last_oks else None,
+            "read_times": self.read_times.summary(time.monotonic()),
         }
 
     # ------------------------------------------------------------------
@@ -2268,6 +2586,8 @@ class TedapiCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def async_clear_issues(self) -> None:
         ir.async_delete_issue(self.hass, DOMAIN, f"fleet_signin_{self.config_entry.entry_id}")
+        ir.async_delete_issue(self.hass, DOMAIN, f"wrong_gateway_{self.config_entry.entry_id}")
+        self._wrong_gateway = False
         for issue_id in self._issues | self._write_issues:
             ir.async_delete_issue(self.hass, DOMAIN, issue_id)
         self._issues = set()

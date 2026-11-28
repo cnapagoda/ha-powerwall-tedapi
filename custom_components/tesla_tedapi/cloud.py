@@ -14,6 +14,7 @@ import time
 from typing import Any
 
 from .const import (
+    APP_HIDDEN_PCT,
     BACKEND_FLEET,
     BACKEND_OWNER,
     CLOUD_AUTH_FAILURES,
@@ -183,6 +184,10 @@ LIVE_READINGS = {
     "home_power": "load_power",
     "battery_level": "percentage_charged",
 }
+# The battery's energy in the live status (Wh), on the gateway's own scale:
+# pypowerwall's cloud and Fleet API modes read these as its nominal energy
+# remaining and full pack energy. Ours (kWh) -> Tesla's.
+LIVE_ENERGY = {"battery_remaining_kwh": "energy_left", "battery_full_kwh": "total_pack_energy"}
 
 
 def live_time(live: dict[str, Any], read_at: datetime) -> datetime:
@@ -200,9 +205,21 @@ def live_time(live: dict[str, Any], read_at: datetime) -> datetime:
 
 
 def live_readings(live: dict[str, Any]) -> dict[str, float]:
-    """The readings in LIVE_READINGS that the live status has a number for."""
-    return {key: round(float(live[source]), 1) for key, source in LIVE_READINGS.items()
-            if _number((live or {}).get(source))}
+    """The readings in LIVE_READINGS that the live status has a number for.
+    Home power never below 0 W, as from the gateway."""
+    readings = {key: round(float(live[source]), 1) for key, source in LIVE_READINGS.items()
+                if _number((live or {}).get(source))}
+    if "home_power" in readings:
+        readings["home_power"] = max(0.0, readings["home_power"])
+    for key, source in LIVE_ENERGY.items():
+        value = (live or {}).get(source)
+        if _number(value) and (value > 0 or (value == 0 and key == "battery_remaining_kwh")):
+            readings[key] = round(float(value) / 1000, 2)
+    full, remaining = readings.get("battery_full_kwh"), readings.get("battery_remaining_kwh")
+    if full and remaining is not None:
+        # Above the app's 0 %, as from the gateway.
+        readings["battery_usable_kwh"] = round(max(0.0, remaining - full * APP_HIDDEN_PCT / 100), 2)
+    return readings
 
 
 class OwnerSettings:

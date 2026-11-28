@@ -29,7 +29,9 @@ The Fleet API is Tesla's official API. Add the Owner API as a second backup if y
 
 **Configure → Cloud backup** offers the choices that are available: *None (local only)*, *Owner API*, *Fleet API*, *Fleet API, then Owner API* and *Owner API, then Fleet API*. Without a choice, a linked Tesla account is the backup.
 
-**Configure → Unlink a cloud backup** stops using one and removes its sign-in here.
+**Configure → Unlink a cloud backup** stops using one and removes its sign-in here, including the saved Tesla tokens. **Configure → Local only** removes them all ([Local only](configuration.md#local-only)).
+
+Without a cloud backup, the entities that need one (Storm Watch, the off-grid reserve, Wall Connectors, the Tesla tariff, and over the Wi-Fi password connection the settings) are removed rather than left unavailable. They come back when a backup is set up again.
 
 **Upgrading from 2.5 or earlier:** the Tesla Fleet backup used to borrow the sign-in of Home Assistant's Tesla Fleet or Teslemetry integration. It now needs its own. A repair, *Sign in to Tesla Fleet or Teslemetry*, asks for it; your cloud backup choice is kept, and a linked Owner API account keeps working meanwhile.
 
@@ -41,7 +43,7 @@ The Fleet API is Tesla's official API. Add the Owner API as a second backup if y
 - **Tesla's cloud caps the backup reserve at 80 %.** Locally any value up to 100 % works. To charge to full and hold it, use a [max backup](actions.md#tesla_tedapistart_max_backup).
 - Each backup is checked with a real read about once an hour (10 minutes after a failure). This keeps the Owner API sign-in fresh, so a broken sign-in shows up before you need it.
 - When the gateway can't be reached but the cloud keeps the settings working, this is logged once as a warning, and again when the gateway answers.
-- **Live status:** the backup also provides [Wall Connector](entities.md#wall-connector) readings and, with the **Cloud readings while the gateway is unreachable** option, power and battery level while the gateway can't be reached. It's read every minute through Tesla Fleet or Teslemetry and every 5 minutes through the Owner API, only when needed.
+- **Live status:** the backup also provides [Wall Connector](entities.md#wall-connector) readings and, with the **Cloud readings while the gateway is unreachable** option, power, battery level, battery energy remaining and full capacity while the gateway can't be reached. It's read every minute through Tesla Fleet or Teslemetry and every 5 minutes through the Owner API, only when needed.
 
 ## When a backup stops working
 

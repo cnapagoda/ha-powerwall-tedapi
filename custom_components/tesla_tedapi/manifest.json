@@ -2,6 +2,7 @@
   "domain": "tesla_tedapi",
   "name": "Tesla Powerwall TEDAPI",
   "after_dependencies": [
+    "mqtt",
     "recorder"
   ],
   "categories": [
@@ -39,7 +40,7 @@
   ],
   "requirements": [
     "pypowerwall>=0.25.0,<0.26",
-    "aiopytedapi>=0.1.0,<0.2"
+    "aiopytedapi>=0.2.0,<0.3"
   ],
-  "version": "2.8.3"
+  "version": "2.9.0"
 }

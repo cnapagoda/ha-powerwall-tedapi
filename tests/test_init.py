@@ -168,7 +168,7 @@ async def test_dispatch_session(hass: HomeAssistant, fake_powerwall) -> None:
         blocking=True, return_response=True)
     assert resp["active"] is True
     pw = local(fake_powerwall)
-    assert pw.dispatches == [(2000.0, 300)]  # short chunk, renewed
+    assert pw.dispatches == [(2000.0, 120)]  # short chunk, renewed
     assert hass.states.get(active).state == "on"
 
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=61))

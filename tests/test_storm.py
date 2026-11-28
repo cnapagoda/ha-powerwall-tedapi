@@ -171,3 +171,85 @@ async def test_storm_watch_appears_when_cloud_answers_later(hass: HomeAssistant,
     backend.get_client()._info = None
     await _refresh(hass, entry)
     assert hass.states.get(_eid(hass, "switch", "storm_watch")).state == "off"
+
+
+async def test_replaced_event_keeps_its_first_start(hass: HomeAssistant, fake_powerwall) -> None:
+    """The gateway replaced a running warning with a later-starting one of the
+    same kind and end (#40): the event carries on from its first start."""
+    now = int(time.time())
+    end = now + 3600
+    fake_powerwall.backup_events = {"manual_backup": None, "backup_events": [
+        {"id": "1", "name": "Flash Flood Warning", "start_time": now - 7200, "duration_seconds": end - (now - 7200)}]}
+    entry = await _setup(hass, V1R)
+    sensor = _eid(hass, "binary_sensor", "backup_event")
+    first = hass.states.get(sensor).attributes["start"]
+    coordinator = entry.runtime_data.coordinator
+
+    fake_powerwall.backup_events = {"manual_backup": None, "backup_events": [
+        {"id": "2", "name": "Flash Flood Warning", "start_time": now - 60, "duration_seconds": end - (now - 60)}]}
+    coordinator._backup_events = (time.monotonic() - 301, coordinator._backup_events[1])
+    await _refresh(hass, entry)
+    state = hass.states.get(sensor)
+    assert state.state == "on"
+    assert state.attributes["start"] == first
+
+
+def test_continue_backup_event_only_for_the_same_running_event() -> None:
+    from datetime import UTC, datetime, timedelta
+
+    from custom_components.tesla_tedapi.coordinator import _continue_backup_event
+
+    t = datetime(2026, 11, 26, 9, 0, tzinfo=UTC)
+    running = {"active": True, "kind": "Storm Watch", "start": t, "end": t + timedelta(hours=4)}
+    later = {**running, "start": t + timedelta(hours=2)}
+    assert _continue_backup_event(running, later)["start"] == t
+    # Another kind, a start after the old end, or nothing running before:
+    # the new start stands.
+    assert _continue_backup_event(running, {**later, "kind": "manual"})["start"] == later["start"]
+    after = {**running, "start": t + timedelta(hours=5), "end": t + timedelta(hours=8)}
+    assert _continue_backup_event(running, after)["start"] == after["start"]
+    assert _continue_backup_event({**running, "active": False}, later)["start"] == later["start"]
+    assert _continue_backup_event(None, later) is later
+    idle = {"active": False, "kind": None, "start": None, "end": None}
+    assert _continue_backup_event(running, idle) is idle
+
+
+async def test_storm_watch_change_reads_backup_events_at_once(hass: HomeAssistant, fake_powerwall) -> None:
+    """When the cloud reports Storm Watch starting, the gateway's backup
+    events are read on the next poll instead of up to 5 minutes later."""
+    entry = await _setup(hass, {**V1R, **ACCOUNT})
+    coordinator = entry.runtime_data.coordinator
+    calls = []
+    pw = local(fake_powerwall)
+    pw.get_backup_events = lambda: calls.append(1) or {"manual_backup": None, "backup_events": []}
+    client = cloud(fake_powerwall).client
+    client.get_site_power = lambda force=False: {"response": {"storm_mode_active": True}}
+    owner = coordinator.backends[0]
+    owner.extras = (owner.extras[0] - 1801, owner.extras[1])
+    await _refresh(hass, entry)  # the cloud now says Storm Watch is on
+    assert calls == []
+    await _refresh(hass, entry)
+    assert calls == [1]
+    await _refresh(hass, entry)  # no change: back to every 5 minutes
+    assert calls == [1]
+
+
+async def test_storm_watch_change_keeps_events_when_the_read_fails(hass: HomeAssistant, fake_powerwall) -> None:
+    now = int(time.time())
+    fake_powerwall.backup_events = {"manual_backup": None, "backup_events": [
+        {"id": "1", "name": "Storm Watch", "start_time": now - 60, "duration_seconds": 3600}]}
+    entry = await _setup(hass, {**V1R, **ACCOUNT})
+    coordinator = entry.runtime_data.coordinator
+    client = cloud(fake_powerwall).client
+    client.get_site_power = lambda force=False: {"response": {"storm_mode_active": True}}
+    owner = coordinator.backends[0]
+    owner.extras = (owner.extras[0] - 1801, owner.extras[1])
+    await _refresh(hass, entry)
+
+    def fail():
+        raise TimeoutError
+
+    local(fake_powerwall).get_backup_events = fail
+    await _refresh(hass, entry)
+    state = hass.states.get(_eid(hass, "binary_sensor", "backup_event"))
+    assert state.state == "on" and state.attributes["kind"] == "Storm Watch"

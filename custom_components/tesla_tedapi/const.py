@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import re
 from typing import Any
 
 DOMAIN = "tesla_tedapi"
@@ -24,6 +25,10 @@ CONF_PROBLEM_MINUTES = "problem_minutes"
 CONF_TESLA_TARIFF = "tesla_tariff"
 # Diagnostics include the gateway's own configuration (redacted). Off by default.
 CONF_DIAGNOSTICS_GATEWAY = "diagnostics_gateway_config"
+# One device per Powerwall (and Expansion Pack): the battery packs, fans,
+# solar inputs and inverter temperatures of each unit on a device of its own,
+# linked to the gateway. Off by default. Changing it reloads the entry.
+CONF_UNIT_DEVICES = "unit_devices"
 # Fast polling for power, battery level and grid status (seconds; 0 = off:
 # everything is read at the polling interval). Changing it reloads the entry.
 CONF_POWER_INTERVAL = "power_interval"
@@ -34,13 +39,43 @@ MAX_POWER_INTERVAL = 60
 CONF_CLOUD_READINGS = "cloud_readings"
 CONF_DISPATCH_FLOOR_RESERVE = "dispatch_floor_reserve"
 CONF_DISPATCH_MAX_WATTS = "dispatch_max_watts"
+# How old the battery level may be for a dispatch to start or renew (minutes;
+# 2.9.0). Bounded: during a dispatch the Powerwall ignores its backup reserve,
+# and the older the level, the further a dispatch can run past its limits.
+CONF_DISPATCH_STALE_MINUTES = "dispatch_stale_minutes"
+# A charge dispatch turns Grid charging on if it's off, and off again when it
+# ends (2.9.0; off by default: charging from the grid may cost money).
+CONF_DISPATCH_GRID_CHARGING = "dispatch_grid_charging"
+# Turning it off again after a dispatch is retried this often if it fails.
+DISPATCH_GRID_RETRY_SECONDS = 300
+DISPATCH_STALE_MINUTES_MIN = 1
+DISPATCH_STALE_MINUTES_MAX = 5
 # Which cloud backup to use and in what order (one of CLOUD_CHOICES).
 CONF_CLOUD_BACKENDS = "cloud_backends"
+# MQTT publishing (optional, off by default; 2.9.0): the readings, settings,
+# status and events go to Home Assistant's MQTT broker under the base topic.
+# Never the DIN, serials or addresses.
+CONF_MQTT_PUBLISH = "mqtt_publish"
+CONF_MQTT_BASE_TOPIC = "mqtt_base_topic"
+DEFAULT_MQTT_BASE_TOPIC = "tesla_tedapi/powerwall"
+# Commands over MQTT (<base>/cmd/<action>), each off by default: settings,
+# and battery control on top of them; with an optional shared secret.
+CONF_MQTT_COMMANDS = "mqtt_commands"
+CONF_MQTT_BATTERY_COMMANDS = "mqtt_battery_commands"
+CONF_MQTT_SECRET = "mqtt_secret"
+# A base topic: segments of letters, digits, "_" and "-", joined by "/".
+MQTT_BASE_TOPIC_RE = re.compile(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*")
+MQTT_BASE_TOPIC_MAX = 200
+
+
+def valid_base_topic(topic: str) -> bool:
+    return len(topic) <= MQTT_BASE_TOPIC_MAX and MQTT_BASE_TOPIC_RE.fullmatch(topic) is not None
 # Options that take effect without reloading the integration (a reload would
 # end a running battery dispatch). Any other change reloads it.
 LIVE_OPTIONS = frozenset({
     CONF_SCAN_INTERVAL, CONF_RESTORE_EXPORT, CONF_STATUS_EVENTS, CONF_PROBLEM_MINUTES,
     CONF_DISPATCH_FLOOR_RESERVE, CONF_DISPATCH_MAX_WATTS, CONF_DIAGNOSTICS_GATEWAY, CONF_CLOUD_READINGS,
+    CONF_DISPATCH_STALE_MINUTES, CONF_DISPATCH_GRID_CHARGING,
 })
 
 # The gateway's network MAC addresses (lower case, no separators), learnt
@@ -105,6 +140,17 @@ def cloud_choice(data: Mapping[str, Any], options: Mapping[str, Any]) -> str:
 MODE_WIFI = "wifi"
 MODE_V1R = "v1r"
 
+# How the latest reading reached Home Assistant (the Connection path sensor):
+# the signed connection, its Wi-Fi fallback address, the Wi-Fi password
+# connection (also read-only while the gateway refuses the key), only the
+# cloud backup (the gateway can't be reached), or nothing.
+PATH_SIGNED = "signed"
+PATH_WIFI_FALLBACK = "wifi_fallback"
+PATH_WIFI_PASSWORD = "wifi_password"
+PATH_CLOUD = "cloud"
+PATH_NONE = "none"
+CONNECTION_PATHS = [PATH_SIGNED, PATH_WIFI_FALLBACK, PATH_WIFI_PASSWORD, PATH_CLOUD, PATH_NONE]
+
 # Defaults
 DEFAULT_HOST_WIFI = "192.168.91.1"
 DEFAULT_SCAN_INTERVAL = 30
@@ -122,7 +168,9 @@ RSA_PUBLIC_KEY_FILE = "tedapi_rsa_public.der"
 RSA_KEY_FILE_FORMAT = "tedapi_rsa_private_{}.pem"
 RSA_PUBLIC_KEY_FILE_FORMAT = "tedapi_rsa_public_{}.der"
 KEY_NAME_LENGTH = 12
+# pypowerwall's cloud-mode token cache and site pin, in the entry's folder.
 AUTH_FILE = ".pypowerwall.auth"
+SITE_FILE = ".pypowerwall.site"
 
 # Operation modes: API value -> option key (translated in strings.json)
 OPERATION_MODES = ("self_consumption", "backup", "autonomous")
@@ -190,6 +238,9 @@ MAX_BACKUP_MAX_MINUTES = 2880
 # Consecutive failures before asking the user to sign in or re-register.
 CLOUD_AUTH_FAILURES = 3
 KEY_REFUSED_POLLS = 10
+# Reauth data flag: started because the gateway refuses the key (the password
+# still works), so the reauthentication says so and offers a new key first.
+REAUTH_KEY_REFUSED = "key_refused"
 PASSWORD_REFUSED_POLLS = 3
 # A lifetime energy counter that reads lower than before is a glitch, unless
 # it stays lower for this many readings in a row: then the counter was reset
@@ -206,9 +257,11 @@ DISPATCH_DEFAULT_WATTS = 10000
 DISPATCH_MAX_SECONDS = 86400
 # Each command to the Powerwall covers at most this long and is renewed while a
 # session runs, so the battery returns to normal within this time if Home
-# Assistant stops.
-DISPATCH_CHUNK_SECONDS = 300
-DISPATCH_RENEW_SECONDS = 60
+# Assistant stops or hangs (2.9.0: 2 minutes, was 5). Renewed often enough that
+# DISPATCH_MAX_FAILURES renewals in a row can fail before the last command
+# runs out.
+DISPATCH_CHUNK_SECONDS = 120
+DISPATCH_RENEW_SECONDS = 30
 DISPATCH_MAX_FAILURES = 3
 # A dispatch is only renewed while the battery level is fresher than this (s),
 # or than 2.5 polling intervals if that's longer: its limits are checked
@@ -216,6 +269,16 @@ DISPATCH_MAX_FAILURES = 3
 # later), the session ends.
 DISPATCH_STALE_SECONDS = 120
 DISPATCH_STALE_POLLS = 2.5
+# Before a dispatch stops renewing (or refuses to start) on a battery level
+# that's too old: one extra read of the level, given at most this long (s).
+DISPATCH_FRESH_READ_SECONDS = 20
+# A freeze (freeze_battery, 2.9.0) runs the battery one way only, at the power
+# the readings call for: charge_only charges from solar the home doesn't use,
+# discharge_only covers what the home uses beyond solar. A reading that moves
+# that power by at least this much (W) sends a new command at once; smaller
+# changes wait for the next renewal.
+FREEZE_DIRECTIONS = ("charge_only", "discharge_only")
+FREEZE_STEP_WATTS = 100
 
 EVENT_DISPATCH_ENDED = f"{DOMAIN}_dispatch_ended"
 
@@ -226,6 +289,12 @@ CONTACTOR_WAIT_SECONDS = 90
 CONTACTOR_POLL_SECONDS = 5
 # An automatic reconnect that fails is tried again this often.
 RECONNECT_RETRY_SECONDS = 60
+# Off-grid as last-resort solar curtailment (go_off_grid with curtailment,
+# 2.9.0): such runs stop at this battery level (or the backup reserve, if
+# higher) unless min_soc is given, add up to at most this many minutes a day
+# (local time) unless daily_limit_minutes is given, and end at midnight.
+OFF_GRID_CURTAIL_MIN_SOC = 40
+OFF_GRID_CURTAIL_DAILY_MINUTES = 360
 EVENT_OFF_GRID_ENDED = f"{DOMAIN}_off_grid_ended"
 # A grid outage started or ended (not an off-grid run started here).
 EVENT_GRID_OUTAGE = f"{DOMAIN}_grid_outage"
@@ -253,6 +322,7 @@ SERVICE_RECONNECT_GRID = "reconnect_grid"
 SERVICE_SET_SITE_LIMIT = "set_site_limit"
 SERVICE_DELAY_CALIBRATION = "delay_battery_calibration"
 SERVICE_REMOVE_KEY = "remove_registered_key"
+SERVICE_FREEZE = "freeze_battery"
 ATTR_DIRECTION = "direction"
 ATTR_LIMIT_KW = "limit_kw"
 ATTR_DELAY_HOURS = "delay_hours"
@@ -263,11 +333,15 @@ CALIBRATION_DELAY_MAX_HOURS = 168
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
 ATTR_POWER_WATTS = "power_watts"
+ATTR_MAX_POWER_WATTS = "max_power_watts"
 ATTR_DURATION_SECONDS = "duration_seconds"
 ATTR_MIN_SOC = "min_soc"
 ATTR_MAX_SOC = "max_soc"
 ATTR_DURATION_MINUTES = "duration_minutes"
 ATTR_CONFIRM = "confirm"
+ATTR_CURTAILMENT = "curtailment"
+ATTR_DAILY_LIMIT_MINUTES = "daily_limit_minutes"
+ATTR_CURTAILMENT_ONLY = "curtailment_only"
 ATTR_TARGET_SOC = "target_soc"
 ATTR_MAX_MINUTES = "max_minutes"
 

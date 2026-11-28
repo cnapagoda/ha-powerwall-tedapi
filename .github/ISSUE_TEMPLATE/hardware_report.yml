@@ -33,7 +33,7 @@ body:
     id: version
     attributes:
       label: Integration version
-      placeholder: "2.8.2"
+      placeholder: "2.9.0"
     validations:
       required: true
   - type: dropdown
@@ -82,7 +82,7 @@ body:
         - label: Battery pack sensors (capacity, temperature, health)
         - label: Fan speed sensors
         - label: Changing operation mode, reserve, grid charging or export locally
-        - label: Battery dispatch / charge_to / discharge_to
+        - label: Battery dispatch / freeze_battery / charge_to / discharge_to
         - label: Max backup
         - label: Go off-grid and reconnect
         - label: Dropped settings restored (restored_count goes up)

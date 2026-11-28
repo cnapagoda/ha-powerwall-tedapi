@@ -7,6 +7,7 @@ The integration adds these actions (formerly called *services*). Try them in **D
 | Action | Needs | What it does |
 |---|---|---|
 | [`dispatch_battery_power`](#tesla_tedapidispatch_battery_power) | Signed | Run the battery at a fixed power for a set time. |
+| [`freeze_battery`](#tesla_tedapifreeze_battery) | Signed | Run the battery one way only: charge from surplus solar, or cover the home. |
 | [`charge_to` / `discharge_to`](#tesla_tedapicharge_to--tesla_tedapidischarge_to) | Signed | Charge or discharge until a battery level is reached. |
 | [`resume_battery_operation`](#tesla_tedapiresume_battery_operation) | Signed | End a dispatch now. |
 | [`start_max_backup`](#tesla_tedapistart_max_backup) | Signed | Charge to full and hold it for a set time. |
@@ -34,6 +35,7 @@ data:
 ```
 
 - **To a battery level instead of for a time:** `tesla_tedapi.charge_to` / `discharge_to`.
+- **One way only** (charge from surplus solar, or cover the home): `tesla_tedapi.freeze_battery`.
 - **Stop early:** `tesla_tedapi.resume_battery_operation`, or the **Stop battery dispatch** button.
 - **Settings that apply** (**Configure → Settings → Battery dispatch**): whether a discharge stops at the backup reserve, and **Largest dispatch power**.
 - **How much power:** no more than **Largest dispatch power** (default 10,000 W, at most 30,000 W). Within that the Powerwall decides: it refuses what it can't deliver, and the action then fails with the gateway's reason and status code in the error. One Powerwall 3 (with or without an expansion pack) refuses more than 10,000 W. With several Powerwalls, raise **Largest dispatch power** only to what your installation can safely carry: wiring, breakers, gateway and backup switch ratings, and your grid connection and export limit ([Safety](safety.md#battery-dispatch)). Try a short dispatch first and watch your grid export.
@@ -54,11 +56,11 @@ Hold the battery at a fixed power for a set time.
 
 How a dispatch runs:
 
-- The command is sent in steps of at most **5 minutes** and renewed every minute. When Home Assistant stops or restarts, the dispatch ends straight away (reason `unloaded`). If it crashes or loses power, the Powerwall goes back to normal within 5 minutes.
+- The command is sent in steps of at most **2 minutes** and renewed every 30 seconds. When Home Assistant stops or restarts, the dispatch ends straight away (reason `unloaded`). If it crashes, hangs or loses power, the Powerwall goes back to normal within 2 minutes.
 - When the time is up or a limit is reached, the battery is handed back. Limits are checked on every reading.
 - A new call replaces a running dispatch.
 - The call is refused if the battery is already past the limit.
-- A charge draws from the grid only while **Grid charging** is on. With it off, the battery charges from solar only, and the integration logs a warning when the charge starts.
+- A charge draws from the grid only while **Grid charging** is on. With it off, the battery charges from solar only, and the integration logs a warning when the charge starts. With the option **Turn on grid charging for a charge** on, the charge turns it on instead, and off again when it ends.
 - **Dispatch active** shows the running dispatch, and [`tesla_tedapi_dispatch_ended`](events.md#tesla_tedapi_dispatch_ended) fires when it ends.
 - Changing the **Tesla tariff (cloud)** option, the cloud backup, a linked account or the connection reloads the integration, which ends a running dispatch. The other settings apply straight away.
 
@@ -71,7 +73,41 @@ data:
   max_soc: 90
 ```
 
-**Response** (optional): the dispatch as **Dispatch active** shows it (`active`, `power_watts`, `started`, `ends`, `min_soc`, `max_soc`, `target_soc`), plus the gateway's `response`.
+**Response** (optional): the dispatch as **Dispatch active** shows it (`active`, `power_watts`, `started`, `ends`, `min_soc`, `max_soc`, `target_soc`, `freeze`, `max_power_watts`), plus the gateway's `response`.
+
+---
+
+## `tesla_tedapi.freeze_battery`
+
+Run the battery one way only, at the power the readings call for. Made for Predbat's freeze charging and freeze exporting ([Predbat](predbat.md)).
+
+| `direction` | The battery | Surplus solar |
+|---|---|---|
+| `charge_only` | Charges from the solar the home doesn't use; never discharges. The home runs from the grid when solar isn't enough. | Charges the battery. |
+| `discharge_only` | Covers what the home uses beyond solar; never charges. | Exported. |
+
+| Field | Required | |
+|---|---|---|
+| `direction` | Yes | `charge_only` or `discharge_only`. |
+| `duration_seconds` | Yes | 1 s to 24 h. |
+| `max_power_watts` | No | The most the battery charges or discharges. Default and limit: **Largest dispatch power**. |
+| `min_soc` | No | With `discharge_only`: hold the battery once **Battery level** falls to this. Default: the backup reserve (option **Discharges stop at the backup reserve**). |
+| `max_soc` | No | With `charge_only`: hold the battery once **Battery level** reaches this. |
+| `config_entry_id` | No | Only with several Powerwalls. |
+
+It runs as a dispatch (above): the same 2-minute steps, **Dispatch active** and [`tesla_tedapi_dispatch_ended`](events.md#tesla_tedapi_dispatch_ended), and a new call (a dispatch or a freeze) replaces it. The differences:
+
+- The power follows each reading, so when the home's use changes suddenly, the difference comes from or goes to the grid until the next reading (one polling interval).
+- At `min_soc` or `max_soc`, or without a fresh local reading, the battery is held (0 W) and the freeze goes on; it doesn't end there.
+- It never turns **Grid charging** on.
+
+```yaml
+# Cover the home from the battery for an hour, never charging it
+action: tesla_tedapi.freeze_battery
+data:
+  direction: discharge_only
+  duration_seconds: 3600
+```
 
 ---
 
@@ -104,7 +140,7 @@ data:
   max_minutes: 60
 ```
 
-`charge_to` charges from solar and, if **Grid charging** is on, from the grid. `discharge_to` overrides the export setting, so the battery may export.
+`charge_to` charges from solar and, if **Grid charging** is on (or the option **Turn on grid charging for a charge**), from the grid. `discharge_to` overrides the export setting, so the battery may export.
 
 ---
 
@@ -160,6 +196,8 @@ The same command as *Go off-grid* in the Tesla app: the Powerwall opens its grid
 | `confirm` | Yes | Must be `true`. |
 | `duration_minutes` | No | 1–1440 (24 hours). Reconnect after this long. |
 | `min_soc` | No | Reconnect when **Battery level** falls to this. Default: the backup reserve. |
+| `curtailment` | No | `true`: a last-resort way to limit solar on the Powerwall's own inputs, which off-grid only produce what the house and battery take. Such a run reconnects at 40 % (or the backup reserve, if higher) unless `min_soc` is given, at midnight, and once the daily limit is used up. Try Grid export *never* first; see [Safety](safety.md#going-off-grid). |
+| `daily_limit_minutes` | No | With `curtailment`: off-grid time for curtailment allowed per day, 1–1440. Default 360 (6 hours). |
 | `config_entry_id` | No | Only with several Powerwalls. |
 
 How an off-grid run works:
@@ -180,7 +218,7 @@ data:
   min_soc: 50
 ```
 
-**Response** (optional): `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below`, `grid_status`, and the gateway's `response`.
+**Response** (optional): `off_grid_run`, `off_grid_since`, `reconnect_at`, `reconnect_below`, `curtailment`, `grid_status`, and the gateway's `response`.
 
 ---
 
@@ -188,11 +226,16 @@ data:
 
 Reconnect the house to the grid, also after *Go off-grid* in the Tesla app. It waits up to 90 seconds for the Powerwall to start syncing to the grid (**Grid connected** turns back on once it has synced). It fails during a real outage, when there's no grid to sync to. The **Reconnect to the grid** [button](entities.md#buttons) does the same.
 
+| Field | Required | |
+|---|---|---|
+| `curtailment_only` | No | `true`: reconnect only if the house went off-grid here with `curtailment`; otherwise do nothing. For automations that shouldn't end an off-grid run they didn't start. |
+| `config_entry_id` | No | Only with several Powerwalls. |
+
 ```yaml
 action: tesla_tedapi.reconnect_grid
 ```
 
-**Response** (optional): `grid_status` and the gateway's `response`.
+**Response** (optional): `grid_status` and the gateway's `response`; `reconnected: false` when `curtailment_only` left it alone.
 
 ---
 
@@ -289,7 +332,7 @@ response_variable: limits
 
 ## `tesla_tedapi.delay_battery_calibration`
 
-Postpones the Powerwall's next battery calibration by `delay_hours` (1–168). The gateway allows a limited number of delays (see **Calibration delays left**), and each call may use one. A calibration can't be started this way, only postponed. Some firmware doesn't support it (a Powerwall 3 on 26.34.3 doesn't): the action then says so. Returns the calibration delay status where the firmware reports it.
+Postpones the Powerwall's next battery calibration by `delay_hours` (1–168; the Tesla app offers 1 to 3 days). The gateway allows a limited number of delays (see **Calibration delays left**), and each call may use one. A calibration can't be started this way, only postponed. Some firmware doesn't support it (a Powerwall 3 on 26.34.3 doesn't): the action then says so. Returns the calibration delay status where the firmware reports it.
 
 | Field | Required | |
 |---|---|---|

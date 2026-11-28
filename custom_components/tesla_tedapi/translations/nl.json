@@ -99,6 +99,14 @@
         "title": "De Powerwall heeft de sleutel niet bevestigd",
         "description": "Er kwam niet op tijd een bevestiging (of de sleutel is verwijderd). Kies **Verzenden** om de sleutel opnieuw te registreren en een nieuw venster van 10 minuten te openen, en voer dan de schakelstap uit."
       },
+      "keep_signin": {
+        "title": "De Tesla-aanmelding houden?",
+        "description": "De Powerwall heeft de sleutel geaccepteerd: metingen en instellingen gaan nu rechtstreeks naar de gateway. De Tesla-aanmelding waarmee hij is geregistreerd kan blijven als cloudback-up (Storm Watch, Wall Connectors, het Tesla-tarief en het wijzigen van instellingen als de gateway niet bereikbaar is) of worden verwijderd, zodat niets de servers van Tesla bereikt. Een Tesla-account kan later opnieuw worden gekoppeld in de opties.",
+        "menu_options": {
+          "keep_cloud": "Houden als cloudback-up (aanbevolen)",
+          "local_only": "Verwijderen: alleen lokaal"
+        }
+      },
       "connect_failed": {
         "title": "Kan geen verbinding maken",
         "description": "De laatste verbindingscontrole is mislukt (zie de melding hieronder). Kies **Verzenden** om terug te gaan en het gateway-adres en wachtwoord te controleren."
@@ -117,6 +125,16 @@
           "reauth_password": "Gateway-wachtwoord opnieuw invoeren",
           "register": "De sleutel opnieuw registreren",
           "key_upload": "Een andere sleutel uploaden",
+          "fleet_signin": "Opnieuw aanmelden bij Tesla Fleet of Teslemetry"
+        }
+      },
+      "reauth_key": {
+        "title": "De Powerwall accepteert de sleutel niet meer",
+        "description": "De gateway blijft de sleutel van deze integratie weigeren, terwijl het wachtwoord werkt: de sleutel is misschien verwijderd in de Tesla-app, of vervallen door een firmware-update. Registreer een nieuwe sleutel (daarvoor is één keer een Tesla-aanmelding nodig; die kan daarna weer weg) of upload een sleutel die elders is geregistreerd. Tot dan komen metingen via de eigen wifi van de Powerwall, alleen-lezen, als er een wifi-uitwijkadres is ingesteld, en gaan instellingen via de cloudback-up als die er is.",
+        "menu_options": {
+          "register": "Een nieuwe sleutel registreren (aanbevolen)",
+          "key_upload": "Een al geregistreerde sleutel uploaden",
+          "reauth_password": "Gateway-wachtwoord opnieuw invoeren",
           "fleet_signin": "Opnieuw aanmelden bij Tesla Fleet of Teslemetry"
         }
       },
@@ -154,7 +172,8 @@
         "description": "Nog een ondertekende sleutel voor deze Powerwall registreren. De huidige sleutel blijft werken; Home Assistant schakelt pas over naar de nieuwe sleutel als de Powerwall die bevestigt.",
         "menu_options": {
           "register": "Een nieuwe sleutel registreren (aanbevolen)",
-          "key_upload": "Een al geregistreerde sleutel uploaden"
+          "key_upload": "Een al geregistreerde sleutel uploaden",
+          "keep_key": "Annuleren: huidige sleutel houden"
         }
       },
       "signin": {
@@ -171,7 +190,8 @@
         "description": "De aanmelding is de cloudback-up voor het wijzigen van instellingen (Tesla's Fleet API).",
         "menu_options": {
           "fleet_oauth": "Tesla Fleet (je eigen Tesla-ontwikkelaarsapp)",
-          "teslemetry": "Teslemetry (toegangstoken)"
+          "teslemetry": "Teslemetry (toegangstoken)",
+          "fleet_cancel": "Annuleren: niets wijzigen"
         }
       },
       "teslemetry": {
@@ -230,7 +250,9 @@
       "missing_configuration": "Voeg eerst de Tesla-ontwikkelaarsapp toe onder Instellingen → Applicatiegegevens.",
       "oauth_implementation_unavailable": "De Tesla-ontwikkelaarsapp is niet beschikbaar. Controleer de applicatiegegevens.",
       "fleet_not_registered": "Tesla weigerde de ontwikkelaarsapp (HTTP 412): het domein is voor de regio van je account niet bij Tesla geregistreerd. Registreer het zoals beschreven in de [installatiehandleiding]({docs_url}) en meld je daarna opnieuw aan.",
-      "pypowerwall_too_old": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie met een oudere pypowerwall heeft die eerst geladen (bijvoorbeeld ha-pypowerwall). Verwijder die integratie (uitschakelen is niet genoeg), herstart Home Assistant en begin de installatie opnieuw."
+      "pypowerwall_too_old": "In Home Assistant is pypowerwall {found} geladen, maar deze integratie heeft {required} of nieuwer nodig. Een andere aangepaste integratie met een oudere pypowerwall heeft die eerst geladen (bijvoorbeeld ha-pypowerwall). Verwijder die integratie (uitschakelen is niet genoeg), herstart Home Assistant en begin de installatie opnieuw.",
+      "new_key_cancelled": "Niets gewijzigd: de huidige sleutel blijft werken.",
+      "fleet_signin_cancelled": "Niets gewijzigd: de hier bewaarde Tesla-aanmeldingen blijven zoals ze waren."
     }
   },
   "options": {
@@ -239,10 +261,12 @@
         "title": "Opties voor Tesla Powerwall TEDAPI",
         "menu_options": {
           "settings": "Instellingen",
+          "mqtt": "MQTT",
           "cloud_backup": "Cloudback-up (Owner API, Fleet API)",
           "link_account": "Een Tesla-account koppelen (Owner API)",
           "fleet_signin": "Aanmelden bij Tesla Fleet of Teslemetry",
           "unlink_account": "Een cloudback-up ontkoppelen",
+          "local_only": "Alleen lokaal (Tesla-aanmeldingen verwijderen)",
           "new_key": "Nieuwe ondertekende sleutel registreren"
         }
       },
@@ -254,11 +278,13 @@
             "data": {
               "scan_interval": "Pollinginterval",
               "power_interval": "Snel pollinginterval voor vermogen",
-              "restore_export": "Instellingen herstellen als de Powerwall ze kwijtraakt"
+              "restore_export": "Instellingen herstellen als de Powerwall ze kwijtraakt",
+              "unit_devices": "Eén apparaat per Powerwall"
             },
             "data_description": {
               "power_interval": "Hoe vaak vermogen, batterijniveau en netstatus worden gelezen. `0` = uit: ze worden met al het andere gelezen, op het pollinginterval. 5 tot 60 s, en alleen gebruikt als het korter is dan het pollinginterval. Korter geeft vloeiendere grafieken en snellere dispatchgrenzen, maar meer belasting van de gateway en een grotere database. Wijzigen herlaadt de integratie.",
-              "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding)."
+              "restore_export": "De Powerwall verliest soms zijn regel voor teruglevering aan het net en zijn instelling voor laden van het net (elk uur gezien bij een Powerwall 3); laden van het net gaat dan aan. Indien ingeschakeld, wordt de gekozen instelling binnen een à twee minuten teruggezet (alleen ondertekende verbinding).",
+              "unit_devices": "Elke Powerwall en elk Expansion Pack krijgt een eigen apparaat, gekoppeld aan dit apparaat, met zijn sensoren voor batterij, ventilatoren, zonne-ingangen en omvormertemperatuur. Handig bij meerdere Powerwalls. Entiteit-ID's en geschiedenis blijven; wijzigen herlaadt de integratie."
             }
           },
           "alerts": {
@@ -276,11 +302,15 @@
             "name": "Batterijsturing",
             "data": {
               "dispatch_floor_reserve": "Ontladen stopt bij de back-upreserve",
-              "dispatch_max_watts": "Grootste dispatch-vermogen"
+              "dispatch_max_watts": "Grootste dispatch-vermogen",
+              "dispatch_stale_minutes": "Zo oud mag het batterijniveau zijn",
+              "dispatch_grid_charging": "Laden van het net inschakelen voor een laadbeurt"
             },
             "data_description": {
               "dispatch_floor_reserve": "Een ontlading die zonder `min_soc` is gestart, stopt als de batterij de back-upreserve bereikt.",
-              "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd (hoogstens 30.000 W). Stel in wat je systeem kan leveren: één Powerwall 3 weigert meer dan 10.000 W. Verhogen is jouw verantwoordelijkheid: stel alleen in wat je bedrading, groepen, gateway en netaansluiting toelaten."
+              "dispatch_max_watts": "Dispatch-aanroepen boven dit vermogen worden geweigerd (hoogstens 30.000 W). Stel in wat je systeem kan leveren: één Powerwall 3 weigert meer dan 10.000 W. Verhogen is jouw verantwoordelijkheid: stel alleen in wat je bedrading, groepen, gateway en netaansluiting toelaten.",
+              "dispatch_stale_minutes": "Laden of ontladen wordt alleen gestart of verlengd op een batterijniveau van hoogstens deze leeftijd (1–5 minuten, standaard 2; nooit minder dan 2½ pollintervallen). Tijdens een sturing negeert de Powerwall zijn back-upreserve, en de grenzen worden tegen dit niveau gecontroleerd: elke minuut extra laat een sturing van 10 kW ongeveer 0,17 kWh verder voorbij een grens gaan. Verhoog het alleen als een trage verbinding sturingen steeds pauzeert.",
+              "dispatch_grid_charging": "Een laad-dispatch (ook `charge_to`) schakelt Laden van het net in als het uit staat, zodat er van het net geladen kan worden, en schakelt het weer uit als de dispatch eindigt, tenzij het intussen is gewijzigd. Laden van het net kan geld kosten volgens je tarief."
             }
           },
           "advanced": {
@@ -292,11 +322,37 @@
             },
             "data_description": {
               "tesla_tariff": "Het tarief dat Tesla voor tijdgestuurde regeling gebruikt uit de cloud-back-up lezen (sensoren, agenda's en acties om te lezen/instellen). Alleen cloud.",
-              "cloud_readings": "Zolang de gateway onbereikbaar is, vermogen en batterijniveau uit de cloudback-up tonen (ze dragen het attribuut `source: cloud` en kunnen enkele minuten oud zijn). Energietellers en al het andere blijven niet beschikbaar. Uit: alle metingen zijn niet beschikbaar tot de gateway antwoordt.",
+              "cloud_readings": "Zolang de gateway onbereikbaar is, vermogen, batterijniveau en batterij-energie (resterend en volledige capaciteit) uit de cloudback-up tonen (ze dragen het attribuut `source: cloud` en kunnen enkele minuten oud zijn). Energietellers en al het andere blijven niet beschikbaar. Uit: alle metingen zijn niet beschikbaar tot de gateway antwoordt.",
+              "diagnostics_gateway_config": "De configuratie van de gateway toevoegen aan diagnostiekdownloads, zonder serienummers, locatie, namen en inloggegevens. Handig voor bugmeldingen."
+            }
+          },
+          "advanced_no_cloud": {
+            "name": "Geavanceerd",
+            "data": {
+              "diagnostics_gateway_config": "Gatewayconfiguratie in diagnostiek"
+            },
+            "data_description": {
               "diagnostics_gateway_config": "De configuratie van de gateway toevoegen aan diagnostiekdownloads, zonder serienummers, locatie, namen en inloggegevens. Handig voor bugmeldingen."
             },
-            "description": "De optie **Tesla-tarief** verschijnt hier zodra een cloudback-up is ingesteld: kies in het menu eerst **Een Tesla-account koppelen** of **Aanmelden bij Tesla Fleet of Teslemetry**."
+            "description": "De optie ‘Tesla-tarief’ verschijnt hier zodra een cloudback-up is ingesteld: kies in het menu eerst ‘Een Tesla-account koppelen’ of ‘Aanmelden bij Tesla Fleet of Teslemetry’."
           }
+        }
+      },
+      "mqtt": {
+        "title": "MQTT",
+        "description": "Publiceer de metingen, instellingen, status en gebeurtenissen van deze Powerwall via de MQTT-integratie van Home Assistant, voor programma's buiten Home Assistant. Standaard uit; vraagt de MQTT-integratie. Topics en berichten bevatten nooit de ID, serienummers of het adres van de gateway. Uitzetten verwijdert de bewaarde (retained) berichten.",
+        "data": {
+          "mqtt_publish": "Publiceren naar MQTT",
+          "mqtt_base_topic": "Basistopic",
+          "mqtt_commands": "Instellingscommando's accepteren",
+          "mqtt_battery_commands": "Commando's voor batterijbesturing accepteren",
+          "mqtt_secret": "Commandogeheim (optioneel)"
+        },
+        "data_description": {
+          "mqtt_base_topic": "Berichten gaan naar `basis/power`, /battery, /energy, /settings, /status en /event/…. Letters, cijfers, _ en -, gescheiden door /. Elke Powerwall heeft een eigen nodig.",
+          "mqtt_commands": "Bedrijfsmodus, back-upreserve, laden van het net en teruglevering, via `basis/cmd/…`, met dezelfde controles als de entiteiten. Vraagt publiceren aan. Iedereen die naar je broker kan publiceren kan ze gebruiken: beperk dat met de toegangsregels van de broker, of stel een geheim in.",
+          "mqtt_battery_commands": "Batterijsturing, laden en ontladen tot een niveau, hervatten en maximale back-up, met alle grenzen van de acties. Alleen met instellingscommando's aan. Lees eerst Veiligheid.",
+          "mqtt_secret": "Indien ingesteld, wordt een commando alleen uitgevoerd als het veld token overeenkomt."
         }
       },
       "cloud_backup": {
@@ -330,13 +386,25 @@
       },
       "unlink_account": {
         "title": "Een cloudback-up ontkoppelen",
-        "description": "Kies de cloudback-up die niet meer gebruikt moet worden. **Owner API:** het hier gekoppelde Tesla-account wordt verwijderd (de opgeslagen aanmelding blijft op schijf staan tot je de map `tesla_tedapi` verwijdert). **Tesla Fleet:** deze integratie gebruikt hem niet meer; de integratie Tesla Fleet of Teslemetry zelf blijft ongewijzigd. Instellingen gaan dan via de andere back-up, of alleen via de lokale verbinding.",
+        "description": "Kies de cloudback-up die niet meer gebruikt moet worden. **Owner API:** het hier gekoppelde Tesla-account wordt verwijderd (ook de opgeslagen aanmelding wordt verwijderd, tenzij een andere Powerwall hetzelfde account gebruikt). **Tesla Fleet:** deze integratie gebruikt hem niet meer; de integratie Tesla Fleet of Teslemetry zelf blijft ongewijzigd. Instellingen gaan dan via de andere back-up, of alleen via de lokale verbinding.",
         "data": {
           "backup": "Cloudback-up"
         },
         "data_description": {
           "backup": "De back-up die niet meer gebruikt moet worden."
         }
+      },
+      "local_only": {
+        "title": "Alleen lokaal",
+        "description": "Verwijdert elke Tesla-aanmelding die hier bewaard is (ook de opgeslagen tokens van het Tesla-account, tenzij een andere Powerwall hetzelfde account gebruikt) en zet de cloudback-up uit. De ondertekende sleutel blijft werken: metingen en instellingen gaan naar de gateway in je netwerk, en niets bereikt de servers van Tesla.\n\nWerkt niet meer, en de entiteiten worden verwijderd: Storm Watch, de off-grid-reserve, Wall Connectors en het Tesla-tarief. Instellingen kunnen niet worden gewijzigd als de gateway niet bereikbaar is, en later een nieuwe sleutel registreren vraagt weer een Tesla-aanmelding."
+      },
+      "new_key": {
+        "title": "Nieuwe sleutel registreren",
+        "description": "Deze Powerwall heeft al een werkende sleutel. Een nieuwe sleutel vraagt een Tesla-aanmelding en de aan/uit-schakelaar van de Powerwall; de huidige sleutel blijft werken tot de nieuwe is bevestigd.\n\nVerzend om te beginnen. Sluit dit venster om de huidige sleutel te houden: er verandert niets."
+      },
+      "fleet_signin": {
+        "title": "Aanmelden bij Tesla Fleet of Teslemetry",
+        "description": "Meld je aan bij Tesla Fleet (je eigen ontwikkelaarsapp) of Teslemetry (een toegangstoken) voor de cloudback-up. Het gaat verder als een verzoek om opnieuw te verifiëren op de kaart van deze Powerwall; een hier bewaarde aanmelding blijft tot de nieuwe werkt.\n\nVerzend om te beginnen. Sluit dit venster om niets te wijzigen."
       }
     },
     "error": {
@@ -344,7 +412,9 @@
       "cloud_error": "De Tesla-dienst gaf een fout. Probeer het over een minuut opnieuw.",
       "owner_api_refused": "Je bent ingelogd, maar de Tesla Owner API heeft de token geweigerd (HTTP 403). Log opnieuw in; blijft dit gebeuren, dan heeft Tesla misschien zijn aanmeldregels weer veranderd: meld dan een probleem (issue).",
       "invalid_token": "Tesla heeft die refresh-token niet geaccepteerd. Hij is misschien verlopen of door een andere app gebruikt: haal een nieuwe op in je token-app. De aanmeldlink is niet veranderd.",
-      "invalid_callback": "Dat is geen aanmeldadres van de link hierboven. Plak het volledige adres `tesla://auth/callback?code=…` van deze link (een oudere link werkt niet meer), of een refresh-token. De link is niet veranderd."
+      "invalid_callback": "Dat is geen aanmeldadres van de link hierboven. Plak het volledige adres `tesla://auth/callback?code=…` van deze link (een oudere link werkt niet meer), of een refresh-token. De link is niet veranderd.",
+      "invalid_base_topic": "Gebruik letters, cijfers, _ en -, gescheiden door / (geen spaties, + of #, en geen / aan begin of eind).",
+      "base_topic_in_use": "Een andere Powerwall publiceert al onder deze basistopic."
     },
     "abort": {
       "no_sites": "Er is geen Powerwall gevonden op dit Tesla-account. Log in met het Tesla-account dat eigenaar is van de Powerwall (het account dat hem in de Tesla-app toont).",
@@ -554,11 +624,35 @@
           "wifi": "Wifi-wachtwoord"
         }
       },
+      "connection_path": {
+        "name": "Verbindingspad",
+        "state": {
+          "signed": "Ondertekende verbinding",
+          "wifi_fallback": "Ondertekend, via de wifi-uitwijk",
+          "wifi_password": "Wifi-wachtwoord",
+          "cloud": "Alleen cloudback-up",
+          "none": "Geen"
+        },
+        "state_attributes": {
+          "last_local_read": {
+            "name": "Gateway laatst bereikt"
+          },
+          "last_known_settings": {
+            "name": "Laatst bekende instellingen"
+          }
+        }
+      },
       "pack_capacity": {
         "name": "{pack} capaciteit"
       },
+      "unit_pack_capacity": {
+        "name": "Batterijcapaciteit"
+      },
       "pack_temperature": {
         "name": "{pack} temperatuur"
+      },
+      "unit_pack_temperature": {
+        "name": "Batterijtemperatuur"
       },
       "alert_level": {
         "name": "Waarschuwingsniveau",
@@ -591,6 +685,9 @@
       "fan_speed": {
         "name": "Ventilator {fan} toerental"
       },
+      "unit_fan_speed": {
+        "name": "Ventilatortoerental"
+      },
       "last_grid_outage": {
         "name": "Laatste netstoring",
         "state_attributes": {
@@ -622,11 +719,36 @@
           }
         }
       },
+      "unit_pack_health": {
+        "name": "Batterijgezondheid",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Nominale capaciteit"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrens"
+          }
+        }
+      },
       "pack_discharged": {
         "name": "{pack} totale ontlading"
       },
+      "unit_pack_discharged": {
+        "name": "Totale ontlading batterij"
+      },
       "pack_cycles": {
         "name": "{pack} cycli",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Volle cycli (batterij)"
+          },
+          "over_discharges": {
+            "name": "Diepontladingen"
+          }
+        }
+      },
+      "unit_pack_cycles": {
+        "name": "Batterijcycli",
         "state_attributes": {
           "bms_full_cycles": {
             "name": "Volle cycli (batterij)"
@@ -903,12 +1025,15 @@
     },
     "key_not_removed": {
       "message": "De sleutel is niet verwijderd: {error}"
+    },
+    "off_grid_daily_limit": {
+      "message": "De vandaag toegestane off-grid tijd om zonne-energie te begrenzen ({minutes} min) is op."
     }
   },
   "services": {
     "dispatch_battery_power": {
       "name": "Batterijvermogen sturen",
-      "description": "Laat de batterij een vaste tijd op een vast vermogen draaien via de ondertekende lokale verbinding. Positieve watts ontladen, negatieve laden, 0 houdt de batterij stil. Gaat boven de terugleverinstelling; een ontlading stopt bij de back-upreserve, tenzij `min_soc` is opgegeven (optie). De integratie vernieuwt de opdracht elke minuut in korte stappen, zodat de Powerwall binnen 5 minuten normaal werkt als Home Assistant stopt. Een nieuwe aanroep vervangt een lopende dispatch. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
+      "description": "Laat de batterij een vaste tijd op een vast vermogen draaien via de ondertekende lokale verbinding. Positieve watts ontladen, negatieve laden, 0 houdt de batterij stil. Gaat boven de terugleverinstelling; een ontlading stopt bij de back-upreserve, tenzij `min_soc` is opgegeven (optie). De integratie vernieuwt de opdracht elke 30 seconden in korte stappen, zodat de Powerwall binnen 2 minuten normaal werkt als Home Assistant stopt. Een nieuwe aanroep vervangt een lopende dispatch. Gebruik op eigen risico: het aansturen van de batterij kan de Powerwall-garantie beïnvloeden, die onbeperkte cycli mogelijk alleen dekt voor eigen verbruik, tijdgestuurde regeling en noodstroom.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -929,6 +1054,36 @@
         "max_soc": {
           "name": "Stop laden bij",
           "description": "Beëindig het laden als het batterijniveau (schaal van de Tesla-app) dit percentage bereikt."
+        }
+      }
+    },
+    "freeze_battery": {
+      "name": "Batterij bevriezen",
+      "description": "Laat de batterij via de ondertekende lokale verbinding maar één kant op werken, met het vermogen dat de metingen aangeven. `charge_only` laadt met de zonne-energie die het huis niet gebruikt en ontlaadt nooit; `discharge_only` dekt wat het huis boven de zonne-energie gebruikt en laadt nooit, dus overtollige zonne-energie wordt teruggeleverd. Het vermogen volgt elke meting, dus daartussen kan er wat van of naar het net gaan; zonder verse meting wordt de batterij vastgehouden. Bedoeld voor Predbats freeze charging en freeze exporting. Zet nooit Laden van het net aan; verder werkt het als een batterij-dispatch en kan het de Powerwall-garantie op dezelfde manier raken.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "direction": {
+          "name": "Richting",
+          "description": "`charge_only`: geen ontlading, laadt met overtollige zonne-energie. `discharge_only`: geen lading, dekt het huis."
+        },
+        "duration_seconds": {
+          "name": "Duur",
+          "description": "Hoe lang bevriezen, in seconden (tot 24 uur)."
+        },
+        "max_power_watts": {
+          "name": "Grootste vermogen",
+          "description": "Hoogstens zoveel laadt of ontlaadt de batterij, in watt. Standaard: Grootste dispatch-vermogen (integratie-opties)."
+        },
+        "min_soc": {
+          "name": "Stop ontladen bij",
+          "description": "Met `discharge_only` wordt de batterij vastgehouden zodra het niveau (schaal van de Tesla-app) tot dit percentage daalt. Standaard: de back-upreserve."
+        },
+        "max_soc": {
+          "name": "Stop laden bij",
+          "description": "Met `charge_only` wordt de batterij vastgehouden zodra het niveau (schaal van de Tesla-app) dit percentage bereikt."
         }
       }
     },
@@ -1029,6 +1184,14 @@
         "min_soc": {
           "name": "Opnieuw verbinden bij",
           "description": "Opnieuw verbinden als het batterijniveau (schaal van de Tesla-app) tot dit percentage daalt. Standaard: de back-upreserve."
+        },
+        "curtailment": {
+          "name": "Om zonne-energie te begrenzen",
+          "description": "Laatste redmiddel om zonne-energie op de eigen ingangen van de Powerwall te begrenzen: off-grid produceert hij alleen wat huis en batterij opnemen. Verbindt opnieuw als de batterij tot 40% daalt (of de back-upreserve, als die hoger is), tenzij Opnieuw verbinden bij is ingesteld, om middernacht en zodra de daglimiet op is. Schakelen van het netcontactor geeft slijtage: probeer eerst teruglevering *never*."
+        },
+        "daily_limit_minutes": {
+          "name": "Daglimiet",
+          "description": "Met Om zonne-energie te begrenzen: toegestane off-grid tijd per dag om te begrenzen (standaard 6 uur)."
         }
       }
     },
@@ -1039,6 +1202,10 @@
         "config_entry_id": {
           "name": "Powerwall",
           "description": "Alleen nodig als er meer dan één Powerwall is ingesteld."
+        },
+        "curtailment_only": {
+          "name": "Alleen een begrenzing",
+          "description": "Verbindt alleen opnieuw als het huis hier off-grid ging om zonne-energie te begrenzen; anders gebeurt er niets. Voor automatiseringen die geen off-grid periode mogen beëindigen die ze niet zelf startten."
         }
       }
     },
@@ -1283,6 +1450,14 @@
     "powerwall_follower_missing": {
       "title": "Er ontbreekt een Powerwall 3 in de metingen",
       "description": "{count} Powerwall 3 uit de gatewayconfiguratie staan niet in de metingen. Totalen voor vermogen, energie en capaciteit bevatten al elke Powerwall; alleen de accupacks, temperaturen en ventilatoren van de ontbrekende units ontbreken.\n\nDit verdwijnt vanzelf zodra ze verschijnen. Blijft het, download dan de diagnostiek en open een issue."
+    },
+    "mqtt_unavailable": {
+      "title": "MQTT-publicatie kan niet starten",
+      "description": "MQTT-publicatie staat aan voor {name}, maar de MQTT-integratie van Home Assistant is niet ingesteld of niet gestart. Stel de MQTT-integratie in, of zet publiceren uit in de opties van de integratie (**Configureren → MQTT**). Al het andere blijft werken."
+    },
+    "wrong_gateway": {
+      "title": "Op het adres van {name} antwoordt een andere Powerwall",
+      "description": "De gateway op het adres dat voor {name} is ingesteld is een andere Powerwall (de ID komt niet overeen), bijvoorbeeld nadat de router het adres aan een ander apparaat gaf. Er wordt niets van gelezen of naartoe gestuurd. Stel het juiste adres in onder **Opnieuw configureren** (een vast adres of DHCP-reservering voor de gateway voorkomt dit). Deze melding verdwijnt zodra de eigen gateway van {name} daar weer antwoordt."
     }
   },
   "selector": {
@@ -1341,11 +1516,19 @@
         "pws_a044_hvprsdfault": "Storing in de snelle uitschakeling van de batterij",
         "pws_a045_battvrationality": "Batterijspanning is onwaarschijnlijk",
         "batterycalibration": "De batterij kalibreert haar laadniveau",
+        "calibrationrequested": "De Powerwall heeft gevraagd haar laadniveau te kalibreren: ze kan de batterij bijna leeg laten lopen, met teruglevering ongeacht de instellingen, en daarna volledig laden (gezien voor en tijdens een kalibratie)",
         "realpowerconfiglimited": "Het vermogen blijft onder een ingestelde limiet",
         "batterycomms": "De gateway kan niet communiceren met een batterij",
         "gridcodeswrite": "De gateway schrijft zijn netcode-instellingen",
         "podcommissiontime": "Een batterij legt haar inbedrijfstellingstijd vast",
-        "solarmetercomms": "Verbinding met de zonnemeter verbroken (korte onderbrekingen komen vaak voor)"
+        "solarmetercomms": "Verbinding met de zonnemeter verbroken (korte onderbrekingen komen vaak voor)",
+        "pws_a082_powerlimits": "De Powerwall hield zijn vermogen even op een grens (gezien bij teruglevering op de terugleveringsgrens van de locatie)",
+        "highcontrolloopjitter": "De regeltiming van de gateway was even onregelmatig (gezien bij teruglevering op vol vermogen)",
+        "bms_a083_nvram_filecache": "Het batterijbeheer meldde een probleem met zijn cache van opgeslagen gegevens (gezien na een firmware-update)",
+        "pws_a091_nvmmmigratestuck": "Een geheugenmigratie in de Powerwall is niet afgerond (gezien na een firmware-update)",
+        "solarchargeonlylimited": "Er is om laden gevraagd, maar alleen zonne-energie mag de batterij laden (laden van het net uit)",
+        "rampratelimited": "Hoe snel het vermogen mag veranderen wordt begrensd (vaak gezien tijdens het laden)",
+        "pws_a007_mcipvirrationalabc": "De Powerwall vond de metingen van zijn zonne-ingangen (A–C) onwaarschijnlijk (gezien rond zonsopgang)"
       }
     },
     "alert_short": {
@@ -1379,11 +1562,19 @@
         "pws_a045_battvrationality": "Batterijspanning onwaarschijnlijk",
         "no_alerts": "Geen",
         "batterycalibration": "Batterij kalibreert",
+        "calibrationrequested": "Kalibratie aangevraagd",
         "realpowerconfiglimited": "Vermogen begrensd door instelling",
         "batterycomms": "Batterij onbereikbaar",
         "gridcodeswrite": "Netinstellingen schrijven",
         "podcommissiontime": "Inbedrijfstelling batterij",
-        "solarmetercomms": "Zonnemeter onbereikbaar"
+        "solarmetercomms": "Zonnemeter onbereikbaar",
+        "pws_a082_powerlimits": "Vermogen op een grens",
+        "highcontrolloopjitter": "Regeltiming onregelmatig",
+        "bms_a083_nvram_filecache": "Probleem met batterijgegevenscache",
+        "pws_a091_nvmmmigratestuck": "Geheugenmigratie niet afgerond",
+        "solarchargeonlylimited": "Laden beperkt tot zonne-energie",
+        "rampratelimited": "Vermogensramp begrensd",
+        "pws_a007_mcipvirrationalabc": "Zonnemetingen onwaarschijnlijk"
       }
     },
     "logbook": {
@@ -1420,6 +1611,12 @@
       "options": {
         "import": "Afname",
         "export": "Teruglevering"
+      }
+    },
+    "freeze_direction": {
+      "options": {
+        "charge_only": "Alleen laden (met overtollige zonne-energie)",
+        "discharge_only": "Alleen ontladen (dekt het huis)"
       }
     },
     "reauth_connect_failed": {

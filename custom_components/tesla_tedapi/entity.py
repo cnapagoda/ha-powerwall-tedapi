@@ -18,22 +18,56 @@ except ImportError:  # Home Assistant < 2025.2
     )
 
 from .const import DOMAIN, DROPPABLE_SETTINGS
-from .coordinator import TedapiCoordinator, model_id
+from .coordinator import PACK_NAMES, TedapiCoordinator, model_id
 from .firmware import split_version
 
 __all__ = ["AddConfigEntryEntitiesCallback", "TedapiCloudEntity", "TedapiControlEntity", "TedapiEntity",
-           "add_when_reported"]
+           "add_when_reported", "unit_device", "unit_identifier"]
+
+
+def unit_identifier(din: str, serial: str) -> str:
+    """The device identifier of one Powerwall or Expansion Pack (#24). Stable:
+    switching one device per Powerwall off and on again brings back the same
+    devices."""
+    return f"{din}_{serial}"
+
+
+def unit_device(coordinator: TedapiCoordinator, serial: str | None) -> DeviceInfo | None:
+    """The device of the Powerwall or Expansion Pack with this serial number,
+    linked to the gateway's; None with one device per Powerwall off, or for a
+    unit that isn't among the battery packs read."""
+    din = coordinator.din
+    if not coordinator.unit_devices or not din or not serial:
+        return None
+    pack = ((coordinator.data or {}).get("packs") or {}).get(serial)
+    if pack is None:
+        return None
+    part = str(pack.get("part_number") or "")
+    return DeviceInfo(
+        identifiers={(DOMAIN, unit_identifier(din, serial))},
+        name=pack.get("name") or serial,
+        manufacturer="Tesla",
+        model=PACK_NAMES.get(part.split("-", maxsplit=1)[0], "Battery"),
+        model_id=part or None,
+        serial_number=serial,
+        via_device=(DOMAIN, din),
+    )
 
 
 class TedapiEntity(CoordinatorEntity[TedapiCoordinator]):
-    """One device per gateway (DIN); unique ids are "<DIN>_<key>"."""
+    """One device per gateway (DIN); unique ids are "<DIN>_<key>". With one
+    device per Powerwall on, an entity of one unit (`unit`: its serial
+    number) is on that unit's device instead; its unique id stays."""
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: TedapiCoordinator, key: str) -> None:
+    def __init__(self, coordinator: TedapiCoordinator, key: str, unit: str | None = None) -> None:
         super().__init__(coordinator)
         din = coordinator.din or coordinator.config_entry.entry_id
         self._attr_unique_id = f"{din}_{key}"
+        if (device := unit_device(coordinator, unit)) is not None:
+            self._attr_device_info = device
+            return
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, din)},
             name="Powerwall TEDAPI",

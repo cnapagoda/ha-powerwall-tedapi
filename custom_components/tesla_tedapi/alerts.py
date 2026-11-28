@@ -32,13 +32,35 @@ CATALOGUE: dict[str, tuple[str, str]] = {
     "BAGGR_a007_EndOfCharge": (SEVERITY_STATUS, "Battery is full"),
     "BackfeedLimited": (SEVERITY_STATUS, "Export to the grid is being limited (export setting or export limit)"),
     "ChargeOnlyFromSolarOverride": (SEVERITY_STATUS, "Charging from the grid is not allowed; charging from solar only"),
+    # Seen on a Powerwall 3 while a charge was asked for (a charging dispatch,
+    # max backup) with grid charging off at night, cleared when it ended
+    # (2.9.0; also on #36's Powerwall 3).
+    "SolarChargeOnlyLimited": (
+        SEVERITY_STATUS,
+        "A charge was asked for, but only solar may charge the battery (grid charging off)",
+    ),
     "SelfConsumptionReservedLimit": (SEVERITY_STATUS, "Battery is at the backup reserve"),
+    # Came and went about 50 times while a Powerwall 3 charged from the grid
+    # in a Storm Watch event on firmware 26.42.1 (#40). Tesla doesn't say what
+    # it means: the description only restates the code.
+    "RampRateLimited": (
+        SEVERITY_STATUS,
+        "How fast the power may change is being limited (seen often while charging)",
+    ),
     "PCH_a054_pwsDisabledMpptEnableLine": (
         SEVERITY_STATUS,
         "The Powerwall's built-in solar inputs (MPPT) are off, normal when solar uses a separate inverter",
     ),
     "BMS_a045_SW_SOC_Change": (SEVERITY_STATUS, "Battery recalibrated its state of charge"),
     "BatteryCalibration": (SEVERITY_STATUS, "Battery is calibrating its charge level"),
+    # Raised all day before a calibration on a Powerwall 3 (26.34.3) and while
+    # it ran; BatteryCalibration was never reported. The calibration exported
+    # at full power whatever the operation mode and export settings.
+    "CalibrationRequested": (
+        SEVERITY_STATUS,
+        "The Powerwall has asked to calibrate its charge level: it may run the battery almost empty, "
+        "exporting whatever the settings, then charge it to full (seen before and during a calibration)",
+    ),
     "RealPowerConfigLimited": (SEVERITY_STATUS, "Power is held below a configured limit"),
     "GridCodesWrite": (SEVERITY_STATUS, "The gateway is writing its grid-code settings"),
     "PodCommissionTime": (SEVERITY_STATUS, "A battery is recording its commissioning time"),
@@ -56,6 +78,34 @@ CATALOGUE: dict[str, tuple[str, str]] = {
     # Pack reported it for days after a firmware update, so it isn't a problem
     # on its own.
     "BMS_a023_SW_Assertion": (SEVERITY_NOTICE, "Battery management software reported an internal error"),
+    # Seen for about 30 s at a time, each while exporting at full power up to
+    # a site export limit (#37): notices.
+    "PWS_a082_PowerLimits": (
+        SEVERITY_NOTICE,
+        "The Powerwall held its power at a limit for a moment (seen while exporting at the site's export limit)",
+    ),
+    "HighControlLoopJitter": (
+        SEVERITY_NOTICE,
+        "The gateway's control timing was briefly irregular (seen during full-power export)",
+    ),
+    # On a Powerwall 3 and its Expansion Pack since firmware 26.42.1 (#36).
+    # Tesla doesn't say what they mean: the descriptions only restate the
+    # codes. Notices, like an unknown code.
+    "BMS_a083_Nvram_Filecache": (
+        SEVERITY_NOTICE,
+        "Battery management reported a problem with its stored-data cache (seen after a firmware update)",
+    ),
+    "PWS_a091_NvmmMigrateStuck": (
+        SEVERITY_NOTICE,
+        "A memory migration in the Powerwall hasn't finished (seen after a firmware update)",
+    ),
+    # Around sunrise on a Powerwall 3 on firmware 26.42.1, for half an hour
+    # (#40). Tesla doesn't say what it means: the description only restates
+    # the code.
+    "PWS_a007_MciPvIrrationalABC": (
+        SEVERITY_NOTICE,
+        "The Powerwall found its solar input readings (A–C) implausible (seen around sunrise)",
+    ),
     # Warnings: expected during restarts or switch toggles, a problem if they last
     "IslandChecksFailed": (
         SEVERITY_WARNING,
@@ -88,10 +138,13 @@ SHORT: dict[str, str] = {
     "FWUpdateSucceeded": "Firmware update succeeded",
     "BackfeedLimited": "Export limited",
     "ChargeOnlyFromSolarOverride": "Solar-only charging",
+    "SolarChargeOnlyLimited": "Charge limited to solar",
     "SelfConsumptionReservedLimit": "At backup reserve",
+    "RampRateLimited": "Power ramp limited",
     "PCH_a054_pwsDisabledMpptEnableLine": "Built-in solar inputs off",
     "BMS_a045_SW_SOC_Change": "Charge level recalibrated",
     "BatteryCalibration": "Battery calibrating",
+    "CalibrationRequested": "Calibration requested",
     "RealPowerConfigLimited": "Power limited by settings",
     "GridCodesWrite": "Writing grid settings",
     "PodCommissionTime": "Battery commissioning",
@@ -114,6 +167,11 @@ SHORT: dict[str, str] = {
     "BAGGR_a005_NumBatteriesExpectedMismatch": "Battery packs missing",
     "BMS_a037_SW_NVRAM_Config_Error": "Battery settings error",
     "BMS_a023_SW_Assertion": "Battery software error",
+    "PWS_a082_PowerLimits": "Power held at a limit",
+    "HighControlLoopJitter": "Control timing irregular",
+    "BMS_a083_Nvram_Filecache": "Battery data cache problem",
+    "PWS_a091_NvmmMigrateStuck": "Memory migration unfinished",
+    "PWS_a007_MciPvIrrationalABC": "Solar readings implausible",
     "PWS_a009_Rsd": "Rapid shutdown active",
     "PWS_a014_HvpFault": "Battery controller fault",
     "PWS_a044_HvpRsdFault": "Rapid-shutdown fault",

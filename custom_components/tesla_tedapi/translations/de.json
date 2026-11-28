@@ -99,6 +99,14 @@
         "title": "Die Powerwall hat den Schlüssel nicht bestätigt",
         "description": "Es kam keine Bestätigung rechtzeitig an (oder der Schlüssel wurde entfernt). Wähle **Absenden**, um den Schlüssel erneut zu registrieren und ein neues 10-Minuten-Fenster zu öffnen, und führe dann den Schalter-Schritt aus."
       },
+      "keep_signin": {
+        "title": "Tesla-Anmeldung behalten?",
+        "description": "Die Powerwall hat den Schlüssel angenommen: Messwerte und Einstellungen gehen jetzt direkt an das Gateway. Die Tesla-Anmeldung, mit der er registriert wurde, kann als Cloud-Sicherung bleiben (Storm Watch, Wall Connectors, der Tesla-Tarif und Einstellungsänderungen, solange das Gateway nicht erreichbar ist) oder entfernt werden, sodass nichts die Server von Tesla erreicht. Ein Tesla-Konto kann später in den Optionen wieder verknüpft werden.",
+        "menu_options": {
+          "keep_cloud": "Als Cloud-Sicherung behalten (empfohlen)",
+          "local_only": "Entfernen: nur lokal"
+        }
+      },
       "connect_failed": {
         "title": "Verbindung fehlgeschlagen",
         "description": "Die letzte Verbindungsprüfung ist fehlgeschlagen (siehe Meldung unten). Wähle **Absenden**, um zurückzugehen und Gateway-Adresse und Passwort zu prüfen."
@@ -117,6 +125,16 @@
           "reauth_password": "Gateway-Passwort erneut eingeben",
           "register": "Schlüssel erneut registrieren",
           "key_upload": "Anderen Schlüssel hochladen",
+          "fleet_signin": "Erneut bei Tesla Fleet oder Teslemetry anmelden"
+        }
+      },
+      "reauth_key": {
+        "title": "Die Powerwall nimmt den Schlüssel nicht mehr an",
+        "description": "Das Gateway lehnt den Schlüssel dieser Integration immer wieder ab, das Passwort funktioniert aber: Der Schlüssel wurde vielleicht in der Tesla-App entfernt oder von einem Firmware-Update verworfen. Registriere einen neuen Schlüssel (dafür ist einmal eine Tesla-Anmeldung nötig; sie kann danach wieder entfernt werden) oder lade einen anderswo registrierten hoch. Bis dahin kommen Messwerte nur lesend über das eigene WLAN der Powerwall, wenn eine WLAN-Ausweichadresse eingetragen ist, und Einstellungen gehen über die Cloud-Sicherung, falls es eine gibt.",
+        "menu_options": {
+          "register": "Neuen Schlüssel registrieren (empfohlen)",
+          "key_upload": "Bereits registrierten Schlüssel hochladen",
+          "reauth_password": "Gateway-Passwort erneut eingeben",
           "fleet_signin": "Erneut bei Tesla Fleet oder Teslemetry anmelden"
         }
       },
@@ -154,7 +172,8 @@
         "description": "Einen weiteren signierten Schlüssel für diese Powerwall registrieren. Der aktuelle Schlüssel funktioniert weiter; Home Assistant wechselt erst zum neuen Schlüssel, wenn die Powerwall ihn bestätigt.",
         "menu_options": {
           "register": "Neuen Schlüssel registrieren (empfohlen)",
-          "key_upload": "Bereits registrierten Schlüssel hochladen"
+          "key_upload": "Bereits registrierten Schlüssel hochladen",
+          "keep_key": "Abbrechen: aktuellen Schlüssel behalten"
         }
       },
       "signin": {
@@ -171,7 +190,8 @@
         "description": "Die Anmeldung ist das Cloud-Backup zum Ändern von Einstellungen (Teslas Fleet API).",
         "menu_options": {
           "fleet_oauth": "Tesla Fleet (eigene Tesla-Entwickler-App)",
-          "teslemetry": "Teslemetry (Zugriffstoken)"
+          "teslemetry": "Teslemetry (Zugriffstoken)",
+          "fleet_cancel": "Abbrechen: nichts ändern"
         }
       },
       "teslemetry": {
@@ -230,7 +250,9 @@
       "missing_configuration": "Füge die Tesla-Entwickler-App zuerst unter Einstellungen → Anwendungs-Anmeldedaten hinzu.",
       "oauth_implementation_unavailable": "Die Tesla-Entwickler-App ist nicht verfügbar. Prüfe die Anwendungs-Anmeldedaten.",
       "fleet_not_registered": "Tesla hat die Entwickler-App abgelehnt (HTTP 412): Ihre Domain ist für die Region deines Kontos nicht bei Tesla registriert. Registriere sie wie in der [Einrichtungsanleitung]({docs_url}) beschrieben und melde dich dann erneut an.",
-      "pypowerwall_too_old": "In Home Assistant ist pypowerwall {found} geladen, diese Integration braucht aber {required} oder neuer. Eine andere benutzerdefinierte Integration mit einem älteren pypowerwall hat es zuerst geladen (zum Beispiel ha-pypowerwall). Entferne diese Integration (Deaktivieren reicht nicht), starte Home Assistant neu und beginne die Einrichtung erneut."
+      "pypowerwall_too_old": "In Home Assistant ist pypowerwall {found} geladen, diese Integration braucht aber {required} oder neuer. Eine andere benutzerdefinierte Integration mit einem älteren pypowerwall hat es zuerst geladen (zum Beispiel ha-pypowerwall). Entferne diese Integration (Deaktivieren reicht nicht), starte Home Assistant neu und beginne die Einrichtung erneut.",
+      "new_key_cancelled": "Nichts geändert: Der aktuelle Schlüssel funktioniert weiter.",
+      "fleet_signin_cancelled": "Nichts geändert: Die hier gespeicherten Tesla-Anmeldungen bleiben, wie sie waren."
     }
   },
   "options": {
@@ -239,10 +261,12 @@
         "title": "Powerwall-TEDAPI-Optionen",
         "menu_options": {
           "settings": "Einstellungen",
+          "mqtt": "MQTT",
           "cloud_backup": "Cloud-Backup (Owner API, Fleet API)",
           "link_account": "Tesla-Konto verknüpfen (Owner API)",
           "fleet_signin": "Bei Tesla Fleet oder Teslemetry anmelden",
           "unlink_account": "Eine Cloud-Sicherung trennen",
+          "local_only": "Nur lokal (Tesla-Anmeldungen entfernen)",
           "new_key": "Neuen signierten Schlüssel registrieren"
         }
       },
@@ -254,11 +278,13 @@
             "data": {
               "scan_interval": "Abfrageintervall",
               "power_interval": "Schnelles Abfrageintervall für Leistung",
-              "restore_export": "Einstellungen wiederherstellen, wenn die Powerwall sie verliert"
+              "restore_export": "Einstellungen wiederherstellen, wenn die Powerwall sie verliert",
+              "unit_devices": "Ein Gerät pro Powerwall"
             },
             "data_description": {
               "power_interval": "Wie oft Leistung, Batteriestand und Netzstatus gelesen werden. `0` = aus: sie werden mit allem anderen im Abfrageintervall gelesen. 5 bis 60 s, und nur wirksam, wenn kürzer als das Abfrageintervall. Kürzer ergibt glattere Diagramme und schnellere Dispatch-Grenzen, aber mehr Last auf dem Gateway und eine größere Datenbank. Eine Änderung lädt die Integration neu.",
-              "restore_export": "Die Powerwall verliert manchmal ihre Netzeinspeiseregel und ihre Einstellung zum Laden aus dem Netz (stündlich bei einer Powerwall 3 beobachtet); das Laden aus dem Netz schaltet sich dann ein. Wenn aktiv, wird die gewählte Einstellung innerhalb von ein bis zwei Minuten zurückgeschrieben (nur signierte Verbindung)."
+              "restore_export": "Die Powerwall verliert manchmal ihre Netzeinspeiseregel und ihre Einstellung zum Laden aus dem Netz (stündlich bei einer Powerwall 3 beobachtet); das Laden aus dem Netz schaltet sich dann ein. Wenn aktiv, wird die gewählte Einstellung innerhalb von ein bis zwei Minuten zurückgeschrieben (nur signierte Verbindung).",
+              "unit_devices": "Jede Powerwall und jedes Expansion Pack bekommt ein eigenes Gerät, verknüpft mit diesem, mit seinen Sensoren für Batterie, Lüfter, Solareingänge und Wechselrichtertemperatur. Nützlich bei mehreren Powerwalls. Entitäts-IDs und Verlauf bleiben; eine Änderung lädt die Integration neu."
             }
           },
           "alerts": {
@@ -276,11 +302,15 @@
             "name": "Batteriesteuerung",
             "data": {
               "dispatch_floor_reserve": "Entladungen stoppen bei der Backup-Reserve",
-              "dispatch_max_watts": "Größte Dispatch-Leistung"
+              "dispatch_max_watts": "Größte Dispatch-Leistung",
+              "dispatch_stale_minutes": "So alt darf der Batteriestand sein",
+              "dispatch_grid_charging": "Laden aus dem Netz für eine Ladung einschalten"
             },
             "data_description": {
               "dispatch_floor_reserve": "Eine ohne `min_soc` gestartete Entladung stoppt, wenn die Batterie die Backup-Reserve erreicht.",
-              "dispatch_max_watts": "Dispatch-Aufrufe über dieser Leistung werden abgelehnt (höchstens 30.000 W). Stelle ein, was dein System liefern kann: eine Powerwall 3 lehnt mehr als 10.000 W ab. Eine Erhöhung liegt in deiner Verantwortung: stelle nur ein, was deine Verkabelung, Sicherungen, dein Gateway und dein Netzanschluss zulassen."
+              "dispatch_max_watts": "Dispatch-Aufrufe über dieser Leistung werden abgelehnt (höchstens 30.000 W). Stelle ein, was dein System liefern kann: eine Powerwall 3 lehnt mehr als 10.000 W ab. Eine Erhöhung liegt in deiner Verantwortung: stelle nur ein, was deine Verkabelung, Sicherungen, dein Gateway und dein Netzanschluss zulassen.",
+              "dispatch_stale_minutes": "Ein Laden oder Entladen wird nur mit einem höchstens so alten Batteriestand gestartet oder verlängert (1–5 Minuten, Standard 2; nie weniger als 2½ Abfrageintervalle). Während einer Steuerung ignoriert die Powerwall ihre Notstromreserve, und ihre Grenzen werden gegen diesen Stand geprüft: jede Minute mehr lässt eine 10-kW-Steuerung etwa 0,17 kWh weiter über eine Grenze laufen. Nur erhöhen, wenn eine langsame Verbindung Steuerungen immer wieder pausiert.",
+              "dispatch_grid_charging": "Eine Lade-Steuerung (auch `charge_to`) schaltet Laden aus dem Netz ein, wenn es aus ist, damit sie aus dem Netz laden kann, und schaltet es am Ende der Steuerung wieder aus, sofern es zwischendurch nicht geändert wurde. Laden aus dem Netz kann je nach Tarif Geld kosten."
             }
           },
           "advanced": {
@@ -292,11 +322,37 @@
             },
             "data_description": {
               "tesla_tariff": "Den Tarif, den Tesla für die zeitbasierte Steuerung nutzt, über das Cloud-Backup lesen (Sensoren, Kalender und Aktionen zum Lesen/Setzen). Nur Cloud.",
-              "cloud_readings": "Solange das Gateway nicht erreichbar ist, Leistung und Batteriestand stattdessen aus dem Cloud-Backup anzeigen (sie tragen das Attribut `source: cloud` und können einige Minuten alt sein). Energiezähler und alles andere bleiben nicht verfügbar. Aus: alle Messwerte sind nicht verfügbar, bis das Gateway antwortet.",
+              "cloud_readings": "Solange das Gateway nicht erreichbar ist, Leistung, Batteriestand und Batterieenergie (verbleibend und volle Kapazität) stattdessen aus dem Cloud-Backup anzeigen (sie tragen das Attribut `source: cloud` und können einige Minuten alt sein). Energiezähler und alles andere bleiben nicht verfügbar. Aus: alle Messwerte sind nicht verfügbar, bis das Gateway antwortet.",
+              "diagnostics_gateway_config": "Die Konfiguration des Gateways zu Diagnose-Downloads hinzufügen, ohne Seriennummern, Standort, Namen und Zugangsdaten. Hilfreich für Fehlerberichte."
+            }
+          },
+          "advanced_no_cloud": {
+            "name": "Erweitert",
+            "data": {
+              "diagnostics_gateway_config": "Gateway-Konfiguration in der Diagnose"
+            },
+            "data_description": {
               "diagnostics_gateway_config": "Die Konfiguration des Gateways zu Diagnose-Downloads hinzufügen, ohne Seriennummern, Standort, Namen und Zugangsdaten. Hilfreich für Fehlerberichte."
             },
-            "description": "Die Option **Tesla-Tarif** erscheint hier, sobald ein Cloud-Backup eingerichtet ist: Wähle im Menü zuerst **Tesla-Konto verknüpfen** oder **Bei Tesla Fleet oder Teslemetry anmelden**."
+            "description": "Die Option „Tesla-Tarif“ erscheint hier, sobald ein Cloud-Backup eingerichtet ist: Wähle im Menü zuerst „Tesla-Konto verknüpfen“ oder „Bei Tesla Fleet oder Teslemetry anmelden“."
           }
+        }
+      },
+      "mqtt": {
+        "title": "MQTT",
+        "description": "Messwerte, Einstellungen, Status und Ereignisse dieser Powerwall über die MQTT-Integration von Home Assistant veröffentlichen, für Werkzeuge außerhalb von Home Assistant. Standardmäßig aus; braucht die MQTT-Integration. Themen und Nachrichten enthalten nie die Kennung, Seriennummern oder Adresse des Gateways. Beim Ausschalten werden die gespeicherten (retained) Nachrichten entfernt.",
+        "data": {
+          "mqtt_publish": "An MQTT veröffentlichen",
+          "mqtt_base_topic": "Basisthema",
+          "mqtt_commands": "Einstellungsbefehle annehmen",
+          "mqtt_battery_commands": "Befehle zur Batteriesteuerung annehmen",
+          "mqtt_secret": "Befehlsgeheimnis (optional)"
+        },
+        "data_description": {
+          "mqtt_base_topic": "Nachrichten gehen an `Basis/power`, /battery, /energy, /settings, /status und /event/…. Buchstaben, Ziffern, _ und -, getrennt durch /. Jede Powerwall braucht ein eigenes.",
+          "mqtt_commands": "Betriebsmodus, Notstromreserve, Netzladen und Netzeinspeisung, über `Basis/cmd/…`, mit denselben Prüfungen wie die Entitäten. Braucht eingeschaltete Veröffentlichung. Jeder, der an deinen Broker veröffentlichen kann, kann sie nutzen: schränke das mit den Zugriffsregeln des Brokers ein oder setze ein Geheimnis.",
+          "mqtt_battery_commands": "Batteriesteuerung, Laden und Entladen auf einen Stand, Fortsetzen und maximale Reserve, mit allen Grenzen der Aktionen. Nur mit eingeschalteten Einstellungsbefehlen. Lies zuerst „Sicherheit“.",
+          "mqtt_secret": "Wenn gesetzt, läuft ein Befehl nur, wenn sein Feld token übereinstimmt."
         }
       },
       "cloud_backup": {
@@ -330,13 +386,25 @@
       },
       "unlink_account": {
         "title": "Eine Cloud-Sicherung trennen",
-        "description": "Wähle die Cloud-Sicherung, die nicht mehr genutzt werden soll. **Owner API:** das hier verknüpfte Tesla-Konto wird entfernt (die gespeicherte Anmeldung bleibt auf der Festplatte, bis du den Ordner `tesla_tedapi` entfernst). **Tesla Fleet:** diese Integration nutzt sie nicht mehr; die Integration Tesla Fleet oder Teslemetry selbst bleibt unverändert. Einstellungen werden dann über die andere Sicherung oder nur über die lokale Verbindung geändert.",
+        "description": "Wähle die Cloud-Sicherung, die nicht mehr genutzt werden soll. **Owner API:** das hier verknüpfte Tesla-Konto wird entfernt (auch die gespeicherte Anmeldung wird entfernt, außer eine andere Powerwall nutzt dasselbe Konto). **Tesla Fleet:** diese Integration nutzt sie nicht mehr; die Integration Tesla Fleet oder Teslemetry selbst bleibt unverändert. Einstellungen werden dann über die andere Sicherung oder nur über die lokale Verbindung geändert.",
         "data": {
           "backup": "Cloud-Sicherung"
         },
         "data_description": {
           "backup": "Die Sicherung, die nicht mehr genutzt werden soll."
         }
+      },
+      "local_only": {
+        "title": "Nur lokal",
+        "description": "Entfernt jede hier gespeicherte Tesla-Anmeldung (auch die gespeicherten Tokens des Tesla-Kontos, außer eine andere Powerwall nutzt dasselbe Konto) und schaltet die Cloud-Sicherung aus. Der signierte Schlüssel funktioniert weiter: Messwerte und Einstellungen gehen an das Gateway in deinem Netzwerk, und nichts erreicht die Server von Tesla.\n\nFunktioniert nicht mehr, und die Entitäten werden entfernt: Storm Watch, die Off-Grid-Reserve, Wall Connectors und der Tesla-Tarif. Einstellungen lassen sich nicht ändern, solange das Gateway nicht erreichbar ist, und einen neuen Schlüssel zu registrieren braucht wieder eine Tesla-Anmeldung."
+      },
+      "new_key": {
+        "title": "Neuen Schlüssel registrieren",
+        "description": "Diese Powerwall hat bereits einen funktionierenden Schlüssel. Ein neuer Schlüssel braucht eine Tesla-Anmeldung und den Ein/Aus-Schalter an der Powerwall; der aktuelle Schlüssel funktioniert weiter, bis der neue bestätigt ist.\n\nMit Absenden starten. Schließe dieses Fenster, um den aktuellen Schlüssel zu behalten: Es ändert sich nichts."
+      },
+      "fleet_signin": {
+        "title": "Bei Tesla Fleet oder Teslemetry anmelden",
+        "description": "Melde dich bei Tesla Fleet (deine eigene Entwickler-App) oder Teslemetry (ein Zugriffstoken) für das Cloud-Backup an. Es geht als Aufforderung zur erneuten Authentifizierung auf der Karte dieser Powerwall weiter; eine hier gespeicherte Anmeldung bleibt, bis die neue funktioniert.\n\nMit Absenden starten. Schließe dieses Fenster, damit sich nichts ändert."
       }
     },
     "error": {
@@ -344,7 +412,9 @@
       "cloud_error": "Der Tesla-Dienst hat einen Fehler gemeldet. Versuche es in einer Minute erneut.",
       "owner_api_refused": "Du bist angemeldet, aber die Tesla Owner API hat den Token abgelehnt (HTTP 403). Melde dich erneut an; passiert das immer wieder, hat Tesla vielleicht seine Anmelderegeln erneut geändert: bitte melde ein Problem (Issue).",
       "invalid_token": "Tesla hat diesen Refresh-Token nicht akzeptiert. Er ist vielleicht abgelaufen oder wurde von einer anderen App verwendet: hol dir einen neuen aus deiner Token-App. Der Anmeldelink ist unverändert.",
-      "invalid_callback": "Das ist keine Anmeldeadresse vom Link oben. Füge die vollständige Adresse `tesla://auth/callback?code=…` von diesem Link ein (ein älterer Link funktioniert nicht mehr) oder einen Refresh-Token. Der Link ist unverändert."
+      "invalid_callback": "Das ist keine Anmeldeadresse vom Link oben. Füge die vollständige Adresse `tesla://auth/callback?code=…` von diesem Link ein (ein älterer Link funktioniert nicht mehr) oder einen Refresh-Token. Der Link ist unverändert.",
+      "invalid_base_topic": "Buchstaben, Ziffern, _ und -, getrennt durch / (keine Leerzeichen, + oder #, kein / am Anfang oder Ende).",
+      "base_topic_in_use": "Eine andere Powerwall veröffentlicht bereits unter diesem Basisthema."
     },
     "abort": {
       "no_sites": "In diesem Tesla-Konto wurde keine Powerwall gefunden. Melde dich mit dem Tesla-Konto an, dem die Powerwall gehört (dem, das sie in der Tesla-App anzeigt).",
@@ -554,11 +624,35 @@
           "wifi": "WLAN-Passwort"
         }
       },
+      "connection_path": {
+        "name": "Verbindungsweg",
+        "state": {
+          "signed": "Signierte Verbindung",
+          "wifi_fallback": "Signiert, über das WLAN-Ausweichnetz",
+          "wifi_password": "WLAN-Passwort",
+          "cloud": "Nur Cloud-Sicherung",
+          "none": "Keiner"
+        },
+        "state_attributes": {
+          "last_local_read": {
+            "name": "Gateway zuletzt erreicht"
+          },
+          "last_known_settings": {
+            "name": "Zuletzt bekannte Einstellungen"
+          }
+        }
+      },
       "pack_capacity": {
         "name": "{pack} Kapazität"
       },
+      "unit_pack_capacity": {
+        "name": "Batteriekapazität"
+      },
       "pack_temperature": {
         "name": "{pack} Temperatur"
+      },
+      "unit_pack_temperature": {
+        "name": "Batterietemperatur"
       },
       "alert_level": {
         "name": "Alarmstufe",
@@ -591,6 +685,9 @@
       "fan_speed": {
         "name": "Lüfter {fan} Drehzahl"
       },
+      "unit_fan_speed": {
+        "name": "Lüfterdrehzahl"
+      },
       "last_grid_outage": {
         "name": "Letzter Netzausfall",
         "state_attributes": {
@@ -622,11 +719,36 @@
           }
         }
       },
+      "unit_pack_health": {
+        "name": "Batteriezustand",
+        "state_attributes": {
+          "nominal_kwh": {
+            "name": "Nennkapazität"
+          },
+          "warranty_kwh": {
+            "name": "Garantiegrenze"
+          }
+        }
+      },
       "pack_discharged": {
         "name": "{pack} Entladung gesamt"
       },
+      "unit_pack_discharged": {
+        "name": "Batterie Entladung gesamt"
+      },
       "pack_cycles": {
         "name": "{pack} Zyklen",
+        "state_attributes": {
+          "bms_full_cycles": {
+            "name": "Vollzyklen (Akku)"
+          },
+          "over_discharges": {
+            "name": "Tiefentladungen"
+          }
+        }
+      },
+      "unit_pack_cycles": {
+        "name": "Batteriezyklen",
         "state_attributes": {
           "bms_full_cycles": {
             "name": "Vollzyklen (Akku)"
@@ -903,12 +1025,15 @@
     },
     "key_not_removed": {
       "message": "Der Schlüssel wurde nicht entfernt: {error}"
+    },
+    "off_grid_daily_limit": {
+      "message": "Die heute erlaubte netzgetrennte Zeit zur Abregelung ({minutes} min) ist aufgebraucht."
     }
   },
   "services": {
     "dispatch_battery_power": {
       "name": "Batterieleistung steuern",
-      "description": "Betreibt die Batterie über die signierte lokale Verbindung für eine festgelegte Zeit mit fester Leistung. Positive Watt entladen, negative laden, 0 hält die Batterie im Leerlauf. Übersteuert die Einspeiseeinstellung; eine Entladung stoppt bei der Backup-Reserve, außer `min_soc` ist angegeben (optional). Die Integration erneuert den Befehl jede Minute in kurzen Schritten, sodass die Powerwall innerhalb von 5 Minuten zum Normalbetrieb zurückkehrt, wenn Home Assistant stoppt. Ein neuer Aufruf ersetzt einen laufenden Dispatch. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
+      "description": "Betreibt die Batterie über die signierte lokale Verbindung für eine festgelegte Zeit mit fester Leistung. Positive Watt entladen, negative laden, 0 hält die Batterie im Leerlauf. Übersteuert die Einspeiseeinstellung; eine Entladung stoppt bei der Backup-Reserve, außer `min_soc` ist angegeben (optional). Die Integration erneuert den Befehl alle 30 Sekunden in kurzen Schritten, sodass die Powerwall innerhalb von 2 Minuten zum Normalbetrieb zurückkehrt, wenn Home Assistant stoppt. Ein neuer Aufruf ersetzt einen laufenden Dispatch. Nutzung auf eigenes Risiko: Das Steuern des Akkus kann die Powerwall-Garantie beeinflussen, die unbegrenzte Zyklen möglicherweise nur für Eigenverbrauch, zeitbasierte Steuerung und Notstrom abdeckt.",
       "fields": {
         "config_entry_id": {
           "name": "Powerwall",
@@ -929,6 +1054,36 @@
         "max_soc": {
           "name": "Laden stoppen bei",
           "description": "Beendet ein Laden, wenn der Batteriestand (Skala der Tesla-App) diesen Prozentwert erreicht."
+        }
+      }
+    },
+    "freeze_battery": {
+      "name": "Batterie einfrieren",
+      "description": "Betreibt die Batterie über die signierte lokale Verbindung nur in eine Richtung, mit der Leistung, die die Messwerte ergeben. `charge_only` lädt aus dem Solarstrom, den das Haus nicht braucht, und entlädt nie; `discharge_only` deckt, was das Haus über den Solarstrom hinaus braucht, und lädt nie, sodass überschüssiger Solarstrom eingespeist wird. Die Leistung folgt jedem Messwert, dazwischen kann also etwas aus dem Netz kommen oder ins Netz gehen; ohne frischen Messwert wird die Batterie gehalten. Gedacht für Predbats Freeze Charging und Freeze Exporting. Schaltet nie das Laden aus dem Netz ein; sonst wie ein Batterie-Dispatch, mit demselben Risiko für die Powerwall-Garantie.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Powerwall",
+          "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "direction": {
+          "name": "Richtung",
+          "description": "`charge_only`: keine Entladung, lädt aus überschüssigem Solarstrom. `discharge_only`: keine Ladung, deckt das Haus."
+        },
+        "duration_seconds": {
+          "name": "Dauer",
+          "description": "Wie lange eingefroren wird, in Sekunden (bis zu 24 Stunden)."
+        },
+        "max_power_watts": {
+          "name": "Größte Leistung",
+          "description": "Höchstens so viel lädt oder entlädt die Batterie, in Watt. Standard: Größte Dispatch-Leistung (Integrationsoptionen)."
+        },
+        "min_soc": {
+          "name": "Entladen stoppen bei",
+          "description": "Mit `discharge_only` wird die Batterie gehalten, sobald ihr Stand (Skala der Tesla-App) auf diesen Prozentwert fällt. Standard: die Backup-Reserve."
+        },
+        "max_soc": {
+          "name": "Laden stoppen bei",
+          "description": "Mit `charge_only` wird die Batterie gehalten, sobald ihr Stand (Skala der Tesla-App) diesen Prozentwert erreicht."
         }
       }
     },
@@ -1029,6 +1184,14 @@
         "min_soc": {
           "name": "Wieder verbinden bei",
           "description": "Wieder verbinden, wenn der Batteriestand (Skala der Tesla-App) auf diesen Prozentwert fällt. Standard: die Backup-Reserve."
+        },
+        "curtailment": {
+          "name": "Zur Abregelung",
+          "description": "Letztes Mittel, um Solar an den eigenen Eingängen der Powerwall zu begrenzen: netzgetrennt erzeugt sie nur, was Haus und Batterie aufnehmen. Verbindet wieder, wenn die Batterie auf 40 % fällt (oder die Backup-Reserve, falls höher), sofern Wieder verbinden bei nicht gesetzt ist, um Mitternacht und sobald das Tageslimit aufgebraucht ist. Das Schalten des Netzschützes verursacht Verschleiß: zuerst Netzeinspeisung *never* versuchen."
+        },
+        "daily_limit_minutes": {
+          "name": "Tageslimit",
+          "description": "Mit Zur Abregelung: pro Tag erlaubte netzgetrennte Zeit zur Abregelung (Standard 6 Stunden)."
         }
       }
     },
@@ -1039,6 +1202,10 @@
         "config_entry_id": {
           "name": "Powerwall",
           "description": "Nur nötig, wenn mehr als eine Powerwall eingerichtet ist."
+        },
+        "curtailment_only": {
+          "name": "Nur eine Abregelung",
+          "description": "Nur wieder verbinden, wenn das Haus hier zur Abregelung vom Netz getrennt wurde; sonst nichts tun. Für Automationen, die keine Netztrennung beenden sollen, die sie nicht gestartet haben."
         }
       }
     },
@@ -1283,6 +1450,14 @@
     "powerwall_follower_missing": {
       "title": "Eine Powerwall 3 fehlt in den Messwerten",
       "description": "{count} Powerwall 3 aus der Gateway-Konfiguration erscheinen nicht in den Messwerten. Summen für Leistung, Energie und Kapazität enthalten bereits jede Powerwall; nur Akkupacks, Temperaturen und Lüfter der fehlenden Geräte fehlen.\n\nDie Meldung verschwindet von selbst, sobald sie erscheinen. Wenn sie bleibt, lade die Diagnosedaten herunter und eröffne ein Issue."
+    },
+    "mqtt_unavailable": {
+      "title": "MQTT-Veröffentlichung kann nicht starten",
+      "description": "Die MQTT-Veröffentlichung ist für {name} eingeschaltet, aber die MQTT-Integration von Home Assistant ist nicht eingerichtet oder nicht gestartet. Richte die MQTT-Integration ein oder schalte die Veröffentlichung in den Optionen der Integration aus (**Konfigurieren → MQTT**). Alles andere funktioniert weiter."
+    },
+    "wrong_gateway": {
+      "title": "Unter der Adresse von {name} antwortet eine andere Powerwall",
+      "description": "Das Gateway unter der für {name} eingetragenen Adresse ist eine andere Powerwall (ihre Kennung passt nicht), zum Beispiel nachdem der Router die Adresse einem anderen Gerät gegeben hat. Von ihm wird nichts gelesen und nichts an es gesendet. Trage unter **Neu konfigurieren** die richtige Adresse ein (eine feste Adresse oder DHCP-Reservierung für das Gateway verhindert das). Dieser Hinweis verschwindet, sobald das eigene Gateway von {name} dort wieder antwortet."
     }
   },
   "selector": {
@@ -1341,11 +1516,19 @@
         "pws_a044_hvprsdfault": "Störung der Schnellabschaltung der Batterie",
         "pws_a045_battvrationality": "Batteriespannung ist unplausibel",
         "batterycalibration": "Die Batterie kalibriert ihren Ladestand",
+        "calibrationrequested": "Die Powerwall hat eine Kalibrierung ihres Ladestands angefordert: Sie kann die Batterie fast leeren, mit Einspeisung unabhängig von den Einstellungen, und dann voll laden (vor und während einer Kalibrierung beobachtet)",
         "realpowerconfiglimited": "Die Leistung wird unter einer eingestellten Grenze gehalten",
         "batterycomms": "Das Gateway kann nicht mit einer Batterie kommunizieren",
         "gridcodeswrite": "Das Gateway schreibt seine Netzcode-Einstellungen",
         "podcommissiontime": "Eine Batterie speichert ihren Inbetriebnahmezeitpunkt",
-        "solarmetercomms": "Verbindung zum Solarzähler verloren (kurze Aussetzer sind häufig)"
+        "solarmetercomms": "Verbindung zum Solarzähler verloren (kurze Aussetzer sind häufig)",
+        "pws_a082_powerlimits": "Die Powerwall hat ihre Leistung kurz an einer Grenze gehalten (beobachtet beim Einspeisen an der Einspeisegrenze des Standorts)",
+        "highcontrolloopjitter": "Das Regel-Timing des Gateways war kurz unregelmäßig (beobachtet bei Einspeisung mit voller Leistung)",
+        "bms_a083_nvram_filecache": "Das Batteriemanagement hat ein Problem mit seinem Cache für gespeicherte Daten gemeldet (beobachtet nach einem Firmware-Update)",
+        "pws_a091_nvmmmigratestuck": "Eine Speichermigration in der Powerwall ist nicht abgeschlossen (beobachtet nach einem Firmware-Update)",
+        "solarchargeonlylimited": "Laden wurde angefordert, aber nur Solarstrom darf die Batterie laden (Netzladen aus)",
+        "rampratelimited": "Wie schnell sich die Leistung ändern darf, wird begrenzt (oft beim Laden beobachtet)",
+        "pws_a007_mcipvirrationalabc": "Die Powerwall hat ihre Messwerte der Solareingänge (A–C) als unplausibel erkannt (bei Sonnenaufgang beobachtet)"
       }
     },
     "alert_short": {
@@ -1379,11 +1562,19 @@
         "pws_a045_battvrationality": "Batteriespannung unplausibel",
         "no_alerts": "Keine",
         "batterycalibration": "Batterie kalibriert",
+        "calibrationrequested": "Kalibrierung angefordert",
         "realpowerconfiglimited": "Leistung durch Einstellung begrenzt",
         "batterycomms": "Batterie nicht erreichbar",
         "gridcodeswrite": "Netzeinstellungen werden geschrieben",
         "podcommissiontime": "Batterie-Inbetriebnahme",
-        "solarmetercomms": "Solarzähler nicht erreichbar"
+        "solarmetercomms": "Solarzähler nicht erreichbar",
+        "pws_a082_powerlimits": "Leistung an einer Grenze",
+        "highcontrolloopjitter": "Regel-Timing unregelmäßig",
+        "bms_a083_nvram_filecache": "Problem im Batterie-Datencache",
+        "pws_a091_nvmmmigratestuck": "Speichermigration nicht abgeschlossen",
+        "solarchargeonlylimited": "Laden auf Solar begrenzt",
+        "rampratelimited": "Leistungsrampe begrenzt",
+        "pws_a007_mcipvirrationalabc": "Solarmesswerte unplausibel"
       }
     },
     "logbook": {
@@ -1420,6 +1611,12 @@
       "options": {
         "import": "Bezug",
         "export": "Einspeisung"
+      }
+    },
+    "freeze_direction": {
+      "options": {
+        "charge_only": "Nur laden (aus überschüssigem Solarstrom)",
+        "discharge_only": "Nur entladen (deckt das Haus)"
       }
     },
     "reauth_connect_failed": {
