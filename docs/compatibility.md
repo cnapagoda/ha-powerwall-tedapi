@@ -27,7 +27,7 @@ This integration uses interfaces Tesla doesn't document, so what works depends o
 | Storm Watch events (**Backup event**) | ✅ a real Storm Watch event seen on 26.42.1 (thanks [@shaggyblue](https://github.com/shaggyblue)) | 🟡 the Storm Watch setting tested on 26.34.2; events ❓ |
 | Go off-grid / reconnect | ✅ | 🟡 tested on 26.34.2 (timed and manual reconnect) |
 | Off-grid to limit solar (`curtailment`) | 🟡 off-grid and the `curtailment_only` reconnect tested on 26.34.3; the solar limit itself not yet seen (the battery took all the solar) | ❓ |
-| `freeze_battery` | 🟡 both directions tested on 26.34.3; `discharge_only` so far only while solar covered the home | ❓ |
+| `freeze_battery` | ✅ both directions tested on 26.34.3 (`discharge_only` also with the home above solar) | ❓ |
 | Grid charging for a charge dispatch | ✅ tested on 26.34.3 (turned on, and off again when the dispatch ended) | ❓ |
 | Solar input *A–F* sensors | ✅ built-in inverter | ❓ a Powerwall+ solar inverter may report them; reports welcome |
 | Fan speeds | ✅ inverter fans A/B, with duty | 🟡 Powerwall+ only: one fan per solar inverter, with target speed. ❌ Powerwall 2 without the solar inverter: none |
