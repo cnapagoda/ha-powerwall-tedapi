@@ -97,7 +97,7 @@ Run the battery one way only, at the power the readings call for. Made for Predb
 
 It runs as a dispatch (above): the same 2-minute steps, **Dispatch active** and [`tesla_tedapi_dispatch_ended`](events.md#tesla_tedapi_dispatch_ended), and a new call (a dispatch or a freeze) replaces it. The differences:
 
-- The power follows each reading, so a little may come from or go to the grid between readings.
+- The power follows each reading, so when the home's use changes suddenly, the difference comes from or goes to the grid until the next reading (one polling interval).
 - At `min_soc` or `max_soc`, or without a fresh local reading, the battery is held (0 W) and the freeze goes on; it doesn't end there.
 - It never turns **Grid charging** on.
 
@@ -332,7 +332,7 @@ response_variable: limits
 
 ## `tesla_tedapi.delay_battery_calibration`
 
-Postpones the Powerwall's next battery calibration by `delay_hours` (1–168). The gateway allows a limited number of delays (see **Calibration delays left**), and each call may use one. A calibration can't be started this way, only postponed. Some firmware doesn't support it (a Powerwall 3 on 26.34.3 doesn't): the action then says so. Returns the calibration delay status where the firmware reports it.
+Postpones the Powerwall's next battery calibration by `delay_hours` (1–168; the Tesla app offers 1 to 3 days). The gateway allows a limited number of delays (see **Calibration delays left**), and each call may use one. A calibration can't be started this way, only postponed. Some firmware doesn't support it (a Powerwall 3 on 26.34.3 doesn't): the action then says so. Returns the calibration delay status where the firmware reports it.
 
 | Field | Required | |
 |---|---|---|
