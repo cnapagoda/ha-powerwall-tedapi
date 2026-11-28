@@ -54,7 +54,8 @@ async def test_curtailment_run(hass: HomeAssistant, fake_powerwall, freezer) -> 
     assert [(e.data["reason"], e.data["curtailment"]) for e in events] == [("requested", True)]
 
 
-async def test_floor_reserve_and_own_level(hass: HomeAssistant, fake_powerwall) -> None:
+async def test_floor_reserve_and_own_level(hass: HomeAssistant, fake_powerwall, freezer) -> None:
+    freezer.move_to(MORNING)  # a 30-minute run fits before the end of the day
     entry = await _setup(hass, V1R)
     entry.runtime_data.coordinator.data["reserve"] = 45.0
     await _go(hass, curtailment=True)
